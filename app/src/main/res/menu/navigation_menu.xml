@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- HOME Section -->
+    <group android:id="@+id/group_home">
+        <item
+            android:id="@+id/nav_dashboard"
+            android:icon="@drawable/ic_dashboard"
+            android:title="Dashboard" />
+
+        <item
+            android:id="@+id/nav_shops"
+            android:icon="@drawable/ic_store"
+            android:title="Shops" />
+    </group>
+
+    <!-- SHOP Section Header -->
+    <item
+        android:id="@+id/nav_section_shop"
+        android:title="SHOP"
+        android:enabled="false">
+        <menu>
+            <item
+                android:id="@+id/nav_shop_home"
+                android:icon="@drawable/ic_home"
+                android:title="Home" />
+        </menu>
+    </item>
+
+    <!-- BUSINESS OPERATIONS Section Header -->
+    <item
+        android:id="@+id/nav_section_business_operations"
+        android:title="BUSINESS OPERATIONS"
+        android:enabled="false">
+        <menu>
+            <item
+                android:id="@+id/nav_sales"
+                android:icon="@drawable/ic_sales"
+                android:title="Sales" />
+
+            <item
+                android:id="@+id/nav_finance"
+                android:icon="@drawable/ic_finance"
+                android:title="Finance" />
+
+            <item
+                android:id="@+id/nav_inventory"
+                android:icon="@drawable/ic_inventory"
+                android:title="Inventory" />
+
+            <item
+                android:id="@+id/nav_transfers"
+                android:icon="@drawable/ic_transfer"
+                android:title="Transfers" />
+        </menu>
+    </item>
+
+    <!-- MANAGEMENT Section Header -->
+    <item
+        android:id="@+id/nav_section_management"
+        android:title="MANAGEMENT"
+        android:enabled="false">
+        <menu>
+            <item
+                android:id="@+id/nav_employees"
+                android:icon="@drawable/ic_employees"
+                android:title="Employees" />
+        </menu>
+    </item>
+
+    <!-- CUSTOMERS Section (Separate group for spacing) -->
+    <group android:id="@+id/group_customers">
+        <item
+            android:id="@+id/nav_customers"
+            android:icon="@drawable/ic_customers"
+            android:title="Customers" />
+    </group>
+
+    <!-- Divider -->
+    <item
+        android:id="@+id/nav_divider"
+        android:title=""
+        android:enabled="false">
+        <menu>
+            <item android:title="">
+                <view
+                    class="android.view.View"
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/divider" />
+            </item>
+        </menu>
+    </item>
+
+    <!-- SETTINGS Section -->
+    <group android:id="@+id/group_settings">
+        <item
+            android:id="@+id/nav_account"
+            android:icon="@drawable/ic_account"
+            android:title="Account" />
+
+        <item
+            android:id="@+id/nav_contact_us"
+            android:icon="@drawable/ic_contacts"
+            android:title="Contact Us" />
+
+        <item
+            android:id="@+id/nav_logout"
+            android:icon="@drawable/ic_logout"
+            android:title="Logout" />
+    </group>
+
+</menu>
