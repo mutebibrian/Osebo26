@@ -176,8 +176,8 @@ class CustomersFragment : Fragment() {
             // Filter customers based on search query
             val filteredCustomers = customerAdapter.currentList.filter { customer ->
                 customer.name.contains(query, ignoreCase = true) ||
-                        customer.email.contains(query, ignoreCase = true) ||
-                        customer.phone.contains(query, ignoreCase = true)
+                        customer.email?.contains(query, ignoreCase = true) == true ||
+                        customer.phone?.contains(query, ignoreCase = true) == true
             }
             customerAdapter.submitCustomerList(filteredCustomers)
 

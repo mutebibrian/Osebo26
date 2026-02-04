@@ -1,0 +1,33 @@
+package com.devbrian.osebo.viewholders
+
+import android.view.View
+import android.widget.Button
+import android.widget.TextView
+import androidx.recyclerview.widget.RecyclerView
+import com.devbrian.osebo.R
+import com.devbrian.osebo.models.UserRole
+import java.util.Locale
+
+class UserRoleViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+    private val roleNameTextView: TextView = itemView.findViewById(R.id.roleNameTextView)
+    private val roleDescriptionTextView: TextView = itemView.findViewById(R.id.roleDescriptionTextView)
+    val editButton: Button = itemView.findViewById(R.id.editButton)
+
+    fun bind(role: UserRole) {
+        roleNameTextView.text = role.name
+        roleDescriptionTextView.text = role.description
+
+        // Customize based on role type
+        when (role.name.lowercase(Locale.ROOT)) {
+            "owner" -> {
+                editButton.visibility = View.GONE // Owners cannot be edited
+            }
+            "manager" -> {
+                editButton.text = "Edit Permissions"
+            }
+            "staff" -> {
+                editButton.text = "Edit Permissions"
+            }
+        }
+    }
+}

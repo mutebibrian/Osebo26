@@ -12,6 +12,8 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.devbrian.osebo.R
+import com.devbrian.osebo.ShopCreationActivity
+import com.devbrian.osebo.data.PreferenceManager
 
 class LoginActivity : AppCompatActivity() {
 
@@ -24,11 +26,14 @@ class LoginActivity : AppCompatActivity() {
     private lateinit var etPassword: EditText
     private lateinit var btnLogin: Button
     private lateinit var tvSignUp: TextView
+    private lateinit var preferenceManager: PreferenceManager // Correct class name
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
 
+        // Initialize using singleton pattern
+        preferenceManager = PreferenceManager.getInstance(this)
         initViews()
         setupListeners()
     }
@@ -46,7 +51,6 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun setupListeners() {
-
         rbEmail.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
                 emailLayout.visibility = View.VISIBLE
@@ -110,7 +114,67 @@ class LoginActivity : AppCompatActivity() {
             return
         }
 
-        // TODO: Connect to API / Firebase Authentication
-        Toast.makeText(this, "Login successful (demo)", Toast.LENGTH_SHORT).show()
+        // Simulate login process
+        performLogin()
+    }
+
+    private fun performLogin() {
+        // Show loading state
+        btnLogin.isEnabled = false
+        btnLogin.text = "Logging in..."
+
+        // Get credentials
+        val email = if (rbEmail.isChecked) etEmail.text.toString().trim() else "user@example.com"
+        val phone = if (rbPhone.isChecked) etPhone.text.toString().trim() else ""
+
+        // Generate demo user ID and token
+        val userId = "user_${System.currentTimeMillis()}"
+        val demoToken = "demo_token_${System.currentTimeMillis()}"
+
+        // Simulate API call delay
+        Thread {
+            // Simulate network delay
+            Thread.sleep(2000)
+
+            runOnUiThread {
+                btnLogin.isEnabled = true
+                btnLogin.text = "Login"
+
+                // For demo, simulate successful login
+                val loginSuccess = true
+
+                if (loginSuccess) {
+                    // ✅ CORRECT: Use preferenceManager with correct method signature
+                    preferenceManager.saveUserData(
+                        userId = userId,
+                        email = email,
+                        name = "Demo User"
+                    )
+
+                    // ✅ Save auth token separately
+                    preferenceManager.saveAuthToken(demoToken)
+
+                    // ✅ Save phone if provided
+                    if (phone.isNotEmpty()) {
+                        preferenceManager.saveUserPhone(phone)
+                    }
+
+                    // Show success message
+                    Toast.makeText(this@LoginActivity, "Login successful", Toast.LENGTH_SHORT).show()
+
+                    // Navigate to ShopCreationActivity
+                    navigateToShopCreation()
+                } else {
+                    Toast.makeText(this@LoginActivity, "Login failed. Please try again.", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }.start()
+    }
+
+    private fun navigateToShopCreation() {
+        val intent = Intent(this, ShopCreationActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
+        finish()
     }
 }

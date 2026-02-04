@@ -371,7 +371,7 @@ class FinanceFragment : Fragment() {
         popup.show()
     }
 
-    // Navigation Methods
+    // navigation Methods
     private fun navigateToAddIncome() {
         Toast.makeText(requireContext(), "Navigate to Add Income", Toast.LENGTH_SHORT).show()
     }

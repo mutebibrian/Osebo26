@@ -12,9 +12,9 @@
 
     <!-- Text Colors -->
     <color name="text_primary">#212121</color>
-    <color name="text_secondary">#757575</color>
-    <color name="text_hint">#9E9E9E</color>
-    <color name="text_on_primary">#FFFFFF</color>
+    <color name="text_secondary">#0A0A0A</color>
+    <color name="text_hint">#171616</color>
+    <color name="text_on_primary">#131313</color>
 
     <!-- Backgrounds -->
     <color name="background">#F8FAFC</color>
@@ -81,6 +81,7 @@
         <color name="cyan_500">#00BCD4</color>
         <color name="indigo_500">#3F51B5</color>
         <color name="teal_500">#009688</color>
+    <color name="error_light">#FFEBEE</color>
 
         <!-- Grey Scale -->
 
@@ -99,7 +100,6 @@
 
         <!-- Customer Colors -->
         <color name="customer_vip">#FFF8E1</color>
-        <color name="customer_regular">#FFFFFF</color>
         <color name="customer_new">#E8F5E9</color>
 
         <!-- Inventory Colors -->
@@ -215,5 +215,132 @@
     <color name="high_value_product">#9C27B0</color>
     <color name="yellow_warning">#FFC107</color>
 
+    <!-- Existing colors -->
+
+
+
+    <!-- Navigation drawer colors -->
+
+    <color name="green_500">#4CAF50</color>
+    <color name="blue_500">#2196F3</color>
+
+    <!-- Navigation drawer colors -->
+    <color name="nav_item_tint">@android:color/black</color>
+    <color name="nav_item_text">@android:color/black</color>
+
+
+
+        <!-- Primary Colors -->
+        <color name="primary_color">#2196F3</color>
+
+
+        <!-- Secondary Colors -->
+        <color name="secondary_color">#FF9800</color>
+        <color name="secondary_dark">#F57C00</color>
+        <color name="secondary_light">#FFF3E0</color>
+
+        <!-- Status Colors -->
+        <color name="success_green">#4CAF50</color>
+        <color name="error_red">#F44336</color>
+        <color name="warning_yellow">#FFC107</color>
+
+        <!-- Border Colors -->
+        <color name="border_grey">#E0E0E0</color>
+
+    <!-- Accent Colors -->
+    <color name="accent_color">#FF6B35</color>
+
+    <!-- Background Colors -->
+    <color name="background_color">#F5F7FA</color>
+    <color name="surface_color">#FFFFFF</color>
+
+    <!-- Text Colors -->
+    <color name="primary_text_color">#333333</color>
+    <color name="secondary_text_color">#666666</color>
+    <color name="hint_text_color">#999999</color>
+
+    <!-- Status Colors -->
+    <color name="success_color">#4CAF50</color>
+    <color name="error_color">#F44336</color>
+    <color name="warning_color">#FF9800</color>
+    <color name="info_color">#2196F3</color>
+
+    <!-- Border/Divider Colors -->
+    <color name="divider_color">#E0E0E0</color>
+    <color name="border_color">#CCCCCC</color>
+
+        <!-- ========== PRIMARY COLORS ========== -->
+        <color name="primary_blue">#2C3E50</color>      <!-- Dark Blue -->
+        <color name="primary_green">#27AE60</color>     <!-- Success Green -->
+        <color name="primary_orange">#E67E22</color>    <!-- Accent Orange -->
+
+        <!-- ========== BACKGROUND COLORS ========== -->
+        <color name="background_white">#FFFFFF</color>
+        <color name="background_grey">#F8F9FA</color>   <!-- Light Grey Background -->
+        <color name="background_light">#F5F7FA</color>
+        <color name="background_dark">#2C3E50</color>
+
+        <!-- ========== TEXT COLORS ========== -->
+
+        <color name="text_light">#ADB5BD</color>        <!-- Light Grey -->
+        <color name="text_white">#FFFFFF</color>
+
+
+
+        <!-- ========== UI ELEMENT COLORS ========== -->
+        <color name="border_light">#DEE2E6</color>
+        <color name="border_medium">#CED4DA</color>
+        <color name="border_dark">#6C757D</color>
+
+
+
+        <!-- ========== BUTTON COLORS ========== -->
+        <color name="button_primary">#27AE60</color>
+        <color name="button_secondary">#6C757D</color>
+        <color name="button_success">#28A745</color>
+        <color name="button_danger">#DC3545</color>
+        <color name="button_warning">#FFC107</color>
+        <color name="button_info">#17A2B8</color>
+
+        <!-- ========== CHART COLORS (For Analytics) ========== -->
+        <color name="chart_blue">#3498DB</color>
+        <color name="chart_green">#2ECC71</color>
+        <color name="chart_orange">#E67E22</color>
+        <color name="chart_red">#E74C3C</color>
+        <color name="chart_purple">#9B59B6</color>
+        <color name="chart_yellow">#F1C40F</color>
+
+        <!-- ========== STATUS INDICATORS ========== -->
+        <color name="status_active">#27AE60</color>
+        <color name="status_inactive">#95A5A6</color>
+        <color name="status_pending">#F39C12</color>
+        <color name="status_expired">#E74C3C</color>
+
+
+
+        <!-- ========== SPECIFIC COMPONENT COLORS ========== -->
+        <color name="dialog_background">#FFFFFF</color>
+        <color name="toolbar_background">#2C3E50</color>
+        <color name="bottom_nav_background">#FFFFFF</color>
+
+        <!-- ========== AFRICAN FLAG COLORS ========== -->
+        <color name="africa_black">#000000</color>
+        <color name="africa_red">#E31B23</color>
+        <color name="africa_green">#008751</color>
+        <color name="africa_yellow">#FCD116</color>
+
+    <!-- Add these to your res/values/colors.xml -->
+    <color name="customer_active">#4CAF50</color> <!-- Green for active -->
+    <color name="customer_inactive">#FF9800</color> <!-- Orange for inactive -->
+    <color name="customer_blocked">#F44336</color> <!-- Red for blocked -->
+    <color name="customer_regular">#2196F3</color> <!-- Blue for regular -->
+    <color name="customer_premium">#9C27B0</color> <!-- Purple for premium -->
+
     </resources>
+
+
+
+
+
+
 

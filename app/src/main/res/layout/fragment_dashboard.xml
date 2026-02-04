@@ -209,7 +209,7 @@
                         android:layout_width="48dp"
                         android:layout_height="48dp"
                         android:src="@drawable/ic_sale"
-                        android:tint="@color/colorPrimary"/>
+                        app:tint="@color/colorPrimary" />
 
                     <TextView
                         android:layout_width="wrap_content"

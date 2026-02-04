@@ -1,21 +1,19 @@
 package com.devbrian.osebo
 
+import android.app.Application
 import android.content.Intent
 import android.os.Bundle
 import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-// MainActivity is in the same package (com.devbrian.osebo), so no import is needed.
-// If you prefer keeping an import, use: import com.devbrian.osebo.MainActivity
-
-// Correct the databinding import to match your namespace:
+import com.devbrian.osebo.data.PreferenceManager
 import com.devbrian.osebo.databinding.ActivityShopCreationBinding
-
-
+import com.devbrian.osebo.ui.MainActivity
+import dagger.hilt.android.HiltAndroidApp
 
 class ShopCreationActivity : AppCompatActivity() {
     private lateinit var binding: ActivityShopCreationBinding
-    private lateinit var preferencesManager: PreferencesManager
+    private lateinit var preferenceManager: PreferenceManager // Changed name
 
     private val businessTypes = arrayOf(
         "Retail",
@@ -32,7 +30,7 @@ class ShopCreationActivity : AppCompatActivity() {
         binding = ActivityShopCreationBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        preferencesManager = PreferencesManager(this)
+        preferenceManager = PreferenceManager.getInstance(this) // Changed initialization
 
         setupUI()
         setupListeners()
@@ -44,7 +42,9 @@ class ShopCreationActivity : AppCompatActivity() {
         binding.actvBusinessType.setAdapter(adapter)
 
         // Set default business type
-        binding.actvBusinessType.setText(businessTypes[0], false)
+        if (binding.actvBusinessType.text.isEmpty()) {
+            binding.actvBusinessType.setText(businessTypes[0], false)
+        }
     }
 
     private fun setupListeners() {
@@ -85,39 +85,37 @@ class ShopCreationActivity : AppCompatActivity() {
     ): Boolean {
         var isValid = true
 
+        // Reset errors
+        binding.shopNameInputLayout.error = null
+        binding.businessTypeInputLayout.error = null
+        binding.locationInputLayout.error = null
+        binding.contactInputLayout.error = null
+
         // Shop name validation
         if (shopName.isEmpty()) {
             binding.shopNameInputLayout.error = "Shop name is required"
             isValid = false
-        } else if (shopName.length < 3) {
+        } else if (shopName.length < 2) {
             binding.shopNameInputLayout.error = "Shop name is too short"
             isValid = false
-        } else {
-            binding.shopNameInputLayout.error = null
         }
 
         // Business type validation
         if (businessType.isEmpty()) {
             binding.businessTypeInputLayout.error = "Business type is required"
             isValid = false
-        } else {
-            binding.businessTypeInputLayout.error = null
         }
 
         // Location validation
         if (location.isEmpty()) {
             binding.locationInputLayout.error = "Location is required"
             isValid = false
-        } else {
-            binding.locationInputLayout.error = null
         }
 
         // Contact validation (optional but recommended)
-        if (contact.isNotEmpty() && contact.length < 10) {
+        if (contact.isNotEmpty() && (contact.length < 10 || !contact.matches(Regex("^[0-9+\\-().\\s]*\$")))) {
             binding.contactInputLayout.error = "Enter a valid phone number"
             isValid = false
-        } else {
-            binding.contactInputLayout.error = null
         }
 
         return isValid
@@ -132,20 +130,26 @@ class ShopCreationActivity : AppCompatActivity() {
         // TODO: Replace with actual API call
         binding.root.postDelayed({
             // Mock successful shop creation
-            val shopCreated = true // Change based on API response
+            val shopCreated = true
 
             if (shopCreated) {
-                // Save shop info to preferences
-                preferencesManager.saveShopInfo(
-                    shopName = shopName,
-                    businessType = businessType,
-                    location = location,
-                    contact = contact,
-                    shopId = "shop_${System.currentTimeMillis()}"
-                )
+                // Generate shop ID
+                val shopId = "shop_${System.currentTimeMillis()}"
 
-                // Set hasShop flag
-                preferencesManager.setHasShop(true)
+                // Save shop data using correct method names
+                preferenceManager.saveCurrentShopId(shopId)
+                preferenceManager.saveCurrentShopName(shopName)
+
+                // Save additional shop details - need to add these methods to PreferenceManager
+                // For now, we'll use SharedPreferences directly
+                val sharedPref = getSharedPreferences("OseboPrefs", MODE_PRIVATE)
+                with(sharedPref.edit()) {
+                    putString("business_type", businessType)
+                    putString("shop_location", location)
+                    putString("shop_contact", contact)
+                    putBoolean("has_shop", true)
+                    apply()
+                }
 
                 showSuccessMessage()
                 navigateToMainActivity()
@@ -156,7 +160,7 @@ class ShopCreationActivity : AppCompatActivity() {
             // Reset button
             binding.btnCreateShop.isEnabled = true
             binding.btnCreateShop.text = "Create Shop"
-        }, 2000)
+        }, 1500)
     }
 
     private fun navigateToMainActivity() {
@@ -182,3 +186,6 @@ class ShopCreationActivity : AppCompatActivity() {
         ).show()
     }
 }
+
+@HiltAndroidApp
+class OseboApplication : Application()

@@ -59,7 +59,7 @@
         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:hint="Shop Name"
+        android:hint="@string/shop_name"
         app:startIconDrawable="@drawable/ic_store"
         app:layout_constraintTop_toBottomOf="@id/tv_subtitle"
         app:layout_constraintStart_toStartOf="parent"
