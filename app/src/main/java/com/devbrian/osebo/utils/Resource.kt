@@ -1,4 +1,4 @@
 package com.devbrian.osebo.utils
 
-object NetworkUtils {
+class Resource {
 }

@@ -1,4 +1,4 @@
 package com.devbrian.osebo
 
-object ApiClient {
+object ApiConstants {
 }
