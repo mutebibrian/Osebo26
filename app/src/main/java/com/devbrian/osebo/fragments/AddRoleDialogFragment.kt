@@ -8,13 +8,14 @@ import android.view.ViewGroup
 import android.widget.CheckBox
 import android.widget.Toast
 import androidx.fragment.app.DialogFragment
+import androidx.lifecycle.lifecycleScope
 import com.devbrian.osebo.data.ApiClient
 import com.devbrian.osebo.databinding.DialogAddRoleBinding
+import com.devbrian.osebo.models.ApiResponse
 import com.devbrian.osebo.models.CreateRoleRequest
 import com.devbrian.osebo.models.UserRole
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
+import kotlinx.coroutines.launch
+import java.io.IOException
 
 class AddRoleDialogFragment : DialogFragment() {
 
@@ -128,46 +129,62 @@ class AddRoleDialogFragment : DialogFragment() {
         binding.saveButton.isEnabled = false
         binding.cancelButton.isEnabled = false
 
-        // Get API service (use create() if your ApiService has @Header parameter)
         val apiService = ApiClient.create()
 
-        // IMPORTANT: Check your ApiService.createRole method signature:
-        // If it's: createRole(@Header("Authorization") token: String, @Body request: CreateRoleRequest)
-        // Then use: apiService.createRole("Bearer $token", request)
-        // If it's: createRole(@Body request: CreateRoleRequest)
-        // Then use: apiService.createRole(request)
-        // The code below assumes the first case (with @Header parameter)
+        // Use coroutines instead of enqueue
+        lifecycleScope.launch {
+            try {
+                val response = apiService.createRole("Bearer $token", request)
 
-        apiService.createRole("Bearer $token", request).enqueue(object : Callback<UserRole> {
-            override fun onResponse(call: Call<UserRole>, response: Response<UserRole>) {
-                binding.progressBar.visibility = View.GONE
-                binding.saveButton.isEnabled = true
-                binding.cancelButton.isEnabled = true
-
-                if (response.isSuccessful && response.body() != null) {
-                    onRoleAddedListener?.invoke(response.body()!!)
-                    dismiss()
-                } else {
-                    val errorMessage = when (response.code()) {
-                        400 -> "Invalid request data"
-                        401 -> "Session expired. Please login again"
-                        403 -> "You don't have permission to create roles"
-                        409 -> "A role with this name already exists"
-                        422 -> "Invalid role data provided"
-                        500 -> "Server error. Please try again later"
-                        else -> "Failed to create role (Error: ${response.code()})"
+                if (response.isSuccessful) {
+                    val apiResponse = response.body()
+                    if (apiResponse != null && apiResponse.success) {
+                        apiResponse.data?.let { userRole ->
+                            requireActivity().runOnUiThread {
+                                onRoleAddedListener?.invoke(userRole)
+                                dismiss()
+                            }
+                        } ?: run {
+                            requireActivity().runOnUiThread {
+                                Toast.makeText(requireContext(), apiResponse.message ?: "No data received", Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    } else {
+                        requireActivity().runOnUiThread {
+                            val errorMessage = apiResponse?.message ?: "Failed to create role"
+                            Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_LONG).show()
+                        }
                     }
-                    Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_LONG).show()
+                } else {
+                    requireActivity().runOnUiThread {
+                        val errorMessage = when (response.code()) {
+                            400 -> "Invalid request data"
+                            401 -> "Session expired. Please login again"
+                            403 -> "You don't have permission to create roles"
+                            409 -> "A role with this name already exists"
+                            422 -> "Invalid role data provided"
+                            500 -> "Server error. Please try again later"
+                            else -> "Failed to create role (Error: ${response.code()})"
+                        }
+                        Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_LONG).show()
+                    }
+                }
+            } catch (e: IOException) {
+                requireActivity().runOnUiThread {
+                    Toast.makeText(requireContext(), "Network error: Check your internet connection", Toast.LENGTH_LONG).show()
+                }
+            } catch (e: Exception) {
+                requireActivity().runOnUiThread {
+                    Toast.makeText(requireContext(), "Error: ${e.message ?: "Unknown error"}", Toast.LENGTH_LONG).show()
+                }
+            } finally {
+                requireActivity().runOnUiThread {
+                    binding.progressBar.visibility = View.GONE
+                    binding.saveButton.isEnabled = true
+                    binding.cancelButton.isEnabled = true
                 }
             }
-
-            override fun onFailure(call: Call<UserRole>, t: Throwable) {
-                binding.progressBar.visibility = View.GONE
-                binding.saveButton.isEnabled = true
-                binding.cancelButton.isEnabled = true
-                Toast.makeText(requireContext(), "Network error: ${t.message ?: "Unknown error"}", Toast.LENGTH_LONG).show()
-            }
-        })
+        }
     }
 
     override fun onDestroyView() {

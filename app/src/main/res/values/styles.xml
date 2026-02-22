@@ -1,7 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-
+    <!-- Base Application Theme -->
+    <style name="Theme.Osebo2" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Primary brand color -->
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorPrimaryVariant">@color/primary_dark</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <!-- Secondary brand color -->
+        <item name="colorSecondary">@color/primary</item>
+        <item name="colorSecondaryVariant">@color/primary_dark</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <!-- Status bar color -->
+        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
 
     <!-- Full Screen Dialog Theme -->
     <style name="FullScreenDialog" parent="Theme.MaterialComponents.DayNight.Dialog">
@@ -33,4 +46,111 @@
         <item name="android:backgroundDimEnabled">true</item>
         <item name="android:backgroundDimAmount">0.5</item>
     </style>
+
+    <!-- ========== BOTTOM SHEET DIALOG THEMES ========== -->
+
+    <!-- Bottom Sheet Dialog Theme for PaymentDialogFragment -->
+    <style name="Theme.Osebo2.BottomSheetDialog" parent="Theme.MaterialComponents.Light.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/Widget.Osebo2.BottomSheet.Modal</item>
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowSoftInputMode">adjustResize</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:colorBackground">@color/white</item>
+        <item name="android:windowAnimationStyle">@style/Theme.Osebo2.BottomSheetAnimation</item>
+        <item name="android:backgroundDimEnabled">true</item>
+        <item name="android:backgroundDimAmount">0.6</item>
+    </style>
+
+    <style name="Theme.AppTheme.Splash" parent="Theme.Osebo2">
+        <item name="android:windowBackground">@drawable/splash_background</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowFullscreen">true</item>
+    </style>
+
+    <!-- Bottom Sheet Modal Style -->
+    <style name="Widget.Osebo2.BottomSheet.Modal" parent="Widget.Design.BottomSheet.Modal">
+        <item name="android:background">@drawable/bottom_sheet_background</item>
+        <item name="android:elevation">8dp</item>
+    </style>
+
+    <!-- Bottom Sheet Animation -->
+    <style name="Theme.Osebo2.BottomSheetAnimation" parent="Animation.Design.BottomSheetDialog">
+        <item name="android:windowEnterAnimation">@anim/slide_up</item>
+        <item name="android:windowExitAnimation">@anim/slide_down</item>
+    </style>
+
+    <!-- ========== CHIP STYLES ========== -->
+
+    <!-- Chip Choice Style for Provider Selection -->
+    <style name="Widget.Osebo2.Chip.Choice" parent="Widget.MaterialComponents.Chip.Choice">
+        <item name="android:textColor">@color/black</item>
+        <item name="chipBackgroundColor">@drawable/chip_background_selector</item>
+        <item name="chipStrokeColor">@drawable/chip_stroke_selector</item>
+        <item name="chipStrokeWidth">1dp</item>
+        <item name="chipIconTint">@color/primary</item>
+        <item name="android:checkable">true</item>
+        <item name="checkedIconVisible">false</item>
+        <item name="chipIconSize">20dp</item>
+        <item name="android:paddingVertical">8dp</item>
+        <item name="android:paddingHorizontal">12dp</item>
+    </style>
+
+    <!-- ========== BUTTON STYLES ========== -->
+
+    <!-- Primary Button Style -->
+    <style name="Widget.Osebo2.Button.Primary" parent="Widget.MaterialComponents.Button">
+        <item name="android:textColor">@color/white</item>
+        <item name="backgroundTint">@color/primary</item>
+        <item name="cornerRadius">8dp</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:paddingVertical">12dp</item>
+    </style>
+
+    <!-- Outlined Button Style -->
+    <style name="Widget.Osebo2.Button.Outlined" parent="Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="android:textColor">@color/grey_700</item>
+        <item name="strokeColor">@color/grey_400</item>
+        <item name="strokeWidth">1dp</item>
+        <item name="cornerRadius">8dp</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:paddingVertical">12dp</item>
+    </style>
+
+    <!-- ========== TEXT INPUT STYLES ========== -->
+
+    <!-- Outlined Text Input Style -->
+    <style name="Widget.Osebo2.TextInputLayout.Outlined" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+        <item name="boxCornerRadiusBottomEnd">8dp</item>
+        <item name="boxCornerRadiusBottomStart">8dp</item>
+        <item name="boxCornerRadiusTopEnd">8dp</item>
+        <item name="boxCornerRadiusTopStart">8dp</item>
+        <item name="boxStrokeColor">@color/grey_400</item>
+        <item name="boxStrokeWidth">1dp</item>
+        <item name="boxStrokeWidthFocused">2dp</item>
+        <item name="hintTextColor">@color/grey_600</item>
+        <item name="android:textColorHint">@color/grey_600</item>
+        <item name="colorControlActivated">@color/primary</item>
+        <item name="colorControlHighlight">@color/primary</item>
+    </style>
+
+    <!-- Exposed Dropdown Menu Style -->
+    <style name="Widget.Osebo2.TextInputLayout.ExposedDropdown" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
+        <item name="boxCornerRadiusBottomEnd">8dp</item>
+        <item name="boxCornerRadiusBottomStart">8dp</item>
+        <item name="boxCornerRadiusTopEnd">8dp</item>
+        <item name="boxCornerRadiusTopStart">8dp</item>
+        <item name="boxStrokeColor">@color/grey_400</item>
+        <item name="boxStrokeWidth">1dp</item>
+        <item name="boxStrokeWidthFocused">2dp</item>
+        <item name="hintTextColor">@color/grey_600</item>
+        <item name="android:textColorHint">@color/grey_600</item>
+        <item name="colorControlActivated">@color/primary</item>
+        <item name="colorControlHighlight">@color/primary</item>
+        <item name="endIconTint">@color/primary</item>
+        <item name="startIconTint">@color/primary</item>
+    </style>
+
 </resources>

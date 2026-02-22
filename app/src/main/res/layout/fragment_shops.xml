@@ -39,15 +39,45 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
 
+            <!-- Shop Count -->
+            <TextView
+                android:id="@+id/tvShopCount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0 shops"
+                android:textSize="14sp"
+                android:textColor="@color/text_secondary"
+                android:layout_marginTop="16dp"
+                android:layout_marginStart="16dp"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toStartOf="parent" />
+
+            <!-- Empty State Message -->
+            <TextView
+                android:id="@+id/tvEmptyMessage"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:padding="32dp"
+                android:text="You haven't created any shops yet"
+                android:textSize="16sp"
+                android:textColor="@color/text_secondary"
+                android:visibility="gone"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/tvShopCount"
+                app:layout_constraintBottom_toBottomOf="parent" />
+
             <!-- Shops List -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvShops"
                 android:layout_width="0dp"
                 android:layout_height="0dp"
+                android:layout_marginTop="8dp"
+                app:layout_constraintTop_toBottomOf="@id/tvShopCount"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
+                app:layout_constraintStart_toStartOf="parent" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 

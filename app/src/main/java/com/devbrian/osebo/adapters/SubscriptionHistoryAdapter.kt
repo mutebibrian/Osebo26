@@ -8,7 +8,8 @@ import com.devbrian.osebo.databinding.ItemSubscriptionHistoryBinding
 import com.devbrian.osebo.models.SubscriptionHistoryItem
 
 class SubscriptionHistoryAdapter(
-    private var historyItems: List<SubscriptionHistoryItem>
+    private var historyItems: List<SubscriptionHistoryItem>,
+    private val onItemClick: ((SubscriptionHistoryItem) -> Unit)? = null
 ) : RecyclerView.Adapter<SubscriptionHistoryAdapter.ViewHolder>() {
 
     inner class ViewHolder(private val binding: ItemSubscriptionHistoryBinding) :
@@ -39,6 +40,8 @@ class SubscriptionHistoryAdapter(
                     binding.statusTextView.setTextColor(binding.root.context.getColor(android.R.color.darker_gray))
                 }
             }
+
+            binding.root.setOnClickListener { onItemClick?.invoke(item) }
         }
     }
 

@@ -1,3 +1,20 @@
 package com.devbrian.osebo.data.local.entity
 
-data class SyncQueueEntity()
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+import java.util.Date
+
+@Entity(tableName = "sync_queue")
+data class SyncQueueEntity(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+    val entityType: String,  // "PRODUCT", "CATEGORY"
+    val entityId: String,
+    val action: String,      // "CREATE", "UPDATE", "DELETE"
+    val data: String,        // JSON of the entity
+    val shopId: String,
+    val retryCount: Int = 0,
+    val createdAt: Long = System.currentTimeMillis(),
+    val lastAttemptAt: Long? = null,
+    val status: String = "PENDING"  // "PENDING", "PROCESSING", "COMPLETED", "FAILED"
+)

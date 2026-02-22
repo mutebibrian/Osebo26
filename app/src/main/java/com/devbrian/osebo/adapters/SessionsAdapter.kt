@@ -23,15 +23,12 @@ class SessionsAdapter(
             binding.locationTextView.text = session.location
             binding.lastActiveTextView.text = session.lastActive
 
-            // Show current session badge
             binding.currentSessionBadge.visibility = if (session.isCurrent) View.VISIBLE else View.GONE
 
-            // Set click listener
             binding.root.setOnClickListener {
                 onSessionClick(session)
             }
 
-            // Show terminate button for non-current sessions
             binding.terminateButton.visibility = if (session.isCurrent) View.GONE else View.VISIBLE
             binding.terminateButton.setOnClickListener {
                 onSessionClick(session)

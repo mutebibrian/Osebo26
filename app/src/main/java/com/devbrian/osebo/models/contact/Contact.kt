@@ -2,10 +2,15 @@ package com.devbrian.osebo.models.contact
 
 import com.google.gson.annotations.SerializedName
 
-// Support Ticket Models
-data class SupportTicketRequest(
-    @SerializedName("category")
-    val category: String,
+data class ContactFormRequest(
+    @SerializedName("name")
+    val name: String,
+
+    @SerializedName("email")
+    val email: String,
+
+    @SerializedName("phone")
+    val phone: String? = null,
 
     @SerializedName("subject")
     val subject: String,
@@ -14,13 +19,7 @@ data class SupportTicketRequest(
     val message: String,
 
     @SerializedName("shop_id")
-    val shopId: String? = null,
-
-    @SerializedName("attachments")
-    val attachments: List<String>? = null,
-
-    @SerializedName("priority")
-    val priority: String = "normal" // low, normal, high, urgent
+    val shopId: String? = null
 )
 
 data class SupportTicket(
@@ -36,23 +35,11 @@ data class SupportTicket(
     @SerializedName("subject")
     val subject: String,
 
-    @SerializedName("message")
-    val message: String,
-
     @SerializedName("status")
-    val status: String, // open, in_progress, resolved, closed
+    val status: String,
 
     @SerializedName("priority")
     val priority: String,
-
-    @SerializedName("shop_id")
-    val shopId: String?,
-
-    @SerializedName("user_id")
-    val userId: String,
-
-    @SerializedName("assigned_to")
-    val assignedTo: String? = null,
 
     @SerializedName("created_at")
     val createdAt: String,
@@ -60,8 +47,11 @@ data class SupportTicket(
     @SerializedName("updated_at")
     val updatedAt: String,
 
-    @SerializedName("resolved_at")
-    val resolvedAt: String? = null
+    @SerializedName("user_id")
+    val userId: String? = null,
+
+    @SerializedName("shop_id")
+    val shopId: String? = null
 )
 
 data class SupportTicketResponse(
@@ -83,22 +73,18 @@ data class TicketMessage(
     val message: String,
 
     @SerializedName("sender_type")
-    val senderType: String, // user, support_agent
+    val senderType: String,
 
     @SerializedName("sender_id")
     val senderId: String,
 
     @SerializedName("sender_name")
-    val senderName: String,
-
-    @SerializedName("attachments")
-    val attachments: List<String>? = null,
+    val senderName: String? = null,
 
     @SerializedName("created_at")
     val createdAt: String
 )
 
-// FAQ Models
 data class FAQ(
     @SerializedName("id")
     val id: String,
@@ -112,61 +98,10 @@ data class FAQ(
     @SerializedName("answer")
     val answer: String,
 
-    @SerializedName("language")
-    val language: String = "en",
-
-    @SerializedName("views")
-    val views: Int = 0,
-
-    @SerializedName("is_active")
-    val isActive: Boolean = true,
-
     @SerializedName("created_at")
     val createdAt: String,
 
     @SerializedName("updated_at")
     val updatedAt: String
 )
-
-// Contact Information Models
-
-
-data class SocialMedia(
-    @SerializedName("facebook")
-    val facebook: String? = null,
-
-    @SerializedName("twitter")
-    val twitter: String? = null,
-
-    @SerializedName("instagram")
-    val instagram: String? = null,
-
-    @SerializedName("linkedin")
-    val linkedIn: String? = null,
-
-    @SerializedName("whatsapp")
-    val whatsapp: String? = null
-)
-
-// Contact Form Models
-data class ContactFormRequest(
-    @SerializedName("name")
-    val name: String,
-
-    @SerializedName("email")
-    val email: String,
-
-    @SerializedName("phone")
-    val phone: String? = null,
-
-    @SerializedName("subject")
-    val subject: String,
-
-    @SerializedName("message")
-    val message: String,
-
-    @SerializedName("shop_id")
-    val shopId: String? = null
-)
-
 

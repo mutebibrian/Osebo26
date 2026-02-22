@@ -1,62 +1,14 @@
 package com.devbrian.osebo.data.remote.api
 
-
-import com.devbrian.osebo.data.remote.dto.request.AddCustomerRequest
-import com.devbrian.osebo.data.remote.dto.request.AddEmployeeRequest
-import com.devbrian.osebo.data.remote.dto.request.AddInventoryItemRequest
-import com.devbrian.osebo.data.remote.dto.request.AddSupplierRequest
-import com.devbrian.osebo.data.remote.dto.request.AutoRenewRequest
-import com.devbrian.osebo.data.remote.dto.request.ChangePasswordRequest
-import com.devbrian.osebo.data.remote.dto.request.CreateSaleRequest
-import com.devbrian.osebo.data.remote.dto.request.CreateShopRequest
-import com.devbrian.osebo.data.remote.dto.request.CreateSupportTicketRequest
-import com.devbrian.osebo.data.remote.dto.request.CreateTransferRequest
-import com.devbrian.osebo.data.remote.dto.request.CreateUserRoleRequest
-import com.devbrian.osebo.data.remote.dto.request.DowngradeSubscriptionRequest
-import com.devbrian.osebo.data.remote.dto.request.ForgotPasswordRequest
-import com.devbrian.osebo.data.remote.dto.request.LoginNotificationsRequest
-import com.devbrian.osebo.data.remote.dto.request.LoginRequest
-import com.devbrian.osebo.data.remote.dto.request.NotificationSettingsRequest
-import com.devbrian.osebo.data.remote.dto.request.RefreshTokenRequest
-import com.devbrian.osebo.data.remote.dto.request.RegisterRequest
-import com.devbrian.osebo.data.remote.dto.request.ResetPasswordRequest
-import com.devbrian.osebo.data.remote.dto.request.SubscribeRequest
-import com.devbrian.osebo.data.remote.dto.request.SystemHealthDto
-import com.devbrian.osebo.data.remote.dto.request.SystemStatusDto
-import com.devbrian.osebo.data.remote.dto.request.SystemVersionDto
-import com.devbrian.osebo.data.remote.dto.request.TwoFactorAuthRequest
-import com.devbrian.osebo.data.remote.dto.request.UpdateAccountRequest
-import com.devbrian.osebo.data.remote.dto.request.UpdateInventoryItemRequest
-import com.devbrian.osebo.data.remote.dto.request.UpdatePaymentMethodRequest
-import com.devbrian.osebo.data.remote.dto.request.UpdateProfileRequest
-import com.devbrian.osebo.data.remote.dto.request.UpdateShopRequest
-import com.devbrian.osebo.data.remote.dto.request.UpdateUserRoleRequest
-import com.devbrian.osebo.data.remote.dto.request.UpgradeSubscriptionRequest
-import com.devbrian.osebo.data.remote.dto.response.AccountDto
-import com.devbrian.osebo.data.remote.dto.response.ApiResponse
-import com.devbrian.osebo.data.remote.dto.response.AuthResponse
-import com.devbrian.osebo.data.remote.dto.response.BillingInfoDto
-import com.devbrian.osebo.data.remote.dto.response.ContactInfoDto
-import com.devbrian.osebo.data.remote.dto.response.InvoiceDto
-import com.devbrian.osebo.data.remote.dto.response.NotificationSettingsDto
-import com.devbrian.osebo.data.remote.dto.response.ShopDto
-import com.devbrian.osebo.data.remote.dto.response.SubscriptionDto
-import com.devbrian.osebo.data.remote.dto.response.SubscriptionReportDto
-import com.devbrian.osebo.data.remote.dto.response.UserDto
-import com.devbrian.osebo.data.remote.dto.response.UserRoleDto
+import com.devbrian.osebo.data.remote.dto.request.*
+import com.devbrian.osebo.data.remote.dto.response.*
+import com.devbrian.osebo.models.ApiResponse
 import com.devbrian.osebo.models.SupportMessageRequest
+
 import com.google.gson.annotations.SerializedName
 import okhttp3.MultipartBody
 import retrofit2.Response
-import retrofit2.http.Body
-import retrofit2.http.DELETE
-import retrofit2.http.GET
-import retrofit2.http.Multipart
-import retrofit2.http.POST
-import retrofit2.http.PUT
-import retrofit2.http.Part
-import retrofit2.http.Path
-import retrofit2.http.Query
+import retrofit2.http.*
 
 data class FinanceReportDto(
     @SerializedName("period")
@@ -76,65 +28,65 @@ interface OseboApiService {
 
     // MARK: - Authentication
     @POST("auth/login")
-    suspend fun login(@Body request: LoginRequest): Response<AuthResponse>
+    suspend fun login(@Body request: LoginRequest): Response<ApiResponse<AuthResponse>>  // FIXED
 
     @POST("auth/register")
-    suspend fun register(@Body request: RegisterRequest): Response<AuthResponse>
+    suspend fun register(@Body request: RegisterRequest): Response<ApiResponse<AuthResponse>>  // FIXED
 
     @POST("auth/logout")
-    suspend fun logout(): Response<ApiResponse>
+    suspend fun logout(): Response<ApiResponse<Unit>>  // FIXED
 
     @POST("auth/refresh")
-    suspend fun refreshToken(@Body request: RefreshTokenRequest): Response<AuthResponse>
+    suspend fun refreshToken(@Body request: RefreshTokenRequest): Response<ApiResponse<AuthResponse>>  // FIXED
 
     @POST("auth/forgot-password")
-    suspend fun forgotPassword(@Body request: ForgotPasswordRequest): Response<ApiResponse>
+    suspend fun forgotPassword(@Body request: ForgotPasswordRequest): Response<ApiResponse<Unit>>  // FIXED
 
     @POST("auth/reset-password")
-    suspend fun resetPassword(@Body request: ResetPasswordRequest): Response<ApiResponse>
+    suspend fun resetPassword(@Body request: ResetPasswordRequest): Response<ApiResponse<Unit>>  // FIXED
 
     // MARK: - User Management
     @GET("users/profile")
-    suspend fun getCurrentUser(): Response<UserDto>
+    suspend fun getCurrentUser(): Response<ApiResponse<UserDto>>  // FIXED
 
     @PUT("users/profile")
-    suspend fun updateProfile(@Body request: UpdateProfileRequest): Response<UserDto>
+    suspend fun updateProfile(@Body request: UpdateProfileRequest): Response<ApiResponse<UserDto>>  // FIXED
 
     @Multipart
     @PUT("users/profile/image")
-    suspend fun uploadProfileImage(@Part image: MultipartBody.Part): Response<UserDto>
+    suspend fun uploadProfileImage(@Part image: MultipartBody.Part): Response<ApiResponse<UserDto>>  // FIXED
 
     @DELETE("users/profile/image")
-    suspend fun resetProfileImage(): Response<UserDto>
+    suspend fun resetProfileImage(): Response<ApiResponse<Unit>>  // FIXED
 
     @PUT("users/password")
-    suspend fun changePassword(@Body request: ChangePasswordRequest): Response<ApiResponse>
+    suspend fun changePassword(@Body request: ChangePasswordRequest): Response<ApiResponse<Unit>>  // FIXED
 
     // MARK: - Dashboard
     @GET("dashboard/summary")
-    suspend fun getDashboardSummary(): Response<DashboardSummaryDto>
+    suspend fun getDashboardSummary(): Response<ApiResponse<DashboardSummaryDto>>  // FIXED
 
     @GET("dashboard/analytics")
     suspend fun getDashboardAnalytics(
         @Query("startDate") startDate: String? = null,
         @Query("endDate") endDate: String? = null
-    ): Response<DashboardAnalyticsDto>
+    ): Response<ApiResponse<DashboardAnalyticsDto>>  // FIXED
 
     // MARK: - Shops
     @GET("shops")
-    suspend fun getShops(): Response<List<ShopDto>>
+    suspend fun getShops(): Response<ApiResponse<List<ShopDto>>>
 
     @GET("shops/{id}")
-    suspend fun getShopById(@Path("id") shopId: String): Response<ShopDto>
+    suspend fun getShopById(@Path("id") shopId: String): Response<ApiResponse<ShopDto>>  // FIXED
 
     @POST("shops")
-    suspend fun createShop(@Body request: CreateShopRequest): Response<ShopDto>
+    suspend fun createShop(@Body request: CreateShopRequest): Response<ApiResponse<ShopDto>>  // FIXED
 
     @PUT("shops/{id}")
-    suspend fun updateShop(@Path("id") shopId: String, @Body request: UpdateShopRequest): Response<ShopDto>
+    suspend fun updateShop(@Path("id") shopId: String, @Body request: UpdateShopRequest): Response<ApiResponse<ShopDto>>  // FIXED
 
     @DELETE("shops/{id}")
-    suspend fun deleteShop(@Path("id") shopId: String): Response<ApiResponse>
+    suspend fun deleteShop(@Path("id") shopId: String): Response<ApiResponse<Unit>>  // FIXED
 
     // MARK: - Business Operations
     // Sales
@@ -143,17 +95,17 @@ interface OseboApiService {
         @Query("shopId") shopId: String? = null,
         @Query("startDate") startDate: String? = null,
         @Query("endDate") endDate: String? = null
-    ): Response<List<SaleDto>>
+    ): Response<ApiResponse<List<SaleDto>>>  // FIXED
 
     @POST("sales")
-    suspend fun createSale(@Body request: CreateSaleRequest): Response<SaleDto>
+    suspend fun createSale(@Body request: CreateSaleRequest): Response<ApiResponse<SaleDto>>  // FIXED
 
     // Finance
     @GET("finance/summary")
     suspend fun getFinanceSummary(
         @Query("shopId") shopId: String? = null,
         @Query("period") period: String? = "monthly"
-    ): Response<FinanceSummaryDto>
+    ): Response<ApiResponse<FinanceSummaryDto>>  // FIXED
 
     @GET("finance/transactions")
     suspend fun getFinanceTransactions(
@@ -161,158 +113,158 @@ interface OseboApiService {
         @Query("type") type: String? = null,
         @Query("startDate") startDate: String? = null,
         @Query("endDate") endDate: String? = null
-    ): Response<List<TransactionDto>>
+    ): Response<ApiResponse<List<TransactionDto>>>  // FIXED
 
     // Inventory
     @GET("inventory")
     suspend fun getInventory(
         @Query("shopId") shopId: String? = null,
         @Query("category") category: String? = null
-    ): Response<List<InventoryItemDto>>
+    ): Response<ApiResponse<List<InventoryItemDto>>>  // FIXED
 
     @POST("inventory")
-    suspend fun addInventoryItem(@Body request: AddInventoryItemRequest): Response<InventoryItemDto>
+    suspend fun addInventoryItem(@Body request: AddInventoryItemRequest): Response<ApiResponse<InventoryItemDto>>  // FIXED
 
     @PUT("inventory/{id}")
     suspend fun updateInventoryItem(
         @Path("id") itemId: String,
         @Body request: UpdateInventoryItemRequest
-    ): Response<InventoryItemDto>
+    ): Response<ApiResponse<InventoryItemDto>>  // FIXED
 
     // Transfers
     @GET("transfers")
     suspend fun getTransfers(
         @Query("shopId") shopId: String? = null,
         @Query("status") status: String? = null
-    ): Response<List<TransferDto>>
+    ): Response<ApiResponse<List<TransferDto>>>  // FIXED
 
     @POST("transfers")
-    suspend fun createTransfer(@Body request: CreateTransferRequest): Response<TransferDto>
+    suspend fun createTransfer(@Body request: CreateTransferRequest): Response<ApiResponse<TransferDto>>  // FIXED
 
     // MARK: - Management
     // Employees
     @GET("employees")
-    suspend fun getEmployees(@Query("shopId") shopId: String? = null): Response<List<EmployeeDto>>
+    suspend fun getEmployees(@Query("shopId") shopId: String? = null): Response<ApiResponse<List<EmployeeDto>>>  // FIXED
 
     @POST("employees")
-    suspend fun addEmployee(@Body request: AddEmployeeRequest): Response<EmployeeDto>
+    suspend fun addEmployee(@Body request: AddEmployeeRequest): Response<ApiResponse<EmployeeDto>>  // FIXED
 
     // Customers
     @GET("customers")
     suspend fun getCustomers(
         @Query("shopId") shopId: String? = null,
         @Query("search") searchQuery: String? = null
-    ): Response<List<CustomerDto>>
+    ): Response<ApiResponse<List<CustomerDto>>>  // FIXED
 
     @POST("customers")
-    suspend fun addCustomer(@Body request: AddCustomerRequest): Response<CustomerDto>
+    suspend fun addCustomer(@Body request: AddCustomerRequest): Response<ApiResponse<CustomerDto>>  // FIXED
 
     // Suppliers
     @GET("suppliers")
-    suspend fun getSuppliers(@Query("shopId") shopId: String? = null): Response<List<SupplierDto>>
+    suspend fun getSuppliers(@Query("shopId") shopId: String? = null): Response<ApiResponse<List<SupplierDto>>>  // FIXED
 
     @POST("suppliers")
-    suspend fun addSupplier(@Body request: AddSupplierRequest): Response<SupplierDto>
+    suspend fun addSupplier(@Body request: AddSupplierRequest): Response<ApiResponse<SupplierDto>>  // FIXED
 
     // MARK: - Subscription & Billing
     @GET("subscription/current")
-    suspend fun getCurrentSubscription(): Response<SubscriptionDto>
+    suspend fun getCurrentSubscription(): Response<ApiResponse<SubscriptionDto>>  // FIXED
 
     @GET("subscription/plans")
-    suspend fun getSubscriptionPlans(): Response<List<SubscriptionPlanDto>>
+    suspend fun getSubscriptionPlans(): Response<ApiResponse<List<SubscriptionPlanDto>>>  // FIXED
 
     @POST("subscription/subscribe")
-    suspend fun subscribeToPlan(@Body request: SubscribeRequest): Response<SubscriptionDto>
+    suspend fun subscribeToPlan(@Body request: SubscribeRequest): Response<ApiResponse<SubscriptionDto>>  // FIXED
 
     @DELETE("subscription/cancel")
-    suspend fun cancelSubscription(): Response<ApiResponse>
+    suspend fun cancelSubscription(): Response<ApiResponse<Unit>>  // FIXED
 
     @GET("subscription/history")
-    suspend fun getSubscriptionHistory(): Response<List<SubscriptionHistoryDto>>
+    suspend fun getSubscriptionHistory(): Response<ApiResponse<List<SubscriptionHistoryDto>>>  // FIXED
 
     @PUT("subscription/auto-renew")
-    suspend fun updateAutoRenew(@Body request: AutoRenewRequest): Response<ApiResponse>
+    suspend fun updateAutoRenew(@Body request: AutoRenewRequest): Response<ApiResponse<Unit>>  // FIXED
 
     @GET("subscription/invoices")
     suspend fun getInvoices(
         @Query("status") status: String? = null,
         @Query("limit") limit: Int = 20,
         @Query("offset") offset: Int = 0
-    ): Response<List<InvoiceDto>>
+    ): Response<ApiResponse<List<InvoiceDto>>>  // FIXED
 
     @GET("subscription/invoices/{id}")
-    suspend fun getInvoiceById(@Path("id") invoiceId: String): Response<InvoiceDto>
+    suspend fun getInvoiceById(@Path("id") invoiceId: String): Response<ApiResponse<InvoiceDto>>  // FIXED
 
     @POST("subscription/upgrade")
-    suspend fun upgradeSubscription(@Body request: UpgradeSubscriptionRequest): Response<SubscriptionDto>
+    suspend fun upgradeSubscription(@Body request: UpgradeSubscriptionRequest): Response<ApiResponse<SubscriptionDto>>  // FIXED
 
     @POST("subscription/downgrade")
-    suspend fun downgradeSubscription(@Body request: DowngradeSubscriptionRequest): Response<SubscriptionDto>
+    suspend fun downgradeSubscription(@Body request: DowngradeSubscriptionRequest): Response<ApiResponse<SubscriptionDto>>  // FIXED
 
     @POST("subscription/payment-method")
-    suspend fun updatePaymentMethod(@Body request: UpdatePaymentMethodRequest): Response<ApiResponse>
+    suspend fun updatePaymentMethod(@Body request: UpdatePaymentMethodRequest): Response<ApiResponse<Unit>>  // FIXED
 
     @GET("subscription/billing-info")
-    suspend fun getBillingInfo(): Response<BillingInfoDto>
+    suspend fun getBillingInfo(): Response<ApiResponse<BillingInfoDto>>  // FIXED
 
     // MARK: - User Roles & Permissions
     @GET("user-roles")
-    suspend fun getUserRoles(): Response<List<UserRoleDto>>
+    suspend fun getUserRoles(): Response<ApiResponse<List<UserRoleDto>>>  // FIXED
 
     @POST("user-roles")
-    suspend fun createUserRole(@Body request: CreateUserRoleRequest): Response<UserRoleDto>
+    suspend fun createUserRole(@Body request: CreateUserRoleRequest): Response<ApiResponse<UserRoleDto>>  // FIXED
 
     @PUT("user-roles/{id}")
     suspend fun updateUserRole(
         @Path("id") roleId: String,
         @Body request: UpdateUserRoleRequest
-    ): Response<UserRoleDto>
+    ): Response<ApiResponse<UserRoleDto>>  // FIXED
 
     @DELETE("user-roles/{id}")
-    suspend fun deleteUserRole(@Path("id") roleId: String): Response<ApiResponse>
+    suspend fun deleteUserRole(@Path("id") roleId: String): Response<ApiResponse<Unit>>  // FIXED
 
     // MARK: - Account Settings
     @GET("account")
-    suspend fun getAccountDetails(): Response<AccountDto>
+    suspend fun getAccountDetails(): Response<ApiResponse<AccountDto>>  // FIXED
 
     @PUT("account")
-    suspend fun updateAccount(@Body request: UpdateAccountRequest): Response<AccountDto>
+    suspend fun updateAccount(@Body request: UpdateAccountRequest): Response<ApiResponse<AccountDto>>  // FIXED
 
     @PUT("account/two-factor")
-    suspend fun updateTwoFactorAuth(@Body request: TwoFactorAuthRequest): Response<AccountDto>
+    suspend fun updateTwoFactorAuth(@Body request: TwoFactorAuthRequest): Response<ApiResponse<AccountDto>>  // FIXED
 
     @PUT("account/notifications")
-    suspend fun updateLoginNotifications(@Body request: LoginNotificationsRequest): Response<AccountDto>
+    suspend fun updateLoginNotifications(@Body request: LoginNotificationsRequest): Response<ApiResponse<AccountDto>>  // FIXED
 
     @POST("account/deactivate")
-    suspend fun deactivateAccount(): Response<ApiResponse>
+    suspend fun deactivateAccount(): Response<ApiResponse<Unit>>  // FIXED
 
     @DELETE("account")
-    suspend fun deleteAccount(): Response<ApiResponse>
+    suspend fun deleteAccount(): Response<ApiResponse<Unit>>  // FIXED
 
     @GET("account/sessions")
-    suspend fun getActiveSessions(): Response<List<SessionDto>>
+    suspend fun getActiveSessions(): Response<ApiResponse<List<SessionDto>>>  // FIXED
 
     @DELETE("account/sessions/{id}")
-    suspend fun terminateSession(@Path("id") sessionId: String): Response<ApiResponse>
+    suspend fun terminateSession(@Path("id") sessionId: String): Response<ApiResponse<Unit>>  // FIXED
 
     // MARK: - Contact Us & Support
     @GET("contact")
-    suspend fun getContactInfo(): Response<ContactInfoDto>
+    suspend fun getContactInfo(): Response<ApiResponse<ContactInfoDto>>  // FIXED
 
     @POST("support/tickets")
-    suspend fun createSupportTicket(@Body request: CreateSupportTicketRequest): Response<SupportTicketDto>
+    suspend fun createSupportTicket(@Body request: CreateSupportTicketRequest): Response<ApiResponse<SupportTicketDto>>  // FIXED
 
     @POST("support/messages")
-    suspend fun sendSupportMessage(@Body request: SupportMessageRequest): Response<ApiResponse>
+    suspend fun sendSupportMessage(@Body request: SupportMessageRequest): Response<ApiResponse<Unit>>  // FIXED
 
     @GET("support/faqs")
-    suspend fun getFaqs(): Response<List<FaqDto>>
+    suspend fun getFaqs(): Response<ApiResponse<List<FaqDto>>>  // FIXED
 
     @GET("support/tickets")
     suspend fun getSupportTickets(
         @Query("status") status: String? = null
-    ): Response<List<SupportTicketDto>>
+    ): Response<ApiResponse<List<SupportTicketDto>>>  // FIXED
 
     // MARK: - Reports
     @GET("reports/sales")
@@ -321,13 +273,13 @@ interface OseboApiService {
         @Query("startDate") startDate: String,
         @Query("endDate") endDate: String,
         @Query("format") format: String = "json"
-    ): Response<SalesReportDto>
+    ): Response<ApiResponse<SalesReportDto>>  // FIXED
 
     @GET("reports/inventory")
     suspend fun getInventoryReport(
         @Query("shopId") shopId: String? = null,
         @Query("format") format: String = "json"
-    ): Response<InventoryReportDto>
+    ): Response<ApiResponse<InventoryReportDto>>  // FIXED
 
     @GET("reports/finance")
     suspend fun getFinanceReport(
@@ -335,23 +287,23 @@ interface OseboApiService {
         @Query("startDate") startDate: String,
         @Query("endDate") endDate: String,
         @Query("format") format: String = "json"
-    ): Response<FinanceReportDto>
+    ): Response<ApiResponse<FinanceReportDto>>  // FIXED
 
     @GET("reports/subscription")
     suspend fun getSubscriptionReport(
         @Query("startDate") startDate: String,
         @Query("endDate") endDate: String,
         @Query("format") format: String = "json"
-    ): Response<SubscriptionReportDto>
+    ): Response<ApiResponse<SubscriptionReportDto>>  // FIXED
 
     // MARK: - Uploads
     @Multipart
     @POST("upload/image")
-    suspend fun uploadImage(@Part image: MultipartBody.Part): Response<UploadResponse>
+    suspend fun uploadImage(@Part image: MultipartBody.Part): Response<ApiResponse<UploadResponse>>  // FIXED
 
     @Multipart
     @POST("upload/document")
-    suspend fun uploadDocument(@Part document: MultipartBody.Part): Response<UploadResponse>
+    suspend fun uploadDocument(@Part document: MultipartBody.Part): Response<ApiResponse<UploadResponse>>  // FIXED
 
     // MARK: - Notifications
     @GET("notifications")
@@ -359,33 +311,33 @@ interface OseboApiService {
         @Query("unreadOnly") unreadOnly: Boolean = false,
         @Query("limit") limit: Int = 20,
         @Query("offset") offset: Int = 0
-    ): Response<List<NotificationDto>>
+    ): Response<ApiResponse<List<NotificationDto>>>  // FIXED
 
     @PUT("notifications/{id}/read")
-    suspend fun markNotificationAsRead(@Path("id") notificationId: String): Response<ApiResponse>
+    suspend fun markNotificationAsRead(@Path("id") notificationId: String): Response<ApiResponse<Unit>>  // FIXED
 
     @PUT("notifications/read-all")
-    suspend fun markAllNotificationsAsRead(): Response<ApiResponse>
+    suspend fun markAllNotificationsAsRead(): Response<ApiResponse<Unit>>  // FIXED
 
     @DELETE("notifications/{id}")
-    suspend fun deleteNotification(@Path("id") notificationId: String): Response<ApiResponse>
+    suspend fun deleteNotification(@Path("id") notificationId: String): Response<ApiResponse<Unit>>  // FIXED
 
     @DELETE("notifications")
-    suspend fun deleteAllNotifications(): Response<ApiResponse>
+    suspend fun deleteAllNotifications(): Response<ApiResponse<Unit>>  // FIXED
 
     @GET("notifications/settings")
-    suspend fun getNotificationSettings(): Response<NotificationSettingsDto>
+    suspend fun getNotificationSettings(): Response<ApiResponse<NotificationSettingsDto>>  // FIXED
 
     @PUT("notifications/settings")
-    suspend fun updateNotificationSettings(@Body request: NotificationSettingsRequest): Response<ApiResponse>
+    suspend fun updateNotificationSettings(@Body request: NotificationSettingsRequest): Response<ApiResponse<Unit>>  // FIXED
 
     // MARK: - System & Health
     @GET("system/health")
-    suspend fun checkSystemHealth(): Response<SystemHealthDto>
+    suspend fun checkSystemHealth(): Response<ApiResponse<SystemHealthDto>>  // FIXED
 
     @GET("system/status")
-    suspend fun getSystemStatus(): Response<SystemStatusDto>
+    suspend fun getSystemStatus(): Response<ApiResponse<SystemStatusDto>>  // FIXED
 
     @GET("system/version")
-    suspend fun getSystemVersion(): Response<SystemVersionDto>
+    suspend fun getSystemVersion(): Response<ApiResponse<SystemVersionDto>>  // FIXED
 }

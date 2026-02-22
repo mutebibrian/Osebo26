@@ -1,5 +1,9 @@
 package com.devbrian.osebo.models
 
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
+
+@Parcelize
 data class Product(
     val id: String,
     val name: String,
@@ -21,9 +25,8 @@ data class Product(
     val isActive: Boolean = true,
     val createdAt: String? = null,
     val updatedAt: String? = null
-) {
+) : Parcelable {
     companion object {
-        // Common Categories
         const val CATEGORY_ELECTRONICS = "ELECTRONICS"
         const val CATEGORY_CLOTHING = "CLOTHING"
         const val CATEGORY_FOOD = "FOOD"
@@ -35,12 +38,10 @@ data class Product(
         const val CATEGORY_HARDWARE = "HARDWARE"
         const val CATEGORY_OTHER = "OTHER"
 
-        // Status Constants
         const val STATUS_ACTIVE = "ACTIVE"
         const val STATUS_INACTIVE = "INACTIVE"
         const val STATUS_DISCONTINUED = "DISCONTINUED"
 
-        // Helper methods
         fun getCategoryDisplayName(category: String): String {
             return when (category.uppercase()) {
                 CATEGORY_ELECTRONICS -> "Electronics"

@@ -1,6 +1,5 @@
 package com.devbrian.osebo.fragments
 
-
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.Menu
@@ -9,18 +8,24 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.devbrian.osebo.R
 import com.devbrian.osebo.adapters.ProductAdapter
 import com.devbrian.osebo.databinding.FragmentInventoryBinding
 import com.devbrian.osebo.models.Product
+import com.devbrian.osebo.ui.viewmodels.InventoryViewModel
+import dagger.hilt.android.AndroidEntryPoint
 
-
+@AndroidEntryPoint
 class InventoryFragment : Fragment() {
     private var _binding: FragmentInventoryBinding? = null
     private val binding get() = _binding!!
     private lateinit var productAdapter: ProductAdapter
+    private val viewModel: InventoryViewModel by viewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -37,13 +42,16 @@ class InventoryFragment : Fragment() {
 
         setupRecyclerView()
         setupClickListeners()
-        loadInventoryData()
+        setupObservers()
+
+        // Load data
+        viewModel.refreshProducts()
+        viewModel.loadStats()
     }
 
     private fun setupRecyclerView() {
         productAdapter = ProductAdapter { product ->
-            // Handle product item click
-            showProductDetails(product)
+            navigateToProductDetails(product)
         }
 
         binding.rvProducts.apply {
@@ -77,82 +85,147 @@ class InventoryFragment : Fragment() {
         binding.fabAddProduct.setOnClickListener {
             navigateToAddProduct()
         }
+
+        binding.swipeRefreshLayout?.setOnRefreshListener {
+            viewModel.refreshProducts()
+        }
     }
 
-    private fun loadInventoryData() {
-        // TODO: Load from ViewModel/Repository
-        binding.tvTotalItems.text = "156"
-        binding.tvLowStock.text = "12"
-        binding.tvInventoryValue.text = "UGX 4,500,000"
+    private fun setupObservers() {
+        // Observe products list
+        viewModel.products.observe(viewLifecycleOwner) { products ->
+            productAdapter.submitList(products)
 
-        val products = listOf(
-            Product(
-                id = "PROD001",
-                name = "iPhone 15 Pro",
-                sku = "IP15P-256",
-                category = "Electronics",
-                price = 1500000.0,
-                stock = 15,
-                lowStockThreshold = 5,
-                imageUrl = null
-            ),
-            Product(
-                id = "PROD002",
-                name = "Samsung TV 55\"",
-                sku = "STV55-4K",
-                category = "Electronics",
-                price = 1200000.0,
-                stock = 8,
-                lowStockThreshold = 3,
-                imageUrl = null
-            ),
-            Product(
-                id = "PROD003",
-                name = "Nike Air Max",
-                sku = "NAMAX-42",
-                category = "Footwear",
-                price = 250000.0,
-                stock = 3,
-                lowStockThreshold = 5,
-                imageUrl = null
-            ),
-            Product(
-                id = "PROD004",
-                name = "HP Laptop 15\"",
-                sku = "HPLP15-i7",
-                category = "Electronics",
-                price = 2800000.0,
-                stock = 6,
-                lowStockThreshold = 2,
-                imageUrl = null
-            )
-        )
+            // Update empty state
+            if (products.isEmpty()) {
+                binding.tvEmptyState?.visibility = View.VISIBLE
+                binding.rvProducts.visibility = View.GONE
+            } else {
+                binding.tvEmptyState?.visibility = View.GONE
+                binding.rvProducts.visibility = View.VISIBLE
+            }
+        }
 
-        productAdapter.submitList(products)
+        // Observe inventory stats
+        viewModel.stats.observe(viewLifecycleOwner) { stats ->
+            binding.tvTotalItems.text = stats.totalItems.toString()
+            binding.tvLowStock.text = stats.lowStock.toString()
+            binding.tvInventoryValue.text = String.format("UGX %,d", stats.totalValue.toInt())
+        }
+
+        // Observe network/offline status
+        viewModel.isOffline.observe(viewLifecycleOwner) { isOffline ->
+            if (isOffline) {
+                binding.tvNetworkStatus?.text = "📴 Offline Mode"
+                binding.tvNetworkStatus?.visibility = View.VISIBLE
+                binding.tvNetworkStatus?.setBackgroundColor(
+                    ContextCompat.getColor(requireContext(), R.color.orange_500)
+                )
+            } else {
+                binding.tvNetworkStatus?.text = viewModel.connectionType.value ?: "🌐 Online"
+                binding.tvNetworkStatus?.visibility = View.VISIBLE
+                binding.tvNetworkStatus?.setBackgroundColor(
+                    ContextCompat.getColor(requireContext(), R.color.green_500)
+                )
+            }
+        }
+
+        // Observe connection type
+        viewModel.connectionType.observe(viewLifecycleOwner) { connectionType ->
+            if (!(viewModel.isOffline.value == true)) {
+                binding.tvNetworkStatus?.text = "🌐 $connectionType"
+            }
+        }
+
+        // Observe loading state
+        viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
+            binding.progressBar?.visibility = if (isLoading) View.VISIBLE else View.GONE
+        }
+
+        // Observe refresh state
+        viewModel.isRefreshing.observe(viewLifecycleOwner) { isRefreshing ->
+            binding.swipeRefreshLayout?.isRefreshing = isRefreshing
+        }
+
+        // Observe sync pending state
+        viewModel.syncPending.observe(viewLifecycleOwner) { isPending ->
+            if (isPending) {
+                binding.tvSyncStatus?.text = "⏳ Syncing..."
+                binding.tvSyncStatus?.visibility = View.VISIBLE
+            } else {
+                binding.tvSyncStatus?.visibility = View.GONE
+            }
+        }
+
+        // Observe error messages
+        viewModel.errorMessage.observe(viewLifecycleOwner) { message ->
+            message?.let {
+                Toast.makeText(requireContext(), it, Toast.LENGTH_LONG).show()
+                viewModel.clearMessages()
+            }
+        }
+
+        // Observe success messages
+        viewModel.successMessage.observe(viewLifecycleOwner) { message ->
+            message?.let {
+                Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
+                viewModel.clearMessages()
+            }
+        }
+
+        // Network status click listener
+        binding.tvNetworkStatus?.setOnClickListener {
+            Toast.makeText(
+                requireContext(),
+                viewModel.getNetworkStatusMessage(),
+                Toast.LENGTH_LONG
+            ).show()
+        }
     }
 
     private fun navigateToAddProduct() {
-        Toast.makeText(requireContext(), "Navigate to Add Product", Toast.LENGTH_SHORT).show()
+        // Navigate to AddProductFragment with arguments
+        val action = InventoryFragmentDirections.actionInventoryToAddProduct()
+        findNavController().navigate(action)
+    }
+
+    private fun navigateToProductDetails(product: Product) {
+        // Navigate to product details with product ID
+        val action = InventoryFragmentDirections.actionInventoryToProductDetails(product.id)
+        findNavController().navigate(action)
     }
 
     private fun navigateToRestock() {
         Toast.makeText(requireContext(), "Navigate to Restock", Toast.LENGTH_SHORT).show()
+        // TODO: Implement restock navigation
     }
 
     private fun navigateToCategories() {
         Toast.makeText(requireContext(), "Navigate to Categories", Toast.LENGTH_SHORT).show()
+        // TODO: Implement categories navigation
     }
 
     private fun navigateToLowStock() {
-        Toast.makeText(requireContext(), "Navigate to Low Stock Items", Toast.LENGTH_SHORT).show()
+        // Filter to show only low stock products
+        val lowStockProducts = productAdapter.currentList.filter {
+            it.stock <= it.lowStockThreshold
+        }
+
+        if (lowStockProducts.isEmpty()) {
+            Toast.makeText(requireContext(), "No low stock items", Toast.LENGTH_SHORT).show()
+        } else {
+            // Could navigate to filtered list or show dialog
+            Toast.makeText(
+                requireContext(),
+                "${lowStockProducts.size} low stock items",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
     private fun navigateToAllProducts() {
-        Toast.makeText(requireContext(), "Navigate to All Products", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun showProductDetails(product: Product) {
-        Toast.makeText(requireContext(), "Product: ${product.name}", Toast.LENGTH_SHORT).show()
+        // Already showing all products, just scroll to top
+        binding.rvProducts.smoothScrollToPosition(0)
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
@@ -174,20 +247,55 @@ class InventoryFragment : Fragment() {
                 startStockTake()
                 true
             }
+            R.id.action_sync_now -> {
+                syncNow()
+                true
+            }
             else -> super.onOptionsItemSelected(item)
         }
     }
 
     private fun scanBarcode() {
-        Toast.makeText(requireContext(), "Scan Barcode", Toast.LENGTH_SHORT).show()
+        if (!viewModel.isOffline.value!!) {
+            Toast.makeText(requireContext(), "Scan Barcode", Toast.LENGTH_SHORT).show()
+            // TODO: Implement barcode scanning
+        } else {
+            Toast.makeText(
+                requireContext(),
+                "Cannot scan while offline",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
     private fun exportInventory() {
-        Toast.makeText(requireContext(), "Export Inventory", Toast.LENGTH_SHORT).show()
+        if (!viewModel.isOffline.value!!) {
+            Toast.makeText(requireContext(), "Export Inventory", Toast.LENGTH_SHORT).show()
+            // TODO: Implement export functionality
+        } else {
+            Toast.makeText(
+                requireContext(),
+                "Cannot export while offline",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
     private fun startStockTake() {
         Toast.makeText(requireContext(), "Start Stock Take", Toast.LENGTH_SHORT).show()
+        // TODO: Implement stock take
+    }
+
+    private fun syncNow() {
+        if (!viewModel.isOffline.value!!) {
+            viewModel.refreshProducts()
+        } else {
+            Toast.makeText(
+                requireContext(),
+                "Cannot sync while offline",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
     override fun onDestroyView() {

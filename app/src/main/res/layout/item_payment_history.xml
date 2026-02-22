@@ -1,6 +1,70 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-             android:layout_width="match_parent"
-             android:layout_height="match_parent">
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    app:cardCornerRadius="8dp"
+    app:cardElevation="0dp"
+    android:layout_marginBottom="8dp"
+    android:clickable="true"
+    android:focusable="true">
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="16dp">
+
+        <!-- Status Icon -->
+        <ImageView
+            android:id="@+id/ivStatus"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_check_circle"
+            android:contentDescription="Payment Status"
+            app:tint="@color/green_500" />
+
+        <!-- Payment Details -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="12dp">
+
+            <TextView
+                android:id="@+id/tvDate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Dec 15, 2024"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="@color/on_surface" />
+
+            <TextView
+                android:id="@+id/tvTransactionId"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="TX-123456789"
+                android:textSize="12sp"
+                android:textColor="@color/on_surface_variant"
+                android:layout_marginTop="2dp" />
+
+        </LinearLayout>
+
+        <!-- Amount -->
+        <TextView
+            android:id="@+id/tvAmount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="UGX 20,000"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@color/on_surface" />
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

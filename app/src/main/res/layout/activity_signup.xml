@@ -2,9 +2,11 @@
 <androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background">
+    android:background="@color/background"
+    android:padding="16dp">
 
     <!-- App Logo -->
     <ImageView
@@ -25,17 +27,21 @@
         android:id="@+id/cardSignup"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_margin="20dp"
+        android:layout_marginHorizontal="16dp"
         app:cardCornerRadius="20dp"
         app:cardElevation="8dp"
+        app:cardBackgroundColor="@color/card_background"
         app:layout_constraintTop_toBottomOf="@id/imgLogo"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_marginBottom="16dp">
 
         <ScrollView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:fillViewport="true">
+            android:fillViewport="true"
+            android:padding="4dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -61,93 +67,188 @@
                     android:layout_marginBottom="20dp"/>
 
                 <!-- First Name -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="First Name"
+                    android:textSize="14sp"
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginBottom="4dp"/>
+
                 <EditText
                     android:id="@+id/etFirstName"
                     android:layout_width="match_parent"
                     android:layout_height="50dp"
-                    android:hint="First name"
+                    android:hint="Enter first name"
                     android:background="@drawable/bg_input"
-                    android:padding="12dp"/>
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:singleLine="true"
+                    android:maxLines="1"/>
 
                 <!-- Last Name -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Last Name"
+                    android:textSize="14sp"
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginBottom="4dp"/>
+
                 <EditText
                     android:id="@+id/etLastName"
                     android:layout_width="match_parent"
                     android:layout_height="50dp"
-                    android:layout_marginTop="12dp"
-                    android:hint="Last name"
+                    android:hint="Enter last name"
                     android:background="@drawable/bg_input"
-                    android:padding="12dp"/>
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:singleLine="true"
+                    android:maxLines="1"/>
 
                 <!-- Email -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Email Address"
+                    android:textSize="14sp"
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginBottom="4dp"/>
+
                 <EditText
                     android:id="@+id/etEmail"
                     android:layout_width="match_parent"
                     android:layout_height="50dp"
-                    android:layout_marginTop="12dp"
-                    android:hint="Email address"
+                    android:hint="Enter email address"
                     android:inputType="textEmailAddress"
                     android:background="@drawable/bg_input"
-                    android:padding="12dp"/>
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:singleLine="true"
+                    android:maxLines="1"/>
 
                 <!-- Phone Number -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Phone Number"
+                    android:textSize="14sp"
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginBottom="4dp"/>
+
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="50dp"
-                    android:layout_marginTop="12dp"
-                    android:orientation="horizontal">
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:baselineAligned="false">
 
                     <TextView
-                        android:layout_width="64dp"
-                        android:layout_height="match_parent"
+                        android:layout_width="80dp"
+                        android:layout_height="50dp"
                         android:text="+256"
+                        android:textSize="16sp"
                         android:textStyle="bold"
                         android:gravity="center"
-                        android:background="@drawable/bg_input"/>
+                        android:background="@drawable/bg_input_country_code"
+                        android:textColor="@color/text_primary"/>
 
                     <EditText
                         android:id="@+id/etPhone"
                         android:layout_width="0dp"
-                        android:layout_height="match_parent"
+                        android:layout_height="50dp"
                         android:layout_weight="1"
-                        android:hint="Phone number"
+                        android:layout_marginStart="8dp"
+                        android:hint="7XXXXXXXX"
                         android:inputType="phone"
                         android:background="@drawable/bg_input"
-                        android:padding="12dp"/>
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:singleLine="true"
+                        android:maxLines="1"
+                        android:maxLength="9"/>
                 </LinearLayout>
 
+                <!-- Phone Hint -->
+                <TextView
+                    android:id="@+id/tvPhoneHint"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Format: 7XXXXXXXX (9 digits)"
+                    android:textSize="12sp"
+                    android:textColor="@color/text_hint"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginStart="88dp"
+                    android:visibility="gone"/>
+
                 <!-- Password -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Password"
+                    android:textSize="14sp"
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginBottom="4dp"/>
+
                 <EditText
                     android:id="@+id/etPassword"
                     android:layout_width="match_parent"
                     android:layout_height="50dp"
-                    android:layout_marginTop="12dp"
-                    android:hint="Password"
+                    android:hint="Enter password (min. 6 characters)"
                     android:inputType="textPassword"
                     android:background="@drawable/bg_input"
-                    android:padding="12dp"/>
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:singleLine="true"
+                    android:maxLines="1"/>
 
                 <!-- Confirm Password -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Confirm Password"
+                    android:textSize="14sp"
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginBottom="4dp"/>
+
                 <EditText
                     android:id="@+id/etConfirmPassword"
                     android:layout_width="match_parent"
                     android:layout_height="50dp"
-                    android:layout_marginTop="12dp"
-                    android:hint="Confirm password"
+                    android:hint="Re-enter your password"
                     android:inputType="textPassword"
                     android:background="@drawable/bg_input"
-                    android:padding="12dp"/>
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:singleLine="true"
+                    android:maxLines="1"/>
+
+                <!-- Progress Bar -->
+                <ProgressBar
+                    android:id="@+id/progressBar"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_marginTop="20dp"
+                    android:layout_marginBottom="20dp"
+                    android:visibility="gone"/>
 
                 <!-- Create Account Button -->
                 <Button
                     android:id="@+id/btnSignUp"
                     android:layout_width="match_parent"
                     android:layout_height="54dp"
-                    android:layout_marginTop="20dp"
+                    android:layout_marginTop="8dp"
                     android:text="Create Account"
+                    android:textSize="16sp"
                     android:textStyle="bold"
                     android:textColor="@color/text_on_primary"
-                    android:background="@drawable/bg_button"/>
+                    android:background="@drawable/bg_button"
+                    android:stateListAnimator="@null"/>
 
                 <!-- Login Redirect -->
                 <LinearLayout
@@ -155,12 +256,13 @@
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:gravity="center"
-                    android:layout_marginTop="20dp">
+                    android:layout_marginTop="24dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Already have an account?"
+                        android:textSize="14sp"
                         android:textColor="@color/text_secondary"/>
 
                     <TextView
@@ -168,8 +270,11 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text=" Login"
+                        android:textSize="14sp"
                         android:textColor="@color/primary"
-                        android:textStyle="bold"/>
+                        android:textStyle="bold"
+                        android:clickable="true"
+                        android:focusable="true"/>
                 </LinearLayout>
 
             </LinearLayout>

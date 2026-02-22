@@ -3,8 +3,8 @@ package com.devbrian.osebo.data.mapper
 import com.devbrian.osebo.data.remote.api.SubscriptionHistoryDto
 import com.devbrian.osebo.data.remote.api.SubscriptionPlanDto
 import com.devbrian.osebo.data.remote.dto.response.SubscriptionDto
-import com.devbrian.osebo.domain.model.Subscription
 import com.devbrian.osebo.domain.model.SubscriptionPlan
+import com.devbrian.osebo.models.Subscription
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
@@ -13,57 +13,57 @@ import javax.inject.Singleton
 @Singleton
 class SubscriptionMapper @Inject constructor() {
 
-    // For current subscription
     fun toDomain(dto: SubscriptionDto): Subscription {
         return Subscription(
             id = dto.id ?: "",
-            shopId = dto.shopId ?: "",
-            planId = dto.planId ?: "",
-            planName = dto.planName ?: "Unknown Plan",
-            planType = dto.planType ?: "basic",
-            maxLimit = dto.maxLimit ?: "0",
-            price = dto.price ?: 0.0,
+            shopId = dto.shop_id ?: "",
+            packageType = dto.package_type ?: extractPackageTypeFromPlanId(dto.plan_id) ?: "BASIC",
+            packageName = dto.package_name ?: extractPackageNameFromPlanId(dto.plan_id) ?: "Unknown Package",
+            amount = dto.amount ?: dto.price ?: 0.0,
             currency = dto.currency ?: "UGX",
-            status = dto.status ?: "inactive",
-            startDate = dto.startDate ?: "",
-            endDate = dto.endDate ?: "",
-            daysLeft = dto.daysLeft ?: calculateDaysLeft(dto.endDate),
-            autoRenew = dto.autoRenew ?: false,
-            paymentMethod = dto.paymentMethod ?: "",
-            packageName = dto.planName ?: "Unknown Package",
-            expires = dto.endDate ?: "N/A",
-            maxItems = dto.maxItems ?: 0
+            phoneNumber = dto.phone_number,
+            status = mapStatus(dto.status),
+            months = calculateMonths(dto.start_date, dto.end_date),
+            startDate = dto.start_date ?: "",
+            endDate = dto.end_date ?: "",
+            transactionId = dto.transaction_id,
+            paymentMethod = dto.payment_method,
+            isTrial = dto.is_trial ?: false,
+            trialEndsAt = dto.trial_ends_at,
+            autoRenew = dto.auto_renew ?: false,
+            createdAt = dto.created_at ?: "",
+            updatedAt = dto.updated_at ?: ""
         )
     }
 
-    // For subscription history
     fun historyToDomain(dto: SubscriptionHistoryDto): Subscription {
         return Subscription(
-            id = dto.id ?: "",
+            id = dto.id,
             shopId = dto.shopId ?: "",
-            planId = dto.planId ?: "",
-            planName = dto.planName ?: "Unknown Plan",
-            planType = dto.planType ?: "basic",
-            maxLimit = dto.maxLimit ?: "0",
-            price = dto.price ?: 0.0,
-            currency = dto.currency ?: "UGX",
-            status = dto.status ?: "inactive",
-            startDate = dto.startDate ?: "",
+            packageType = dto.planType ?: extractPackageTypeFromPlanId(dto.planId) ?: "BASIC",
+            packageName = dto.planName ?: extractPackageNameFromPlanId(dto.planId) ?: "Unknown Package",
+            amount = dto.amount,
+            currency = dto.currency,
+            phoneNumber = null,
+            status = mapStatus(dto.status),
+            months = calculateMonths(dto.startDate, dto.endDate),
+            startDate = dto.startDate ?: dto.date ?: "",
             endDate = dto.endDate ?: "",
-            daysLeft = dto.daysLeft ?: calculateDaysLeft(dto.endDate),
+            transactionId = null,
+            paymentMethod = dto.paymentMethod,
+            isTrial = isTrialStatus(dto.status),
+            trialEndsAt = null,
             autoRenew = dto.autoRenew ?: false,
-            paymentMethod = dto.paymentMethod ?: "",
-            packageName = dto.planName ?: "Unknown Package",
-            expires = dto.endDate ?: "N/A",
-            maxItems = dto.maxItems ?: 0
+            createdAt = dto.date ?: "",
+            updatedAt = dto.date ?: ""
         )
     }
 
     fun planToDomain(dto: SubscriptionPlanDto): SubscriptionPlan {
-        val calculatedMaxItems = when (dto.type?.lowercase()) {
-            "basic" -> 500
-            "pro" -> 5000
-            "enterprise" -> Int.MAX_VALUE
+        val calculatedMaxItems = when (dto.type?.uppercase()) {
+            "BASIC" -> 500
+            "PRO" -> 5000
+            "ENTERPRISE", "POPULAR" -> Int.MAX_VALUE
             else -> 0
         }
 
@@ -86,6 +86,61 @@ class SubscriptionMapper @Inject constructor() {
         )
     }
 
+    // Helper functions
+    private fun extractPackageTypeFromPlanId(planId: String?): String? {
+        return when (planId?.uppercase()) {
+            "BASIC", "PRO_001", "PLAN_001" -> "BASIC"
+            "PRO", "PRO_002", "PLAN_002" -> "PRO"
+            "ENTERPRISE", "POPULAR", "PRO_003", "PLAN_003" -> "POPULAR"
+            else -> null
+        }
+    }
+
+    private fun extractPackageNameFromPlanId(planId: String?): String? {
+        return when (planId?.uppercase()) {
+            "BASIC", "PRO_001", "PLAN_001" -> "Basic Plan"
+            "PRO", "PRO_002", "PLAN_002" -> "Pro Plan"
+            "ENTERPRISE", "POPULAR", "PRO_003", "PLAN_003" -> "Enterprise Plan"
+            else -> null
+        }
+    }
+
+    private fun isTrialStatus(status: String?): Boolean {
+        return status?.uppercase() == "TRIAL"
+    }
+
+    private fun mapStatus(status: String?): String {
+        return when (status?.uppercase()) {
+            "ACTIVE", "SUCCESS", "COMPLETED" -> "ACTIVE"
+            "INACTIVE", "FAILED", "EXPIRED" -> "EXPIRED"
+            "PENDING", "PROCESSING" -> "PENDING"
+            "TRIAL" -> "TRIAL"
+            "CANCELLED", "CANCELED" -> "CANCELLED"
+            else -> "PENDING"
+        }
+    }
+
+    private fun calculateMonths(startDate: String?, endDate: String?): Int {
+        if (startDate.isNullOrBlank() || endDate.isNullOrBlank()) return 1
+
+        return try {
+            val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            val start = dateFormat.parse(startDate)
+            val end = dateFormat.parse(endDate)
+
+            if (start != null && end != null) {
+                val diff = end.time - start.time
+                val days = diff / (1000 * 60 * 60 * 24)
+                val months = days / 30
+                months.toInt().coerceAtLeast(1)
+            } else {
+                1
+            }
+        } catch (e: Exception) {
+            1
+        }
+    }
+
     private fun formatPriceForDisplay(price: Double?, currency: String?): String {
         return when {
             price == null || price == 0.0 -> "Free"
@@ -94,30 +149,6 @@ class SubscriptionMapper @Inject constructor() {
                 val formattedPrice = "%,.0f".format(price)
                 "$currency $formattedPrice"
             }
-        }
-    }
-
-    private fun calculateDaysLeft(endDate: String?): Int {
-        if (endDate.isNullOrBlank()) return 0
-
-        return try {
-            val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-            dateFormat.timeZone = TimeZone.getTimeZone("UTC")
-
-            val end = dateFormat.parse(endDate)
-            val now = Calendar.getInstance().apply {
-                timeZone = TimeZone.getTimeZone("UTC")
-            }.time
-
-            if (end != null) {
-                val diff = end.time - now.time
-                val days = diff / (1000 * 60 * 60 * 24)
-                days.toInt().coerceAtLeast(0)
-            } else {
-                0
-            }
-        } catch (e: Exception) {
-            0
         }
     }
 

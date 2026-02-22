@@ -16,8 +16,7 @@ data class ContactInfo(
     val address: String?,
     @SerializedName("working_hours")
     val workingHours: String?,
-    @SerializedName("social_media")
-    val socialMedia: List<SocialMedia>? = null
+
 
 
 )

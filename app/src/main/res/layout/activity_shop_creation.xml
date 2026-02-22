@@ -7,9 +7,7 @@
     android:layout_height="match_parent"
     android:background="@color/white"
     android:padding="24dp"
-    tools:context=".ShopCreationActivity">
-
-
+    tools:context=".ui.ShopCreationActivity">
 
     <!-- Back Button -->
     <ImageView
@@ -17,21 +15,21 @@
         android:layout_width="48dp"
         android:layout_height="48dp"
         android:src="@drawable/ic_arrow_back"
-        android:tint="@color/colorPrimary"
         android:padding="12dp"
         android:background="?attr/selectableItemBackground"
         android:clickable="true"
         android:focusable="true"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        android:layout_marginTop="16dp"/>
+        android:layout_marginTop="16dp"
+        app:tint="@color/colorPrimary" />
 
     <!-- Title -->
     <TextView
         android:id="@+id/tv_title"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="Create Your First Shop"
+        android:text="Create Shop"
         android:textSize="28sp"
         android:textStyle="bold"
         android:textColor="@color/text_primary"
@@ -45,142 +43,212 @@
         android:id="@+id/tv_subtitle"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="Set up your business profile to get started"
-        android:textSize="16sp"
+        android:text="Shops · Create Shop"
+        android:textSize="14sp"
         android:textColor="@color/text_secondary"
         app:layout_constraintTop_toBottomOf="@id/tv_title"
         app:layout_constraintStart_toStartOf="@id/tv_title"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="8dp"/>
+        android:layout_marginTop="4dp"/>
 
-    <!-- Shop Name -->
-    <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/shop_name_input_layout"
-        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+    <!-- ScrollView to handle all inputs -->
+    <ScrollView
+        android:id="@+id/scrollView"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:hint="@string/shop_name"
-        app:startIconDrawable="@drawable/ic_store"
+        android:layout_height="0dp"
         app:layout_constraintTop_toBottomOf="@id/tv_subtitle"
+        app:layout_constraintBottom_toTopOf="@id/btn_create_shop"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="32dp">
-
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/et_shop_name"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:inputType="text"
-            android:maxLines="1"
-            android:hint="your shop"/>
-    </com.google.android.material.textfield.TextInputLayout>
-
-    <!-- Business Type -->
-    <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/business_type_input_layout"
-        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:hint="Business Type"
-        app:startIconDrawable="@drawable/ic_business"
-        app:layout_constraintTop_toBottomOf="@id/shop_name_input_layout"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="16dp">
-
-        <AutoCompleteTextView
-            android:id="@+id/actv_business_type"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:inputType="none"
-            android:hint="Select business type"/>
-    </com.google.android.material.textfield.TextInputLayout>
-
-    <!-- Location -->
-    <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/location_input_layout"
-        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:hint="Location"
-        app:startIconDrawable="@drawable/ic_location"
-        app:layout_constraintTop_toBottomOf="@id/business_type_input_layout"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="16dp">
-
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/et_location"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:inputType="text"
-            android:maxLines="1"
-            android:hint="e.g., Kampala, ntinda"/>
-    </com.google.android.material.textfield.TextInputLayout>
-
-    <!-- Contact Number -->
-    <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/contact_input_layout"
-        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:hint="Contact Number"
-        app:startIconDrawable="@drawable/ic_phone"
-        app:layout_constraintTop_toBottomOf="@id/location_input_layout"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="16dp">
-
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/et_contact"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:inputType="phone"
-            android:maxLines="1"/>
-    </com.google.android.material.textfield.TextInputLayout>
-
-    <!-- Shop Plan Info -->
-    <androidx.cardview.widget.CardView
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        app:cardCornerRadius="12dp"
-        app:cardElevation="2dp"
-        android:layout_marginTop="24dp"
-        app:layout_constraintTop_toBottomOf="@id/contact_input_layout"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp"
+        android:fillViewport="true">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp">
+            android:orientation="vertical">
 
-            <TextView
-                android:layout_width="wrap_content"
+            <!-- Shop Name -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/shop_name_input_layout"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Shop Plan"
-                android:textSize="18sp"
-                android:textStyle="bold"
-                android:textColor="@color/text_primary"
-                android:layout_marginBottom="8dp"/>
+                android:hint="Name *"
+                app:startIconDrawable="@drawable/ic_store"
+                app:startIconContentDescription="Shop Name"
+                app:boxStrokeWidth="1dp"
+                app:boxStrokeWidthFocused="2dp"
+                app:boxStrokeColor="@color/colorPrimary"
+                app:hintTextColor="@color/colorPrimary"
+                app:startIconTint="@color/colorPrimary"
+                android:layout_marginBottom="16dp">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Free Plan: 5 shops maximum"
-                android:textSize="14sp"
-                android:textColor="@color/text_secondary"
-                android:layout_marginBottom="4dp"/>
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_shop_name"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="text"
+                    android:maxLines="1"
+                    android:paddingStart="52dp"
+                    android:paddingTop="16dp"
+                    android:paddingEnd="16dp"
+                    android:paddingBottom="16dp"
+                    android:textSize="16sp"/>
+            </com.google.android.material.textfield.TextInputLayout>
 
-            <TextView
-                android:layout_width="wrap_content"
+            <!-- Address -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/address_input_layout"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="You can create up to 5 shops with the free plan"
-                android:textSize="12sp"
-                android:textColor="@color/text_secondary"/>
+                android:hint="Address *"
+                app:startIconDrawable="@drawable/ic_location"
+                app:startIconContentDescription="Address"
+                app:boxStrokeWidth="1dp"
+                app:boxStrokeWidthFocused="2dp"
+                app:boxStrokeColor="@color/colorPrimary"
+                app:hintTextColor="@color/colorPrimary"
+                app:startIconTint="@color/colorPrimary"
+                android:layout_marginBottom="16dp">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_address"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="text"
+                    android:maxLines="1"
+                    android:paddingStart="52dp"
+                    android:paddingTop="16dp"
+                    android:paddingEnd="16dp"
+                    android:paddingBottom="16dp"
+                    android:textSize="16sp"/>
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Shop Type -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/shop_type_input_layout"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Shop Type *"
+                app:startIconDrawable="@drawable/ic_business"
+                app:startIconContentDescription="Shop Type"
+                app:boxStrokeWidth="1dp"
+                app:boxStrokeWidthFocused="2dp"
+                app:boxStrokeColor="@color/colorPrimary"
+                app:hintTextColor="@color/colorPrimary"
+                app:startIconTint="@color/colorPrimary"
+                android:layout_marginBottom="16dp">
+
+                <AutoCompleteTextView
+                    android:id="@+id/actv_shop_type"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="none"
+                    android:paddingStart="52dp"
+                    android:paddingTop="16dp"
+                    android:paddingEnd="16dp"
+                    android:paddingBottom="16dp"
+                    android:textSize="16sp"
+                    android:focusable="false"
+                    android:clickable="true"
+                    android:dropDownHorizontalOffset="0dp"
+                    android:dropDownVerticalOffset="0dp"/>
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Registration Number (Optional) -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/registration_input_layout"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Registration Number"
+                app:startIconDrawable="@drawable/ic_document"
+                app:startIconContentDescription="Registration Number"
+                app:boxStrokeWidth="1dp"
+                app:boxStrokeWidthFocused="2dp"
+                app:boxStrokeColor="@color/colorPrimary"
+                app:hintTextColor="@color/colorPrimary"
+                app:startIconTint="@color/colorPrimary"
+                android:layout_marginBottom="16dp">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_registration_number"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="text"
+                    android:maxLines="1"
+                    android:paddingStart="52dp"
+                    android:paddingTop="16dp"
+                    android:paddingEnd="16dp"
+                    android:paddingBottom="16dp"
+                    android:textSize="16sp"/>
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Tax Identification Number (Optional) -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/tin_input_layout"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Tax Identification Number"
+                app:startIconDrawable="@drawable/ic_receipt"
+                app:startIconContentDescription="Tax ID"
+                app:boxStrokeWidth="1dp"
+                app:boxStrokeWidthFocused="2dp"
+                app:boxStrokeColor="@color/colorPrimary"
+                app:hintTextColor="@color/colorPrimary"
+                app:startIconTint="@color/colorPrimary"
+                android:layout_marginBottom="16dp">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_tin"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="text"
+                    android:maxLines="1"
+                    android:paddingStart="52dp"
+                    android:paddingTop="16dp"
+                    android:paddingEnd="16dp"
+                    android:paddingBottom="16dp"
+                    android:textSize="16sp"/>
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Description (Optional) -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/description_input_layout"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Description"
+                app:startIconDrawable="@drawable/ic_description"
+                app:startIconContentDescription="Description"
+                app:boxStrokeWidth="1dp"
+                app:boxStrokeWidthFocused="2dp"
+                app:boxStrokeColor="@color/colorPrimary"
+                app:hintTextColor="@color/colorPrimary"
+                app:startIconTint="@color/colorPrimary"
+                android:layout_marginBottom="8dp">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_description"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textMultiLine"
+                    android:minLines="3"
+                    android:maxLines="5"
+                    android:paddingStart="52dp"
+                    android:paddingTop="16dp"
+                    android:paddingEnd="16dp"
+                    android:paddingBottom="16dp"
+                    android:textSize="16sp"
+                    android:gravity="top"/>
+            </com.google.android.material.textfield.TextInputLayout>
         </LinearLayout>
-    </androidx.cardview.widget.CardView>
+    </ScrollView>
 
     <!-- Create Shop Button -->
     <com.google.android.material.button.MaterialButton
@@ -191,12 +259,13 @@
         android:textSize="16sp"
         android:textAllCaps="false"
         app:cornerRadius="28dp"
-        app:layout_constraintTop_toBottomOf="@id/contact_input_layout"
+        app:layout_constraintBottom_toTopOf="@id/tv_skip"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="120dp"/>
+        android:layout_marginBottom="8dp"
+        android:padding="16dp"/>
 
-    <!-- Skip for Now -->
+    <!-- Skip Link -->
     <TextView
         android:id="@+id/tv_skip"
         android:layout_width="wrap_content"
@@ -204,10 +273,10 @@
         android:text="Skip for now"
         android:textColor="@color/colorPrimary"
         android:textSize="14sp"
-        app:layout_constraintTop_toBottomOf="@id/btn_create_shop"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp"
         android:padding="8dp"
         android:clickable="true"
         android:focusable="true"/>

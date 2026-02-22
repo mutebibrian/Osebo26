@@ -1,3 +1,8 @@
 package com.devbrian.osebo.data.remote.dto.request
 
-data class PollPaymentStatusRequest()
+import com.google.gson.annotations.SerializedName
+
+data class PollPaymentStatusRequest(
+    @SerializedName("transaction_id")
+    val transactionId: String
+)

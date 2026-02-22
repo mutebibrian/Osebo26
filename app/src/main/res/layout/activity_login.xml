@@ -2,6 +2,7 @@
 <androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/background">
@@ -54,6 +55,19 @@
                 android:textSize="14sp"
                 android:textColor="@color/text_secondary"
                 android:layout_marginBottom="20dp"/>
+
+            <!-- Error Message -->
+            <TextView
+                android:id="@+id/tvError"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:padding="12dp"
+                android:background="@drawable/bg_error"
+                android:textColor="@color/error"
+                android:textSize="14sp"
+                android:visibility="gone"
+                tools:text="Login failed. Please check your credentials."/>
 
             <!-- Login Method -->
             <RadioGroup
@@ -137,6 +151,7 @@
 
             <!-- Forgot Password -->
             <TextView
+                android:id="@+id/tvForgotPassword"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Forgot password?"
@@ -144,12 +159,21 @@
                 android:layout_gravity="end"
                 android:layout_marginTop="8dp"/>
 
+            <!-- Progress Bar -->
+            <ProgressBar
+                android:id="@+id/progressBar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginTop="12dp"
+                android:visibility="gone"/>
+
             <!-- Login Button -->
             <Button
                 android:id="@+id/btnLogin"
                 android:layout_width="match_parent"
                 android:layout_height="54dp"
-                android:layout_marginTop="20dp"
+                android:layout_marginTop="12dp"
                 android:text="Sign In"
                 android:textColor="@color/text_on_primary"
                 android:textStyle="bold"
@@ -166,7 +190,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Don’t have an account?"
+                    android:text="Don't have an account?"
                     android:textColor="@color/text_secondary"/>
 
                 <TextView
@@ -180,6 +204,6 @@
             </LinearLayout>
 
         </LinearLayout>
-    </androidx.cardview.widget.CardView>
-
+    </androidx.cardview.widget.CardView>  <!-- This closes the login card -->
 </androidx.constraintlayout.widget.ConstraintLayout>
+    <!-- REMOVED the extra closing tag -->

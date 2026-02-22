@@ -13,7 +13,6 @@ import com.devbrian.osebo.databinding.ItemShopBinding
 import com.devbrian.osebo.models.Shop
 import com.devbrian.osebo.utils.SharedPreferencesManager
 
-// Interface must be defined in the same file or accessible
 interface OnShopClickListener {
     fun onShopClick(shop: Shop)
     fun onEditClick(shop: Shop)

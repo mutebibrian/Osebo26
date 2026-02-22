@@ -2,6 +2,7 @@
 <androidx.core.widget.NestedScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/background_grey">
@@ -10,25 +11,59 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:padding="16dp">
-        <androidx.viewpager2.widget.ViewPager2
-            android:id="@+id/viewPager"
-            android:layout_width="0dp"
-            android:layout_height="200dp"
-            android:layout_marginTop="12dp"
-            app:layout_constraintTop_toBottomOf="@id/subscriptionTabs"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
 
+        <!-- Progress Bar - Loading State -->
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:visibility="gone"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginTop="32dp"
+            tools:visibility="visible" />
+
+        <!-- Error Text - Error State -->
+        <TextView
+            android:id="@+id/errorText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="32dp"
+            android:gravity="center"
+            android:text="Failed to load subscription data"
+            android:textColor="@color/error_red"
+            android:textSize="16sp"
+            android:visibility="gone"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            tools:visibility="visible" />
+
+        <!-- Retry Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/retryButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginTop="16dp"
+            android:text="Retry"
+            android:visibility="gone"
+            app:layout_constraintTop_toBottomOf="@id/errorText"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            tools:visibility="visible" />
 
         <!-- Current Subscription Section -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/currentSubscriptionCard"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
             app:cardCornerRadius="12dp"
             app:cardElevation="2dp"
-            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/progressBar"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent">
 
@@ -41,7 +76,7 @@
                     android:id="@+id/shopBillingTitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Shop Billing (Powellpay)"
+                    android:text="Shop Billing"
                     android:textSize="20sp"
                     android:textStyle="bold"
                     android:textColor="@color/black"
@@ -52,7 +87,7 @@
                     android:id="@+id/shopBillingSubtitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Shops • Shop Billing"
+                    android:text="Subscription Management"
                     android:textSize="14sp"
                     android:textColor="@color/grey_600"
                     android:layout_marginTop="4dp"
@@ -62,14 +97,15 @@
                 <!-- Tab Layout -->
                 <com.google.android.material.tabs.TabLayout
                     android:id="@+id/subscriptionTabs"
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="24dp"
                     app:tabSelectedTextColor="@color/primary_color"
                     app:tabTextColor="@color/grey_600"
                     app:tabIndicatorColor="@color/primary_color"
                     app:layout_constraintTop_toBottomOf="@id/shopBillingSubtitle"
-                    app:layout_constraintStart_toStartOf="parent">
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent">
 
                     <com.google.android.material.tabs.TabItem
                         android:layout_width="wrap_content"
@@ -83,6 +119,16 @@
 
                 </com.google.android.material.tabs.TabLayout>
 
+                <!-- ViewPager2 for Tab Content -->
+                <androidx.viewpager2.widget.ViewPager2
+                    android:id="@+id/viewPager"
+                    android:layout_width="0dp"
+                    android:layout_height="200dp"
+                    android:layout_marginTop="12dp"
+                    app:layout_constraintTop_toBottomOf="@id/subscriptionTabs"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent" />
+
                 <!-- Current Subscription Details -->
                 <TextView
                     android:id="@+id/currentSubscriptionTitle"
@@ -93,12 +139,12 @@
                     android:textStyle="bold"
                     android:textColor="@color/black"
                     android:layout_marginTop="32dp"
-                    app:layout_constraintTop_toBottomOf="@id/subscriptionTabs"
+                    app:layout_constraintTop_toBottomOf="@id/viewPager"
                     app:layout_constraintStart_toStartOf="parent" />
 
                 <androidx.constraintlayout.widget.ConstraintLayout
                     android:id="@+id/subscriptionDetails"
-                    android:layout_width="match_parent"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
                     android:padding="16dp"
@@ -107,6 +153,7 @@
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintEnd_toEndOf="parent">
 
+                    <!-- First Row: Package and Max -->
                     <TextView
                         android:id="@+id/packageLabel"
                         android:layout_width="wrap_content"
@@ -121,7 +168,7 @@
                         android:id="@+id/packageValue"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Powellpay"
+                        android:text="Basic"
                         android:textSize="16sp"
                         android:textStyle="bold"
                         android:textColor="@color/black"
@@ -132,24 +179,26 @@
                         android:id="@+id/maxLabel"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Max"
+                        android:text="Duration"
                         android:textSize="14sp"
                         android:textColor="@color/grey_600"
-                        android:layout_marginStart="32dp"
                         app:layout_constraintTop_toTopOf="@id/packageLabel"
-                        app:layout_constraintStart_toEndOf="@id/packageLabel" />
+                        app:layout_constraintStart_toEndOf="@id/packageLabel"
+                        android:layout_marginStart="48dp" />
 
                     <TextView
                         android:id="@+id/maxValue"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="20,000 /mo"
+                        android:text="1 month"
                         android:textSize="16sp"
                         android:textStyle="bold"
                         android:textColor="@color/black"
                         app:layout_constraintTop_toBottomOf="@id/maxLabel"
-                        app:layout_constraintStart_toEndOf="@id/packageValue" />
+                        app:layout_constraintStart_toEndOf="@id/packageValue"
+                        android:layout_marginStart="48dp" />
 
+                    <!-- Second Row: Expires and Days Left -->
                     <TextView
                         android:id="@+id/expiresLabel"
                         android:layout_width="wrap_content"
@@ -179,9 +228,9 @@
                         android:text="Days Left"
                         android:textSize="14sp"
                         android:textColor="@color/grey_600"
-                        android:layout_marginStart="32dp"
                         app:layout_constraintTop_toTopOf="@id/expiresLabel"
-                        app:layout_constraintStart_toEndOf="@id/expiresLabel" />
+                        app:layout_constraintStart_toEndOf="@id/expiresLabel"
+                        android:layout_marginStart="48dp" />
 
                     <TextView
                         android:id="@+id/daysLeftValue"
@@ -192,7 +241,8 @@
                         android:textStyle="bold"
                         android:textColor="@color/error_red"
                         app:layout_constraintTop_toBottomOf="@id/daysLeftLabel"
-                        app:layout_constraintStart_toEndOf="@id/expiresValue" />
+                        app:layout_constraintStart_toEndOf="@id/expiresValue"
+                        android:layout_marginStart="48dp" />
 
                     <com.google.android.material.chip.Chip
                         android:id="@+id/statusChip"
@@ -210,7 +260,7 @@
                     android:id="@+id/removeSubscriptionButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Remove Shop Subscription"
+                    android:text="Remove Subscription"
                     style="@style/Widget.MaterialComponents.Button.TextButton"
                     android:textColor="@color/error_red"
                     android:layout_marginTop="16dp"
@@ -223,7 +273,7 @@
         <!-- Available Plans Section -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/plansCard"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             app:cardCornerRadius="12dp"
             app:cardElevation="2dp"
@@ -250,7 +300,7 @@
                 <!-- Plans RecyclerView -->
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/plansRecyclerView"
-                    android:layout_width="match_parent"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
                     android:orientation="horizontal"
@@ -262,7 +312,7 @@
                 <!-- Custom Plan Card -->
                 <androidx.cardview.widget.CardView
                     android:id="@+id/customPlanCard"
-                    android:layout_width="match_parent"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="24dp"
                     app:cardCornerRadius="12dp"
@@ -343,7 +393,7 @@
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/contactSalesButton"
-                            android:layout_width="match_parent"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="24dp"
                             android:text="Contact Sales"

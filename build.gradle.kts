@@ -1,8 +1,7 @@
 plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.kotlin.android) apply false
-    alias(libs.plugins.hilt.android) apply false // <--- ADD THIS LINE
-    alias(libs.plugins.navigation.safe.args) apply false  // Add this
+    alias(libs.plugins.hilt.android) apply false
+    alias(libs.plugins.navigation.safe.args) apply false
 
 }
-

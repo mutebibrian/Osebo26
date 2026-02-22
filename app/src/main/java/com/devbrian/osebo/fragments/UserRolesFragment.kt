@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.devbrian.osebo.adapters.UserRolesAdapter
 import com.devbrian.osebo.data.ApiClient
 import com.devbrian.osebo.databinding.FragmentUserRolesBinding
+import com.devbrian.osebo.models.ApiResponse
 import com.devbrian.osebo.models.UserRole
 import retrofit2.Call
 import retrofit2.Callback
@@ -74,34 +75,16 @@ class UserRolesFragment : Fragment() {
             return
         }
 
-        // Create API service with token
-        val apiService = ApiClient.createWithToken(token)
+        // Create API service
+        val apiService = ApiClient.create()
 
-        if (shopId.isNotEmpty()) {
-            // Try to get roles by shop
-            apiService.getUserRolesByShop(token, shopId).enqueue(object : Callback<List<UserRole>> {
-                override fun onResponse(call: Call<List<UserRole>>, response: Response<List<UserRole>>) {
-                    handleRolesResponse(response)
-                }
-
-                override fun onFailure(call: Call<List<UserRole>>, t: Throwable) {
-                    // Fallback to all roles
-                    loadAllUserRoles(apiService, token)
-                }
-            })
-        } else {
-            // Get all roles
-            loadAllUserRoles(apiService, token)
-        }
-    }
-
-    private fun loadAllUserRoles(apiService: com.devbrian.osebo.data.ApiService, token: String) {
-        apiService.getAllUserRoles(token).enqueue(object : Callback<List<UserRole>> {
-            override fun onResponse(call: Call<List<UserRole>>, response: Response<List<UserRole>>) {
+        // Use the existing getRoles method from ApiService
+        apiService.getRoles("Bearer $token", shopId).enqueue(object : Callback<ApiResponse<List<UserRole>>> {
+            override fun onResponse(call: Call<ApiResponse<List<UserRole>>>, response: Response<ApiResponse<List<UserRole>>>) {
                 handleRolesResponse(response)
             }
 
-            override fun onFailure(call: Call<List<UserRole>>, t: Throwable) {
+            override fun onFailure(call: Call<ApiResponse<List<UserRole>>>, t: Throwable) {
                 showLoading(false)
                 showError("Network error. Please check your connection")
                 showMockDataForAfricanBusinesses()
@@ -109,14 +92,21 @@ class UserRolesFragment : Fragment() {
         })
     }
 
-    private fun handleRolesResponse(response: Response<List<UserRole>>) {
+    private fun handleRolesResponse(response: Response<ApiResponse<List<UserRole>>>) {
         showLoading(false)
 
         if (response.isSuccessful) {
-            response.body()?.let { roles ->
-                updateUserRolesList(roles)
-            } ?: run {
-                showError("No user roles found")
+            val apiResponse = response.body()
+            if (apiResponse != null && apiResponse.success) {
+                apiResponse.data?.let { roles ->
+                    updateUserRolesList(roles)
+                } ?: run {
+                    showError("No user roles found")
+                    showMockDataForAfricanBusinesses()
+                }
+            } else {
+                val errorMessage = apiResponse?.message ?: "Failed to load user roles"
+                showError(errorMessage)
                 showMockDataForAfricanBusinesses()
             }
         } else {
@@ -235,7 +225,7 @@ class UserRolesFragment : Fragment() {
 
     private fun navigateToEditPermissions(role: UserRole) {
         // Don't allow editing of demo roles
-        if (role.id.startsWith("demo_")) {
+        if (role.id.startsWith("demo_") || role.id.toIntOrNull() != null) {
             Toast.makeText(
                 requireContext(),
                 "This is a sample role. Create your own role to customize permissions.",
@@ -250,6 +240,15 @@ class UserRolesFragment : Fragment() {
         }
 
         val dialog = EditPermissionsDialogFragment.newInstance(role)
+        dialog.setOnPermissionsUpdatedListener { updatedRole ->
+            // Update the role in the list
+            val index = userRoles.indexOfFirst { it.id == updatedRole.id }
+            if (index != -1) {
+                userRoles[index] = updatedRole
+                adapter.notifyItemChanged(index)
+                Toast.makeText(requireContext(), "Permissions updated for '${updatedRole.name}'", Toast.LENGTH_SHORT).show()
+            }
+        }
         dialog.show(childFragmentManager, "EditPermissionsDialog")
     }
 

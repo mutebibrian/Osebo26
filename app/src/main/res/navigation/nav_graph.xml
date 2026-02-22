@@ -5,99 +5,254 @@
     android:id="@+id/nav_graph"
     app:startDestination="@id/dashboardFragment">
 
+    <!-- Dashboard Fragment -->
     <fragment
         android:id="@+id/dashboardFragment"
         android:name="com.devbrian.osebo.fragments.DashboardFragment"
         android:label="Dashboard"
         tools:layout="@layout/fragment_dashboard" />
 
+    <!-- Shops Fragment -->
     <fragment
         android:id="@+id/shopsFragment"
         android:name="com.devbrian.osebo.fragments.ShopsFragment"
         android:label="My Shops"
-        tools:layout="@layout/fragment_shops" />
+        tools:layout="@layout/fragment_shops">
+        <action
+            android:id="@+id/action_shopsFragment_to_subscriptionPackagesFragment"
+            app:destination="@id/subscriptionPackagesFragment" />
+    </fragment>
 
+    <!-- Sales Fragment -->
     <fragment
         android:id="@+id/salesFragment"
         android:name="com.devbrian.osebo.fragments.SalesFragment"
         android:label="Sales"
         tools:layout="@layout/fragment_sales" />
 
+    <!-- New Sale Fragment -->
+    <fragment
+        android:id="@+id/newSaleFragment"
+        android:name="com.devbrian.osebo.fragments.NewSaleFragment"
+        android:label="New Sale"
+        tools:layout="@layout/fragment_new_sale">
+
+        <action
+            android:id="@+id/action_newSaleFragment_to_paymentFragment"
+            app:destination="@id/paymentFragment" />
+    </fragment>
+
+    <!-- Payment Fragment -->
+    <fragment
+        android:id="@+id/paymentFragment"
+        android:name="com.devbrian.osebo.fragments.PaymentFragment"
+        android:label="Payment"
+        tools:layout="@layout/fragment_payment">
+
+        <argument
+            android:name="customerId"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+
+        <argument
+            android:name="cartItems"
+            app:argType="com.devbrian.osebo.models.CartItem[]"
+            android:defaultValue="@null"
+            app:nullable="true" />
+
+        <argument
+            android:name="totalAmount"
+            app:argType="float" />
+
+        <action
+            android:id="@+id/action_paymentFragment_to_receiptFragment"
+            app:destination="@id/receiptFragment" />
+    </fragment>
+
+    <!-- Receipt Fragment -->
+    <fragment
+        android:id="@+id/receiptFragment"
+        android:name="com.devbrian.osebo.fragments.ReceiptFragment"
+        android:label="Receipt"
+        tools:layout="@layout/fragment_receipt">
+
+        <argument
+            android:name="saleId"
+            app:argType="string" />
+
+        <argument
+            android:name="invoiceNumber"
+            app:argType="string" />
+
+        <argument
+            android:name="totalAmount"
+            app:argType="float" />
+
+        <argument
+            android:name="paidAmount"
+            app:argType="float" />
+
+        <argument
+            android:name="change"
+            app:argType="float" />
+
+        <argument
+            android:name="cartItems"
+            app:argType="com.devbrian.osebo.models.CartItem[]"
+            android:defaultValue="@null"
+            app:nullable="true" />
+
+        <argument
+            android:name="paymentMethod"
+            app:argType="string"
+            android:defaultValue="Cash" />
+
+        <argument
+            android:name="customerName"
+            app:argType="string"
+            android:defaultValue="Walk-in Customer" />
+
+        <argument
+            android:name="customerPhone"
+            app:argType="string"
+            android:defaultValue="N/A" />
+    </fragment>
+
+    <!-- Finance Fragment -->
     <fragment
         android:id="@+id/financeFragment"
         android:name="com.devbrian.osebo.fragments.FinanceFragment"
         android:label="Finance"
         tools:layout="@layout/fragment_finance" />
 
+    <!-- Inventory Fragment with navigation actions -->
     <fragment
         android:id="@+id/inventoryFragment"
         android:name="com.devbrian.osebo.fragments.InventoryFragment"
         android:label="Inventory"
-        tools:layout="@layout/fragment_inventory" />
+        tools:layout="@layout/fragment_inventory">
+        <action
+            android:id="@+id/action_inventory_to_addProduct"
+            app:destination="@id/addProductFragment" />
+        <action
+            android:id="@+id/action_inventory_to_productDetails"
+            app:destination="@id/productDetailsFragment" />
+    </fragment>
 
+    <!-- Add Product Fragment -->
+    <fragment
+        android:id="@+id/addProductFragment"
+        android:name="com.devbrian.osebo.fragments.AddProductFragment"
+        android:label="Add Product"
+        tools:layout="@layout/fragment_add_product">
+        <argument
+            android:name="productId"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
+    </fragment>
+
+    <!-- Product Details Fragment -->
+    <fragment
+        android:id="@+id/productDetailsFragment"
+        android:name="com.devbrian.osebo.fragments.ProductDetailsFragment"
+        android:label="Product Details"
+        tools:layout="@layout/fragment_product_details">
+
+        <argument
+            android:name="productId"
+            app:argType="string" />
+
+        <action
+            android:id="@+id/action_productDetails_to_addProduct"
+            app:destination="@id/addProductFragment" />
+    </fragment>
+
+    <!-- Employees Fragment -->
     <fragment
         android:id="@+id/employeesFragment"
         android:name="com.devbrian.osebo.fragments.EmployeesFragment"
         android:label="Employees"
         tools:layout="@layout/fragment_employees" />
 
+    <!-- Customers Fragment -->
     <fragment
         android:id="@+id/customersFragment"
         android:name="com.devbrian.osebo.fragments.CustomersFragment"
         android:label="Customers"
         tools:layout="@layout/fragment_customers" />
 
+    <!-- Contact Us Fragment -->
     <fragment
         android:id="@+id/contactUsFragment"
         android:name="com.devbrian.osebo.fragments.ContactUsFragment"
         android:label="Contact Us"
         tools:layout="@layout/fragment_contact_us">
-
-        <!-- Add this action to navigate to FAQ fragment -->
         <action
             android:id="@+id/action_contactUsFragment_to_faqFragment"
             app:destination="@id/faqFragment" />
-
     </fragment>
 
-    <!-- Add FAQ Fragment -->
+    <!-- FAQ Fragment -->
     <fragment
         android:id="@+id/faqFragment"
         android:name="com.devbrian.osebo.fragments.FaqDetailDialogFragment"
         android:label="FAQs"
         tools:layout="@layout/fragment_faq" />
+
+    <!-- User Roles Fragment -->
     <fragment
         android:id="@+id/userRolesTitle"
         android:name="com.devbrian.osebo.fragments.UserRolesFragment"
         android:label="User Roles"
         tools:layout="@layout/fragment_user_roles" />
-<fragment
-        android:id="@+id/accountFragment"
-    android:name="com.devbrian.osebo.fragments.AccountFragment"
-    android:label="Account"
-    tools:layout="@layout/fragment_account" >
-    <action
-        android:id="@+id/action_accountFragment_to_sessionsFragment"
-        app:destination="@id/sessionsFragment" />
-</fragment>
-<fragment
-      android:id="@+id/subscriptionsFragment"
-      android:name="com.devbrian.osebo.fragments.SubscriptionFragment"
-      android:label="Subscriptions"
-    tools:layout="@layout/fragment_subscription"/>
 
+    <!-- Account Fragment -->
+    <fragment
+        android:id="@+id/accountFragment"
+        android:name="com.devbrian.osebo.fragments.AccountFragment"
+        android:label="Account"
+        tools:layout="@layout/fragment_account">
+        <action
+            android:id="@+id/action_accountFragment_to_sessionsFragment"
+            app:destination="@id/sessionsFragment" />
+    </fragment>
+
+    <!-- Subscriptions Fragment -->
+    <fragment
+        android:id="@+id/subscriptionsFragment"
+        android:name="com.devbrian.osebo.fragments.SubscriptionFragment"
+        android:label="Subscriptions"
+        tools:layout="@layout/fragment_subscription" />
+
+    <!-- FAQ Detail Dialog Fragment -->
     <fragment
         android:id="@+id/faq_detail_dialog"
         android:name="com.devbrian.osebo.fragments.FaqDetailDialogFragment"
         android:label="FAQ Detail"
-        tools:layout="@layout/fragment_faq_detail_dialog"/>
+        tools:layout="@layout/fragment_faq_detail_dialog" />
 
+    <!-- Sessions Fragment -->
     <fragment
         android:id="@+id/sessionsFragment"
         android:name="com.devbrian.osebo.fragments.SessionsFragment"
         android:label="Active Sessions"
         tools:layout="@layout/fragment_sessions" />
 
-
+    <!-- Subscription Packages Fragment -->
+    <fragment
+        android:id="@+id/subscriptionPackagesFragment"
+        android:name="com.devbrian.osebo.fragments.SubscriptionPackagesFragment"
+        android:label="Choose Package"
+        tools:layout="@layout/fragment_subscription_packages">
+        <argument
+            android:name="shop"
+            app:argType="com.devbrian.osebo.models.Shop" />
+        <argument
+            android:name="currentPackage"
+            app:argType="string"
+            android:defaultValue="" />
+    </fragment>
 
 </navigation>

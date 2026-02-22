@@ -1,15 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginHorizontal="8dp"
+    android:layout_marginHorizontal="4dp"
     android:layout_marginVertical="4dp"
     app:cardCornerRadius="12dp"
     app:cardElevation="2dp"
-    android:background="?attr/selectableItemBackground"
+    android:background="@android:color/holo_green_light"
     android:clickable="true"
     android:focusable="true">
 
@@ -17,77 +16,87 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="12dp">
 
         <!-- Product Header -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginBottom="12dp"
+            android:layout_marginBottom="8dp"
             android:gravity="center_vertical">
 
-            <!-- Product Image/Icon -->
+            <!-- Product Image/Icon (fixed size) -->
             <LinearLayout
                 android:id="@+id/ll_product_image"
-                android:layout_width="56dp"
-                android:layout_height="56dp"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
                 android:background="@drawable/bg_product_image"
                 android:gravity="center"
-                android:layout_marginEnd="12dp">
+                android:layout_marginEnd="8dp">
 
                 <ImageView
                     android:id="@+id/iv_product"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
                     android:src="@drawable/ic_product"
-                    android:tint="@color/white"/>
+                    app:tint="@color/white" />
             </LinearLayout>
 
-            <!-- Product Details -->
+            <!-- Product Details - FIXED: Add maxWidth and ellipsize -->
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:orientation="vertical">
+                android:orientation="vertical"
+                android:layout_marginEnd="4dp">
 
                 <TextView
                     android:id="@+id/tv_product_name"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="iPhone 15 Pro"
-                    android:textSize="16sp"
+                    android:textSize="14sp"
                     android:textStyle="bold"
-                    android:textColor="@color/text_primary"/>
+                    android:textColor="@color/text_primary"
+                    android:maxLines="2"
+                    android:ellipsize="end" />
 
                 <TextView
                     android:id="@+id/tv_product_sku"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="SKU: IP15P-256"
-                    android:textSize="14sp"
+                    android:textSize="11sp"
                     android:textColor="@color/text_secondary"
-                    android:layout_marginTop="2dp"/>
+                    android:layout_marginTop="2dp"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
 
                 <TextView
                     android:id="@+id/tv_product_category"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Electronics"
-                    android:textSize="12sp"
+                    android:textSize="10sp"
                     android:textColor="@color/text_secondary"
-                    android:layout_marginTop="2dp"/>
+                    android:layout_marginTop="2dp"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
             </LinearLayout>
 
-            <!-- Product Price -->
+            <!-- Product Price - FIXED: Add maxWidth -->
             <TextView
                 android:id="@+id/tv_product_price"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="UGX 1,500,000"
-                android:textSize="16sp"
+                android:text="UGX 1.5M"
+                android:textSize="14sp"
                 android:textStyle="bold"
-                android:textColor="@color/green_success"/>
+                android:textColor="@color/green_success"
+                android:maxWidth="100dp"
+                android:maxLines="1"
+                android:ellipsize="end" />
         </LinearLayout>
 
         <!-- Divider -->
@@ -95,14 +104,14 @@
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:background="@color/divider"
-            android:layout_marginVertical="8dp"/>
+            android:layout_marginVertical="6dp" />
 
-        <!-- Stock Information -->
+        <!-- Stock Information - FIXED: Better spacing -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginBottom="8dp">
+            android:layout_marginBottom="4dp">
 
             <!-- Stock Quantity -->
             <LinearLayout
@@ -115,17 +124,19 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Stock"
-                    android:textSize="10sp"
-                    android:textColor="@color/text_secondary"/>
+                    android:textSize="9sp"
+                    android:textColor="@color/text_secondary" />
 
                 <TextView
                     android:id="@+id/tv_stock_quantity"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="15 units"
-                    android:textSize="14sp"
+                    android:textSize="12sp"
                     android:textColor="@color/text_primary"
-                    android:layout_marginTop="2dp"/>
+                    android:layout_marginTop="2dp"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
             </LinearLayout>
 
             <!-- Low Stock Warning -->
@@ -141,17 +152,19 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Low Stock"
-                    android:textSize="10sp"
-                    android:textColor="@color/red_error"/>
+                    android:textSize="9sp"
+                    android:textColor="@color/red_error" />
 
                 <TextView
                     android:id="@+id/tv_low_stock_warning"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Below threshold"
-                    android:textSize="12sp"
+                    android:textSize="11sp"
                     android:textColor="@color/red_error"
-                    android:layout_marginTop="2dp"/>
+                    android:layout_marginTop="2dp"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
             </LinearLayout>
 
             <!-- Cost Price -->
@@ -165,17 +178,19 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Cost"
-                    android:textSize="10sp"
-                    android:textColor="@color/text_secondary"/>
+                    android:textSize="9sp"
+                    android:textColor="@color/text_secondary" />
 
                 <TextView
                     android:id="@+id/tv_cost_price"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="UGX 1,200,000"
-                    android:textSize="12sp"
+                    android:text="UGX 1.2M"
+                    android:textSize="11sp"
                     android:textColor="@color/text_secondary"
-                    android:layout_marginTop="2dp"/>
+                    android:layout_marginTop="2dp"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
             </LinearLayout>
         </LinearLayout>
 
@@ -184,19 +199,20 @@
             android:id="@+id/pb_stock_level"
             style="?android:attr/progressBarStyleHorizontal"
             android:layout_width="match_parent"
-            android:layout_height="4dp"
-            android:layout_marginTop="4dp"
+            android:layout_height="3dp"
+            android:layout_marginTop="2dp"
             android:progress="60"
             android:max="100"
             android:progressTint="@color/colorPrimary"
-            android:backgroundTint="@color/divider"/>
+            android:backgroundTint="@color/divider" />
 
-        <!-- Barcode & Actions -->
+        <!-- Barcode & Actions - FIXED: Better sizing -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginTop="12dp">
+            android:layout_marginTop="8dp"
+            android:gravity="center_vertical">
 
             <!-- Barcode -->
             <LinearLayout
@@ -207,34 +223,34 @@
                 android:gravity="center_vertical">
 
                 <ImageView
-                    android:layout_width="16dp"
-                    android:layout_height="16dp"
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
                     android:src="@drawable/ic_barcode"
                     android:tint="@color/text_secondary"
-                    android:layout_marginEnd="4dp"/>
+                    android:layout_marginEnd="2dp" />
 
                 <TextView
                     android:id="@+id/tv_barcode"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="123456789012"
-                    android:textSize="12sp"
+                    android:textSize="10sp"
                     android:textColor="@color/text_secondary"
                     android:maxLines="1"
-                    android:ellipsize="end"/>
+                    android:ellipsize="end" />
             </LinearLayout>
 
             <!-- More Options -->
             <ImageView
                 android:id="@+id/iv_more_options"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
                 android:src="@drawable/ic_more_vert"
                 android:tint="@color/text_secondary"
-                android:padding="4dp"
+                android:padding="2dp"
                 android:background="?attr/selectableItemBackground"
                 android:clickable="true"
-                android:focusable="true"/>
+                android:focusable="true" />
         </LinearLayout>
 
         <!-- Quick Actions (Visible when expanded) -->
@@ -243,7 +259,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="8dp"
             android:visibility="gone">
 
             <!-- View Details -->
@@ -253,20 +269,20 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="View Details"
-                android:textSize="14sp"
+                android:textSize="12sp"
                 android:textColor="@color/colorPrimary"
                 android:gravity="center"
-                android:paddingVertical="8dp"
+                android:paddingVertical="6dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:clickable="true"
-                android:focusable="true"/>
+                android:focusable="true" />
 
             <!-- Divider -->
             <View
                 android:layout_width="1dp"
-                android:layout_height="16dp"
+                android:layout_height="14dp"
                 android:background="@color/divider"
-                android:layout_marginHorizontal="8dp"/>
+                android:layout_marginHorizontal="4dp" />
 
             <!-- Restock -->
             <TextView
@@ -275,13 +291,13 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Restock"
-                android:textSize="14sp"
+                android:textSize="12sp"
                 android:textColor="@color/colorPrimary"
                 android:gravity="center"
-                android:paddingVertical="8dp"
+                android:paddingVertical="6dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:clickable="true"
-                android:focusable="true"/>
+                android:focusable="true" />
         </LinearLayout>
 
     </LinearLayout>

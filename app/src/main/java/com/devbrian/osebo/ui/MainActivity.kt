@@ -12,6 +12,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GravityCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.AppBarConfiguration
@@ -22,21 +23,28 @@ import com.devbrian.osebo.R
 import com.devbrian.osebo.data.PreferenceManager
 import com.devbrian.osebo.databinding.ActivityMainBinding
 import com.google.android.material.navigation.NavigationView
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 
+@AndroidEntryPoint
 class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
     private lateinit var binding: ActivityMainBinding
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var navController: NavController
-    private lateinit var preferenceManager: PreferenceManager // Correct class name
+    private lateinit var preferenceManager: PreferenceManager
 
     private var isFabMenuOpen = false
+
+
+
+
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Initialize using singleton pattern
         preferenceManager = PreferenceManager.getInstance(this)
 
         setupToolbar()
@@ -44,7 +52,12 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         setupHeaderView()
         setupNavigationMenu()
         setupFloatingActionButtons()
+
+        // Check subscription status on create
+        checkSubscriptionStatus()
     }
+
+
 
     private fun setupToolbar() {
         setSupportActionBar(binding.topAppBar)
@@ -52,12 +65,13 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         supportActionBar?.setHomeButtonEnabled(true)
     }
 
+
+
     private fun setupNavigation() {
         val navHostFragment = supportFragmentManager
             .findFragmentById(R.id.fragment_container) as NavHostFragment
         navController = navHostFragment.navController
 
-        // Define top-level destinations
         appBarConfiguration = AppBarConfiguration(
             setOf(
                 R.id.dashboardFragment,
@@ -73,29 +87,23 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         setupActionBarWithNavController(navController, appBarConfiguration)
         binding.navigationView.setupWithNavController(navController)
-
-        // Set custom listener
         binding.navigationView.setNavigationItemSelectedListener(this)
 
-        // Set navigation icon click listener
         binding.topAppBar.setNavigationOnClickListener {
             binding.drawerLayout.openDrawer(GravityCompat.START)
         }
     }
 
     private fun setupFloatingActionButtons() {
-        // Main FAB click listener
         binding.mainFab.setOnClickListener {
             toggleFabMenu()
         }
 
-        // Sale FAB click listener
         binding.fabSale.setOnClickListener {
             createNewSale()
             toggleFabMenu()
         }
 
-        // Product FAB click listener
         binding.fabProduct.setOnClickListener {
             addNewProduct()
             toggleFabMenu()
@@ -104,12 +112,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     private fun toggleFabMenu() {
         if (isFabMenuOpen) {
-            // Close the menu
             animateFab(binding.fabSale, 0f, false)
             animateFab(binding.fabProduct, 0f, false)
             binding.mainFab.setImageResource(R.drawable.ic_add)
         } else {
-            // Open the menu
             animateFab(binding.fabSale, 1f, true)
             animateFab(binding.fabProduct, 1f, true)
             binding.mainFab.setImageResource(R.drawable.ic_close)
@@ -142,36 +148,44 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
     private fun addNewProduct() {
-        // Check if user has a shop selected
-        if (!preferenceManager.hasShop()) {
-            Toast.makeText(this, "Please select a shop first", Toast.LENGTH_SHORT).show()
-            navController.navigate(R.id.shopsFragment)
+        if (!hasActiveShopAndSubscription()) {
             return
         }
 
         Toast.makeText(this, "Add New Product", Toast.LENGTH_SHORT).show()
-
-        // Navigate to inventory fragment
         navController.navigate(R.id.inventoryFragment)
     }
 
     private fun createNewSale() {
-        // Check if user has a shop selected
-        if (!preferenceManager.hasShop()) {
-            Toast.makeText(this, "Please select a shop first", Toast.LENGTH_SHORT).show()
-            navController.navigate(R.id.shopsFragment)
+        if (!hasActiveShopAndSubscription()) {
             return
         }
 
         Toast.makeText(this, "Create New Sale", Toast.LENGTH_SHORT).show()
-        // Navigate to sales fragment
         navController.navigate(R.id.salesFragment)
+    }
+
+    private fun hasActiveShopAndSubscription(): Boolean {
+        // Check if user has a shop
+        if (!preferenceManager.hasShop()) {
+            Toast.makeText(this, "Please select a shop first", Toast.LENGTH_SHORT).show()
+            navController.navigate(R.id.shopsFragment)
+            return false
+        }
+
+        // Check if shop has active subscription
+        if (!preferenceManager.hasActiveSubscription()) {
+            Toast.makeText(this, "Active subscription required. Please subscribe to a plan.", Toast.LENGTH_LONG).show()
+            navController.navigate(R.id.subscriptionPackagesFragment)
+            return false
+        }
+
+        return true
     }
 
     private fun setupHeaderView() {
         val headerView = binding.navigationView.getHeaderView(0)
 
-        // Get views from header
         val tvUserName = headerView.findViewById<TextView>(R.id.tv_user_name)
         val tvUserEmail = headerView.findViewById<TextView>(R.id.tv_user_email)
         val tvUserInitial = headerView.findViewById<TextView>(R.id.tv_user_initial)
@@ -180,7 +194,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         val ivSettings = headerView.findViewById<ImageView>(R.id.iv_settings)
         val llUserAvatar = headerView.findViewById<View>(R.id.ll_user_avatar)
 
-        // Set user data - using correct method names
         val userName = preferenceManager.getUserName()
         val userEmail = preferenceManager.getUserEmail()
         val shopName = preferenceManager.getCurrentShopName()
@@ -188,16 +201,19 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         tvUserName.text = userName.ifEmpty { "Admin User" }
         tvUserEmail.text = userEmail.ifEmpty { "admin@example.com" }
         tvCurrentShop.text = shopName.ifEmpty { "No Shop Selected" }
-        tvAppVersion.text = "v1.2.0 (Build 305)"
 
-        // Set user initial
+        // Show subscription status in header
+        val subscriptionStatus = preferenceManager.getSubscriptionStatus()
+        if (subscriptionStatus.isNotEmpty()) {
+            tvAppVersion.text = "v1.2.0 • $subscriptionStatus"
+        } else {
+            tvAppVersion.text = "v1.2.0 (Build 305)"
+        }
+
         val initial = if (userName.isNotEmpty()) userName.first().toString() else "A"
         tvUserInitial.text = initial.uppercase()
-
-        // Set avatar background color based on name
         llUserAvatar.setBackgroundColor(getAvatarColor(userName))
 
-        // Set click listeners
         llUserAvatar.setOnClickListener {
             navigateToProfile()
         }
@@ -208,36 +224,55 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
     private fun setupNavigationMenu() {
-        // Customize menu items based on user role/permissions
         val menu = binding.navigationView.menu
 
-        // Check if user has shops
         val hasShops = preferenceManager.hasShop()
+        val hasActiveSubscription = preferenceManager.hasActiveSubscription()
+        val subscriptionStatus = preferenceManager.getSubscriptionStatus()
 
-        // Enable/disable shop-related items
+        println("🔍 ===== NAVIGATION MENU SETUP =====")
+        println("🔍 hasShops: $hasShops")
+        println("🔍 hasActiveSubscription: $hasActiveSubscription")
+        println("🔍 subscriptionStatus: $subscriptionStatus")
+        println("🔍 currentShopId: ${preferenceManager.getCurrentShopId()}")
+        println("🔍 currentShopName: ${preferenceManager.getCurrentShopName()}")
+
+        // Shop home is visible if user has a shop
         menu.findItem(R.id.nav_shop_home).isVisible = hasShops
-        menu.findItem(R.id.nav_sales).isVisible = hasShops
-        menu.findItem(R.id.nav_finance).isVisible = hasShops
-        menu.findItem(R.id.nav_inventory).isVisible = hasShops
-        menu.findItem(R.id.nav_transfers).isVisible = hasShops
-        menu.findItem(R.id.nav_employees).isVisible = hasShops
-        menu.findItem(R.id.nav_customers).isVisible = hasShops
 
-        // If no shop, show message
-        if (!hasShops) {
-            // You could add a message item here
+        // Business operations are visible only if shop has active subscription
+        val showBusinessItems = hasShops && hasActiveSubscription
+        println("🔍 showBusinessItems: $showBusinessItems")
+
+        menu.findItem(R.id.nav_sales).isVisible = showBusinessItems
+        menu.findItem(R.id.nav_finance).isVisible = showBusinessItems
+        menu.findItem(R.id.nav_inventory).isVisible = showBusinessItems
+        menu.findItem(R.id.nav_transfers).isVisible = showBusinessItems
+        menu.findItem(R.id.nav_employees).isVisible = showBusinessItems
+        menu.findItem(R.id.nav_customers).isVisible = showBusinessItems
+    }
+    fun refreshNavigationMenu() {
+        setupNavigationMenu()
+        binding.navigationView.invalidate()
+    }
+
+    private fun checkSubscriptionStatus() {
+        val shopId = preferenceManager.getCurrentShopId()
+        if (shopId.isNotEmpty()) {
+            // Refresh navigation menu based on subscription status
+            setupNavigationMenu()
         }
     }
 
     private fun getAvatarColor(name: String): Int {
         val colors = listOf(
-            android.graphics.Color.parseColor("#FF6B6B"), // Coral Red
-            android.graphics.Color.parseColor("#4ECDC4"), // Tiffany Blue
-            android.graphics.Color.parseColor("#FFD166"), // Sunglow
-            android.graphics.Color.parseColor("#06D6A0"), // Emerald
-            android.graphics.Color.parseColor("#118AB2"), // Blue NCS
-            android.graphics.Color.parseColor("#EF476F"), // Paradise Pink
-            android.graphics.Color.parseColor("#073B4C")  // Midnight Green
+            android.graphics.Color.parseColor("#FF6B6B"),
+            android.graphics.Color.parseColor("#4ECDC4"),
+            android.graphics.Color.parseColor("#FFD166"),
+            android.graphics.Color.parseColor("#06D6A0"),
+            android.graphics.Color.parseColor("#118AB2"),
+            android.graphics.Color.parseColor("#EF476F"),
+            android.graphics.Color.parseColor("#073B4C")
         )
 
         val index = if (name.isNotEmpty()) name.hashCode() % colors.size else 0
@@ -256,22 +291,34 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 navController.navigate(R.id.dashboardFragment)
             }
             R.id.nav_sales -> {
-                navController.navigate(R.id.salesFragment)
+                if (hasActiveShopAndSubscription()) {
+                    navController.navigate(R.id.salesFragment)
+                }
             }
             R.id.nav_finance -> {
-                navController.navigate(R.id.financeFragment)
+                if (hasActiveShopAndSubscription()) {
+                    navController.navigate(R.id.financeFragment)
+                }
             }
             R.id.nav_inventory -> {
-                navController.navigate(R.id.inventoryFragment)
+                if (hasActiveShopAndSubscription()) {
+                    navController.navigate(R.id.inventoryFragment)
+                }
             }
             R.id.nav_transfers -> {
-                Toast.makeText(this, "Transfers Coming Soon", Toast.LENGTH_SHORT).show()
+                if (hasActiveShopAndSubscription()) {
+                    Toast.makeText(this, "Transfers Coming Soon", Toast.LENGTH_SHORT).show()
+                }
             }
             R.id.nav_employees -> {
-                navController.navigate(R.id.employeesFragment)
+                if (hasActiveShopAndSubscription()) {
+                    navController.navigate(R.id.employeesFragment)
+                }
             }
             R.id.nav_customers -> {
-                navController.navigate(R.id.customersFragment)
+                if (hasActiveShopAndSubscription()) {
+                    navController.navigate(R.id.customersFragment)
+                }
             }
             R.id.nav_account -> {
                 navigateToAccount()
@@ -284,7 +331,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             }
         }
 
-        // Close drawer
         binding.drawerLayout.closeDrawer(GravityCompat.START)
         return true
     }
@@ -304,19 +350,19 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
     private fun navigateToProfile() {
-        Toast.makeText(this, "Navigate to Profile", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "Profile", Toast.LENGTH_SHORT).show()
     }
 
     private fun navigateToSettings() {
-        Toast.makeText(this, "Navigate to Settings", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "Settings", Toast.LENGTH_SHORT).show()
     }
 
     private fun navigateToAccount() {
-        Toast.makeText(this, "Navigate to Account", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "Account", Toast.LENGTH_SHORT).show()
     }
 
     private fun navigateToContactUs() {
-        Toast.makeText(this, "Navigate to Contact Us", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "Contact Us", Toast.LENGTH_SHORT).show()
     }
 
     private fun logout() {
@@ -339,17 +385,16 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         Toast.makeText(this, "Logged out successfully", Toast.LENGTH_SHORT).show()
     }
 
-    // Update header when shop changes
     fun updateHeaderShopInfo(shopName: String) {
         val headerView = binding.navigationView.getHeaderView(0)
         val tvCurrentShop = headerView.findViewById<TextView>(R.id.tv_current_shop)
         tvCurrentShop.text = shopName
-
-        // Also save to preferences
         preferenceManager.saveCurrentShopName(shopName)
+
+        // Re-check subscription when shop changes
+        checkSubscriptionStatus()
     }
 
-    // Update header when user info changes
     fun updateHeaderUserInfo(userName: String, userEmail: String) {
         val headerView = binding.navigationView.getHeaderView(0)
         val tvUserName = headerView.findViewById<TextView>(R.id.tv_user_name)
@@ -363,11 +408,27 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         tvUserInitial.text = initial.uppercase()
         llUserAvatar.setBackgroundColor(getAvatarColor(userName))
 
-        // Also save to preferences
         preferenceManager.saveUserData(
-            userId = preferenceManager.getUserId(), // Keep existing user ID
+            userId = preferenceManager.getUserId(),
             email = userEmail,
             name = userName
         )
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }

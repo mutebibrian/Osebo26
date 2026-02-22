@@ -4,34 +4,93 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
-import com.devbrian.osebo.domain.model.SubscriptionPlan
+import com.devbrian.osebo.R
 import com.devbrian.osebo.databinding.ItemPlanBinding
+import com.devbrian.osebo.models.SubscriptionPackage
 
 class PlanAdapter(
-    private val plans: List<SubscriptionPlan>,
-    private val onPlanSelected: (SubscriptionPlan) -> Unit
+    private val plans: List<SubscriptionPackage>,
+    private val onPlanSelected: (SubscriptionPackage) -> Unit
 ) : RecyclerView.Adapter<PlanAdapter.ViewHolder>() {
 
     inner class ViewHolder(private val binding: ItemPlanBinding) :
         RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(plan: SubscriptionPlan) {
-            // Domain model properties are non-null by design
-            binding.planName.text = plan.name
-            binding.planPrice.text = "${plan.currency} ${plan.price}"  // Already formatted string
-            binding.planType.text = plan.type.replaceFirstChar { it.uppercase() }
-            binding.planFeatures.text = plan.features.joinToString("\n") { "✓ $it" }
-            binding.planDescription.text = plan.description
+        fun bind(plan: SubscriptionPackage) {
+            // Set plan name
+            binding.planName.text = plan.displayName ?: plan.name
 
-            // Show popular badge for popular plans
+            // Set price - use displayPrice property from model
+            binding.planPrice.text = plan.displayPrice
+
+            // Set plan type based on name
+            binding.planType.text = when (plan.name.uppercase()) {
+                "BASIC" -> "Basic"
+                "PRO" -> "Pro"
+                "POPULAR" -> "Enterprise"
+                else -> "Custom"
+            }
+
+            // Set description
+            binding.planDescription.text = plan.description ?: getDefaultDescription(plan.name)
+
+            // Show popular badge
             binding.popularBadge.visibility = if (plan.isPopular) View.VISIBLE else View.GONE
 
-            // Show additional info if needed
-            binding.additionalInfo.text =
-                "${plan.maxUsers} users • ${plan.maxShops} shops • ${plan.maxStorage} storage"
+            // Set features list
+            binding.planFeatures.text = if (plan.features.isNotEmpty()) {
+                plan.features.joinToString("\n") { "✓ $it" }
+            } else {
+                getDefaultFeatures(plan.name)
+            }
 
+            // Set additional info
+            binding.additionalInfo.text = getAdditionalInfo(plan.name)
+
+            // Customize button for custom plans
+            binding.chooseButton.text = if (plan.isCustom) {
+                "Contact Sales"
+            } else {
+                "Choose Plan"
+            }
+
+            // Set click listener
             binding.chooseButton.setOnClickListener {
                 onPlanSelected(plan)
+            }
+
+            // Change button color for popular plans
+            if (plan.isPopular) {
+                binding.chooseButton.setBackgroundColor(
+                    itemView.context.getColor(R.color.primary_color)
+                )
+            }
+        }
+
+        private fun getDefaultDescription(packageName: String): String {
+            return when (packageName.uppercase()) {
+                "BASIC" -> "Perfect for small businesses getting started"
+                "PRO" -> "Advanced features for growing businesses"
+                "POPULAR" -> "Custom enterprise solutions with dedicated support"
+                else -> "Tailored solutions for your business needs"
+            }
+        }
+
+        private fun getDefaultFeatures(packageName: String): String {
+            return when (packageName.uppercase()) {
+                "BASIC" -> "✓ Inventory\n✓ Reports\n✓ Basic Support"
+                "PRO" -> "✓ Inventory\n✓ Reports\n✓ Support\n✓ Analytics"
+                "POPULAR" -> "✓ Inventory\n✓ Reports\n✓ Support\n✓ API Access\n✓ Custom Features"
+                else -> "✓ Custom features based on your needs"
+            }
+        }
+
+        private fun getAdditionalInfo(packageName: String): String {
+            return when (packageName.uppercase()) {
+                "BASIC" -> "5 users • 2 shops • Basic analytics"
+                "PRO" -> "20 users • 10 shops • Advanced analytics"
+                "POPULAR" -> "Unlimited users • Unlimited shops • Priority support"
+                else -> "Custom limits • Dedicated support"
             }
         }
     }

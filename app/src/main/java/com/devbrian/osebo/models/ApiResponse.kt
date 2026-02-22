@@ -2,16 +2,25 @@ package com.devbrian.osebo.models
 
 import com.google.gson.annotations.SerializedName
 
-data class ApiResponse(
+data class ApiResponse<T>(
     @SerializedName("status")
     val status: String,
     @SerializedName("message")
     val message: String,
     @SerializedName("data")
-    val data: Any? = null
+    val data: T? = null,
+    @SerializedName("success")
+    val success: Boolean
+
+
+
+    //val success: Boolean,      // This should exist
+    //    val message: String?,      // This should exist
+    //    val data: T?              // This should exist
 )
 
-// 2. InventoryResponse.kt
+
+
 data class InventoryResponse(
     val items: List<InventoryItem>,
     val total: Int,
@@ -27,7 +36,7 @@ data class Category(
     val itemCount: Int
 )
 
-// 4. SalesResponse.kt
+//  SalesResponse.kt
 data class SalesResponse(
     val sales: List<Sale>,
     val total: Int,
@@ -37,7 +46,6 @@ data class SalesResponse(
 )
 
 
-// 6. SaleItemDetail.kt
 data class SaleItemDetail(
     val id: String,
     val inventoryItemId: String,
@@ -47,7 +55,6 @@ data class SaleItemDetail(
     val total: Double
 )
 
-// 7. Receipt.kt
 data class Receipt(
     val id: String,
     val saleId: String,
@@ -56,7 +63,6 @@ data class Receipt(
     val createdAt: String
 )
 
-// 8. DailySummary.kt
 data class DailySummary(
     val date: String,
     val totalSales: Double,
@@ -65,7 +71,6 @@ data class DailySummary(
     val topItems: List<TopItem>
 )
 
-// 9. TopItem.kt
 data class TopItem(
     val itemId: String,
     val itemName: String,
@@ -73,7 +78,6 @@ data class TopItem(
     val totalRevenue: Double
 )
 
-// 10. FinancialSummary.kt
 data class FinancialSummary(
     val revenue: Double,
     val expenses: Double,
@@ -83,7 +87,6 @@ data class FinancialSummary(
     val accountsPayable: Double
 )
 
-// 11. Expense.kt
 data class Expense(
     val id: String,
     val category: String,
@@ -94,29 +97,11 @@ data class Expense(
     val createdAt: String
 )
 
-// 12. SubscriptionPackage.kt
-data class SubscriptionPackage(
-    val id: String,
-    val name: String,
-    val description: String,
-    val price: Double,
-    val currency: String,
-    val duration: Int, // in months
-    val features: List<String>,
-    val isPopular: Boolean = false
-)
 
-// 13. Subscription.kt
 
-// 14. SubscriptionStatus.kt
-data class SubscriptionStatus(
-    val status: String,
-    val daysRemaining: Int?,
-    val nextBillingDate: String?,
-    val canRenew: Boolean
-)
 
-// 15. SalesReport.kt
+
+
 data class SalesReport(
     val period: String,
     val totalSales: Double,
@@ -125,14 +110,12 @@ data class SalesReport(
     val data: List<SalesDataPoint>
 )
 
-// 16. SalesDataPoint.kt
 data class SalesDataPoint(
     val date: String,
     val sales: Double,
     val transactions: Int
 )
 
-// 17. InventoryReport.kt
 data class InventoryReport(
     val totalItems: Int,
     val totalValue: Double,
@@ -141,7 +124,6 @@ data class InventoryReport(
     val topCategories: List<CategorySummary>
 )
 
-// 18. CategorySummary.kt
 data class CategorySummary(
     val category: String,
     val itemCount: Int,
@@ -157,14 +139,12 @@ data class FinancialReport(
     val expenseByCategory: List<ExpenseCategory>
 )
 
-// 20. ExpenseCategory.kt
 data class ExpenseCategory(
     val category: String,
     val amount: Double,
     val percentage: Double
 )
 
-// 21. CustomersResponse.kt
 data class CustomersResponse(
     val customers: List<Customer>,
     val total: Int,
@@ -173,7 +153,6 @@ data class CustomersResponse(
 )
 
 
-// 24. Supplier.kt
 data class Supplier(
     val id: String,
     val name: String,
@@ -187,7 +166,6 @@ data class Supplier(
     val createdAt: String
 )
 
-// 26. ShopSettings.kt
 data class ShopSettings(
     val currency: String,
     val timezone: String,
@@ -200,7 +178,6 @@ data class ShopSettings(
     val updatedAt: String
 )
 
-// 27. UserPreferences.kt
 data class UserPreferences(
     val notificationsEnabled: Boolean,
     val theme: String,
@@ -208,3 +185,4 @@ data class UserPreferences(
     val currency: String,
     val updatedAt: String
 )
+

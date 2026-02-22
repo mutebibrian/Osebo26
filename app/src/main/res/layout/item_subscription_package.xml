@@ -1,6 +1,193 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-             android:layout_width="match_parent"
-             android:layout_height="match_parent">
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/cardPackage"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="16dp"
+    android:checkable="true"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="2dp"
+    app:cardUseCompatPadding="true"
+    app:strokeColor="?attr/colorPrimary"
+    app:strokeWidth="0dp"
+    app:contentPadding="0dp">
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <!-- Header Row with Popular and Custom Tags -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp">
+
+            <TextView
+                android:id="@+id/tvPopularTag"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:text="POPULAR"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:textColor="@color/white"
+                android:background="@drawable/bg_popular_tag"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="4dp"
+                android:visibility="gone"
+                tools:text="POPULAR"
+                tools:visibility="visible" />
+
+            <TextView
+                android:id="@+id/tvCustomTag"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:text="CUSTOM"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:textColor="@color/white"
+                android:background="@drawable/bg_custom_tag"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="4dp"
+                android:visibility="gone"
+                tools:text="CUSTOM"
+                tools:visibility="visible" />
+
+        </RelativeLayout>
+
+        <!-- Package Name and Price Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:id="@+id/tvPackageName"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Basic Plan"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:textColor="@color/on_surface"
+                tools:text="Basic Plan" />
+
+            <TextView
+                android:id="@+id/tvPackagePrice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="UGX 20,000/month"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/primary"
+                android:visibility="visible"
+                tools:text="UGX 20,000/month" />
+
+            <TextView
+                android:id="@+id/tvContactSales"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Contact Sales"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="@color/primary"
+                android:background="@drawable/bg_contact_sales"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="6dp"
+                android:visibility="gone"
+                tools:text="Contact Sales"
+                tools:visibility="gone" />
+
+        </LinearLayout>
+
+        <!-- Description -->
+        <TextView
+            android:id="@+id/tvPackageDescription"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Basic plan for small businesses"
+            android:textSize="14sp"
+            android:textColor="@color/on_surface_variant"
+            android:lineSpacingExtra="4dp"
+            android:layout_marginBottom="16dp"
+            tools:text="Basic plan for small businesses, billed monthly." />
+
+        <!-- Trial Info - Hidden by default since API doesn't provide it -->
+        <TextView
+            android:id="@+id/tvTrialInfo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="30 days free trial"
+            android:textSize="12sp"
+            android:textColor="@color/blue_500"
+            android:background="@drawable/bg_trial_tag"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="2dp"
+            android:layout_marginBottom="16dp"
+            android:visibility="gone"
+            tools:visibility="gone" />
+
+        <!-- Features Section -->
+        <TextView
+            android:id="@+id/tvFeatures"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="13sp"
+            android:textColor="@color/on_surface"
+            android:lineSpacingExtra="4dp"
+            android:layout_marginBottom="8dp"
+            tools:text="Inventory • Reports • Support" />
+
+        <!-- Dynamic Features List (Optional - if you want to show each feature separately) -->
+        <LinearLayout
+            android:id="@+id/layoutFeatures"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <!-- Features will be added dynamically here -->
+            <!-- Example:
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="✓ Inventory Management"
+                android:textSize="13sp"
+                android:textColor="@color/on_surface"
+                android:drawablePadding="8dp"
+                android:drawableStart="@drawable/ic_check_circle"
+                android:layout_marginBottom="8dp" />
+            -->
+
+        </LinearLayout>
+
+        <!-- Monthly/Yearly Toggle (If needed in future) -->
+        <LinearLayout
+            android:id="@+id/layoutBillingCycle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="12dp"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Billed monthly"
+                android:textSize="12sp"
+                android:textColor="@color/text_secondary" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

@@ -1,6 +1,236 @@
 <?xml version="1.0" encoding="utf-8"?>
 <navigation xmlns:android="http://schemas.android.com/apk/res/android"
-             xmlns:app="http://schemas.android.com/apk/res-auto"
-             android:id="@+id/nav_graph_subscription">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph_subscription"
+    app:startDestination="@id/subscriptionPackagesFragment">
+
+    <!-- Package Selection -->
+    <fragment
+        android:id="@+id/subscriptionPackagesFragment"
+        android:name="com.devbrian.osebo.fragments.SubscriptionPackagesFragment"
+        android:label="Choose Package"
+        tools:layout="@layout/fragment_subscription_packages">
+
+        <argument
+            android:name="shop"
+            app:argType="com.devbrian.osebo.models.Shop" />
+
+        <argument
+            android:name="currentPackage"
+            app:argType="string"
+            android:defaultValue="" />
+
+        <action
+            android:id="@+id/action_subscriptionPackagesFragment_to_subscriptionPaymentFragment"
+            app:destination="@id/subscriptionPaymentFragment">
+
+            <argument
+                android:name="packageId"
+                app:argType="string" />
+        </action>
+
+        <action
+            android:id="@+id/action_subscriptionPackagesFragment_to_paymentStatusFragment"
+            app:destination="@id/paymentStatusFragment" />
+    </fragment>
+
+    <!-- Payment -->
+    <fragment
+        android:id="@+id/subscriptionPaymentFragment"
+        android:name="com.devbrian.osebo.fragments.subscription.SubscriptionPaymentFragment"
+        android:label="Complete Payment"
+        tools:layout="@layout/fragment_subscription_payment">
+
+        <argument
+            android:name="shop"
+            app:argType="com.devbrian.osebo.models.Shop" />
+
+        <argument
+            android:name="packageId"
+            app:argType="string" />
+
+        <argument
+            android:name="packageType"
+            app:argType="string"
+            android:defaultValue="" />
+
+        <argument
+            android:name="packagePrice"
+            app:argType="float" />
+
+        <argument
+            android:name="packageName"
+            app:argType="string"
+            android:defaultValue="Package" />
+
+        <action
+            android:id="@+id/action_subscriptionPaymentFragment_to_paymentStatusFragment"
+            app:destination="@id/paymentStatusFragment">
+
+            <argument
+                android:name="transactionId"
+                app:argType="string" />
+            <argument
+                android:name="shopId"
+                app:argType="string" />
+            <argument
+                android:name="amount"
+                app:argType="float" />
+            <argument
+                android:name="currency"
+                app:argType="string" />
+            <argument
+                android:name="phoneNumber"
+                app:argType="string" />
+        </action>
+    </fragment>
+
+    <!-- Payment Status -->
+    <!-- Payment Status -->
+    <fragment
+        android:id="@+id/paymentStatusFragment"
+        android:name="com.devbrian.osebo.fragments.subscription.PaymentStatusFragment"
+        android:label="Payment Status"
+        tools:layout="@layout/fragment_payment_status">
+
+        <argument
+            android:name="transactionId"
+            app:argType="string" />
+
+        <argument
+            android:name="shopId"
+            app:argType="string" />
+
+        <!-- ✅ ADD THIS - Subscription ID from successful payment -->
+        <argument
+            android:name="subscriptionId"
+            app:argType="string"
+            android:defaultValue="" />
+
+        <argument
+            android:name="amount"
+            app:argType="float" />
+
+        <argument
+            android:name="currency"
+            app:argType="string"
+            android:defaultValue="UGX" />
+
+        <argument
+            android:name="phoneNumber"
+            app:argType="string"
+            android:defaultValue="" />
+
+        <action
+            android:id="@+id/action_paymentStatusFragment_to_subscriptionDetailsFragment"
+            app:destination="@id/subscriptionDetailsFragment">
+            <argument
+                android:name="shopId"
+                app:argType="string" />
+            <argument
+                android:name="subscriptionId"
+                app:argType="string" />
+        </action>
+
+        <action
+            android:id="@+id/action_paymentStatusFragment_to_subscriptionPackagesFragment"
+            app:destination="@id/subscriptionPackagesFragment">
+            <argument
+                android:name="shop"
+                app:argType="com.devbrian.osebo.models.Shop"
+                app:nullable="true" />
+        </action>
+    </fragment>
+
+    <!-- Subscription Details -->
+    <fragment
+        android:id="@+id/subscriptionDetailsFragment"
+        android:name="com.devbrian.osebo.fragments.SubscriptionDetailsFragment"
+        android:label="Subscription Details"
+        tools:layout="@layout/fragment_subscription_details">
+
+        <argument
+            android:name="shopId"
+            app:argType="string" />
+
+        <argument
+            android:name="subscriptionId"
+            app:argType="string"
+            android:defaultValue="" />
+
+        <action
+            android:id="@+id/action_subscriptionDetailsFragment_to_subscriptionPackagesFragment"
+            app:destination="@id/subscriptionPackagesFragment">
+            <argument
+                android:name="shop"
+                app:argType="com.devbrian.osebo.models.Shop"
+                app:nullable="true" />
+            <argument
+                android:name="currentPackage"
+                app:argType="string"
+                android:defaultValue="" />
+        </action>
+
+        <action
+            android:id="@+id/action_subscriptionDetailsFragment_to_paymentStatusFragment"
+            app:destination="@id/paymentStatusFragment">
+            <argument
+                android:name="transactionId"
+                app:argType="string" />
+            <argument
+                android:name="shopId"
+                app:argType="string" />
+            <argument
+                android:name="amount"
+                app:argType="float" />
+            <argument
+                android:name="currency"
+                app:argType="string" />
+            <argument
+                android:name="phoneNumber"
+                app:argType="string" />
+        </action>
+
+        <action
+            android:id="@+id/action_subscriptionDetailsFragment_to_paymentHistoryFragment"
+            app:destination="@id/paymentHistoryFragment">
+            <argument
+                android:name="subscriptionId"
+                app:argType="string" />
+        </action>
+
+        <action
+            android:id="@+id/action_subscriptionDetailsFragment_to_usageStatisticsFragment"
+            app:destination="@id/usageStatisticsFragment">
+            <argument
+                android:name="shopId"
+                app:argType="string" />
+        </action>
+    </fragment>
+
+    <!-- Payment History -->
+    <fragment
+        android:id="@+id/paymentHistoryFragment"
+        android:name="com.devbrian.osebo.fragments.Fragmentpaymenthistory"
+        android:label="Payment History"
+        tools:layout="@layout/fragment_payment_history">
+
+        <argument
+            android:name="subscriptionId"
+            app:argType="string" />
+    </fragment>
+
+    <!-- Usage Statistics -->
+    <fragment
+        android:id="@+id/usageStatisticsFragment"
+        android:name="com.devbrian.osebo.fragments.FragmentUsageStatistics"
+        android:label="Usage Statistics"
+        tools:layout="@layout/fragment_usage_statistics">
+
+        <argument
+            android:name="shopId"
+            app:argType="string" />
+    </fragment>
 
 </navigation>

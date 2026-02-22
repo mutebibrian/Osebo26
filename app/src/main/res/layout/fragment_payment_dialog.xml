@@ -1,14 +1,430 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    tools:context=".fragments.PaymentDialogFragment">
+    android:layout_height="wrap_content"
+    android:background="@drawable/bottom_sheet_background"
+    android:padding="20dp">
 
-    <!-- TODO: Update blank fragment layout -->
+    <!-- Handle Bar -->
+    <View
+        android:id="@+id/handleBar"
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:background="@drawable/bottom_sheet_handle"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="8dp" />
+
+    <!-- Close Button -->
+    <ImageView
+        android:id="@+id/ivClose"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:src="@drawable/ic_close"
+        android:padding="8dp"
+        android:background="?selectableItemBackgroundBorderless"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="4dp"
+        app:tint="@color/grey_600" />
+
+    <!-- Title -->
     <TextView
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:text="@string/hello_blank_fragment" />
+        android:id="@+id/tvDialogTitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Complete Subscription"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="@color/black"
+        android:layout_marginTop="24dp"
+        android:layout_marginEnd="48dp"
+        app:layout_constraintTop_toBottomOf="@id/handleBar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/ivClose" />
 
-</FrameLayout>
+    <!-- Shop Name (Added) -->
+    <TextView
+        android:id="@+id/tvShopName"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Shop: Main Electronics"
+        android:textSize="14sp"
+        android:textColor="@color/grey_600"
+        android:layout_marginTop="4dp"
+        app:layout_constraintTop_toBottomOf="@id/tvDialogTitle"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Package Card -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/packageCard"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="0dp"
+        app:cardBackgroundColor="@color/primary_10"
+        app:strokeColor="@color/primary"
+        app:strokeWidth="1dp"
+        app:layout_constraintTop_toBottomOf="@id/tvShopName"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp">
+
+            <TextView
+                android:id="@+id/tvPackageName"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="Pro Plan"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/black"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/tvPackagePrice" />
+
+            <TextView
+                android:id="@+id/tvPackagePrice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="UGX 50,000/month"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/primary"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+            <!-- Price Section (Visible for paid plans) -->
+            <LinearLayout
+                android:id="@+id/priceSection"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="12dp"
+                android:visibility="visible"
+                app:layout_constraintTop_toBottomOf="@id/tvPackageName">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Billing Cycle"
+                    android:textSize="12sp"
+                    android:textColor="@color/grey_600" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/tilMonths"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                    app:boxCornerRadiusBottomEnd="8dp"
+                    app:boxCornerRadiusBottomStart="8dp"
+                    app:boxCornerRadiusTopEnd="8dp"
+                    app:boxCornerRadiusTopStart="8dp"
+                    app:endIconMode="dropdown_menu"
+                    app:startIconDrawable="@drawable/ic_calendar"
+                    app:startIconTint="@color/primary">
+
+                    <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                        android:id="@+id/spinnerMonths"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="Select duration"
+                        android:text="1 month"
+                        android:textSize="14sp" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- Total Amount -->
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp">
+
+                    <TextView
+                        android:id="@+id/tvTotalLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Total Amount"
+                        android:textSize="14sp"
+                        android:textColor="@color/grey_600"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintStart_toStartOf="parent" />
+
+                    <TextView
+                        android:id="@+id/tvTotalAmount"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="UGX 50,000"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/black"
+                        app:layout_constraintTop_toBottomOf="@id/tvTotalLabel"
+                        app:layout_constraintStart_toStartOf="parent" />
+
+                    <TextView
+                        android:id="@+id/tvSavingsBadge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Save 10%"
+                        android:textSize="12sp"
+                        android:textColor="@color/white"
+                        android:background="@drawable/bg_savings_badge"
+                        android:paddingHorizontal="12dp"
+                        android:paddingVertical="4dp"
+                        android:layout_marginStart="12dp"
+                        android:visibility="gone"
+                        app:layout_constraintBottom_toBottomOf="@id/tvTotalAmount"
+                        app:layout_constraintStart_toEndOf="@id/tvTotalAmount"
+                        app:layout_constraintTop_toTopOf="@id/tvTotalAmount" />
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+            </LinearLayout>
+
+            <!-- Trial Section (Visible for trial plans) -->
+            <LinearLayout
+                android:id="@+id/trialSection"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="12dp"
+                android:visibility="gone"
+                app:layout_constraintTop_toBottomOf="@id/tvPackageName">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🎁 Free Trial"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/blue_500" />
+
+                <TextView
+                    android:id="@+id/tvTrialDays"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="30 days free trial"
+                    android:textSize="12sp"
+                    android:textColor="@color/grey_600"
+                    android:layout_marginTop="4dp" />
+
+            </LinearLayout>
+
+            <!-- Custom Pricing Section (Visible for custom/enterprise plans) -->
+            <LinearLayout
+                android:id="@+id/customPricingSection"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="12dp"
+                android:visibility="gone"
+                app:layout_constraintTop_toBottomOf="@id/tvPackageName">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="✨ Custom Enterprise Plan"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/primary" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Tailored solutions for your business needs"
+                    android:textSize="12sp"
+                    android:textColor="@color/grey_600"
+                    android:layout_marginTop="4dp" />
+
+            </LinearLayout>
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Payment Provider Selection -->
+    <TextView
+        android:id="@+id/tvProviderLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Select Payment Provider"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:textColor="@color/black"
+        android:layout_marginTop="20dp"
+        app:layout_constraintTop_toBottomOf="@id/packageCard"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <com.google.android.material.chip.ChipGroup
+        android:id="@+id/chipGroupProvider"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        app:singleSelection="true"
+        app:selectionRequired="true"
+        app:layout_constraintTop_toBottomOf="@id/tvProviderLabel"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chipMtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="MTN"
+            android:textColor="@color/black"
+            app:chipBackgroundColor="@drawable/chip_background_selector"
+            app:chipStrokeColor="@drawable/chip_stroke_selector"
+            app:chipStrokeWidth="1dp"
+            app:chipIcon="@drawable/ic_mtn"
+            app:chipIconTint="@color/yellow_700"
+            app:checkedIconVisible="false"
+            style="@style/Widget.MaterialComponents.Chip.Choice" />
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chipAirtel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Airtel"
+            android:textColor="@color/black"
+            app:chipBackgroundColor="@drawable/chip_background_selector"
+            app:chipStrokeColor="@drawable/chip_stroke_selector"
+            app:chipStrokeWidth="1dp"
+            app:chipIcon="@drawable/ic_airtel"
+            app:chipIconTint="@color/red_500"
+            app:checkedIconVisible="false"
+            style="@style/Widget.MaterialComponents.Chip.Choice" />
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chipMpesa"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="M-Pesa"
+            android:textColor="@color/black"
+            app:chipBackgroundColor="@drawable/chip_background_selector"
+            app:chipStrokeColor="@drawable/chip_stroke_selector"
+            app:chipStrokeWidth="1dp"
+            app:chipIcon="@drawable/ic_mpesa"
+            app:chipIconTint="@color/green_500"
+            app:checkedIconVisible="false"
+            style="@style/Widget.MaterialComponents.Chip.Choice" />
+
+    </com.google.android.material.chip.ChipGroup>
+
+    <!-- Phone Number Input -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/tilPhoneNumber"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        app:layout_constraintTop_toBottomOf="@id/chipGroupProvider"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:boxCornerRadiusBottomEnd="8dp"
+        app:boxCornerRadiusBottomStart="8dp"
+        app:boxCornerRadiusTopEnd="8dp"
+        app:boxCornerRadiusTopStart="8dp"
+        app:startIconDrawable="@drawable/ic_phone"
+        app:startIconTint="@color/primary"
+        app:endIconMode="clear_text"
+        app:endIconTint="@color/grey_600"
+        app:errorEnabled="true"
+        app:placeholderText="e.g., 0772123456">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etPhoneNumber"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Mobile Money Number"
+            android:inputType="phone"
+            android:maxLines="1"
+            android:textSize="14sp" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Error Message (Added) -->
+    <TextView
+        android:id="@+id/tvErrorMessage"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:textColor="@color/error"
+        android:textSize="14sp"
+        android:visibility="gone"
+        android:layout_marginTop="8dp"
+        app:layout_constraintTop_toBottomOf="@id/tilPhoneNumber"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        tools:text="Invalid phone number" />
+
+    <!-- Progress Bar (Centered on Pay Now button) -->
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="@id/btnPayNow"
+        app:layout_constraintBottom_toBottomOf="@id/btnPayNow"
+        app:layout_constraintEnd_toEndOf="@id/btnPayNow"
+        app:layout_constraintStart_toStartOf="@id/btnPayNow"
+        tools:visibility="gone" />
+
+    <!-- Action Buttons -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="24dp"
+        android:weightSum="2"
+        app:layout_constraintTop_toBottomOf="@id/tvErrorMessage"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCancel"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp"
+            android:text="Cancel"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:textColor="@color/grey_700"
+            app:strokeColor="@color/grey_400" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnPayNow"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:text="Pay Now"
+            style="@style/Widget.MaterialComponents.Button"
+            app:icon="@drawable/ic_lock"
+            app:iconGravity="textStart"
+            app:iconTint="@color/white" />
+
+    </LinearLayout>
+
+    <!-- Secure Payment Note -->
+    <TextView
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="🔒 Secured by MTN, Airtel &amp; M-Pesa Mobile Money"
+        android:textSize="12sp"
+        android:textColor="@color/grey_600"
+        android:gravity="center"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="8dp"
+        app:layout_constraintTop_toBottomOf="@id/btnCancel"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

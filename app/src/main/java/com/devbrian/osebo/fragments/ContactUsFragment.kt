@@ -12,7 +12,7 @@ import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
 import com.devbrian.osebo.R
 import com.devbrian.osebo.databinding.FragmentContactUsBinding
-import com.devbrian.osebo.ui.ContactUsViewModel
+import com.devbrian.osebo.ui.viewmodels.ContactUsViewModel
 import com.google.android.material.snackbar.Snackbar
 
 class ContactUsFragment : Fragment() {

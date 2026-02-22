@@ -3,19 +3,20 @@ plugins {
     alias(libs.plugins.kotlin.android)
     id("kotlin-kapt")
     id("kotlin-parcelize")
-
-    alias(libs.plugins.hilt.android) //
-    alias(libs.plugins.navigation.safe.args)  // Add this line for Navigation SafeArgs
-
+    alias(libs.plugins.hilt.android)
+    alias(libs.plugins.navigation.safe.args)
 }
 
 android {
     namespace = "com.devbrian.osebo"
-    compileSdk = 36
+    compileSdk = 34
+
     buildFeatures {
         dataBinding = true
         viewBinding = true
+        buildConfig = true
     }
+
     defaultConfig {
         applicationId = "com.devbrian.osebo"
         minSdk = 24
@@ -35,80 +36,139 @@ android {
             )
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+
     kotlinOptions {
         jvmTarget = "11"
     }
 
-    sourceSets {
-        getByName("main") {
-            java.srcDirs("build/generated/source/kapt/main")
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "META-INF/DEPENDENCIES"
+            excludes += "META-INF/LICENSE"
+            excludes += "META-INF/LICENSE.txt"
+            excludes += "META-INF/license.txt"
+            excludes += "META-INF/NOTICE"
+            excludes += "META-INF/NOTICE.txt"
+            excludes += "META-INF/notice.txt"
+            excludes += "META-INF/ASL2.0"
+            excludes += "META-INF/*.kotlin_module"
         }
     }
 }
 
+dependencies {
+    // Core Android
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.material)
+    implementation(libs.androidx.activity)
+    implementation(libs.androidx.constraintlayout)
+    implementation(libs.androidx.swiperefreshlayout)
+    implementation(libs.androidx.preference.ktx)
 
-    dependencies {
-        implementation(libs.androidx.core.ktx)
-        implementation(libs.androidx.appcompat)
-        implementation(libs.material)
-        implementation(libs.androidx.activity)
-        implementation(libs.androidx.constraintlayout)
-        implementation(libs.androidx.swiperefreshlayout)
-        implementation("com.google.code.gson:gson:2.10.1")
-        implementation("com.jakewharton.timber:timber:5.0.1")
+    // JSON
+    implementation("com.google.code.gson:gson:2.10.1")
 
+    // Logging
+    implementation("com.jakewharton.timber:timber:5.0.1")
 
-        // Navigation
-        implementation(libs.navigation.fragment.ktx)
-        implementation(libs.navigation.ui.ktx)
+    // Navigation
+    implementation(libs.navigation.fragment.ktx)
+    implementation(libs.navigation.ui.ktx)
 
-        // ViewModel & LiveData
-        implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.1")
-        implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.6.1")
+    // ViewModel & LiveData
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.2")
+    implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.6.2")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
 
-        // Glide
-        implementation("com.github.bumptech.glide:glide:4.15.1")
+    // Image Loading
+    implementation("com.github.bumptech.glide:glide:4.15.1")
+    kapt("com.github.bumptech.glide:compiler:4.15.1")
 
-     // Hilt
+    // Hilt
     implementation(libs.hilt.android)
-     kapt(libs.hilt.compiler)
+    kapt(libs.hilt.compiler)
 
-        // Testing
-        testImplementation(libs.junit)
-        androidTestImplementation(libs.androidx.junit)
-        androidTestImplementation(libs.androidx.espresso.core)
+    // Testing
+    testImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
 
-        // Retrofit
-        implementation("com.squareup.retrofit2:retrofit:2.9.0")
-        implementation("com.squareup.retrofit2:converter-gson:2.9.0")
-// OkHttp
-        implementation("com.squareup.okhttp3:okhttp:4.11.0")
-        implementation("com.squareup.okhttp3:logging-interceptor:4.11.0")
-// Coroutines
-        implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
-// Lifecycle
-        implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.2")
-        implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.6.2")
+    // Retrofit & Networking
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.squareup.okhttp3:okhttp:4.11.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.11.0")
 
-        // CardView
-        implementation("androidx.cardview:cardview:1.0.0")
-// Or if using Material Components:
-        implementation("com.google.android.material:material:1.10.0")
-// ViewBinding is included in AndroidX
-        implementation("androidx.viewpager2:viewpager2:1.0.0")
+    // Coroutines
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
+    // UI Components
+    implementation("androidx.cardview:cardview:1.0.0")
+    implementation("androidx.viewpager2:viewpager2:1.0.0")
 
+    // Games (if needed)
+    implementation(libs.play.services.games)
 
+    // Kotlin Standard Library
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.22")
 
+    // Room for offline storage
+    implementation("androidx.room:room-runtime:2.7.0")
+    implementation("androidx.room:room-ktx:2.7.0")
+    kapt("androidx.room:room-compiler:2.7.0")
 
+    // WorkManager for background sync
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
 
+    // Hilt WorkManager integration
+    implementation("androidx.hilt:hilt-work:1.1.0")
+    kapt("androidx.hilt:hilt-compiler:1.1.0")
 
+    // Hilt testing
+    androidTestImplementation("com.google.dagger:hilt-android-testing:2.48")
+    kaptAndroidTest("com.google.dagger:hilt-compiler:2.48")
+}
+
+// ✅ FIXED: Remove the 'testing' reference that was causing the error
+configurations.all {
+    resolutionStrategy {
+        // Force Kotlin versions
+        force("org.jetbrains.kotlin:kotlin-stdlib:1.9.22")
+        force("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.22")
+        force("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.22")
+        force("org.jetbrains.kotlin:kotlin-reflect:1.9.22")
+        force("org.jetbrains.kotlin:kotlin-stdlib-common:1.9.22")
+
+        // Force Room version
+        force("androidx.room:room-runtime:2.7.0")
+        force("androidx.room:room-ktx:2.7.0")
+        force("androidx.room:room-compiler:2.7.0")
+
+        // Prefer our versions
+        preferProjectModules()
+
+        // Log conflicts for debugging
+        eachDependency {
+            if (requested.group == "org.jetbrains.kotlin" && requested.name.startsWith("kotlin-stdlib")) {
+                if (requested.version != "1.9.22") {
+                    println("⚠️ Forcing Kotlin dependency ${requested.group}:${requested.name} from ${requested.version} to 1.9.22")
+                    useVersion("1.9.22")
+                }
+            }
+        }
     }
+}
 
-
-
-
+kapt {
+    correctErrorTypes = true
+    javacOptions {
+        option("-Xmaxerrs", 1000)
+    }
+}

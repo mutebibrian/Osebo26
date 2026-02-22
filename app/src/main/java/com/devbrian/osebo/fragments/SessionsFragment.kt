@@ -11,7 +11,7 @@ import com.devbrian.osebo.R
 import com.devbrian.osebo.adapters.SessionsAdapter
 import com.devbrian.osebo.databinding.FragmentSessionsBinding
 import com.devbrian.osebo.models.Session
-import com.devbrian.osebo.ui.SessionsViewModel
+import com.devbrian.osebo.ui.viewmodels.SessionsViewModel
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 

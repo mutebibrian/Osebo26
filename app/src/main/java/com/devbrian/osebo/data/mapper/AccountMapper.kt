@@ -1,28 +1,31 @@
 package com.devbrian.osebo.data.mapper
 
-
 import com.devbrian.osebo.data.remote.dto.response.AccountDto
 import com.devbrian.osebo.domain.model.Account
+import com.devbrian.osebo.models.ApiResponse
 import javax.inject.Inject
 
 class AccountMapper @Inject constructor() {
 
-    fun toDomain(dto: AccountDto): Account {
+    fun toDomain(dto: ApiResponse<AccountDto>): Account {
+        // Check if data exists
+        val accountData = dto.data ?: throw IllegalArgumentException("Account data is null in API response")
+
         return Account(
-            id = dto.id,
-            businessName = dto.businessName,
-            businessType = dto.businessType,
-            registrationNumber = dto.registrationNumber,
-            taxId = dto.taxId,
-            address = dto.address,
-            status = dto.status,
-            paymentMethod = dto.paymentMethod,
-            billingCycle = dto.billingCycle,
-            nextBillingDate = dto.nextBillingDate,
-            twoFactorEnabled = dto.twoFactorEnabled,
-            loginNotificationsEnabled = dto.loginNotificationsEnabled,
-            createdAt = dto.createdAt,
-            updatedAt = dto.updatedAt
+            id = accountData.id,
+            businessName = accountData.businessName,
+            businessType = accountData.businessType,
+            registrationNumber = accountData.registrationNumber,
+            taxId = accountData.taxId,
+            address = accountData.address,
+            status = accountData.status,
+            paymentMethod = accountData.paymentMethod,
+            billingCycle = accountData.billingCycle,
+            nextBillingDate = accountData.nextBillingDate,
+            twoFactorEnabled = accountData.twoFactorEnabled,
+            loginNotificationsEnabled = accountData.loginNotificationsEnabled,
+            createdAt = accountData.createdAt,
+            updatedAt = accountData.updatedAt
         )
     }
 }

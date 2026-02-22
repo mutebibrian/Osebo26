@@ -1,4 +1,4 @@
-package com.devbrian.osebo.fragments.subscription
+package com.devbrian.osebo.fragments
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -13,12 +13,11 @@ import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.devbrian.osebo.R
-import com.devbrian.osebo.adapters.PaymentHistoryAdapter
+import com.devbrian.osebo.adapters.SubscriptionHistoryAdapter
 import com.devbrian.osebo.databinding.FragmentSubscriptionDetailsBinding
-import com.devbrian.osebo.models.Shop
-import com.devbrian.osebo.models.subscription.Subscription
+import com.devbrian.osebo.models.SubscriptionHistoryItem
+import com.devbrian.osebo.ui.viewmodels.SubscriptionViewModel
 import com.devbrian.osebo.utils.Resource
-import com.devbrian.osebo.viewmodels.SubscriptionViewModel
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -30,11 +29,11 @@ class SubscriptionDetailsFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val viewModel: SubscriptionViewModel by viewModels()
-    private lateinit var paymentHistoryAdapter: PaymentHistoryAdapter
+    private lateinit var subscriptionHistoryAdapter: SubscriptionHistoryAdapter
 
-    private var shop: Shop? = null
-    private var subscription: Subscription? = null
+    private var subscription: com.devbrian.osebo.models.Subscription? = null
     private var subscriptionId: String? = null
+    private var shopId: String? = null
 
     private val args: SubscriptionDetailsFragmentArgs by navArgs()
 
@@ -50,9 +49,8 @@ class SubscriptionDetailsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Get data from navigation arguments
-        shop = args.shop
-        subscription = args.subscription
+        // Get data from navigation arguments - USE IDS, NOT OBJECTS
+        shopId = args.shopId
         subscriptionId = args.subscriptionId
 
         setupUI()
@@ -68,22 +66,17 @@ class SubscriptionDetailsFragment : Fragment() {
             findNavController().navigateUp()
         }
 
-        // Set shop info if available
-        shop?.let {
-            binding.toolbar.subtitle = it.name
-        }
+        // Remove subtitle since we don't have shop object
+        binding.toolbar.subtitle = null
     }
 
     private fun setupRecyclerView() {
-        paymentHistoryAdapter = PaymentHistoryAdapter()
+        // Initialize adapter with empty list
+        subscriptionHistoryAdapter = SubscriptionHistoryAdapter(emptyList())
         binding.rvPaymentHistory.apply {
             layoutManager = LinearLayoutManager(requireContext())
-            adapter = paymentHistoryAdapter
+            adapter = subscriptionHistoryAdapter
             setHasFixedSize(true)
-        }
-
-        paymentHistoryAdapter.setOnItemClickListener { payment ->
-            showPaymentDetailsDialog(payment)
         }
     }
 
@@ -120,6 +113,8 @@ class SubscriptionDetailsFragment : Fragment() {
                         updateUI(subscription)
                         // Load payment history
                         loadPaymentHistory(subscription.id)
+                    } ?: run {
+                        showErrorState()
                     }
                 }
                 is Resource.Error -> {
@@ -144,24 +139,47 @@ class SubscriptionDetailsFragment : Fragment() {
                 is Resource.Success -> {
                     binding.progressBarPayments.visibility = View.GONE
                     resource.data?.let { payments ->
-                        if (payments.isEmpty()) {
+                        // Convert Payment objects to SubscriptionHistoryItem
+                        val historyItems = payments.map { payment ->
+                            SubscriptionHistoryItem(
+                                id = payment.id,
+                                planName = subscription?.displayPackage ?: "Subscription Plan",
+                                amount = payment.amount,
+                                currency = payment.currency,
+                                paymentMethod = payment.displayMethod,
+                                status = payment.status,
+                                date = payment.paidAt ?: payment.createdAt
+                            )
+                        }
+
+                        if (historyItems.isEmpty()) {
                             binding.rvPaymentHistory.visibility = View.GONE
                             binding.tvNoPayments.visibility = View.VISIBLE
                             binding.btnViewAllPayments.visibility = View.GONE
                         } else {
                             binding.rvPaymentHistory.visibility = View.VISIBLE
                             binding.tvNoPayments.visibility = View.GONE
-                            paymentHistoryAdapter.submitList(payments.take(3)) // Show last 3
-                            if (payments.size > 3) {
+                            // Show last 3 payments
+                            val recentPayments = historyItems.take(3)
+                            subscriptionHistoryAdapter.updateHistory(recentPayments)
+
+                            if (historyItems.size > 3) {
                                 binding.btnViewAllPayments.visibility = View.VISIBLE
                             } else {
                                 binding.btnViewAllPayments.visibility = View.GONE
                             }
                         }
+                    } ?: run {
+                        binding.rvPaymentHistory.visibility = View.GONE
+                        binding.tvNoPayments.visibility = View.VISIBLE
+                        binding.btnViewAllPayments.visibility = View.GONE
                     }
                 }
                 is Resource.Error -> {
                     binding.progressBarPayments.visibility = View.GONE
+                    binding.rvPaymentHistory.visibility = View.GONE
+                    binding.tvNoPayments.visibility = View.VISIBLE
+                    binding.tvNoPayments.text = "Failed to load payment history"
                     Toast.makeText(
                         requireContext(),
                         resource.message ?: "Failed to load payment history",
@@ -195,14 +213,20 @@ class SubscriptionDetailsFragment : Fragment() {
         viewModel.renewSubscriptionResult.observe(viewLifecycleOwner) { resource ->
             when (resource) {
                 is Resource.Loading -> {
-                    // Show renew loading
+                    // Show renew loading if needed
+                    binding.btnUpgrade.isEnabled = false
+                    binding.btnUpgrade.text = "Processing..."
                 }
                 is Resource.Success -> {
+                    binding.btnUpgrade.isEnabled = true
+                    binding.btnUpgrade.text = "Upgrade Plan"
                     Toast.makeText(requireContext(), "Subscription renewed successfully", Toast.LENGTH_SHORT).show()
                     // Refresh subscription details
                     loadSubscriptionDetails()
                 }
                 is Resource.Error -> {
+                    binding.btnUpgrade.isEnabled = true
+                    binding.btnUpgrade.text = "Upgrade Plan"
                     Toast.makeText(
                         requireContext(),
                         resource.message ?: "Failed to renew subscription",
@@ -214,29 +238,30 @@ class SubscriptionDetailsFragment : Fragment() {
     }
 
     private fun loadSubscriptionDetails() {
-        // If we have subscription object directly, use it
-        subscription?.let {
-            updateUI(it)
-            loadPaymentHistory(it.id)
-            return
-        }
-
-        // Otherwise load from API
-        subscriptionId?.let { id ->
-            lifecycleScope.launch {
-                viewModel.getSubscriptionDetails(id)
+        // Load from API using subscriptionId
+        subscriptionId?.let { subId ->
+            shopId?.let { shpId ->
+                lifecycleScope.launch {
+                    viewModel.getSubscriptionDetails(shpId, subId)
+                }
+            } ?: run {
+                showErrorState()
+                Toast.makeText(requireContext(), "Shop ID not available", Toast.LENGTH_SHORT).show()
             }
         } ?: run {
-            shop?.let {
-                // Load active subscription for this shop
+            // If no subscription ID, try to load active subscription for shop
+            shopId?.let { id ->
                 lifecycleScope.launch {
-                    viewModel.getShopActiveSubscription(it.id)
+                    viewModel.getShopActiveSubscription(id)
                 }
+            } ?: run {
+                showErrorState()
+                Toast.makeText(requireContext(), "No subscription ID or shop ID provided", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
-    private fun updateUI(subscription: Subscription) {
+    private fun updateUI(subscription: com.devbrian.osebo.models.Subscription) {
         this.subscription = subscription
 
         // Plan name and status
@@ -244,7 +269,7 @@ class SubscriptionDetailsFragment : Fragment() {
         binding.tvPlanStatus.text = subscription.displayStatus
 
         // Status color
-        val statusColor = when (subscription.status.uppercase()) {
+        val statusColor = when (subscription.status?.uppercase()) {
             "ACTIVE" -> R.color.green_500
             "EXPIRED" -> R.color.red_500
             "PENDING" -> R.color.yellow_500
@@ -254,7 +279,7 @@ class SubscriptionDetailsFragment : Fragment() {
         binding.tvPlanStatus.setTextColor(ContextCompat.getColor(requireContext(), statusColor))
         binding.tvPlanStatus.background = ContextCompat.getDrawable(
             requireContext(),
-            when (subscription.status.uppercase()) {
+            when (subscription.status?.uppercase()) {
                 "ACTIVE" -> R.drawable.bg_status_active
                 "TRIAL" -> R.drawable.bg_status_trial
                 "EXPIRED" -> R.drawable.bg_status_expired
@@ -337,8 +362,8 @@ class SubscriptionDetailsFragment : Fragment() {
         updateButtonStates(subscription)
     }
 
-    private fun updateButtonStates(subscription: Subscription) {
-        when (subscription.status.uppercase()) {
+    private fun updateButtonStates(subscription: com.devbrian.osebo.models.Subscription) {
+        when (subscription.status?.uppercase()) {
             "ACTIVE" -> {
                 binding.btnUpgrade.text = "Upgrade Plan"
                 binding.btnUpgrade.visibility = View.VISIBLE
@@ -375,19 +400,24 @@ class SubscriptionDetailsFragment : Fragment() {
     }
 
     private fun loadPaymentHistory(subscriptionId: String) {
-        lifecycleScope.launch {
-            viewModel.getPaymentHistory(subscriptionId)
+        shopId?.let { shpId ->
+            lifecycleScope.launch {
+                viewModel.getPaymentHistory(shpId, subscriptionId)
+            }
+        } ?: run {
+            Toast.makeText(requireContext(), "Shop ID not available", Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun navigateToUpgrade() {
         subscription?.let { currentSubscription ->
-            when (currentSubscription.status.uppercase()) {
+            when (currentSubscription.status?.uppercase()) {
                 "EXPIRED", "INACTIVE" -> {
                     // Navigate to package selection for renewal
                     val action = SubscriptionDetailsFragmentDirections
                         .actionSubscriptionDetailsFragmentToSubscriptionPackagesFragment(
-                            shop = shop
+                            shop = null,
+                            currentPackage = currentSubscription.packageType
                         )
                     findNavController().navigate(action)
                 }
@@ -397,8 +427,10 @@ class SubscriptionDetailsFragment : Fragment() {
                         .actionSubscriptionDetailsFragmentToPaymentStatusFragment(
                             transactionId = currentSubscription.transactionId ?: "",
                             shopId = currentSubscription.shopId,
-                            amount = currentSubscription.amount,
-                            currency = currentSubscription.currency
+                            subscriptionId = currentSubscription.id,
+                            amount = currentSubscription.amount.toFloat(),
+                            currency = currentSubscription.currency,
+                            phoneNumber = currentSubscription.phoneNumber ?: ""
                         )
                     findNavController().navigate(action)
                 }
@@ -406,7 +438,7 @@ class SubscriptionDetailsFragment : Fragment() {
                     // Navigate to package selection for upgrade
                     val action = SubscriptionDetailsFragmentDirections
                         .actionSubscriptionDetailsFragmentToSubscriptionPackagesFragment(
-                            shop = shop,
+                            shop = null,
                             currentPackage = currentSubscription.packageType
                         )
                     findNavController().navigate(action)
@@ -417,13 +449,13 @@ class SubscriptionDetailsFragment : Fragment() {
 
     private fun showCancelConfirmationDialog() {
         subscription?.let { sub ->
-            val title = when (sub.status.uppercase()) {
+            val title = when (sub.status?.uppercase()) {
                 "TRIAL" -> "End Free Trial"
                 "PENDING" -> "Cancel Payment"
                 else -> "Cancel Subscription"
             }
 
-            val message = when (sub.status.uppercase()) {
+            val message = when (sub.status?.uppercase()) {
                 "TRIAL" -> "Are you sure you want to end your free trial? You'll lose access to premium features immediately."
                 "PENDING" -> "Are you sure you want to cancel this pending payment? Your subscription will not be activated."
                 else -> "Are you sure you want to cancel your subscription? You'll continue to have access until the end of your current billing period (${formatDate(sub.endDate ?: "")})."
@@ -442,8 +474,12 @@ class SubscriptionDetailsFragment : Fragment() {
 
     private fun cancelSubscription() {
         subscription?.let { sub ->
-            lifecycleScope.launch {
-                viewModel.cancelSubscription(sub.id)
+            shopId?.let { shpId ->
+                lifecycleScope.launch {
+                    viewModel.cancelSubscription(shpId, sub.id)
+                }
+            } ?: run {
+                Toast.makeText(requireContext(), "Shop ID not available", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -488,44 +524,15 @@ class SubscriptionDetailsFragment : Fragment() {
     }
 
     private fun viewUsageStatistics() {
-        shop?.let {
+        shopId?.let { id ->
             val action = SubscriptionDetailsFragmentDirections
                 .actionSubscriptionDetailsFragmentToUsageStatisticsFragment(
-                    shopId = it.id
+                    shopId = id
                 )
             findNavController().navigate(action)
+        } ?: run {
+            Toast.makeText(requireContext(), "Shop ID not available", Toast.LENGTH_SHORT).show()
         }
-    }
-
-    private fun showPaymentDetailsDialog(payment: com.devbrian.osebo.models.subscription.Payment) {
-        val dialogView = layoutInflater.inflate(R.layout.dialog_payment_details, null)
-
-        dialogView.findViewById<android.widget.TextView>(R.id.tvPaymentAmount).text =
-            "${payment.currency} ${payment.amount}"
-        dialogView.findViewById<android.widget.TextView>(R.id.tvPaymentStatus).text =
-            payment.displayStatus
-        dialogView.findViewById<android.widget.TextView>(R.id.tvPaymentDate).text =
-            payment.paidAt ?: payment.createdAt
-        dialogView.findViewById<android.widget.TextView>(R.id.tvPaymentMethod).text =
-            payment.displayMethod
-        dialogView.findViewById<android.widget.TextView>(R.id.tvTransactionId).text =
-            payment.transactionId ?: "N/A"
-
-        // Set status color
-        val statusColor = when (payment.status) {
-            "COMPLETED" -> R.color.green_500
-            "PENDING" -> R.color.yellow_500
-            "FAILED" -> R.color.red_500
-            else -> R.color.gray_500
-        }
-        dialogView.findViewById<android.widget.TextView>(R.id.tvPaymentStatus)
-            .setTextColor(ContextCompat.getColor(requireContext(), statusColor))
-
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Payment Details")
-            .setView(dialogView)
-            .setPositiveButton("OK", null)
-            .show()
     }
 
     private fun navigateToPaymentHistory() {
@@ -580,6 +587,11 @@ class SubscriptionDetailsFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        stopPolling()
         _binding = null
+    }
+
+    private fun stopPolling() {
+        // Implement if needed
     }
 }

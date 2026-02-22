@@ -43,17 +43,14 @@ data class Employee(
         const val DEPARTMENT_HR = "HUMAN_RESOURCES"
         const val DEPARTMENT_IT = "INFORMATION_TECHNOLOGY"
 
-        // Check if employee is active
         fun isActive(status: String): Boolean {
             return status.equals(STATUS_ACTIVE, ignoreCase = true)
         }
 
-        // Check if employee is manager
         fun isManager(role: String): Boolean {
             return role.equals(ROLE_MANAGER, ignoreCase = true)
         }
 
-        // Get role display text
         fun getRoleDisplayText(role: String): String {
             return when (role.uppercase()) {
                 ROLE_MANAGER -> "Manager"
@@ -66,7 +63,6 @@ data class Employee(
             }
         }
 
-        // Get status display text
         fun getStatusDisplayText(status: String): String {
             return when (status.uppercase()) {
                 STATUS_ACTIVE -> "Active"

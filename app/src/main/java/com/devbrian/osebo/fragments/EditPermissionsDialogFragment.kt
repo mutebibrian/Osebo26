@@ -9,7 +9,8 @@ import android.widget.Toast
 import androidx.fragment.app.DialogFragment
 import com.devbrian.osebo.databinding.DialogEditPermissionsBinding
 import com.devbrian.osebo.data.ApiClient
-import com.devbrian.osebo.models.UpdatePermissionsRequest
+import com.devbrian.osebo.models.ApiResponse
+import com.devbrian.osebo.models.CreateRoleRequest
 import com.devbrian.osebo.models.UserRole
 import retrofit2.Call
 import retrofit2.Callback
@@ -134,33 +135,38 @@ class EditPermissionsDialogFragment : DialogFragment() {
             return
         }
 
-        val request = UpdatePermissionsRequest(selectedPermissions)
+        // Create a request with all role data (not just permissions)
+        val request = CreateRoleRequest(
+            name = role.name,
+            description = role.description,
+            permissions = selectedPermissions,
+            shopId = role.shopId ?: ""
+        )
 
         // Show loading state
         binding.saveButton.isEnabled = false
         binding.progressBar.visibility = View.VISIBLE
 
-        // Check your ApiService interface for the correct method signature
-        // If the method has @Header("Authorization") parameter, use ApiClient.create()
-        // If the method doesn't have the header parameter, use ApiClient.createWithAuth(token)
+        val apiService = ApiClient.create()
 
-        // Based on the error, it seems your ApiService method signature is:
-        // updateRolePermissions(@Header("Authorization") token: String, @Path("roleId") roleId: String, @Body request: UpdatePermissionsRequest)
-        // So we need to pass the token as a parameter
-
-        val apiService = ApiClient.create() // Use create() not createWithAuth
-
-        apiService.updateRolePermissions("Bearer $token", role.id, request).enqueue(object : Callback<UserRole> {
-            override fun onResponse(call: Call<UserRole>, response: Response<UserRole>) {
+        // Use updateRole instead of updateRolePermissions
+        apiService.updateRole("Bearer $token", role.id, request).enqueue(object : Callback<ApiResponse<UserRole>> {
+            override fun onResponse(call: Call<ApiResponse<UserRole>>, response: Response<ApiResponse<UserRole>>) {
                 binding.saveButton.isEnabled = true
                 binding.progressBar.visibility = View.GONE
 
                 if (response.isSuccessful) {
-                    response.body()?.let { updatedRole ->
-                        onPermissionsUpdatedListener?.invoke(updatedRole)
-                        dismiss()
-                    } ?: run {
-                        Toast.makeText(requireContext(), "Failed to update permissions: Empty response", Toast.LENGTH_LONG).show()
+                    val apiResponse = response.body()
+                    if (apiResponse != null && apiResponse.success) {
+                        apiResponse.data?.let { updatedRole ->
+                            onPermissionsUpdatedListener?.invoke(updatedRole)
+                            dismiss()
+                        } ?: run {
+                            Toast.makeText(requireContext(), apiResponse.message ?: "Failed to update permissions", Toast.LENGTH_LONG).show()
+                        }
+                    } else {
+                        val errorMessage = apiResponse?.message ?: "Failed to update permissions"
+                        Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_LONG).show()
                     }
                 } else {
                     val errorMessage = when (response.code()) {
@@ -176,7 +182,7 @@ class EditPermissionsDialogFragment : DialogFragment() {
                 }
             }
 
-            override fun onFailure(call: Call<UserRole>, t: Throwable) {
+            override fun onFailure(call: Call<ApiResponse<UserRole>>, t: Throwable) {
                 binding.saveButton.isEnabled = true
                 binding.progressBar.visibility = View.GONE
                 Toast.makeText(requireContext(), "Network error: ${t.message ?: "Unknown error"}", Toast.LENGTH_LONG).show()

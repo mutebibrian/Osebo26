@@ -3,6 +3,7 @@ package com.devbrian.osebo.models
 import android.os.Parcelable
 import com.google.gson.annotations.SerializedName
 import kotlinx.parcelize.Parcelize
+import java.io.Serializable
 
 @Parcelize
 data class Shop(
@@ -12,32 +13,40 @@ data class Shop(
     @SerializedName("name")
     val name: String = "",
 
+    @SerializedName("address")
+    val address: String? = null,
+
     @SerializedName("description")
     val description: String? = null,
 
-    @SerializedName("location")
-    val location: String? = null,
-
-    @SerializedName("category")
-    val category: String? = null,
+    @SerializedName("shop_type")
+    val shopType: String? = null,
 
     @SerializedName("logo_url")
     val logoUrl: String? = null,
 
+    // Registration and tax info
+    @SerializedName("registration_number")
+    val registrationNumber: String? = null,
+
+    @SerializedName("tax_identification_number")
+    val taxIdentificationNumber: String? = null,
+
+    // Financial stats
     @SerializedName("total_revenue")
-    val totalRevenue: Double? = null,
+    val totalRevenue: Double = 0.0,
 
     @SerializedName("total_expenses")
-    val totalExpenses: Double? = null,
+    val totalExpenses: Double = 0.0,
 
     @SerializedName("profit")
-    val profit: Double? = null,
+    val profit: Double = 0.0,
 
     @SerializedName("total_products")
-    val totalProducts: Int? = null,
+    val totalProducts: Int = 0,
 
     @SerializedName("total_employees")
-    val totalEmployees: Int? = null,
+    val totalEmployees: Int = 0,
 
     @SerializedName("owner_id")
     val ownerId: String = "",
@@ -45,12 +54,161 @@ data class Shop(
     @SerializedName("is_active")
     val isActive: Boolean = false,
 
+    // ✅ FIXED: Add the subscription field to match API response
+    @SerializedName("subscription")
+    val subscription: ShopSubscription? = null,
+
+    // Keep these for backward compatibility
     @SerializedName("subscription_status")
     val subscriptionStatus: String = "inactive",
 
+    @SerializedName("subscription_type")
+    val subscriptionType: String? = null,
+
+    @SerializedName("subscription_expiry")
+    val subscriptionExpiry: String? = null,
+
+    @SerializedName("plan_id")
+    val planId: String? = null,
+
+    @SerializedName("status")
+    val status: String? = null,
+
+    // Contact information
+    @SerializedName("phone")
+    val phone: String? = null,
+
+    @SerializedName("email")
+    val email: String? = null,
+
+    @SerializedName("website")
+    val website: String? = null,
+
+    // Location details
+    @SerializedName("city")
+    val city: String? = null,
+
+    @SerializedName("country")
+    val country: String? = null,
+
+    @SerializedName("postal_code")
+    val postalCode: String? = null,
+
+    // Timestamps
     @SerializedName("created_at")
-    val createdAt: String = "",
+    val createdAt: String? = null,
 
     @SerializedName("updated_at")
-    val updatedAt: String = ""
-) : Parcelable
+    val updatedAt: String? = null
+) : Parcelable, Serializable {
+
+    // Helper computed properties
+    val isSubscriptionActive: Boolean
+        get() = subscriptionStatus == "active" || subscriptionStatus == "trial"
+
+    val needsSubscription: Boolean
+        get() = subscriptionStatus == "inactive" ||
+                subscriptionStatus == "expired" ||
+                subscriptionStatus == "pending"
+
+    // For backward compatibility
+    val location: String? get() = address
+    val category: String? get() = shopType
+    val phoneNumber: String? get() = phone
+
+    // Helper method to check if registration info is available
+    val hasRegistrationInfo: Boolean
+        get() = !registrationNumber.isNullOrEmpty() || !taxIdentificationNumber.isNullOrEmpty()
+
+    // Get display name for shop type
+    val shopTypeDisplay: String
+        get() = when (shopType?.lowercase()) {
+            "retail" -> "Retail Store"
+            "wholesale" -> "Wholesale"
+            "service" -> "Service Business"
+            "manufacturing" -> "Manufacturing"
+            "online" -> "Online Store"
+            "restaurant" -> "Restaurant"
+            "salon" -> "Salon & Spa"
+            "grocery" -> "Grocery Store"
+            "pharmacy" -> "Pharmacy"
+            "hardware" -> "Hardware Store"
+            "fashion" -> "Fashion & Clothing"
+            "electronics" -> "Electronics Store"
+            else -> shopType ?: "Business"
+        }
+
+    // Get full address
+    val fullAddress: String
+        get() = buildString {
+            address?.let { append(it) }
+            if (!city.isNullOrEmpty()) {
+                if (isNotEmpty()) append(", ")
+                append(city)
+            }
+            if (!country.isNullOrEmpty()) {
+                if (isNotEmpty()) append(", ")
+                append(country)
+            }
+            if (!postalCode.isNullOrEmpty()) {
+                append(" $postalCode")
+            }
+        }
+
+    companion object {
+        val EMPTY = Shop()
+        val SAMPLE = Shop(
+            id = "shop_123",
+            name = "Main Electronics Store",
+            address = "Kampala Road",
+            description = "Electronics and gadgets",
+            shopType = "retail",
+            phone = "+256700123456",
+            email = "shop@example.com",
+            city = "Kampala",
+            country = "Uganda",
+            totalRevenue = 1500000.0,
+            totalExpenses = 450000.0,
+            profit = 1050000.0,
+            totalProducts = 120,
+            totalEmployees = 5,
+            subscriptionStatus = "active",
+            subscriptionType = "pro",
+            isActive = true
+        )
+    }
+}
+
+// ✅ Make sure ShopSubscription is defined
+@Parcelize
+data class ShopSubscription(
+    @SerializedName("id")
+    val id: String = "",
+
+    @SerializedName("status")
+    val status: String = "",
+
+    @SerializedName("package_type")
+    val packageType: String? = null,
+
+    @SerializedName("package")
+    val subscriptionPackage: SubscriptionPackage? = null,
+
+    @SerializedName("starts_at")
+    val startsAt: String? = null,
+
+    @SerializedName("ends_at")
+    val endsAt: String? = null,
+
+    @SerializedName("is_active")
+    val isActive: Boolean = false,
+
+    @SerializedName("duration_days")
+    val durationDays: Int = 0,
+
+    @SerializedName("is_trial")
+    val isTrial: Boolean = false,
+
+    @SerializedName("payment")
+    val payment: Payment? = null
+) : Parcelable, Serializable

@@ -1,5 +1,7 @@
 package com.devbrian.osebo.di
 
+import com.devbrian.osebo.data.repository.ShopRepository
+import com.devbrian.osebo.data.repository.ShopRepositoryImpl
 import com.devbrian.osebo.data.repository.SubscriptionRepository
 import com.devbrian.osebo.data.repository.SubscriptionRepositoryImpl
 import dagger.Binds
@@ -14,7 +16,13 @@ abstract class RepositoryModule {
 
     @Binds
     @Singleton
+    abstract fun bindShopRepository(
+        shopRepositoryImpl: ShopRepositoryImpl
+    ): ShopRepository
+
+    @Binds
+    @Singleton
     abstract fun bindSubscriptionRepository(
-        impl: SubscriptionRepositoryImpl
+        subscriptionRepositoryImpl: SubscriptionRepositoryImpl
     ): SubscriptionRepository
 }

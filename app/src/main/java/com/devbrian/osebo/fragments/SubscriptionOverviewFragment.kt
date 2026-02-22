@@ -4,15 +4,22 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import com.devbrian.osebo.R
 import com.devbrian.osebo.databinding.FragmentSubscriptionOverviewBinding
-import com.devbrian.osebo.ui.SubscriptionViewModel
+import com.devbrian.osebo.ui.viewmodels.SubscriptionViewModel
+import com.devbrian.osebo.utils.Resource
 import com.google.android.material.snackbar.Snackbar
+import java.text.SimpleDateFormat
+import java.util.*
 
 class SubscriptionOverviewFragment : Fragment() {
 
-    private lateinit var binding: FragmentSubscriptionOverviewBinding
+    private var _binding: FragmentSubscriptionOverviewBinding? = null
+    private val binding get() = _binding!!
+
     private val viewModel: SubscriptionViewModel by viewModels(ownerProducer = { requireParentFragment() })
 
     override fun onCreateView(
@@ -20,7 +27,7 @@ class SubscriptionOverviewFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        binding = FragmentSubscriptionOverviewBinding.inflate(inflater, container, false)
+        _binding = FragmentSubscriptionOverviewBinding.inflate(inflater, container, false)
         return binding.root
     }
 
@@ -32,46 +39,96 @@ class SubscriptionOverviewFragment : Fragment() {
     }
 
     private fun setupObservers() {
-        viewModel.currentSubscription.observe(viewLifecycleOwner) { subscription ->
-            subscription?.let {
-                // Show subscription details and hide no subscription layout
-                binding.noSubscriptionLayout.visibility = View.GONE
-                binding.subscriptionDetailsLayout.visibility = View.VISIBLE
+        viewModel.currentSubscription.observe(viewLifecycleOwner) { resource ->
+            when (resource) {
+                is Resource.Success -> {
+                    resource.data?.let { subscription ->
+                        // Show subscription details and hide no subscription layout
+                        binding.noSubscriptionLayout.visibility = View.GONE
+                        binding.subscriptionDetailsLayout.visibility = View.VISIBLE
 
-                // Update subscription details
-                binding.planNameTextView.text = it.planName
-                binding.planTypeTextView.text = it.planType.uppercase()
-                binding.priceTextView.text = "${it.currency} ${it.price}/month"
-                binding.startDateTextView.text = it.startDate
-                binding.endDateTextView.text = it.endDate
-                binding.daysLeftTextView.text = "${it.daysLeft} days"
-                binding.statusTextView.text = it.status.capitalize()
-                binding.autoRenewTextView.text = if (it.autoRenew) "Yes" else "No"
-                binding.paymentMethodTextView.text = it.paymentMethod ?: "Not set"
+                        // Update subscription details using correct property names
+                        binding.planNameTextView.text = subscription.displayPackage ?: subscription.packageType
+                        binding.planTypeTextView.text = subscription.packageType.uppercase(Locale.getDefault())
+                        binding.priceTextView.text = "${subscription.currency} ${subscription.amount.toInt()}/month"
+                        binding.startDateTextView.text = subscription.startDate ?: "N/A"
+                        binding.endDateTextView.text = subscription.endDate ?: "N/A"
 
-                // Set status color
-                when (it.status.lowercase()) {
-                    "active" -> binding.statusTextView.setTextColor(requireContext().getColor(android.R.color.holo_green_dark))
-                    "expired" -> binding.statusTextView.setTextColor(requireContext().getColor(android.R.color.holo_red_dark))
-                    "pending" -> binding.statusTextView.setTextColor(requireContext().getColor(android.R.color.holo_orange_dark))
-                    else -> binding.statusTextView.setTextColor(requireContext().getColor(android.R.color.darker_gray))
+                        // Calculate days left
+                        val daysLeft = if (subscription.endDate != null) {
+                            calculateDaysLeft(subscription.endDate!!)
+                        } else {
+                            0
+                        }
+                        binding.daysLeftTextView.text = "$daysLeft days"
+
+                        binding.statusTextView.text = subscription.displayStatus
+                        binding.autoRenewTextView.text = if (subscription.autoRenew) "Yes" else "No"
+                        binding.paymentMethodTextView.text = subscription.paymentMethod ?: "Not set"
+
+                        // Set status color
+                        when (subscription.status?.lowercase(Locale.getDefault())) {
+                            "active" -> binding.statusTextView.setTextColor(
+                                ContextCompat.getColor(requireContext(), R.color.success_green)
+                            )
+                            "expired", "cancelled" -> binding.statusTextView.setTextColor(
+                                ContextCompat.getColor(requireContext(), R.color.error_red)
+                            )
+                            "pending" -> binding.statusTextView.setTextColor(
+                                ContextCompat.getColor(requireContext(), R.color.warning_yellow)
+                            )
+                            "trial" -> binding.statusTextView.setTextColor(
+                                ContextCompat.getColor(requireContext(), R.color.info_blue)
+                            )
+                            else -> binding.statusTextView.setTextColor(
+                                ContextCompat.getColor(requireContext(), R.color.gray)
+                            )
+                        }
+
+                        // Set days left color (red if less than 7 days)
+                        if (daysLeft < 7) {
+                            binding.daysLeftTextView.setTextColor(
+                                ContextCompat.getColor(requireContext(), R.color.error_red)
+                            )
+                        } else {
+                            binding.daysLeftTextView.setTextColor(
+                                ContextCompat.getColor(requireContext(), R.color.black)
+                            )
+                        }
+                    } ?: run {
+                        // No subscription - show empty state
+                        binding.noSubscriptionLayout.visibility = View.VISIBLE
+                        binding.subscriptionDetailsLayout.visibility = View.GONE
+                    }
                 }
-
-                // Set days left color (red if less than 7 days)
-                if (it.daysLeft < 7) {
-                    binding.daysLeftTextView.setTextColor(requireContext().getColor(android.R.color.holo_red_dark))
-                } else {
-                    binding.daysLeftTextView.setTextColor(requireContext().getColor(android.R.color.black))
+                is Resource.Error -> {
+                    // Show error state
+                    binding.noSubscriptionLayout.visibility = View.VISIBLE
+                    binding.subscriptionDetailsLayout.visibility = View.GONE
+                    showSnackbar("Failed to load subscription: ${resource.message ?: "Unknown error"}")
                 }
-            } ?: run {
-                // No subscription - show empty state
-                binding.noSubscriptionLayout.visibility = View.VISIBLE
-                binding.subscriptionDetailsLayout.visibility = View.GONE
+                is Resource.Loading -> {
+                    // Show loading state
+                    binding.progressBar.visibility = View.VISIBLE
+                }
             }
         }
 
-        viewModel.loading.observe(viewLifecycleOwner) { isLoading ->
+        viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
             binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
+        }
+    }
+
+    private fun calculateDaysLeft(endDate: String): Int {
+        return try {
+            val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            val end = dateFormat.parse(endDate)
+            val today = Calendar.getInstance().time
+            val diff = end.time - today.time
+            val days = java.util.concurrent.TimeUnit.DAYS.convert(diff, java.util.concurrent.TimeUnit.MILLISECONDS)
+            days.toInt().coerceAtLeast(0)
+        } catch (e: Exception) {
+            0
         }
     }
 
@@ -82,14 +139,23 @@ class SubscriptionOverviewFragment : Fragment() {
         }
 
         binding.renewButton.setOnClickListener {
-            viewModel.currentSubscription.value?.let { subscription ->
-                // Auto-renew toggle
-                showSnackbar("Renewal settings coming soon")
+            viewModel.currentSubscription.value?.let { resource ->
+                if (resource is Resource.Success) {
+                    resource.data?.let { subscription ->
+                        // Show renew dialog
+                        showSnackbar("Renewal feature coming soon")
+                    }
+                }
             }
         }
     }
 
     private fun showSnackbar(message: String) {
         Snackbar.make(binding.root, message, Snackbar.LENGTH_SHORT).show()
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 }
