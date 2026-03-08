@@ -338,7 +338,7 @@ class ShopsFragment : Fragment() {
 
         // Handle subscription
         if (shop.subscription != null) {
-            // Has subscription - save it and go to dashboard
+            // Has subscription - save it and go to shop dashboard
             val subscription = shop.subscription
             println("🔍 Subscription found:")
             println("  - id: ${subscription.id}")
@@ -374,28 +374,21 @@ class ShopsFragment : Fragment() {
                 Toast.LENGTH_SHORT
             ).show()
 
-            // Navigate to dashboard
+            // Navigate to ShopDashboardFragment with shopId
             try {
-                findNavController().navigate(R.id.dashboardFragment)
+                val action = ShopsFragmentDirections.actionShopsFragmentToShopDashboardFragment(shop.id)
+                findNavController().navigate(action)
             } catch (e: Exception) {
                 e.printStackTrace()
-            }
-        } else {
-            // No subscription - clear any old subscription data and prompt to subscribe
-            println("⚠️ No subscription found for shop")
-            preferencesManager.clearSubscriptionInfo()
-
-            // Update UI with shop name but no subscription
-            activity?.let {
-                if (it is MainActivity) {
-                    it.updateHeaderShopInfo(shop.name)
-                    it.refreshNavigationMenu()
+                // Fallback to old navigation
+                try {
+                    findNavController().navigate(R.id.shopDashboardFragment)
+                } catch (e2: Exception) {
+                    e2.printStackTrace()
                 }
             }
-
-            shopsAdapter.setActiveShopId(shop.id)
-
-            // Show dialog to choose subscription
+        } else {
+            // No subscription - show dialog
             showSubscriptionRequiredDialog(shop)
         }
     }

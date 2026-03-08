@@ -13,6 +13,7 @@ import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import com.devbrian.osebo.R
 import com.devbrian.osebo.databinding.FragmentSubscriptionManagementBinding
+import com.devbrian.osebo.models.Shop
 import com.devbrian.osebo.models.Subscription
 import com.devbrian.osebo.ui.viewmodels.SubscriptionViewModel
 import com.devbrian.osebo.utils.Resource
@@ -264,12 +265,28 @@ class SubscriptionManagementFragment : Fragment() {
     }
 
     private fun navigateToUpgrade() {
-        if (currentSubscription != null) {
-            val action = SubscriptionManagementFragmentDirections
-                .actionSubscriptionManagementFragmentToSubscriptionPackagesFragment(null, currentSubscription?.packageType ?: "")
-            findNavController().navigate(action)
-        } else {
-            navigateToSubscriptionPackages()
+        try {
+            if (currentSubscription != null) {
+                // Create a shop object with current subscription info
+                val shop = Shop(
+                    id = args.shopId,
+                    name = "",
+                    subscriptionStatus = currentSubscription?.status ?: "inactive",
+                    subscriptionType = currentSubscription?.packageType
+                )
+
+                val action = SubscriptionManagementFragmentDirections
+                    .actionSubscriptionManagementFragmentToSubscriptionPackagesFragment(
+                        shop,
+                        currentSubscription?.packageType ?: ""
+                    )
+                findNavController().navigate(action)
+            } else {
+                navigateToSubscriptionPackages()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(requireContext(), "Navigation error: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -279,9 +296,21 @@ class SubscriptionManagementFragment : Fragment() {
     }
 
     private fun navigateToSubscriptionPackages() {
-        val action = SubscriptionManagementFragmentDirections
-            .actionSubscriptionManagementFragmentToSubscriptionPackagesFragment(null, "")
-        findNavController().navigate(action)
+        // Create a shop object with the shopId - Shop class has default values
+        val shop = Shop(
+            id = args.shopId,
+            name = "",  // Will be loaded in the packages fragment
+            subscriptionStatus = "inactive"
+        )
+
+        try {
+            val action = SubscriptionManagementFragmentDirections
+                .actionSubscriptionManagementFragmentToSubscriptionPackagesFragment(shop, "")
+            findNavController().navigate(action)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(requireContext(), "Navigation error: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun observeViewModels() {

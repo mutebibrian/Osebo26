@@ -81,14 +81,5 @@ data class User(
     }
 }
 
-data class Role(
-    @SerializedName("id")
-    val id: String,
 
-    @SerializedName("name")
-    val name: String,
-
-    @SerializedName("description")
-    val description: String?
-)
 

@@ -163,16 +163,15 @@ class SubscriptionDetailsFragment : Fragment() {
         }
 
         lifecycleScope.launch {
-            // FIX: args.shopId might be nullable in generated args -> require non-null before use
-            val shopId: String = args.shopId
-                ?: run {
-                    showErrorState("Missing shop id")
-                    return@launch
-                }
+            // Get shopId safely
+            val shopId = args.shopId
+            if (shopId.isNullOrEmpty()) {
+                showErrorState("Missing shop id")
+                return@launch
+            }
 
-            val subscriptionId: String? = args.subscriptionId
-            if (!subscriptionId.isNullOrBlank()) {
-                // FIX: ViewModel expects non-null String
+            val subscriptionId = args.subscriptionId
+            if (!subscriptionId.isNullOrEmpty()) {
                 viewModel.getSubscriptionDetails(shopId, subscriptionId)
             } else {
                 viewModel.getShopActiveSubscription(shopId)
@@ -271,9 +270,16 @@ class SubscriptionDetailsFragment : Fragment() {
     private fun navigateToUpgrade() {
         val currentPackage: String = currentSubscription?.packageType ?: ""
 
+        // Create a shop placeholder with the shopId
+        val shopPlaceholder = com.devbrian.osebo.models.Shop(
+            id = args.shopId ?: "",
+            name = "",
+            subscriptionStatus = "inactive"
+        )
+
         val action = SubscriptionDetailsFragmentDirections
             .actionSubscriptionDetailsFragmentToSubscriptionPackagesFragment(
-                shop = null,
+                shop = shopPlaceholder,
                 currentPackage = currentPackage
             )
         findNavController().navigate(action)

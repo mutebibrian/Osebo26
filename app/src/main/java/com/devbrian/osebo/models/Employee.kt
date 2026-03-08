@@ -5,7 +5,9 @@ data class Employee(
     val name: String,
     val email: String,
     val phone: String,
-    val role: String,
+    val role: String, // Display role name
+    val roleId: String? = null, // Reference to Role.id
+    val permissions: List<PermissionType>? = null, // Actual permissions
     val department: String,
     val status: String,
     val hireDate: String? = null,
@@ -17,17 +19,21 @@ data class Employee(
     val taxId: String? = null,
     val notes: String? = null,
     val createdAt: String? = null,
-    val updatedAt: String? = null
+    val updatedAt: String? = null,
+    val userId: String? = null // Link to user account if they have login
 ) {
+    // Check if employee has specific permission
+    fun hasPermission(permission: PermissionType): Boolean {
+        return permissions?.contains(permission) == true
+    }
+
     companion object {
-        
         const val STATUS_ACTIVE = "ACTIVE"
         const val STATUS_INACTIVE = "INACTIVE"
         const val STATUS_ON_LEAVE = "ON_LEAVE"
         const val STATUS_SUSPENDED = "SUSPENDED"
         const val STATUS_TERMINATED = "TERMINATED"
 
-        
         const val ROLE_MANAGER = "MANAGER"
         const val ROLE_SUPERVISOR = "SUPERVISOR"
         const val ROLE_STAFF = "STAFF"
@@ -35,7 +41,6 @@ data class Employee(
         const val ROLE_SALES = "SALES"
         const val ROLE_INVENTORY = "INVENTORY"
 
-        
         const val DEPARTMENT_MANAGEMENT = "MANAGEMENT"
         const val DEPARTMENT_SALES = "SALES"
         const val DEPARTMENT_INVENTORY = "INVENTORY"
@@ -75,4 +80,3 @@ data class Employee(
         }
     }
 }
-

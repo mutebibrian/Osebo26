@@ -11,6 +11,7 @@
     <color name="accent">#0074ba</color>
     <color name="accent_light">#BBDEFB</color>
     <color name="accent_color">#FF6B35</color>
+    <color name="blue">#FF2196F3</color>
 
     <!-- Text Colors -->
     <color name="text_primary">#212121</color>

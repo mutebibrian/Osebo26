@@ -30,6 +30,8 @@ import com.devbrian.osebo.data.PreferenceManager
 import com.devbrian.osebo.databinding.ActivityMainBinding
 import com.devbrian.osebo.models.Shop
 import com.devbrian.osebo.models.ShopSubscription
+import com.devbrian.osebo.models.PermissionType
+import com.devbrian.osebo.utils.PermissionManager
 import com.google.android.material.navigation.NavigationView
 import dagger.hilt.android.AndroidEntryPoint
 import java.text.SimpleDateFormat
@@ -41,6 +43,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var navController: NavController
     private lateinit var preferenceManager: PreferenceManager
+    private lateinit var permissionManager: PermissionManager
     private val BLUETOOTH_PERMISSION_REQUEST_CODE = 1001
 
     // Business operation destinations that require active subscription
@@ -80,6 +83,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         setContentView(binding.root)
 
         preferenceManager = PreferenceManager.getInstance(this)
+        permissionManager = PermissionManager(this)
 
         setupToolbar()
         setupNavigation()
@@ -101,24 +105,26 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private fun setupNavControllerListener() {
         navController.addOnDestinationChangedListener { _, destination, arguments ->
             // Show FAB only on DashboardFragment
-            if (destination.id == R.id.dashboardFragment) {
+            if (destination.id == R.id.mainDashboardFragment) {
                 showFab()
             } else {
                 hideFab()
             }
 
-            // Check if destination requires subscription
-            when {
-                destination.id in subscriptionRequiredDestinations -> {
-                    if (!hasAccessToBusinessOperations()) {
-                        navController.popBackStack()
-                        showSubscriptionRequiredDialog("business operations")
+            // Check if destination requires subscription (only for owners)
+            if (permissionManager.isShopOwner()) {
+                when {
+                    destination.id in subscriptionRequiredDestinations -> {
+                        if (!hasAccessToBusinessOperations()) {
+                            navController.popBackStack()
+                            showSubscriptionRequiredDialog("business operations")
+                        }
                     }
-                }
-                destination.id in managementRequiredDestinations -> {
-                    if (!hasAccessToManagement()) {
-                        navController.popBackStack()
-                        showSubscriptionRequiredDialog("management features")
+                    destination.id in managementRequiredDestinations -> {
+                        if (!hasAccessToManagement()) {
+                            navController.popBackStack()
+                            showSubscriptionRequiredDialog("management features")
+                        }
                     }
                 }
             }
@@ -138,8 +144,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
     private fun checkShopAccess(shop: Shop) {
-        if (!hasActiveSubscriptionForShop(shop)) {
-            showSubscriptionRequiredDialog("access this shop's features")
+        if (permissionManager.isShopOwner()) {
+            if (!hasActiveSubscriptionForShop(shop)) {
+                showSubscriptionRequiredDialog("access this shop's features")
+            }
         }
     }
 
@@ -213,7 +221,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         appBarConfiguration = AppBarConfiguration(
             setOf(
-                R.id.dashboardFragment,
+                R.id.mainDashboardFragment,
                 R.id.shopsFragment,
                 R.id.salesFragment,
                 R.id.financeFragment,
@@ -239,21 +247,21 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
 
         binding.fabSale.setOnClickListener {
-            if (hasAccessToBusinessOperations()) {
+            if (permissionManager.hasPermission(PermissionType.PROCESS_SALES)) {
                 createNewSale()
                 toggleFabMenu()
             } else {
-                showSubscriptionRequiredDialog("create sales")
+                showPermissionDeniedDialog("create sales")
                 toggleFabMenu()
             }
         }
 
         binding.fabProduct.setOnClickListener {
-            if (hasAccessToBusinessOperations()) {
+            if (permissionManager.hasPermission(PermissionType.MANAGE_INVENTORY)) {
                 addNewProduct()
                 toggleFabMenu()
             } else {
-                showSubscriptionRequiredDialog("add products")
+                showPermissionDeniedDialog("add products")
                 toggleFabMenu()
             }
         }
@@ -377,6 +385,14 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             .show()
     }
 
+    private fun showPermissionDeniedDialog(feature: String) {
+        AlertDialog.Builder(this)
+            .setTitle("Access Denied")
+            .setMessage("You don't have permission to access $feature. Please contact your shop owner.")
+            .setPositiveButton("OK", null)
+            .show()
+    }
+
     private fun navigateToSubscriptionPackages() {
         if (!preferenceManager.hasShop()) {
             showSelectShopFirstDialog()
@@ -466,29 +482,36 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 return false
             }
 
-            // Check subscription from preferences
-            val hasActiveSub = preferenceManager.hasActiveSubscription()
-            val isInTrial = preferenceManager.isTrial()
-            val status = preferenceManager.getSubscriptionStatus()
-            val expiry = preferenceManager.getSubscriptionExpiry()
+            // Check if user is owner - owners always have access if subscription is active
+            if (permissionManager.isShopOwner()) {
+                // Check subscription from preferences
+                val hasActiveSub = preferenceManager.hasActiveSubscription()
+                val isInTrial = preferenceManager.isTrial()
+                val status = preferenceManager.getSubscriptionStatus()
+                val expiry = preferenceManager.getSubscriptionExpiry()
 
-            println("🔍 Subscription from Prefs:")
-            println("🔍   status: $status")
-            println("🔍   hasActiveSub: $hasActiveSub")
-            println("🔍   isTrial: $isInTrial")
-            println("🔍   expiry: $expiry")
+                println("🔍 Owner Subscription from Prefs:")
+                println("🔍   status: $status")
+                println("🔍   hasActiveSub: $hasActiveSub")
+                println("🔍   isTrial: $isInTrial")
+                println("🔍   expiry: $expiry")
 
-            // Check if trial is expired
-            if (isInTrial && isTrialExpired(expiry)) {
-                println("❌ Trial expired")
-                preferenceManager.saveSubscriptionStatus("expired")
-                return false
+                // Check if trial is expired
+                if (isInTrial && isTrialExpired(expiry)) {
+                    println("❌ Trial expired")
+                    preferenceManager.saveSubscriptionStatus("expired")
+                    return false
+                }
+
+                val hasAccess = hasActiveSub || (isInTrial && !isTrialExpired(expiry))
+                println("🔍 Owner access granted: $hasAccess")
+                return hasAccess
+            } else {
+                // For salespeople - they just need to be logged in and assigned to a shop
+                // Subscription check is handled by the owner
+                println("🔍 Salesperson access granted: true")
+                return true
             }
-
-            val hasAccess = hasActiveSub || (isInTrial && !isTrialExpired(expiry))
-            println("🔍 Access granted: $hasAccess")
-
-            return hasAccess
         } finally {
             subscriptionCheckInProgress = false
         }
@@ -498,7 +521,12 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
      * Access control for management features
      */
     private fun hasAccessToManagement(): Boolean {
-        return hasAccessToBusinessOperations()
+        return if (permissionManager.isShopOwner()) {
+            hasAccessToBusinessOperations()
+        } else {
+            // Salespeople cannot access management features
+            false
+        }
     }
 
     private fun isTrialExpired(expiryDate: String?): Boolean {
@@ -600,9 +628,11 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         val hasAccess = hasAccessToBusinessOperations()
         val isTrial = preferenceManager.isTrial()
         val expiry = preferenceManager.getSubscriptionExpiry()
+        val isOwner = permissionManager.isShopOwner()
 
         val statusText = when {
             !preferenceManager.hasShop() -> "NO SHOP"
+            !isOwner -> "EMPLOYEE" // Show employee badge for salespeople
             hasAccess && isTrial -> {
                 val daysLeft = calculateDaysUntilExpiry(expiry)
                 if (daysLeft > 0) "TRIAL · $daysLeft days left" else "TRIAL ENDED"
@@ -614,6 +644,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         val backgroundDrawable = when {
             !preferenceManager.hasShop() -> R.drawable.bg_subscription_badge_inactive
+            !isOwner -> R.drawable.bg_subscription_badge_employee
             hasAccess && isTrial -> R.drawable.bg_subscription_badge_trial
             hasAccess && !isTrial -> R.drawable.bg_subscription_badge_active
             else -> R.drawable.bg_subscription_badge_expired
@@ -641,42 +672,56 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private fun setupNavigationMenu() {
         val menu = binding.navigationView.menu
         val hasShops = preferenceManager.hasShop()
-        val hasSubscription = hasAccessToBusinessOperations()
+        val isOwner = permissionManager.isShopOwner()
+        val shopCount = preferenceManager.getShopCount()
 
         println("🔍 Navigation Menu Setup:")
         println("🔍   hasShops: $hasShops")
-        println("🔍   hasSubscription: $hasSubscription")
+        println("🔍   isOwner: $isOwner")
+        println("🔍   shopCount: $shopCount")
 
-        // Always show these items
+        // Dashboard - always visible
         menu.findItem(R.id.nav_dashboard).isVisible = true
-        menu.findItem(R.id.nav_shops).isVisible = true
 
-        // Show/hide business operation items based on subscription
+        // Shops - visible to owners only
+        menu.findItem(R.id.nav_shops).isVisible = isOwner
+
+        // Show/hide business operation items based on permissions
         val businessItems = mapOf(
-            R.id.nav_sales to "Sales",
-            R.id.nav_finance to "Finance",
-            R.id.nav_inventory to "Inventory",
-            R.id.nav_employees to "Employees",
-            R.id.nav_customers to "Customers"
+            R.id.nav_sales to PermissionType.VIEW_SALES,
+            R.id.nav_finance to PermissionType.VIEW_FINANCE,
+            R.id.nav_inventory to PermissionType.VIEW_INVENTORY,
+            R.id.nav_employees to PermissionType.VIEW_EMPLOYEES,
+            R.id.nav_customers to PermissionType.VIEW_CUSTOMERS
         )
 
-        businessItems.forEach { (itemId, name) ->
+        businessItems.forEach { (itemId, permission) ->
             val item = menu.findItem(itemId)
-            item.isVisible = hasShops && hasSubscription
-            println("🔍   $name visible: ${item.isVisible}")
+            item.isVisible = hasShops && permissionManager.hasPermission(permission)
+            println("🔍   ${item.title} visible: ${item.isVisible}")
         }
 
-        // Handle subscription menu item
+        // Handle subscription menu item - only visible to owners
         val subscriptionItem = menu.findItem(R.id.nav_subscription)
-        subscriptionItem.isVisible = hasShops
+        subscriptionItem.isVisible = hasShops && isOwner
 
-        if (hasShops && !hasSubscription) {
+        if (hasShops && !hasAccessToBusinessOperations() && isOwner) {
             subscriptionItem.title = "UPGRADE NOW"
             subscriptionItem.icon = ContextCompat.getDrawable(this, R.drawable.ic_upgrade)
-        } else if (hasShops && hasSubscription) {
+        } else if (hasShops && hasAccessToBusinessOperations() && isOwner) {
             subscriptionItem.title = "Subscription"
             subscriptionItem.icon = ContextCompat.getDrawable(this, R.drawable.ic_subscription)
         }
+
+        // Account - visible to all logged-in users with appropriate permissions
+        menu.findItem(R.id.nav_account).isVisible = hasShops &&
+                (isOwner || permissionManager.hasPermission(PermissionType.VIEW_EMPLOYEES))
+
+        // Contact Us - always visible
+        menu.findItem(R.id.nav_contact_us).isVisible = true
+
+        // Logout - always visible
+        menu.findItem(R.id.nav_logout).isVisible = true
 
         updateHeaderWithSubscriptionStatus()
     }
@@ -686,8 +731,11 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         val tvAppVersion = headerView.findViewById<TextView>(R.id.tv_app_version)
 
         val hasAccess = hasAccessToBusinessOperations()
+        val isOwner = permissionManager.isShopOwner()
+
         val status = when {
             !preferenceManager.hasShop() -> "NO SHOP SELECTED"
+            !isOwner -> "EMPLOYEE ACCOUNT"
             preferenceManager.isTrial() -> {
                 val expiry = preferenceManager.getSubscriptionExpiry()
                 "TRIAL (expires: $expiry)"
@@ -701,6 +749,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         // Update text color based on status
         val textColor = when {
             !preferenceManager.hasShop() -> R.color.gray
+            !isOwner -> R.color.blue // You'll need to add this color
             preferenceManager.isTrial() -> R.color.warning_orange
             hasAccess -> R.color.success_green
             else -> R.color.error_red
@@ -722,6 +771,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             // Debug output
             preferenceManager.debugSubscriptionInfo()
             println("🔍 hasAccessToBusinessOperations: ${hasAccessToBusinessOperations()}")
+            println("🔍 isShopOwner: ${permissionManager.isShopOwner()}")
         }
     }
 
@@ -743,65 +793,100 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.nav_dashboard -> {
-                navController.navigate(R.id.dashboardFragment)
+                // Dashboard is always accessible (shows overview)
+                navController.navigate(R.id.mainDashboardFragment)
             }
+
             R.id.nav_shops -> {
-                navController.navigate(R.id.shopsFragment)
+                // Shops management - owners only (both single and multi-shop owners)
+                if (permissionManager.isShopOwner()) {
+                    navController.navigate(R.id.shopsFragment)
+                } else {
+                    showPermissionDeniedDialog("manage shops")
+                }
             }
+
             R.id.nav_sales -> {
-                if (hasAccessToBusinessOperations()) {
+                // Sales - view sales (salespeople can view, owners can manage)
+                if (permissionManager.hasPermission(PermissionType.VIEW_SALES)) {
                     navController.navigate(R.id.salesFragment)
                 } else {
-                    showSubscriptionRequiredDialog("sales")
+                    showPermissionDeniedDialog("sales")
                 }
             }
+
             R.id.nav_finance -> {
-                if (hasAccessToBusinessOperations()) {
+                // Finance - only owners and managers
+                if (permissionManager.hasPermission(PermissionType.VIEW_FINANCE)) {
                     navController.navigate(R.id.financeFragment)
                 } else {
-                    showSubscriptionRequiredDialog("finance")
+                    showPermissionDeniedDialog("finance")
                 }
             }
+
             R.id.nav_inventory -> {
-                if (hasAccessToBusinessOperations()) {
+                // Inventory - view inventory (salespeople can view, owners can manage)
+                if (permissionManager.hasPermission(PermissionType.VIEW_INVENTORY)) {
                     navController.navigate(R.id.inventoryFragment)
                 } else {
-                    showSubscriptionRequiredDialog("inventory")
+                    showPermissionDeniedDialog("inventory")
                 }
             }
+
             R.id.nav_employees -> {
-                if (hasAccessToBusinessOperations()) {
+                // Employees - view employees (owners only, or managers with permission)
+                if (permissionManager.hasPermission(PermissionType.VIEW_EMPLOYEES)) {
                     navController.navigate(R.id.employeesFragment)
                 } else {
-                    showSubscriptionRequiredDialog("employee management")
+                    showPermissionDeniedDialog("employee management")
                 }
             }
+
             R.id.nav_customers -> {
-                if (hasAccessToBusinessOperations()) {
+                // Customers - view customers (salespeople can view)
+                if (permissionManager.hasPermission(PermissionType.VIEW_CUSTOMERS)) {
                     navController.navigate(R.id.customersFragment)
                 } else {
-                    showSubscriptionRequiredDialog("customer management")
+                    showPermissionDeniedDialog("customer management")
                 }
             }
+
             R.id.nav_subscription -> {
-                if (hasAccessToBusinessOperations()) {
-                    navigateToSubscriptionDetails()
+                // Subscription - only owners can manage subscriptions
+                if (permissionManager.isShopOwner()) {
+                    if (hasAccessToBusinessOperations()) {
+                        navigateToSubscriptionDetails()
+                    } else {
+                        navigateToSubscriptionPackages()
+                    }
                 } else {
-                    navigateToSubscriptionPackages()
+                    showPermissionDeniedDialog("subscription management")
                 }
             }
+
             R.id.nav_account -> {
-                if (hasAccessToManagement()) {
+                // Account settings - all logged-in users can access their account
+                if (permissionManager.hasPermission(PermissionType.VIEW_EMPLOYEES) ||
+                    permissionManager.isShopOwner()) {
                     navController.navigate(R.id.accountFragment)
                 } else {
-                    showSubscriptionRequiredDialog("account settings")
+                    showPermissionDeniedDialog("account settings")
                 }
             }
+
             R.id.nav_contact_us -> {
+                // Contact us - accessible to everyone
                 navController.navigate(R.id.contactUsFragment)
             }
+
             R.id.nav_logout -> {
+                // Logout - accessible to everyone
                 logout()
+            }
+
+            else -> {
+                // Handle any other menu items
+                Toast.makeText(this, "Feature coming soon", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -809,24 +894,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         return true
     }
 
-    override fun onSupportNavigateUp(): Boolean {
-        return navController.navigateUp(appBarConfiguration) || super.onSupportNavigateUp()
-    }
-
-    override fun onBackPressed() {
-        if (binding.drawerLayout.isDrawerOpen(GravityCompat.START)) {
-            binding.drawerLayout.closeDrawer(GravityCompat.START)
-        } else if (isFabMenuOpen) {
-            toggleFabMenu()
-        } else {
-            super.onBackPressed()
-        }
-    }
-
-    private fun navigateToProfile() {
-        // Navigate to profile fragment if needed
-        Toast.makeText(this, "Profile", Toast.LENGTH_SHORT).show()
-    }
     private fun navigateToSubscriptionDetails() {
         if (!preferenceManager.hasShop()) {
             showSelectShopFirstDialog()
@@ -852,6 +919,25 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
     }
 
+    override fun onSupportNavigateUp(): Boolean {
+        return navController.navigateUp(appBarConfiguration) || super.onSupportNavigateUp()
+    }
+
+    override fun onBackPressed() {
+        if (binding.drawerLayout.isDrawerOpen(GravityCompat.START)) {
+            binding.drawerLayout.closeDrawer(GravityCompat.START)
+        } else if (isFabMenuOpen) {
+            toggleFabMenu()
+        } else {
+            super.onBackPressed()
+        }
+    }
+
+    private fun navigateToProfile() {
+        // Navigate to profile fragment if needed
+        Toast.makeText(this, "Profile", Toast.LENGTH_SHORT).show()
+    }
+
     private fun navigateToSettings() {
         // Navigate to settings fragment if needed
         Toast.makeText(this, "Settings", Toast.LENGTH_SHORT).show()
@@ -869,6 +955,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
     private fun performLogout() {
+        // Clear permissions as well
+        permissionManager.clearUserPermissions()
         preferenceManager.clearAll()
         val intent = Intent(this, LoginActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK

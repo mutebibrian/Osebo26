@@ -15,8 +15,10 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.devbrian.osebo.R
 import com.devbrian.osebo.data.PreferenceManager
+import com.devbrian.osebo.models.PermissionType
 import com.devbrian.osebo.ui.viewmodels.LoginViewModel
 import com.devbrian.osebo.utils.NetworkUtils
+import com.devbrian.osebo.utils.PermissionManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -27,7 +29,8 @@ class LoginActivity : AppCompatActivity() {
     @Inject
     lateinit var preferenceManager: PreferenceManager
 
-    
+    private lateinit var permissionManager: PermissionManager
+
     private lateinit var imgLogo: ImageView
     private lateinit var cardLogin: CardView
     private lateinit var rgLoginMethod: RadioGroup
@@ -50,9 +53,11 @@ class LoginActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        
+        // Initialize PermissionManager
+        permissionManager = PermissionManager(this)
+
+        // Check if already logged in
         if (preferenceManager.isLoggedIn()) {
-            
             navigateToMainActivity()
             return
         }
@@ -63,7 +68,7 @@ class LoginActivity : AppCompatActivity() {
         setupListeners()
         observeLoginState()
 
-        
+        // Load saved credentials
         loadSavedCredentials()
     }
 
@@ -84,13 +89,9 @@ class LoginActivity : AppCompatActivity() {
         progressBar = findViewById(R.id.progressBar)
         tvError = findViewById(R.id.tvError)
 
-        
         etPassword.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
-
-        
         tvError.visibility = View.GONE
 
-        
         rbEmail.isChecked = true
         emailLayout.visibility = View.VISIBLE
         phoneLayout.visibility = View.GONE
@@ -124,7 +125,6 @@ class LoginActivity : AppCompatActivity() {
             Toast.makeText(this, getString(R.string.forgot_password_coming_soon), Toast.LENGTH_SHORT).show()
         }
 
-        
         etEmail.setOnFocusChangeListener { _, hasFocus ->
             if (hasFocus) clearErrors()
         }
@@ -212,14 +212,12 @@ class LoginActivity : AppCompatActivity() {
                 return
             }
 
-            
             if (phone.length < 9 || phone.length > 15) {
                 etPhone.error = getString(R.string.error_valid_phone)
                 etPhone.requestFocus()
                 return
             }
 
-            
             if (!phone.matches(Regex("^\\+?[0-9]+$"))) {
                 etPhone.error = getString(R.string.error_phone_digits_only)
                 etPhone.requestFocus()
@@ -242,24 +240,17 @@ class LoginActivity : AppCompatActivity() {
             return
         }
 
-        
         if (!NetworkUtils.isNetworkAvailable(this)) {
             showError(getString(R.string.error_no_internet))
             return
         }
 
-        
         trackLoginAttempt("started", if (isEmailLogin) "email" else "phone")
-
-        
         saveCredentials(identifier, isEmailLogin)
-
-        
         viewModel.login(identifier, password)
     }
 
     private fun saveCredentials(identifier: String, isEmail: Boolean) {
-        
         preferenceManager.setRememberMeEnabled(true)
         if (isEmail) {
             preferenceManager.saveEmail(identifier)
@@ -271,12 +262,28 @@ class LoginActivity : AppCompatActivity() {
     private fun onLoginSuccess(authData: LoginViewModel.DomainAuthData) {
         try {
             trackLoginAttempt("success", if (rbEmail.isChecked) "email" else "phone")
-
             saveUserData(authData)
 
+
+            preferenceManager.saveShopCount(1)
+
+            // Check if user is owner based on role
+            val isOwner = authData.user.role.equals("owner", ignoreCase = true) ||
+                    authData.user.role.equals("admin", ignoreCase = true)
+
+            if (!isOwner) {
+
+                permissionManager.saveUserPermissions(
+                    listOf(
+                        PermissionType.VIEW_INVENTORY,
+                        PermissionType.VIEW_SALES,
+                        PermissionType.PROCESS_SALES,
+                        PermissionType.VIEW_CUSTOMERS
+                    )
+                )
+            }
+
             showWelcomeMessage(authData.user.name)
-
-
             navigateToShopsActivity()
 
         } catch (e: Exception) {
@@ -292,38 +299,31 @@ class LoginActivity : AppCompatActivity() {
         startActivity(intent)
         finish()
     }
+
     private fun saveUserData(authData: LoginViewModel.DomainAuthData) {
         println("🎉 LoginSuccess - Saving user data with PreferenceManager")
 
-        
         val userName = authData.user.name
         val displayName = if (userName.isNotEmpty()) userName else authData.user.email
 
-        
         preferenceManager.saveAuthToken(authData.token)
         println("✅ Token saved: ${authData.token.take(20)}...")
 
-        
         preferenceManager.saveUserId(authData.user.id)
         preferenceManager.saveUserEmail(authData.user.email)
         preferenceManager.saveUserName(displayName)
 
-        
         if (authData.user.phone.isNotEmpty()) {
             preferenceManager.saveUserPhone(authData.user.phone)
             println("✅ Phone saved: ${authData.user.phone}")
         }
 
-        
         if (authData.user.role.isNotEmpty()) {
             preferenceManager.saveUserRole(authData.user.role)
             println("✅ Role saved: ${authData.user.role}")
         }
 
-        
         preferenceManager.setLastLoginTimestamp(System.currentTimeMillis())
-
-        
         preferenceManager.setUserLoggedIn(true)
 
         println("✅ User data saved successfully")
@@ -354,7 +354,6 @@ class LoginActivity : AppCompatActivity() {
         btnLogin.isEnabled = !show
         btnLogin.text = if (show) getString(R.string.logging_in) else getString(R.string.sign_in)
 
-        
         etEmail.isEnabled = !show
         etPhone.isEnabled = !show
         etPassword.isEnabled = !show
@@ -368,10 +367,8 @@ class LoginActivity : AppCompatActivity() {
         tvError.text = message
         tvError.visibility = View.VISIBLE
 
-        
         errorRunnable?.let { tvError.removeCallbacks(it) }
 
-        
         errorRunnable = Runnable {
             if (!isFinishing && !isDestroyed) {
                 tvError.visibility = View.GONE
@@ -379,7 +376,6 @@ class LoginActivity : AppCompatActivity() {
         }
         tvError.postDelayed(errorRunnable, 5000)
 
-        
         tvError.animate()
             .translationXBy(10f)
             .setDuration(100)
@@ -427,4 +423,3 @@ class LoginActivity : AppCompatActivity() {
         viewModel.resetState()
     }
 }
-

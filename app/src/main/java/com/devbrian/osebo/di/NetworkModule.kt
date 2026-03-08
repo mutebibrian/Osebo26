@@ -62,7 +62,6 @@ object NetworkModule {
             val token = preferenceManager.getAuthToken()
 
             println("🔐 Token check: isEmpty=${token.isEmpty()}, length=${token.length}")
-            //println("🔐 ShopId check: isEmpty=${shopId.isEmpty()}, value=$shopId")
 
             val requestBuilder = originalRequest.newBuilder()
                 .addHeader("Content-Type", "application/json")
@@ -74,20 +73,53 @@ object NetworkModule {
 
             val shopId = preferenceManager.getCurrentShopId()
             if (shopId.isNotEmpty()) {
-
+                // Remove any existing shop headers
                 requestBuilder.removeHeader("X-Shop")
                 requestBuilder.removeHeader("x-shop")
                 requestBuilder.removeHeader("x-shop-id")
 
+                // Convert shop ID to UUID format if needed
+                val formattedShopId = convertToUuidFormat(shopId)
 
-                requestBuilder.addHeader("X-Shop", shopId)
-                println("🔐 AuthInterceptor - Adding X-Shop header (with hyphens): $shopId")
+                // Add the formatted shop ID
+                requestBuilder.addHeader("X-Shop", formattedShopId)
+                println("🔐 AuthInterceptor - Original shopId: $shopId")
+                println("🔐 AuthInterceptor - Formatted shopId: $formattedShopId")
             }
 
             requestBuilder.addHeader("X-App-Platform", "Android")
 
             val request = requestBuilder.build()
             chain.proceed(request)
+        }
+    }
+
+    // Add this helper function inside the NetworkModule object
+    private fun convertToUuidFormat(shopId: String): String {
+        // If it's already a UUID (contains hyphens), return as is
+        if (shopId.contains("-")) {
+            return shopId
+        }
+
+        // Handle "shop_1" format
+        if (shopId.startsWith("shop_")) {
+            val number = shopId.replace("shop_", "").toIntOrNull() ?: 0
+            // Convert to UUID format: 00000000-0000-0000-0000-000000000001
+            return String.format("00000000-0000-0000-0000-%012d", number)
+        }
+
+        // Handle numeric IDs
+        val number = shopId.toIntOrNull()
+        if (number != null) {
+            return String.format("00000000-0000-0000-0000-%012d", number)
+        }
+
+        // If it's a regular string, create a deterministic UUID
+        return try {
+            java.util.UUID.nameUUIDFromBytes(shopId.toByteArray()).toString()
+        } catch (e: Exception) {
+            // Fallback
+            shopId
         }
     }
 

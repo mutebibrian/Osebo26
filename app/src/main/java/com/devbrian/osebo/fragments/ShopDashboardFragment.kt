@@ -11,19 +11,24 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
+import androidx.navigation.fragment.navArgs
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import com.devbrian.osebo.R
-import com.devbrian.osebo.databinding.FragmentDashboardBinding
+import com.devbrian.osebo.data.PreferenceManager
+import com.devbrian.osebo.databinding.FragmentShopDashboardBinding  // Changed from FragmentDashboardBinding
 import com.devbrian.osebo.ui.viewmodels.DashboardViewModel
 import com.devbrian.osebo.utils.NetworkUtils
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
-class DashboardFragment : Fragment() {
-    private var _binding: FragmentDashboardBinding? = null
+class ShopDashboardFragment : Fragment() {
+
+    private val args: ShopDashboardFragmentArgs by navArgs()  // Add this to get shopId
+
+    private var _binding: FragmentShopDashboardBinding? = null  // Changed binding type
     private val binding get() = _binding!!
 
     private val viewModel: DashboardViewModel by viewModels()
@@ -35,21 +40,31 @@ class DashboardFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentDashboardBinding.inflate(inflater, container, false)
+        _binding = FragmentShopDashboardBinding.inflate(inflater, container, false)  // Changed inflater
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // Get shopId from arguments
+        val shopId = args.shopId
+        Log.d("ShopDashboard", "Loading dashboard for shop: $shopId")
+
+        // Save the current shop ID to PreferenceManager so ViewModel can access it
+        val prefs = PreferenceManager.getInstance(requireContext())
+        prefs.saveCurrentShopId(shopId)
+
         setupRecyclerView()
         setupSwipeRefresh()
         setupClickListeners()
         observeViewModel()
 
+        // Call without parameters - the ViewModel will get shopId from PreferenceManager
         viewModel.loadDashboardData()
     }
 
+    // Rest of the methods remain the same...
     private fun setupRecyclerView() {
         topStockAdapter = TopStockAdapter { item ->
             val bundle = Bundle().apply {
@@ -60,8 +75,6 @@ class DashboardFragment : Fragment() {
         }
 
         binding.rvTopStock.apply {
-            // FIX: Create a NEW horizontal LinearLayoutManager here.
-            // The XML sets a default vertical one via app:layoutManager — this overrides it.
             layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
             adapter = topStockAdapter
             setHasFixedSize(true)
@@ -142,10 +155,8 @@ class DashboardFragment : Fragment() {
                     )
                 }
 
-                // FIX: submitList handles notifyDataSetChanged internally — no need to call it again
                 topStockAdapter.submitList(adapterItems)
 
-                // FIX: Show section based on whether items exist
                 if (adapterItems.isEmpty()) {
                     binding.topStockSection.visibility = View.GONE
                 } else {
@@ -252,8 +263,7 @@ class DashboardFragment : Fragment() {
     }
 }
 
-// ─── Adapter ─────────────────────────────────────────────────────────────────
-
+// Keep the adapter and data classes as they are
 class TopStockAdapter(
     private val onItemClick: (TopStockItem) -> Unit
 ) : RecyclerView.Adapter<TopStockAdapter.ViewHolder>() {
@@ -282,9 +292,6 @@ class TopStockAdapter(
         private val tvQuantity: TextView = itemView.findViewById(R.id.tvQuantity)
         private val tvSales: TextView = itemView.findViewById(R.id.tvSales)
 
-        // FIX: Accept position as a parameter instead of using adapterPosition inside bind()
-        // adapterPosition can return -1 if the view is being recycled
-        // In TopStockAdapter ViewHolder bind() — replace setBackgroundColor with:
         fun bind(item: TopStockItem, position: Int) {
             tvProductName.text = item.name
             tvQuantity.text = "Qty: ${item.quantity}"
@@ -301,7 +308,6 @@ class TopStockAdapter(
                 R.color.avatar_purple,
                 R.color.avatar_red
             )
-            // FIX: cast itemView to MaterialCardView and use setCardBackgroundColor
             val card = itemView as com.google.android.material.card.MaterialCardView
             card.setCardBackgroundColor(
                 itemView.context.getColor(colors[position % colors.size])
@@ -312,7 +318,6 @@ class TopStockAdapter(
     }
 }
 
-
 data class TopStockItem(
     val id: String,
     val name: String,
@@ -320,9 +325,7 @@ data class TopStockItem(
     val sales: Double
 )
 
-
 fun Int.withAlpha(alpha: Float): Int {
-    // Clamp alpha to valid range then apply over the existing RGB
     val a = (alpha.coerceIn(0f, 1f) * 255).toInt()
     return (this and 0x00FFFFFF) or (a shl 24)
 }

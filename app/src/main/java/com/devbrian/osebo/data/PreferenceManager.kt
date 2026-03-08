@@ -425,6 +425,39 @@ class PreferenceManager private constructor(private val context: Context) {
         )
     }
 
+    // Add these methods to PreferenceManager.kt
+
+    fun saveStringSet(key: String, value: Set<String>) {
+        prefs.edit().putStringSet(key, value).apply()
+    }
+
+    fun getStringSet(key: String, defaultValue: Set<String> = emptySet()): Set<String> {
+        return prefs.getStringSet(key, defaultValue) ?: defaultValue
+    }
+
+    fun saveShopCount(count: Int) {
+        prefs.edit().putInt("shop_count", count).apply()
+    }
+
+    fun getShopCount(): Int {
+        return prefs.getInt("shop_count", 0)
+    }
+
+    fun saveIsMultiShopOwner(isMulti: Boolean) {
+        prefs.edit().putBoolean("is_multi_shop_owner", isMulti).apply()
+    }
+
+    fun isMultiShopOwner(): Boolean {
+        return prefs.getBoolean("is_multi_shop_owner", false)
+    }
+
+    fun remove(key: String) {
+        prefs.edit().remove(key).apply()
+    }
+
+
+
+
     fun getSubscriptionInfo(): Map<String, String> {
         return mapOf(
             "id" to getSubscriptionId(),
