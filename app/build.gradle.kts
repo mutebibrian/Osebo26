@@ -1,3 +1,5 @@
+import org.gradle.kotlin.dsl.implementation
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -71,9 +73,13 @@ dependencies {
     implementation(libs.androidx.constraintlayout)
     implementation(libs.androidx.swiperefreshlayout)
     implementation(libs.androidx.preference.ktx)
+    implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
+
+
 
     // JSON
     implementation("com.google.code.gson:gson:2.10.1")
+    implementation("com.facebook.shimmer:shimmer:0.5.0")
 
     // Logging
     implementation("com.jakewharton.timber:timber:5.0.1")
@@ -89,6 +95,8 @@ dependencies {
 
     // Image Loading
     implementation("com.github.bumptech.glide:glide:4.15.1")
+    implementation(libs.androidx.navigation.fragment.ktx)
+    implementation(libs.androidx.navigation.ui.ktx)
     kapt("com.github.bumptech.glide:compiler:4.15.1")
 
     // Hilt
@@ -136,6 +144,8 @@ dependencies {
     kaptAndroidTest("com.google.dagger:hilt-compiler:2.48")
 }
 
+//gradle push to avoid build feature
+
 // ✅ FIXED: Remove the 'testing' reference that was causing the error
 configurations.all {
     resolutionStrategy {
@@ -171,4 +181,7 @@ kapt {
     javacOptions {
         option("-Xmaxerrs", 1000)
     }
+
+
+
 }

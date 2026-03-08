@@ -10,3 +10,4 @@ data class CreatePaymentRequest(
     @SerializedName("shop_id") val shopId: String? = null,
     @SerializedName("description") val description: String? = null
 )
+

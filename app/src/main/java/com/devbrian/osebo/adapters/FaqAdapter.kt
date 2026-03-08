@@ -69,3 +69,4 @@ class FaqAdapter(
         notifyDataSetChanged()
     }
 }
+

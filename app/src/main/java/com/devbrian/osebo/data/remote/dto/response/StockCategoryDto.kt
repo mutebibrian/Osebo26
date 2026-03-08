@@ -8,3 +8,4 @@ data class StockCategoryDto(
     @SerializedName("name") val name: String,
     @SerializedName("description") val description: String?
 )
+

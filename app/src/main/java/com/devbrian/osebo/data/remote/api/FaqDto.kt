@@ -16,3 +16,4 @@ data class FaqDto(
     @SerializedName("category")
     val category: String
 )
+

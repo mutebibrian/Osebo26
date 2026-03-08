@@ -7,7 +7,7 @@ import androidx.room.PrimaryKey
 data class CategoryEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
-    val remoteId: String? = null,  // ID from server when synced
+    val remoteId: String? = null,  
     val name: String,
     val description: String? = null,
     val productCount: Int = 0,
@@ -15,3 +15,4 @@ data class CategoryEntity(
     val isPendingSync: Boolean = false,
     val syncAction: String? = null
 )
+

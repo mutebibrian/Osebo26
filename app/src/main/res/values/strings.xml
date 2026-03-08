@@ -18,6 +18,11 @@
     <string name="remember_me">Remember Me</string>
     <string name="country_code">+256</string>
 
+    <string name="empty_history">Empty history</string>
+    <string name="no_payment_history">No payment history found</string>
+    <string name="payments_will_appear_here">Your payment transactions will appear here</string>
+    <string name="retry">Retry</string>
+
     <!-- Welcome Messages -->
     <string name="welcome_back_name">Welcome back, %s!</string>
     <string name="welcome">Welcome back!</string>
@@ -85,6 +90,40 @@
     <string name="product_image">Product Image</string>
     <string name="new_sale">New Sale</string>
     <string name="samsung_tv_55">Samsung TV 55\"</string>
+
+    <string name="suppliers">Suppliers</string>
+    <string name="add_supplier">Add Supplier</string>
+    <string name="search_suppliers">Search suppliers...</string>
+    <string name="no_suppliers_yet">No Suppliers Yet</string>
+    <string name="add_your_first_supplier">Add your first supplier to get started</string>
+    <string name="supplier_name">Supplier Name</string>
+    <string name="contact_person">Contact Person</string>
+    <string name="products_count">%d products</string>
+    <string name="total_purchases">Total Purchases</string>
+    <string name="add_expense">Add Expense</string>
+    <string name="category">Category</string>
+    <string name="amount">Amount</string>
+    <string name="date">Date</string>
+    <string name="payment_method">Payment Method</string>
+    <string name="reference_number">Reference Number</string>
+    <string name="attach_receipt">Attach Receipt</string>
+    <string name="save_expense">Save Expense</string>
+    <string name="expense_saved">Expense saved successfully</string>
+
+    <string-array name="business_types">
+        <item>Retail Store</item>
+        <item>Wholesale</item>
+        <item>Service Business</item>
+        <item>Manufacturing</item>
+        <item>Restaurant</item>
+        <item>Salon &amp; Spa</item>
+        <item>Grocery Store</item>
+        <item>Pharmacy</item>
+        <item>Hardware Store</item>
+        <item>Fashion &amp; Clothing</item>
+        <item>Electronics Store</item>
+        <item>Online Store</item>
+    </string-array>
 
     <!-- Plurals -->
     <plurals name="months_count">

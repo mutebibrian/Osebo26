@@ -15,3 +15,4 @@ data class CustomerSummaryItem(
     @SerializedName("total_purchases") val totalPurchases: Double,
     @SerializedName("last_purchase") val lastPurchase: String
 )
+

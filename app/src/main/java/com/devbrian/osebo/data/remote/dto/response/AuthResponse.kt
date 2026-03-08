@@ -12,3 +12,4 @@ data class AuthResponse(
     @SerializedName("data")
     val data: AuthData? = null
 )
+

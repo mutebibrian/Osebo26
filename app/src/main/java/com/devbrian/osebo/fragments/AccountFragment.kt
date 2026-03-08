@@ -48,7 +48,7 @@ class AccountFragment : Fragment() {
                 binding.billingCycleValue.text = it.billingCycle
                 binding.nextBillingValue.text = it.nextBillingDate
 
-                // Set account status
+                
                 when (it.status) {
                     "active" -> {
                         binding.statusChip.text = "Active"
@@ -64,7 +64,7 @@ class AccountFragment : Fragment() {
                     }
                 }
 
-                // Set security switches
+                
                 binding.twoFactorSwitch.isChecked = it.twoFactorEnabled
                 binding.loginNotificationsSwitch.isChecked = it.loginNotificationsEnabled
             }
@@ -78,17 +78,17 @@ class AccountFragment : Fragment() {
     }
 
     private fun setupClickListeners() {
-        // Edit Account
+        
         binding.editAccountButton.setOnClickListener {
             openEditAccountDialog()
         }
 
-        // Update Payment Method
+        
         binding.updatePaymentButton.setOnClickListener {
             openPaymentMethodDialog()
         }
 
-        // Security settings
+        
         binding.twoFactorSwitch.setOnCheckedChangeListener { _, isChecked ->
             viewModel.updateTwoFactorAuth(isChecked)
         }
@@ -101,7 +101,7 @@ class AccountFragment : Fragment() {
             openSessionManagement()
         }
 
-        // Danger zone
+        
         binding.deactivateButton.setOnClickListener {
             showDeactivateConfirmation()
         }
@@ -152,3 +152,4 @@ class AccountFragment : Fragment() {
         Snackbar.make(binding.root, message, Snackbar.LENGTH_SHORT).show()
     }
 }
+

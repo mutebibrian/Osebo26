@@ -19,3 +19,4 @@ data class RegisterRequest(
     @SerializedName("business_type")
     val businessType: String
 )
+

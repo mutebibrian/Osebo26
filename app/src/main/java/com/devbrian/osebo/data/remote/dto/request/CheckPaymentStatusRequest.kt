@@ -10,3 +10,4 @@ data class CheckPaymentStatusRequest(
     @SerializedName("invoiceNo")
     val invoiceNo: String
 )
+

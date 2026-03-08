@@ -9,3 +9,4 @@ class OseboApplication : Application() {
         super.onCreate()
     }
 }
+

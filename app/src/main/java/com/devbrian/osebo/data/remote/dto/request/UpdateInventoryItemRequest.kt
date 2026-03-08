@@ -19,3 +19,4 @@ data class UpdateInventoryItemRequest(
     @SerializedName("reorder_level")
     val reorderLevel: Int? = null
 )
+

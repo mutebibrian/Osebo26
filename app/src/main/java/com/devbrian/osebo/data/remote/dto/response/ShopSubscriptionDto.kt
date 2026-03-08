@@ -13,3 +13,4 @@ data class ShopSubscriptionDto(
     @SerializedName("duration_days") val durationDays: Int,
     @SerializedName("is_trial") val isTrial: Boolean
 )
+

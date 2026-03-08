@@ -1,5 +1,6 @@
 package com.devbrian.osebo.data.remote.api
 
+import com.devbrian.osebo.models.SalesDataPoint
 import com.google.gson.annotations.SerializedName
 
 data class DashboardAnalyticsDto(
@@ -13,13 +14,6 @@ data class DashboardAnalyticsDto(
     val customerGrowth: List<GrowthDataPoint>
 )
 
-data class SalesDataPoint(
-    @SerializedName("date")
-    val date: String,
-
-    @SerializedName("sales")
-    val sales: Double
-)
 
 data class RevenueDataPoint(
     @SerializedName("date")
@@ -36,3 +30,4 @@ data class GrowthDataPoint(
     @SerializedName("customers")
     val customers: Int
 )
+

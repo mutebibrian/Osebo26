@@ -51,7 +51,7 @@ class AddProductFragment : Fragment() {
 
     private fun setupClickListeners() {
         binding.btnUploadImage.setOnClickListener {
-            // TODO: Implement image upload
+            
             Toast.makeText(requireContext(), "Image upload coming soon", Toast.LENGTH_SHORT).show()
         }
 
@@ -135,7 +135,7 @@ class AddProductFragment : Fragment() {
     private fun validateInputs(): Boolean {
         var isValid = true
 
-        // Clear previous errors
+        
         binding.etProductName.error = null
         binding.etSku.error = null
         binding.etPrice.error = null
@@ -227,3 +227,4 @@ class AddProductFragment : Fragment() {
         _binding = null
     }
 }
+

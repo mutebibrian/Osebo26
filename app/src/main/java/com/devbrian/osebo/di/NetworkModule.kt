@@ -28,7 +28,7 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
-    private const val BASE_URL = "https://dev-api.osebo.ai/"
+    private const val BASE_URL = "https://dev-api.osebo.ai"
 
     @Provides
     @Singleton
@@ -61,6 +61,9 @@ object NetworkModule {
             val originalRequest = chain.request()
             val token = preferenceManager.getAuthToken()
 
+            println("🔐 Token check: isEmpty=${token.isEmpty()}, length=${token.length}")
+            //println("🔐 ShopId check: isEmpty=${shopId.isEmpty()}, value=$shopId")
+
             val requestBuilder = originalRequest.newBuilder()
                 .addHeader("Content-Type", "application/json")
                 .addHeader("Accept", "application/json")
@@ -71,12 +74,12 @@ object NetworkModule {
 
             val shopId = preferenceManager.getCurrentShopId()
             if (shopId.isNotEmpty()) {
-                // Remove any existing shop headers
+
                 requestBuilder.removeHeader("X-Shop")
                 requestBuilder.removeHeader("x-shop")
                 requestBuilder.removeHeader("x-shop-id")
 
-                // Send the original ID WITH hyphens
+
                 requestBuilder.addHeader("X-Shop", shopId)
                 println("🔐 AuthInterceptor - Adding X-Shop header (with hyphens): $shopId")
             }
@@ -157,3 +160,4 @@ object NetworkModule {
         return ProductRepository(apiService, preferenceManager, database)
     }
 }
+

@@ -39,7 +39,7 @@ data class UserDto(
     @SerializedName("role")
     val role: RoleDto? = null,
 
-    // For backward compatibility, you can keep these but make them nullable
+    
     @SerializedName("name")
     val name: String? = null,
 
@@ -55,7 +55,7 @@ data class UserDto(
     @SerializedName("profile_image_url")
     val profileImageUrl: String? = null
 ) {
-    // Helper function to get full name from firstName and lastName
+    
     fun getFullName(): String {
         return buildString {
             firstName?.let { append(it) }
@@ -66,17 +66,17 @@ data class UserDto(
         }.trim().ifEmpty { name ?: "" }
     }
 
-    // Renamed to avoid conflict with firstName property
+    
     fun extractFirstName(): String {
         return firstName ?: name?.substringBefore(" ") ?: ""
     }
 
-    // Renamed to avoid conflict with lastName property
+    
     fun extractLastName(): String {
         return lastName ?: name?.substringAfterLast(" ") ?: ""
     }
 
-    // Renamed to avoid conflict with name property
+    
     fun getDisplayName(): String {
         return name ?: getFullName()
     }
@@ -92,3 +92,4 @@ data class RoleDto(
     @SerializedName("description")
     val description: String?
 )
+

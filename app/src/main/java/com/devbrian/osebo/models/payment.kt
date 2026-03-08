@@ -22,10 +22,10 @@ data class Payment(
     val currency: String = "UGX",
 
     @SerializedName("status")
-    val status: String, // PENDING, COMPLETED, SUCCESS, FAILED, CANCELLED
+    val status: String, 
 
     @SerializedName("payment_method")
-    val paymentMethod: String? = null, // mobile_money, credit_card, bank_transfer
+    val paymentMethod: String? = null, 
 
     @SerializedName("transaction_id")
     val transactionId: String? = null,
@@ -116,3 +116,4 @@ data class PaymentVerificationRequest(
     @SerializedName("subscription_id")
     val subscriptionId: String? = null
 )
+

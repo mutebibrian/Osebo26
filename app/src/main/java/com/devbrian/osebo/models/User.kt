@@ -45,7 +45,7 @@ data class User(
     @SerializedName("role")
     val role: Role? = null,
 
-    // For backward compatibility with old API
+    
     @SerializedName("created_at")
     val createdAtOld: String? = null,
 
@@ -55,7 +55,7 @@ data class User(
     @SerializedName("email_verified_at")
     val emailVerifiedAt: String? = null
 ) {
-    // Helper method to get full name
+    
     fun getFullName(): String {
         return if (firstName != null && lastName != null) {
             "$firstName $lastName"
@@ -64,7 +64,7 @@ data class User(
         }
     }
 
-    // Helper method to get display name
+    
     fun getDisplayName(): String {
         return when {
             firstName != null && lastName != null -> "$firstName $lastName"
@@ -75,7 +75,7 @@ data class User(
 
 
 
-    // Check if user has a shop
+    
     fun hasShop(): Boolean {
         return shopId != null && shopId.isNotEmpty()
     }
@@ -91,3 +91,4 @@ data class Role(
     @SerializedName("description")
     val description: String?
 )
+

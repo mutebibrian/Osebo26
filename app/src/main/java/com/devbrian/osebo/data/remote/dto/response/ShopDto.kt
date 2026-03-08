@@ -49,8 +49,9 @@ data class ShopDto(
     val updatedAt: String,
 
     @SerializedName("subscription")
-    val subscription: ShopSubscriptionDto? = null, // Added default null
+    val subscription: ShopSubscriptionDto? = null, 
 )
+
 
 
 

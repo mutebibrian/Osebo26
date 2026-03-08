@@ -31,3 +31,4 @@ interface SyncQueueDao {
     @Query("UPDATE sync_queue SET status = 'FAILED', retryCount = retryCount + 1, lastAttemptAt = :lastAttempt WHERE id = :id")
     suspend fun markAsFailed(id: Long, lastAttempt: Long)
 }
+

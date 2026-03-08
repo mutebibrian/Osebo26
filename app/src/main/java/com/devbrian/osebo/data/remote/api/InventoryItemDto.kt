@@ -28,3 +28,4 @@ data class InventoryItemDto(
     @SerializedName("created_at")
     val createdAt: String
 )
+

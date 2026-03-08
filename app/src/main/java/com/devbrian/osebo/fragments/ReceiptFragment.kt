@@ -1,6 +1,11 @@
 package com.devbrian.osebo.fragments
 
+import android.Manifest
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.Menu
@@ -9,6 +14,7 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -22,9 +28,9 @@ import com.devbrian.osebo.models.CartItem
 import com.devbrian.osebo.utils.CurrencyFormatter
 import com.devbrian.osebo.utils.PrintUtils
 import com.devbrian.osebo.data.PreferenceManager
+import com.devbrian.osebo.utils.PrinterConnectionManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
-import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
@@ -37,6 +43,9 @@ class ReceiptFragment : Fragment() {
 
     private val args: ReceiptFragmentArgs by navArgs()
     private lateinit var receiptItemAdapter: ReceiptItemAdapter
+    private lateinit var printerManager: PrinterConnectionManager
+
+    private val BLUETOOTH_PERMISSION_REQUEST_CODE = 1001
 
     @Inject
     lateinit var preferenceManager: PreferenceManager
@@ -44,6 +53,7 @@ class ReceiptFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setHasOptionsMenu(true)
+        printerManager = PrinterConnectionManager(requireContext())
     }
 
     override fun onCreateView(
@@ -62,6 +72,7 @@ class ReceiptFragment : Fragment() {
         setupRecyclerView()
         setupClickListeners()
         displayReceiptData()
+        checkPrinterConnection()
     }
 
     private fun setupToolbar() {
@@ -93,32 +104,89 @@ class ReceiptFragment : Fragment() {
         }
     }
 
+    private fun checkPrinterConnection() {
+        lifecycleScope.launch {
+            val isConnected = printerManager.isPrinterConnected()
+            if (!isConnected) {
+                binding.btnPrint.text = "Connect Printer"
+                binding.btnPrint.setIconResource(R.drawable.ic_bluetooth)
+            } else {
+                binding.btnPrint.text = "Print"
+                binding.btnPrint.setIconResource(R.drawable.ic_print)
+            }
+        }
+    }
+
     private fun displayReceiptData() {
-        // Display receipt number and date
-        binding.tvReceiptNumber.text = args.invoiceNumber
-        binding.tvReceiptDate.text = SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault())
-            .format(Date())
+        // Get values from navigation args with fallbacks
+        val invoiceNumber = args.invoiceNumber
+        val customerName = args.customerName
+        val customerPhone = args.customerPhone
+        val cartItems = args.cartItems?.toList() ?: emptyList()
+        val totalAmount = args.totalAmount      // This is Float
+        val paidAmount = args.paidAmount        // This is Float
+        val changeAmount = args.change          // This is Float
+        val paymentMethod = args.paymentMethod
 
-        // Display shop details from PreferenceManager
-        val shopName = preferenceManager.getCurrentShopName()
-        val shopLocation = preferenceManager.getShopLocation()
-        val shopContact = preferenceManager.getShopContact()
-        val businessType = preferenceManager.getBusinessType()
+        // NEW SHOP PARAMETERS from API
+        val saleId = args.saleId
+        val shopNameArg = args.shopName
+        val shopAddressArg = args.shopAddress
+        val shopPhoneArg = args.shopPhone
+        val shopDescriptionArg = args.shopDescription
+        val receiptDateArg = args.receiptDate
 
-        binding.tvShopName.text = if (shopName.isNotEmpty()) shopName else "Osebo POS"
-        binding.tvShopAddress.text = if (shopLocation.isNotEmpty()) shopLocation else "Kampala, Uganda"
+        // Receipt number and date
+        binding.tvReceiptNumber.text = invoiceNumber
 
-        // Show phone number with "Tel:" prefix
-        if (shopContact.isNotEmpty()) {
-            binding.tvShopContact.visibility = View.VISIBLE
-            binding.tvShopContact.text = "Tel: $shopContact"
-            println("📱 ReceiptFragment - Shop contact: $shopContact")
+        // Format date
+        binding.tvReceiptDate.text = if (!receiptDateArg.isNullOrEmpty()) {
+            try {
+                val date = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
+                    .parse(receiptDateArg)
+                SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault()).format(date ?: Date())
+            } catch (e: Exception) {
+                SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault()).format(Date())
+            }
         } else {
-            binding.tvShopContact.visibility = View.GONE
-            println("📱 ReceiptFragment - No shop contact available")
+            SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault()).format(Date())
         }
 
-        // Show business type if available
+        // SHOP INFO - Get from API response first, then fallback to preferences
+        val shopName = if (!shopNameArg.isNullOrEmpty()) {
+            shopNameArg.uppercase(Locale.getDefault())
+        } else {
+            preferenceManager.getCurrentShopName().ifEmpty { "AK SHOPPERS" }.uppercase(Locale.getDefault())
+        }
+
+        val shopAddress = if (!shopAddressArg.isNullOrEmpty()) {
+            shopAddressArg
+        } else {
+            preferenceManager.getShopLocation().ifEmpty { "Kiwatule, Kampala" }
+        }
+
+        val shopContact = if (!shopPhoneArg.isNullOrEmpty()) {
+            shopPhoneArg
+        } else {
+            preferenceManager.getShopContact().ifEmpty { "+256 700 000000" }
+        }
+
+        val businessType = if (!shopDescriptionArg.isNullOrEmpty()) {
+            shopDescriptionArg
+        } else {
+            preferenceManager.getBusinessType().ifEmpty { "Retail Store" }
+        }
+
+        // Set shop info in UI - MAKE SHOP NAME BIGGER AND BOLDER
+        binding.tvShopName.text = shopName
+        binding.tvShopName.textSize = 34f
+        binding.tvShopName.setTypeface(null, android.graphics.Typeface.BOLD)
+        binding.tvShopName.setTextColor(ContextCompat.getColor(requireContext(), R.color.colorPrimary))
+
+        binding.tvShopAddress.text = shopAddress
+        binding.tvShopContact.text = "Tel: $shopContact"
+        binding.tvShopContact.visibility = View.VISIBLE
+
         if (businessType.isNotEmpty()) {
             binding.tvBusinessType.visibility = View.VISIBLE
             binding.tvBusinessType.text = businessType
@@ -126,60 +194,58 @@ class ReceiptFragment : Fragment() {
             binding.tvBusinessType.visibility = View.GONE
         }
 
-        // Display customer info from arguments
-        binding.tvCustomerName.text = args.customerName
-        binding.tvCustomerPhone.text = args.customerPhone
+        // Customer info
+        binding.tvCustomerName.text = customerName.ifEmpty { "Walk-in Customer" }
+        binding.tvCustomerPhone.text = customerPhone.ifEmpty { "N/A" }
 
-        // Load cart items from arguments
-        val cartItems = args.cartItems?.toList() ?: emptyList()
+        // Cart items
         receiptItemAdapter.submitList(cartItems)
 
-        // Calculate totals from arguments - TAX SET TO 0
+        // Calculations
         val subtotal = cartItems.sumOf { it.unitPrice * it.quantity }
         val totalDiscount = cartItems.sumOf {
             (it.unitPrice * it.quantity * it.discount / 100)
         }
-        val tax = 0.0 // Tax set to 0
-        val total = args.totalAmount.toDouble()
-        val paid = args.paidAmount.toDouble()
-        val change = args.change.toDouble()
+        val tax = 0.0
 
-        // Format and display amounts
+        // Format and set values - CONVERT FLOAT TO DOUBLE
         binding.tvSubtotal.text = CurrencyFormatter.formatFull(subtotal)
-        binding.tvDiscount.text = "-${CurrencyFormatter.formatFull(totalDiscount)}"
+        binding.tvDiscount.text = if (totalDiscount > 0) "-${CurrencyFormatter.formatFull(totalDiscount)}" else "UGX 0"
         binding.tvTax.text = CurrencyFormatter.formatFull(tax)
-        binding.tvTotal.text = CurrencyFormatter.formatFull(total)
-        binding.tvPaid.text = CurrencyFormatter.formatFull(paid)
-        binding.tvChange.text = CurrencyFormatter.formatFull(change)
-        binding.tvPaymentMethod.text = args.paymentMethod
+        binding.tvTotal.text = CurrencyFormatter.formatFull(totalAmount.toDouble())
+        binding.tvPaid.text = CurrencyFormatter.formatFull(paidAmount.toDouble())
+        binding.tvChange.text = CurrencyFormatter.formatFull(changeAmount.toDouble())
+        binding.tvPaymentMethod.text = paymentMethod.replaceFirstChar { it.uppercase() }
     }
 
     private fun printReceipt() {
         lifecycleScope.launch {
             try {
-                // Show loading
                 binding.btnPrint.isEnabled = false
                 binding.btnPrint.text = "Printing..."
 
                 val cartItems = args.cartItems?.toList() ?: emptyList()
 
-                // Generate PDF receipt
-                val pdfFile = PrintUtils.generateReceiptPdf(
-                    context = requireContext(),
-                    receiptNumber = args.invoiceNumber,
-                    date = binding.tvReceiptDate.text.toString(),
-                    customerName = args.customerName,
-                    items = cartItems,
-                    subtotal = binding.tvSubtotal.text.toString(),
-                    discount = binding.tvDiscount.text.toString(),
-                    tax = binding.tvTax.text.toString(),
-                    total = binding.tvTotal.text.toString(),
-                    paid = binding.tvPaid.text.toString(),
-                    change = binding.tvChange.text.toString(),
-                    paymentMethod = args.paymentMethod
-                )
+                // Check if printer is connected
+                val isConnected = printerManager.isPrinterConnected()
 
-                Toast.makeText(requireContext(), "Receipt ready for printing", Toast.LENGTH_SHORT).show()
+                if (!isConnected) {
+                    showPrinterSelectionDialog()
+                    return@launch
+                }
+
+                val receiptText = buildReceiptText(cartItems)
+                val result = printerManager.printReceipt(receiptText)
+
+                if (result.isSuccess) {
+                    Toast.makeText(requireContext(), "✅ Print successful", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(requireContext(), "❌ Print failed: ${result.errorMessage}", Toast.LENGTH_LONG).show()
+
+                    if (result.errorMessage.contains("No printer connected")) {
+                        showPrinterSelectionDialog()
+                    }
+                }
 
             } catch (e: Exception) {
                 Toast.makeText(requireContext(), "Failed to print: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -190,17 +256,408 @@ class ReceiptFragment : Fragment() {
         }
     }
 
+    private fun buildReceiptText(items: List<CartItem>): String {
+        // Get values from navigation args with fallbacks
+        val invoiceNumber = args.invoiceNumber
+        val customerName = args.customerName
+        val customerPhone = args.customerPhone
+        val totalAmount = args.totalAmount.toDouble()  // Convert to Double
+        val paidAmount = args.paidAmount.toDouble()    // Convert to Double
+        val changeAmount = args.change.toDouble()      // Convert to Double
+        val paymentMethod = args.paymentMethod
+
+        // NEW SHOP PARAMETERS
+        val shopNameArg = args.shopName
+        val shopAddressArg = args.shopAddress
+        val shopPhoneArg = args.shopPhone
+        val shopDescriptionArg = args.shopDescription
+        val receiptDateArg = args.receiptDate
+
+        // Shop info
+        val shopName = if (!shopNameArg.isNullOrEmpty()) {
+            shopNameArg.uppercase()
+        } else {
+            preferenceManager.getCurrentShopName().ifEmpty { "AK SHOPPERS" }.uppercase()
+        }
+
+        val shopAddress = if (!shopAddressArg.isNullOrEmpty()) {
+            shopAddressArg
+        } else {
+            preferenceManager.getShopLocation().ifEmpty { "Kiwatule, Kampala" }
+        }
+
+        val shopContact = if (!shopPhoneArg.isNullOrEmpty()) {
+            shopPhoneArg
+        } else {
+            preferenceManager.getShopContact().ifEmpty { "+256 700 000000" }
+        }
+
+        val businessType = if (!shopDescriptionArg.isNullOrEmpty()) {
+            shopDescriptionArg
+        } else {
+            preferenceManager.getBusinessType().ifEmpty { "Retail Store" }
+        }
+
+        // Date
+        val date = binding.tvReceiptDate.text.toString()
+
+        // Customer info
+        val customerNameDisplay = customerName.ifEmpty { "Walk-in Customer" }
+        val customerPhoneDisplay = customerPhone.ifEmpty { "N/A" }
+
+        // Payment info
+        val subtotal = items.sumOf { it.unitPrice * it.quantity }
+        val totalDiscount = items.sumOf { it.unitPrice * it.quantity * it.discount / 100 }
+
+        return buildString {
+            // Shop Header
+            appendLine()
+            appendLine(centerText(shopName, 32))
+            if (businessType.isNotEmpty()) {
+                appendLine(centerText(businessType, 32))
+            }
+            appendLine(centerText(shopAddress, 32))
+            appendLine(centerText("Tel: $shopContact", 32))
+            appendLine(repeatChar('=', 32))
+
+            // Receipt Info
+            appendLine(formatTwoColumns("Receipt No:", invoiceNumber, 32))
+            appendLine(formatTwoColumns("Date:", date, 32))
+            appendLine(formatTwoColumns("Cashier:", "Admin", 32))
+            appendLine(repeatChar('-', 32))
+
+            // Customer Info
+            appendLine(formatTwoColumns("Customer:", customerNameDisplay, 32))
+            if (customerPhoneDisplay != "N/A") {
+                appendLine(formatTwoColumns("Phone:", customerPhoneDisplay, 32))
+            }
+            appendLine(repeatChar('-', 32))
+
+            // Item Header
+            appendLine(formatItemHeader(32))
+            appendLine(repeatChar('-', 32))
+
+            // Items with proper alignment
+            items.forEach { item ->
+                val name = item.product.name
+                val qty = item.quantity.toString()
+                val unitPrice = CurrencyFormatter.formatShort(item.unitPrice)
+                val itemTotal = CurrencyFormatter.formatShort(item.unitPrice * item.quantity * (1 - item.discount / 100))
+
+                appendLine(formatItemLine(name, qty, unitPrice, itemTotal, 32))
+
+                // Show discount line if applicable
+                if (item.discount > 0) {
+                    val discountAmount = CurrencyFormatter.formatShort(item.unitPrice * item.quantity * item.discount / 100)
+                    appendLine(formatTwoColumns("  Discount (${item.discount}%)", "-$discountAmount", 32))
+                }
+            }
+
+            appendLine(repeatChar('-', 32))
+
+            // Summary - use the converted Double values
+            appendLine(formatTwoColumns("Subtotal:", CurrencyFormatter.formatFull(subtotal), 32))
+            if (totalDiscount > 0) {
+                appendLine(formatTwoColumns("Discount:", "-${CurrencyFormatter.formatFull(totalDiscount)}", 32))
+            }
+            appendLine(formatTwoColumns("Tax:", "UGX 0", 32))
+            appendLine(repeatChar('=', 32))
+            appendLine(formatTwoColumns("TOTAL:", CurrencyFormatter.formatFull(totalAmount), 32))  // Now Double
+            appendLine(repeatChar('=', 32))
+            appendLine(formatTwoColumns("Paid:", CurrencyFormatter.formatFull(paidAmount), 32))    // Now Double
+            appendLine(formatTwoColumns("Change:", CurrencyFormatter.formatFull(changeAmount), 32)) // Now Double
+            appendLine(formatTwoColumns("Payment:", paymentMethod.replaceFirstChar { it.uppercase() }, 32))
+
+            appendLine(repeatChar('=', 32))
+            appendLine()
+            appendLine(centerText("THANK YOU FOR SHOPPING!", 32))
+            appendLine(centerText("Visit us again!", 32))
+            appendLine(centerText(shopName, 32))
+            appendLine(centerText("Tel: $shopContact", 32))
+            appendLine()
+            appendLine()
+            appendLine()
+        }
+    }
+
+    private fun centerText(text: String, width: Int): String {
+        val padding = width - text.length
+        if (padding <= 0) return text
+        val leftPadding = padding / 2
+        val rightPadding = padding - leftPadding
+        return " ".repeat(leftPadding) + text + " ".repeat(rightPadding)
+    }
+
+    private fun formatTwoColumns(left: String, right: String, width: Int): String {
+        val availableWidth = width - left.length
+        return left + " ".repeat(availableWidth - right.length) + right
+    }
+
+    private fun formatItemHeader(width: Int): String {
+        val itemLabel = "ITEM"
+        val qtyLabel = "QTY"
+        val priceLabel = "PRICE"
+        val totalLabel = "TOTAL"
+
+        val itemWidth = 12
+        val qtyWidth = 4
+        val priceWidth = 8
+        val totalWidth = 8
+
+        return itemLabel.padEnd(itemWidth, ' ') +
+                qtyLabel.padStart(qtyWidth, ' ') +
+                priceLabel.padStart(priceWidth, ' ') +
+                totalLabel.padStart(totalWidth, ' ')
+    }
+
+    private fun formatItemLine(item: String, qty: String, price: String, total: String, width: Int): String {
+        val itemMax = 12
+        val qtyMax = 4
+        val priceMax = 8
+        val totalMax = 8
+
+        val itemTrimmed = if (item.length > itemMax) item.substring(0, itemMax - 3) + "..." else item
+        val qtyTrimmed = if (qty.length > qtyMax) qty.substring(0, qtyMax) else qty
+        val priceTrimmed = if (price.length > priceMax) price.substring(0, priceMax) else price
+        val totalTrimmed = if (total.length > totalMax) total.substring(0, totalMax) else total
+
+        return itemTrimmed.padEnd(itemMax, ' ') +
+                qtyTrimmed.padStart(qtyMax, ' ') +
+                priceTrimmed.padStart(priceMax, ' ') +
+                totalTrimmed.padStart(totalMax, ' ')
+    }
+
+    private fun repeatChar(char: Char, count: Int): String {
+        return char.toString().repeat(count)
+    }
+
+    private fun showPrinterSelectionDialog() {
+        lifecycleScope.launch {
+            try {
+                if (!checkBluetoothPermissions()) {
+                    return@launch
+                }
+
+                val bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
+
+                if (bluetoothAdapter == null) {
+                    Toast.makeText(requireContext(), "Device doesn't support Bluetooth", Toast.LENGTH_SHORT).show()
+                    return@launch
+                }
+
+                if (!bluetoothAdapter.isEnabled) {
+                    val enableIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+                    startActivity(enableIntent)
+                    return@launch
+                }
+
+                val pairedDevices: Set<BluetoothDevice>? = bluetoothAdapter.bondedDevices
+                if (pairedDevices == null || pairedDevices.isEmpty()) {
+                    Toast.makeText(requireContext(), "No paired devices found. Please pair your PM200 printer first.", Toast.LENGTH_LONG).show()
+                    return@launch
+                }
+
+                val devicesList = ArrayList<BluetoothDevice>()
+                for (device in pairedDevices) {
+                    devicesList.add(device)
+                }
+
+                // Filter for printer devices
+                val printerDevices = devicesList.filter { device ->
+                    val deviceName = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        device.name ?: ""
+                    } else {
+                        @Suppress("DEPRECATION")
+                        device.name ?: ""
+                    }
+
+                    deviceName.contains("PM200", ignoreCase = true) ||
+                            deviceName.contains("Pegasus", ignoreCase = true) ||
+                            deviceName.contains("Printer", ignoreCase = true) ||
+                            deviceName.contains("POS", ignoreCase = true) ||
+                            deviceName.contains("Thermal", ignoreCase = true) ||
+                            deviceName.contains("58MM", ignoreCase = true)
+                }
+
+                if (printerDevices.isEmpty()) {
+                    showDeviceListDialog(devicesList)
+                } else {
+                    showDeviceListDialog(printerDevices)
+                }
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(requireContext(), "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun showDeviceListDialog(devices: List<BluetoothDevice>) {
+        val deviceNames = Array(devices.size) { i ->
+            val device = devices[i]
+            val name = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                device.name ?: "Unknown Device"
+            } else {
+                @Suppress("DEPRECATION")
+                device.name ?: "Unknown Device"
+            }
+            "$name\n${device.address}"
+        }
+
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle("Select PM200 Printer")
+            .setItems(deviceNames) { _, which ->
+                val selectedDevice = devices[which]
+                connectToPrinter(selectedDevice)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun connectToPrinter(device: BluetoothDevice) {
+        lifecycleScope.launch {
+            try {
+                binding.btnPrint.isEnabled = false
+                binding.btnPrint.text = "Connecting..."
+
+                if (!checkBluetoothPermissions()) {
+                    binding.btnPrint.isEnabled = true
+                    binding.btnPrint.text = "Print"
+                    return@launch
+                }
+
+                val deviceName = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    device.name ?: "Printer"
+                } else {
+                    @Suppress("DEPRECATION")
+                    device.name ?: "Printer"
+                }
+
+                val result = printerManager.connectToBluetoothPrinter(device)
+
+                if (result) {
+                    Toast.makeText(requireContext(), "✅ Connected to $deviceName", Toast.LENGTH_SHORT).show()
+                    binding.btnPrint.text = "Print"
+                    binding.btnPrint.setIconResource(R.drawable.ic_print)
+                } else {
+                    Toast.makeText(requireContext(), "❌ Failed to connect to $deviceName", Toast.LENGTH_SHORT).show()
+                    binding.btnPrint.text = "Connect Printer"
+                }
+
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), "Connection error: ${e.message}", Toast.LENGTH_SHORT).show()
+            } finally {
+                binding.btnPrint.isEnabled = true
+            }
+        }
+    }
+
+    private fun testPrinterConnection() {
+        lifecycleScope.launch {
+            try {
+                if (!checkBluetoothPermissions()) {
+                    return@launch
+                }
+
+                binding.btnPrint.isEnabled = false
+                binding.btnPrint.text = "Testing..."
+
+                val testText = """
+                    
+                    ================================
+                        PRINTER TEST
+                    ================================
+                    
+                    Model: PM200 Pegasus
+                    Date: ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())}
+                    
+                    If you can read this,
+                    your printer is working correctly!
+                    
+                    ---------------------------------
+                    Normal Text Line 1
+                    Normal Text Line 2
+                    
+                    Thank you for testing!
+                    ================================
+                    
+                    
+                    
+                """.trimIndent()
+
+                val result = printerManager.printReceipt(testText)
+
+                if (result.isSuccess) {
+                    Toast.makeText(requireContext(), "✅ Test print successful", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(requireContext(), "❌ Test failed: ${result.errorMessage}", Toast.LENGTH_SHORT).show()
+
+                    if (result.errorMessage.contains("No printer connected")) {
+                        showPrinterSelectionDialog()
+                    }
+                }
+
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), "Test error: ${e.message}", Toast.LENGTH_SHORT).show()
+            } finally {
+                binding.btnPrint.isEnabled = true
+                binding.btnPrint.text = "Print"
+            }
+        }
+    }
+
+    private fun checkBluetoothPermissions(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val hasConnectPermission = ContextCompat.checkSelfPermission(requireContext(),
+                Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
+            val hasScanPermission = ContextCompat.checkSelfPermission(requireContext(),
+                Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED
+
+            if (!hasConnectPermission || !hasScanPermission) {
+                requestPermissions(
+                    arrayOf(
+                        Manifest.permission.BLUETOOTH_CONNECT,
+                        Manifest.permission.BLUETOOTH_SCAN
+                    ),
+                    BLUETOOTH_PERMISSION_REQUEST_CODE
+                )
+                false
+            } else {
+                true
+            }
+        } else {
+            true
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
+        when (requestCode) {
+            BLUETOOTH_PERMISSION_REQUEST_CODE -> {
+                if (grantResults.isNotEmpty() && grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
+                    testPrinterConnection()
+                } else {
+                    Toast.makeText(requireContext(), "Bluetooth permission required", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
     private fun shareReceipt() {
         lifecycleScope.launch {
             try {
                 val cartItems = args.cartItems?.toList() ?: emptyList()
 
-                // Generate PDF receipt
                 val pdfFile = PrintUtils.generateReceiptPdf(
                     context = requireContext(),
-                    receiptNumber = args.invoiceNumber,
+                    receiptNumber = binding.tvReceiptNumber.text.toString(),
                     date = binding.tvReceiptDate.text.toString(),
-                    customerName = args.customerName,
+                    customerName = binding.tvCustomerName.text.toString(),
                     items = cartItems,
                     subtotal = binding.tvSubtotal.text.toString(),
                     discount = binding.tvDiscount.text.toString(),
@@ -208,10 +665,9 @@ class ReceiptFragment : Fragment() {
                     total = binding.tvTotal.text.toString(),
                     paid = binding.tvPaid.text.toString(),
                     change = binding.tvChange.text.toString(),
-                    paymentMethod = args.paymentMethod
+                    paymentMethod = binding.tvPaymentMethod.text.toString()
                 )
 
-                // Share the PDF
                 val uri = FileProvider.getUriForFile(
                     requireContext(),
                     "${requireContext().packageName}.provider",
@@ -222,8 +678,8 @@ class ReceiptFragment : Fragment() {
                     type = "application/pdf"
                     putExtra(Intent.EXTRA_STREAM, uri)
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    putExtra(Intent.EXTRA_SUBJECT, "Receipt ${args.invoiceNumber}")
-                    putExtra(Intent.EXTRA_TEXT, "Please find attached receipt ${args.invoiceNumber}")
+                    putExtra(Intent.EXTRA_SUBJECT, "Receipt ${binding.tvReceiptNumber.text}")
+                    putExtra(Intent.EXTRA_TEXT, "Please find attached receipt ${binding.tvReceiptNumber.text}")
                 }
 
                 startActivity(Intent.createChooser(shareIntent, "Share Receipt"))
@@ -241,7 +697,7 @@ class ReceiptFragment : Fragment() {
             val emailIntent = Intent(Intent.ACTION_SEND).apply {
                 type = "message/rfc822"
                 putExtra(Intent.EXTRA_EMAIL, arrayOf(""))
-                putExtra(Intent.EXTRA_SUBJECT, "Receipt ${args.invoiceNumber}")
+                putExtra(Intent.EXTRA_SUBJECT, "Receipt ${binding.tvReceiptNumber.text}")
                 putExtra(Intent.EXTRA_TEXT, buildEmailBody(cartItems))
             }
 
@@ -255,10 +711,10 @@ class ReceiptFragment : Fragment() {
         return buildString {
             appendLine("Thank you for your purchase!")
             appendLine()
-            appendLine("Receipt Number: ${args.invoiceNumber}")
+            appendLine("Receipt Number: ${binding.tvReceiptNumber.text}")
             appendLine("Date: ${binding.tvReceiptDate.text}")
             appendLine()
-            appendLine("Customer: ${args.customerName}")
+            appendLine("Customer: ${binding.tvCustomerName.text}")
             appendLine()
             appendLine("Items:")
             appendLine("-------------------")
@@ -273,7 +729,7 @@ class ReceiptFragment : Fragment() {
             appendLine("Total: ${binding.tvTotal.text}")
             appendLine("Paid: ${binding.tvPaid.text}")
             appendLine("Change: ${binding.tvChange.text}")
-            appendLine("Payment Method: ${args.paymentMethod}")
+            appendLine("Payment Method: ${binding.tvPaymentMethod.text}")
             appendLine()
             appendLine("Visit us again!")
         }
@@ -282,9 +738,7 @@ class ReceiptFragment : Fragment() {
     private fun startNewSale() {
         try {
             findNavController().popBackStack(R.id.newSaleFragment, false)
-            println("📱 Navigating back to New Sale screen")
         } catch (e: Exception) {
-            println("❌ Navigation error: ${e.message}")
             Toast.makeText(requireContext(), "Navigation error: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
@@ -308,12 +762,17 @@ class ReceiptFragment : Fragment() {
                 emailReceipt()
                 true
             }
+            R.id.action_test_printer -> {
+                testPrinterConnection()
+                true
+            }
             else -> super.onOptionsItemSelected(item)
         }
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
+        printerManager.closeConnection()
         _binding = null
     }
 }

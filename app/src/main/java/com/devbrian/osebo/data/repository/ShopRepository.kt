@@ -7,3 +7,4 @@ interface ShopRepository {
     suspend fun getShops(): Resource<List<Shop>>
     suspend fun deleteShop(shopId: String)
 }
+

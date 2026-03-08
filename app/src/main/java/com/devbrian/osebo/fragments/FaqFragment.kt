@@ -44,7 +44,7 @@ class FaqFragment : Fragment() {
     }
 
     private fun loadFaqs() {
-        // Mock data - replace with actual API call
+        
         val faqs = listOf(
             FaqItem(1, "How do I reset my password?", "Account", false),
             FaqItem(2, "How to update billing information?", "Billing", false),
@@ -70,20 +70,21 @@ class FaqFragment : Fragment() {
         }
 
         binding.searchButton.setOnClickListener {
-            // Implement search functionality
+            
         }
 
         binding.contactSupportButton.setOnClickListener {
-            // Navigate back to contact us
+            
             requireActivity().onBackPressed()
         }
     }
 }
 
-// Data class for FAQ items
+
 data class FaqItem(
     val id: Int,
     val question: String,
     val category: String,
     var isExpanded: Boolean = false
 )
+

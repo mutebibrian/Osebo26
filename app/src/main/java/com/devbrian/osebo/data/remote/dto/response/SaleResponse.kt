@@ -1,10 +1,9 @@
 package com.devbrian.osebo.data.remote.dto.response
 
-
-import com.devbrian.osebo.models.SaleData
+import com.devbrian.osebo.models.ShopInfo
 import com.google.gson.annotations.SerializedName
 
-data class SaleResponse(
+data class SaleApiResponse(
     @SerializedName("success")
     val success: Boolean,
 
@@ -12,20 +11,67 @@ data class SaleResponse(
     val message: String? = null,
 
     @SerializedName("data")
-    val data: SaleData? = null
+    val data: SaleApiData? = null
 )
 
+data class SaleListApiResponse(
+    @SerializedName("success")
+    val success: Boolean,
 
+    @SerializedName("message")
+    val message: String? = null,
 
-data class SaleItemResponse(
+    @SerializedName("data")
+    val data: List<SaleApiData>? = null
+)
+
+data class SaleApiData(
     @SerializedName("id")
     val id: String,
 
-    @SerializedName("product_id")
-    val productId: String,
+    // NOTE: sometimes backend uses invoice_number; if yours does, change SerializedName accordingly
+    @SerializedName("invoiceNumber")
+    val invoiceNumber: String? = null,
 
-    @SerializedName("product_name")
-    val productName: String,
+    @SerializedName("createdAt")
+    val createdAt: String? = null,
+
+    // The property your repository references: apiData.totalPrice
+    @SerializedName("total_price")
+    val totalPrice: Double? = null,
+
+    // The property your repository references: apiData.paidAmountString
+    @SerializedName("paid_amount")
+    val paidAmountString: String? = null,
+
+    @SerializedName("outstanding_balance")
+    val outstandingBalance: String? = null,
+
+    @SerializedName("payment_status")
+    val paymentStatus: String? = null,
+
+    @SerializedName("type")
+    val type: String? = null,
+
+    @SerializedName("customer")
+    val customer: CustomerDto? = null,
+
+    @SerializedName("shop")
+    val shop: ShopInfo? = null,
+
+    // NOTE: sometimes backend uses sale_stock_items; adjust if needed
+    @SerializedName("saleStockItems")
+    val saleStockItems: List<SaleStockItemDto>? = null,
+
+    // The property your repository references: apiData.salePayments
+    // NOTE: sometimes backend uses sale_payments; adjust if needed
+    @SerializedName("salePayments")
+    val salePayments: List<SalePaymentDto>? = null
+)
+
+data class SaleStockItemDto(
+    @SerializedName("id")
+    val id: String,
 
     @SerializedName("quantity")
     val quantity: Int,
@@ -36,18 +82,34 @@ data class SaleItemResponse(
     @SerializedName("discount")
     val discount: Double,
 
-    @SerializedName("subtotal")
-    val subtotal: Double
+    @SerializedName("amount")
+    val amount: Double,
+
+    @SerializedName("stockItem")
+    val stockItem: StockItemDto? = null
 )
 
-data class PaymentResponse(
-    @SerializedName("success")
-    val success: Boolean,
+data class SalePaymentDto(
+    @SerializedName("id")
+    val id: String,
 
-    @SerializedName("message")
-    val message: String? = null,
-
-    @SerializedName("data")
-    val data: PaymentData? = null
+    @SerializedName("payment")
+    val payment: PaymentDetailDto? = null
 )
 
+data class PaymentDetailDto(
+    @SerializedName("id")
+    val id: String,
+
+    @SerializedName("method")
+    val method: String,
+
+    @SerializedName("reference")
+    val reference: String? = null,
+
+    @SerializedName("amount")
+    val amount: Double,
+
+    @SerializedName("status")
+    val status: String
+)

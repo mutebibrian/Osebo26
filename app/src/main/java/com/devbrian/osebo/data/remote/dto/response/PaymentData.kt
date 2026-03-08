@@ -12,3 +12,4 @@ data class PaymentData(
     @SerializedName("status") val status: String,
     @SerializedName("created_at") val createdAt: String
 )
+

@@ -12,3 +12,4 @@ data class CreateUserRoleRequest(
     @SerializedName("permissions")
     val permissions: List<String>
 )
+

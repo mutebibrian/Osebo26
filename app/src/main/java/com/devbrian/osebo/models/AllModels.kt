@@ -3,7 +3,7 @@ package com.devbrian.osebo.models
 import com.google.gson.annotations.SerializedName
 
 
-// ==================== INVENTORY MODELS ====================
+
 
 data class InventoryItem(
     @SerializedName("id") val id: String,
@@ -27,7 +27,7 @@ data class InventoryItem(
 
 
 
-// ==================== NOTIFICATION MODELS ====================
+
 data class Notification(
     @SerializedName("id") val id: String,
     @SerializedName("title") val title: String,
@@ -38,10 +38,11 @@ data class Notification(
     @SerializedName("data") val data: Map<String, Any>? = null
 )
 
-// ==================== UPLOAD MODELS ====================
+
 data class UploadResponse(
     @SerializedName("url") val url: String,
     @SerializedName("file_name") val fileName: String,
     @SerializedName("file_size") val fileSize: Long
 )
+
 

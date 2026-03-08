@@ -24,3 +24,4 @@ data class AddEmployeeRequest(
     @SerializedName("salary")
     val salary: Double? = null
 )
+

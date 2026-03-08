@@ -6,3 +6,4 @@ data class DashboardSummaryDto(
     val customers: CustomersSummaryDto?,
     val employees: EmployeesSummaryDto?
 )
+

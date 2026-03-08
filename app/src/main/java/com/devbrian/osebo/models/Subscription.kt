@@ -11,51 +11,89 @@ import java.util.concurrent.TimeUnit
 data class Subscription(
     @SerializedName("id") val id: String = "",
     @SerializedName("shop_id") val shopId: String = "",
-    @SerializedName("package_type") val packageType: String = "", // BASIC, PRO, POPULAR
+    @SerializedName("package_type") val packageType: String = "",
     @SerializedName("package_name") val packageName: String? = null,
     @SerializedName("amount") val amount: Double = 0.0,
     @SerializedName("currency") val currency: String = "UGX",
     @SerializedName("phone_number") val phoneNumber: String? = null,
-    @SerializedName("status")
-    val status: String? = null,    @SerializedName("months") val months: Int = 1,
-    @SerializedName("start_date") val startDate: String? = null,
-    @SerializedName("end_date") val endDate: String? = null,
+    @SerializedName("status") val status: String? = null,
+    @SerializedName("months") val months: Int = 1,
+    @SerializedName("starts_at") val startDate: String? = null,
+    @SerializedName("ends_at") val endDate: String? = null,
     @SerializedName("transaction_id") val transactionId: String? = null,
     @SerializedName("payment_method") val paymentMethod: String? = null,
     @SerializedName("is_trial") val isTrial: Boolean = false,
     @SerializedName("trial_ends_at") val trialEndsAt: String? = null,
     @SerializedName("auto_renew") val autoRenew: Boolean = false,
     @SerializedName("created_at") val createdAt: String = "",
-    @SerializedName("updated_at") val updatedAt: String = ""
+    @SerializedName("updated_at") val updatedAt: String = "",
+    @SerializedName("is_active") val isActive: Boolean = false,
+    @SerializedName("duration_days") val durationDays: Int = 0,
+    @SerializedName("payment") val payment: Payment? = null,
+    @SerializedName("package") val packageDetails: SubscriptionPackage? = null
 ) : Parcelable {
 
-    // Status checks
-    val isActive: Boolean get() = status == "ACTIVE"
-    val isExpired: Boolean get() = status == "EXPIRED"
-    val isPending: Boolean get() = status == "PENDING"
-    val isCancelled: Boolean get() = status == "CANCELLED"
-    val isTrialActive: Boolean get() = status == "TRIAL"
-    val canRenew: Boolean get() = isActive || isExpired || isTrialActive
+    // Extract package type from nested package
+    val effectivePackageType: String
+        get() = if (packageType.isNotEmpty()) packageType
+        else packageDetails?.tier?.uppercase() ?: ""
 
-    // Display properties
+    // Extract package name from nested package
+    val effectivePackageName: String
+        get() = packageName ?: packageDetails?.name ?: ""
+
+    // Compute status from various fields
+    val effectiveStatus: String
+        get() = status ?: when {
+            isTrial && isActive -> "TRIAL"
+            isActive -> "ACTIVE"
+            else -> "PENDING"
+        }
+
+    // Computed properties for status checks
+    val isActiveStatus: Boolean
+        get() = isActive || effectiveStatus.equals("ACTIVE", ignoreCase = true) ||
+                (isTrial && daysRemaining > 0)
+
+    val isExpired: Boolean
+        get() = effectiveStatus.equals("EXPIRED", ignoreCase = true) ||
+                (isTrial && daysRemaining <= 0)
+
+    val isPending: Boolean
+        get() = effectiveStatus.equals("PENDING", ignoreCase = true) && !isActive
+
+    val isCancelled: Boolean
+        get() = effectiveStatus.equals("CANCELLED", ignoreCase = true)
+
+    val isTrialActive: Boolean
+        get() = isTrial && daysRemaining > 0
+
+    val canRenew: Boolean
+        get() = isActiveStatus || isExpired || isTrialActive
+
+    // Display status based on actual data
     val displayStatus: String
-        get() = when (status) {
-            "ACTIVE" -> "Active"
-            "EXPIRED" -> "Expired"
-            "CANCELLED" -> "Cancelled"
-            "PENDING" -> "Pending"
-            "TRIAL" -> "Trial"
+        get() = when {
+            isTrial && daysRemaining > 0 -> "Trial"
+            isTrial && daysRemaining <= 0 -> "Trial Ended"
+            effectiveStatus.equals("ACTIVE", ignoreCase = true) -> "Active"
+            effectiveStatus.equals("PENDING", ignoreCase = true) -> "Pending"
+            effectiveStatus.equals("EXPIRED", ignoreCase = true) -> "Expired"
+            effectiveStatus.equals("CANCELLED", ignoreCase = true) -> "Cancelled"
+            isActive -> "Active"
             else -> "Inactive"
         }
 
+    // Display package name
     val displayPackage: String
-        get() = when (packageType) {
+        get() = when (effectivePackageType.uppercase()) {
             "BASIC" -> "Basic Plan"
             "PRO" -> "Pro Plan"
-            "POPULAR" -> "Enterprise Plan"
-            else -> packageName ?: "Unknown Plan"
+            "POPULAR", "ENTERPRISE" -> "Enterprise Plan"
+            else -> effectivePackageName.ifEmpty { "Unknown Plan" }
         }
 
+    // Display payment method
     val displayPaymentMethod: String
         get() = when (paymentMethod?.lowercase()) {
             "mobile_money" -> "Mobile Money"
@@ -63,9 +101,10 @@ data class Subscription(
             "bank_transfer" -> "Bank Transfer"
             "cash" -> "Cash"
             null, "" -> "Not set"
-            else -> paymentMethod?.replaceFirstChar { it.uppercase() } ?: "Unknown"
+            else -> paymentMethod.replaceFirstChar { it.uppercase() }
         }
 
+    // Formatted amount
     val formattedAmount: String
         get() = if (amount > 0) {
             val formatter = java.text.DecimalFormat("#,##0")
@@ -74,24 +113,28 @@ data class Subscription(
             "Free"
         }
 
+    // Monthly price display
     val monthlyPrice: String
         get() = "$formattedAmount/month"
 
+    // Duration text based on months or trial
     val durationText: String
-        get() = when (months) {
-            1 -> "1 month"
-            in 1..11 -> "$months months"
-            12 -> "1 year"
-            in 13..23 -> "${months/12} year ${months%12} months"
-            else -> "$months months"
+        get() = when {
+            isTrial && durationDays > 0 -> "$durationDays days trial"
+            isTrial -> "Trial"
+            months == 1 -> "1 month"
+            months in 2..11 -> "$months months"
+            months == 12 -> "1 year"
+            months > 12 -> "${months/12} year ${months%12} months"
+            else -> "Custom duration"
         }
 
-    // Date formatting
+    // Format dates with proper handling
     val formattedStartDate: String
         get() = formatDate(startDate)
 
     val formattedEndDate: String
-        get() = formatDate(endDate)
+        get() = formatDate(endDate ?: trialEndsAt)
 
     val formattedCreatedAt: String
         get() = formatDate(createdAt)
@@ -117,7 +160,7 @@ data class Subscription(
             else -> "$daysRemaining days left"
         }
 
-    // Trial info
+    // Trial days remaining
     val trialDaysRemaining: Int
         get() = calculateTrialDaysRemaining()
 
@@ -128,12 +171,20 @@ data class Subscription(
             "Trial ended"
         } else ""
 
-    // Helper methods
+    // Helper function to format dates
     private fun formatDate(dateString: String?): String {
         if (dateString.isNullOrEmpty()) return "N/A"
 
         return try {
-            val inputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            // Handle ISO format dates with time
+            val inputFormat = if (dateString.contains("T")) {
+                SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()).apply {
+                    timeZone = TimeZone.getTimeZone("UTC")
+                }
+            } else {
+                SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            }
+
             val outputFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
             val date = inputFormat.parse(dateString)
             outputFormat.format(date)
@@ -142,12 +193,20 @@ data class Subscription(
         }
     }
 
+    // Calculate days remaining until expiry
     private fun calculateDaysRemaining(): Int {
-        if (endDate.isNullOrEmpty()) return -1
+        val dateToUse = endDate ?: trialEndsAt
+        if (dateToUse.isNullOrEmpty()) return -1
 
         return try {
             val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-            val end = dateFormat.parse(endDate)
+            val endDateStr = if (dateToUse.contains("T")) {
+                dateToUse.substringBefore("T")
+            } else {
+                dateToUse
+            }
+
+            val end = dateFormat.parse(endDateStr)
             val today = Calendar.getInstance().apply {
                 set(Calendar.HOUR_OF_DAY, 0)
                 set(Calendar.MINUTE, 0)
@@ -163,12 +222,19 @@ data class Subscription(
         }
     }
 
+    // Calculate trial days remaining
     private fun calculateTrialDaysRemaining(): Int {
         if (!isTrial || trialEndsAt.isNullOrEmpty()) return 0
 
         return try {
             val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-            val trialEnd = dateFormat.parse(trialEndsAt)
+            val trialEndDate = if (trialEndsAt.contains("T")) {
+                trialEndsAt.substringBefore("T")
+            } else {
+                trialEndsAt
+            }
+
+            val trialEnd = dateFormat.parse(trialEndDate)
             val today = Calendar.getInstance().apply {
                 set(Calendar.HOUR_OF_DAY, 0)
                 set(Calendar.MINUTE, 0)
@@ -184,22 +250,35 @@ data class Subscription(
         }
     }
 
-    // Additional helper methods
+    // Get color resource for status
     fun getStatusColorResource(): Int {
-        return when (status) {
-            "ACTIVE" -> android.R.color.holo_green_dark
-            "EXPIRED", "CANCELLED" -> android.R.color.holo_red_dark
-            "PENDING" -> android.R.color.holo_orange_dark
-            "TRIAL" -> android.R.color.holo_blue_dark
+        return when {
+            isTrial && daysRemaining > 0 -> android.R.color.holo_blue_dark
+            isActiveStatus -> android.R.color.holo_green_dark
+            isExpired || isCancelled -> android.R.color.holo_red_dark
+            isPending -> android.R.color.holo_orange_dark
             else -> android.R.color.darker_gray
         }
     }
 
+    // Get color resource for days remaining
     fun getDaysRemainingColorResource(): Int {
         return when {
             daysRemaining < 0 -> android.R.color.holo_red_dark
             daysRemaining in 0..3 -> android.R.color.holo_orange_dark
             else -> android.R.color.black
         }
+    }
+
+    // Get the actual package ID
+    val actualPackageId: String
+        get() = packageDetails?.id ?: ""
+
+    // Get package tier
+    val packageTier: String
+        get() = packageDetails?.tier ?: effectivePackageType
+
+    companion object {
+        val EMPTY = Subscription()
     }
 }

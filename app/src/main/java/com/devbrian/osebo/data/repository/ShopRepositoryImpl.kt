@@ -5,10 +5,10 @@ import com.devbrian.osebo.data.remote.dto.response.ShopDto
 import com.devbrian.osebo.data.remote.dto.response.ShopSubscriptionDto
 import com.devbrian.osebo.data.remote.dto.response.PackageDto
 import com.devbrian.osebo.data.remote.dto.response.FeatureDto
+import com.devbrian.osebo.models.Feature  // FIX: added missing import
 import com.devbrian.osebo.models.Shop
 import com.devbrian.osebo.models.ShopSubscription
 import com.devbrian.osebo.models.SubscriptionPackage
-import com.devbrian.osebo.models.Feature
 import com.devbrian.osebo.utils.Resource
 import java.io.IOException
 import javax.inject.Inject

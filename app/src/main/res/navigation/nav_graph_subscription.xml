@@ -14,7 +14,8 @@
 
         <argument
             android:name="shop"
-            app:argType="com.devbrian.osebo.models.Shop" />
+            app:argType="com.devbrian.osebo.models.Shop"
+            app:nullable="true" />
 
         <argument
             android:name="currentPackage"
@@ -38,13 +39,14 @@
     <!-- Payment -->
     <fragment
         android:id="@+id/subscriptionPaymentFragment"
-        android:name="com.devbrian.osebo.fragments.subscription.SubscriptionPaymentFragment"
+        android:name="com.devbrian.osebo.fragments.SubscriptionPaymentFragment"
         android:label="Complete Payment"
         tools:layout="@layout/fragment_subscription_payment">
 
         <argument
             android:name="shop"
-            app:argType="com.devbrian.osebo.models.Shop" />
+            app:argType="com.devbrian.osebo.models.Shop"
+            app:nullable="true" />
 
         <argument
             android:name="packageId"

@@ -36,3 +36,4 @@ data class PaymentDto(
     @SerializedName("updated_at")
     val updatedAt: String
 )
+

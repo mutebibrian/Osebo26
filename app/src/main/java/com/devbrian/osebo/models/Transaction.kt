@@ -7,7 +7,7 @@ data class Transaction(
     val description: String,
     val amount: Double,
     val date: String,
-    val type: String, // INCOME, EXPENSE, TRANSFER
+    val type: String, 
     val category: String,
     val paymentMethod: String? = null,
     val reference: String? = null,
@@ -22,19 +22,19 @@ data class Transaction(
     val updatedAt: String? = null
 ) {
     companion object {
-        // Transaction Types
+        
         const val TYPE_INCOME = "INCOME"
         const val TYPE_EXPENSE = "EXPENSE"
         const val TYPE_TRANSFER = "TRANSFER"
 
-        // Transaction Statuses
+        
         const val STATUS_COMPLETED = "COMPLETED"
         const val STATUS_PENDING = "PENDING"
         const val STATUS_FAILED = "FAILED"
         const val STATUS_REFUNDED = "REFUNDED"
         const val STATUS_CANCELLED = "CANCELLED"
 
-        // Common Categories
+        
         const val CATEGORY_SALES = "SALES"
         const val CATEGORY_PURCHASE = "PURCHASE"
         const val CATEGORY_SALARY = "SALARY"
@@ -44,14 +44,14 @@ data class Transaction(
         const val CATEGORY_TRANSFER = "TRANSFER"
         const val CATEGORY_OTHER = "OTHER"
 
-        // Payment Methods
+        
         const val PAYMENT_CASH = "CASH"
         const val PAYMENT_CARD = "CARD"
         const val PAYMENT_MOBILE_MONEY = "MOBILE_MONEY"
         const val PAYMENT_BANK_TRANSFER = "BANK_TRANSFER"
         const val PAYMENT_CHEQUE = "CHEQUE"
 
-        // Helper methods
+        
         fun getTypeDisplayName(type: String): String {
             return when (type.uppercase()) {
                 TYPE_INCOME -> "Income"
@@ -95,3 +95,4 @@ data class Transaction(
         }
     }
 }
+

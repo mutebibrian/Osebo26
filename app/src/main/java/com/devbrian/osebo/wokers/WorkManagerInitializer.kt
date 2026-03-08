@@ -10,9 +10,7 @@ object WorkManagerInitializer {
 
     private const val SYNC_WORK_NAME = "inventory_sync_work"
 
-    /**
-     * Start periodic sync (runs every 15 minutes when conditions met)
-     */
+    
     fun startPeriodicSync(context: Context) {
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
@@ -20,8 +18,8 @@ object WorkManagerInitializer {
             .build()
 
         val syncRequest = PeriodicWorkRequestBuilder<SyncWorker>(
-            15, TimeUnit.MINUTES,  // Repeat every 15 minutes
-            5, TimeUnit.MINUTES     // Flex interval
+            15, TimeUnit.MINUTES,  
+            5, TimeUnit.MINUTES     
         )
             .setConstraints(constraints)
             .setBackoffCriteria(
@@ -33,14 +31,12 @@ object WorkManagerInitializer {
 
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(
             SYNC_WORK_NAME,
-            ExistingPeriodicWorkPolicy.KEEP,  // Don't create duplicate if exists
+            ExistingPeriodicWorkPolicy.KEEP,  
             syncRequest
         )
     }
 
-    /**
-     * Trigger an immediate one-time sync (e.g., after manual refresh)
-     */
+    
     fun triggerImmediateSync(context: Context) {
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
@@ -57,16 +53,12 @@ object WorkManagerInitializer {
         WorkManager.getInstance(context).enqueue(syncRequest)
     }
 
-    /**
-     * Cancel all sync work
-     */
+    
     fun cancelAllSync(context: Context) {
         WorkManager.getInstance(context).cancelAllWorkByTag(SYNC_WORK_NAME)
     }
 
-    /**
-     * Check if sync is running
-     */
+    
     fun isSyncRunning(context: Context): Boolean {
         val workInfos = WorkManager.getInstance(context)
             .getWorkInfosForUniqueWork(SYNC_WORK_NAME)
@@ -78,3 +70,4 @@ object WorkManagerInitializer {
         }
     }
 }
+

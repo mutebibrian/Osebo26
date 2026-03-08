@@ -18,3 +18,4 @@ data class ProcurementData(
     @SerializedName("supplier_id") val supplierId: String,
     @SerializedName("created_at") val createdAt: String
 )
+

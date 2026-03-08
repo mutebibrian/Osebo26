@@ -21,3 +21,4 @@ data class UpdateAccountRequest(
     @SerializedName("payment_method")
     val paymentMethod: String? = null
 )
+

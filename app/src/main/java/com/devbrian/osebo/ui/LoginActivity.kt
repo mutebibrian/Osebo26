@@ -27,7 +27,7 @@ class LoginActivity : AppCompatActivity() {
     @Inject
     lateinit var preferenceManager: PreferenceManager
 
-    // Views
+    
     private lateinit var imgLogo: ImageView
     private lateinit var cardLogin: CardView
     private lateinit var rgLoginMethod: RadioGroup
@@ -50,9 +50,9 @@ class LoginActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Check if already logged in
+        
         if (preferenceManager.isLoggedIn()) {
-            // If logged in, navigate to MainActivity (will handle shop check there)
+            
             navigateToMainActivity()
             return
         }
@@ -63,7 +63,7 @@ class LoginActivity : AppCompatActivity() {
         setupListeners()
         observeLoginState()
 
-        // Check for saved credentials
+        
         loadSavedCredentials()
     }
 
@@ -84,13 +84,13 @@ class LoginActivity : AppCompatActivity() {
         progressBar = findViewById(R.id.progressBar)
         tvError = findViewById(R.id.tvError)
 
-        // Set password input type
+        
         etPassword.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
 
-        // Hide error initially
+        
         tvError.visibility = View.GONE
 
-        // Set default selection
+        
         rbEmail.isChecked = true
         emailLayout.visibility = View.VISIBLE
         phoneLayout.visibility = View.GONE
@@ -124,7 +124,7 @@ class LoginActivity : AppCompatActivity() {
             Toast.makeText(this, getString(R.string.forgot_password_coming_soon), Toast.LENGTH_SHORT).show()
         }
 
-        // Add input listeners to clear errors when user starts typing
+        
         etEmail.setOnFocusChangeListener { _, hasFocus ->
             if (hasFocus) clearErrors()
         }
@@ -212,14 +212,14 @@ class LoginActivity : AppCompatActivity() {
                 return
             }
 
-            // Phone validation
+            
             if (phone.length < 9 || phone.length > 15) {
                 etPhone.error = getString(R.string.error_valid_phone)
                 etPhone.requestFocus()
                 return
             }
 
-            // Check if phone contains only digits (and optionally +)
+            
             if (!phone.matches(Regex("^\\+?[0-9]+$"))) {
                 etPhone.error = getString(R.string.error_phone_digits_only)
                 etPhone.requestFocus()
@@ -242,24 +242,24 @@ class LoginActivity : AppCompatActivity() {
             return
         }
 
-        // Check network connectivity
+        
         if (!NetworkUtils.isNetworkAvailable(this)) {
             showError(getString(R.string.error_no_internet))
             return
         }
 
-        // Track login attempt
+        
         trackLoginAttempt("started", if (isEmailLogin) "email" else "phone")
 
-        // Save credentials for next time
+        
         saveCredentials(identifier, isEmailLogin)
 
-        // Call ViewModel to perform login
+        
         viewModel.login(identifier, password)
     }
 
     private fun saveCredentials(identifier: String, isEmail: Boolean) {
-        // Enable remember me by default
+        
         preferenceManager.setRememberMeEnabled(true)
         if (isEmail) {
             preferenceManager.saveEmail(identifier)
@@ -270,17 +270,14 @@ class LoginActivity : AppCompatActivity() {
 
     private fun onLoginSuccess(authData: LoginViewModel.DomainAuthData) {
         try {
-            // Track successful login
             trackLoginAttempt("success", if (rbEmail.isChecked) "email" else "phone")
 
-            // Save user data
             saveUserData(authData)
 
-            // Show welcome message
             showWelcomeMessage(authData.user.name)
 
-            // Navigate to MainActivity (will handle shop check internally)
-            navigateToMainActivity()
+
+            navigateToShopsActivity()
 
         } catch (e: Exception) {
             println("❌ Error: ${e.message}")
@@ -289,38 +286,44 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
+    private fun navigateToShopsActivity() {
+        val intent = Intent(this, com.devbrian.osebo.ui.ShopsActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        startActivity(intent)
+        finish()
+    }
     private fun saveUserData(authData: LoginViewModel.DomainAuthData) {
         println("🎉 LoginSuccess - Saving user data with PreferenceManager")
 
-        // Get the name from DomainUser
+        
         val userName = authData.user.name
         val displayName = if (userName.isNotEmpty()) userName else authData.user.email
 
-        // Save auth token
+        
         preferenceManager.saveAuthToken(authData.token)
         println("✅ Token saved: ${authData.token.take(20)}...")
 
-        // Save user information
+        
         preferenceManager.saveUserId(authData.user.id)
         preferenceManager.saveUserEmail(authData.user.email)
         preferenceManager.saveUserName(displayName)
 
-        // Save phone if available
+        
         if (authData.user.phone.isNotEmpty()) {
             preferenceManager.saveUserPhone(authData.user.phone)
             println("✅ Phone saved: ${authData.user.phone}")
         }
 
-        // Save user role if available
+        
         if (authData.user.role.isNotEmpty()) {
             preferenceManager.saveUserRole(authData.user.role)
             println("✅ Role saved: ${authData.user.role}")
         }
 
-        // Set last login timestamp
+        
         preferenceManager.setLastLoginTimestamp(System.currentTimeMillis())
 
-        // Mark user as logged in
+        
         preferenceManager.setUserLoggedIn(true)
 
         println("✅ User data saved successfully")
@@ -351,7 +354,7 @@ class LoginActivity : AppCompatActivity() {
         btnLogin.isEnabled = !show
         btnLogin.text = if (show) getString(R.string.logging_in) else getString(R.string.sign_in)
 
-        // Disable input fields during loading
+        
         etEmail.isEnabled = !show
         etPhone.isEnabled = !show
         etPassword.isEnabled = !show
@@ -365,10 +368,10 @@ class LoginActivity : AppCompatActivity() {
         tvError.text = message
         tvError.visibility = View.VISIBLE
 
-        // Clear any existing callbacks
+        
         errorRunnable?.let { tvError.removeCallbacks(it) }
 
-        // Hide after 5 seconds
+        
         errorRunnable = Runnable {
             if (!isFinishing && !isDestroyed) {
                 tvError.visibility = View.GONE
@@ -376,7 +379,7 @@ class LoginActivity : AppCompatActivity() {
         }
         tvError.postDelayed(errorRunnable, 5000)
 
-        // Shake animation for error
+        
         tvError.animate()
             .translationXBy(10f)
             .setDuration(100)
@@ -424,3 +427,4 @@ class LoginActivity : AppCompatActivity() {
         viewModel.resetState()
     }
 }
+

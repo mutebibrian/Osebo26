@@ -9,3 +9,4 @@ data class AuthData(
     @SerializedName("user")
     val user: UserData
 )
+

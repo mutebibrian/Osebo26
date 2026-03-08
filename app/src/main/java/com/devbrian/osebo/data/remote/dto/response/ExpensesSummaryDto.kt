@@ -8,3 +8,4 @@ data class ExpensesSummaryDto(
     @SerializedName("last_month") val lastMonth: Double,
     @SerializedName("percentage_change") val percentageChange: Double
 )
+

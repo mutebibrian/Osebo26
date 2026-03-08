@@ -20,7 +20,7 @@ class ProductRepository @Inject constructor(
     private val database: AppDatabase
 ) {
 
-    // ==================== ONLINE METHODS ====================
+    
 
     suspend fun getProducts(): Resource<List<Product>> {
         val shopId = preferenceManager.getCurrentShopId()
@@ -30,7 +30,7 @@ class ProductRepository @Inject constructor(
 
         return try {
             if (!NetworkUtils.isNetworkAvailable(preferenceManager.getContext())) {
-                // If offline, return local products
+                
                 val localProducts = getLocalProducts(shopId)
                 println("📦 ProductRepository - Offline mode: returning ${localProducts.size} local products")
                 return Resource.Success(localProducts)
@@ -46,7 +46,7 @@ class ProductRepository @Inject constructor(
                     val products = apiResponse.data?.map { it.toProduct() } ?: emptyList()
                     println("📦 ProductRepository - Products loaded: ${products.size}")
 
-                    // Save to local database for offline access
+                    
                     saveProductsToLocal(products, shopId)
 
                     Resource.Success(products)
@@ -54,7 +54,7 @@ class ProductRepository @Inject constructor(
                     val errorMsg = apiResponse?.message ?: "Failed to load products"
                     println("📦 ProductRepository - API Error: $errorMsg")
 
-                    // Fallback to local products on API error
+                    
                     val localProducts = getLocalProducts(shopId)
                     if (localProducts.isNotEmpty()) {
                         println("📦 ProductRepository - Falling back to ${localProducts.size} local products")
@@ -75,12 +75,12 @@ class ProductRepository @Inject constructor(
                     }
                     404 -> {
                         println("📦 ProductRepository - Not found (404)")
-                        // Return empty list for 404 - no products yet
+                        
                         Resource.Success(emptyList())
                     }
                     else -> {
                         println("📦 ProductRepository - Error ${response.code()}: ${response.message()}")
-                        // Fallback to local products
+                        
                         val localProducts = getLocalProducts(shopId)
                         if (localProducts.isNotEmpty()) {
                             Resource.Success(localProducts)
@@ -93,7 +93,7 @@ class ProductRepository @Inject constructor(
         } catch (e: Exception) {
             println("❌ ProductRepository - Exception: ${e.message}")
             e.printStackTrace()
-            // Fallback to local products on exception
+            
             val localProducts = getLocalProducts(preferenceManager.getCurrentShopId())
             if (localProducts.isNotEmpty()) {
                 println("📦 ProductRepository - Exception fallback: returning ${localProducts.size} local products")
@@ -110,7 +110,7 @@ class ProductRepository @Inject constructor(
             return Resource.Error("No shop selected")
         }
 
-        // Don't search for empty queries
+        
         if (query.isBlank()) {
             return getProducts()
         }
@@ -118,7 +118,7 @@ class ProductRepository @Inject constructor(
         return try {
             println("📦 ProductRepository - Searching products: '$query'")
 
-            // Try online first if available
+            
             if (NetworkUtils.isNetworkAvailable(preferenceManager.getContext())) {
                 try {
                     val response = apiService.getProducts(shopId)
@@ -128,7 +128,7 @@ class ProductRepository @Inject constructor(
                         if (apiResponse?.success == true) {
                             val allProducts = apiResponse.data?.map { it.toProduct() } ?: emptyList()
 
-                            // Filter products locally (more efficient than API-side search)
+                            
                             val filteredProducts = allProducts.filter { product ->
                                 product.name.contains(query, ignoreCase = true) ||
                                         product.sku.contains(query, ignoreCase = true) ||
@@ -138,26 +138,26 @@ class ProductRepository @Inject constructor(
 
                             println("📦 ProductRepository - Online search found: ${filteredProducts.size} products")
 
-                            // Update local database with fresh data
+                            
                             saveProductsToLocal(allProducts, shopId)
 
                             return Resource.Success(filteredProducts)
                         }
                     }
-                    // If API fails, fall through to local search
+                    
                     println("📦 ProductRepository - Online search failed, falling back to local")
                 } catch (e: Exception) {
                     println("📦 ProductRepository - Online search exception, falling back to local: ${e.message}")
                 }
             }
 
-            // Offline or fallback: search local database
+            
             searchLocalProducts(shopId, query)
 
         } catch (e: Exception) {
             println("❌ ProductRepository - Search error: ${e.message}")
             e.printStackTrace()
-            // Final fallback - try local search
+            
             try {
                 searchLocalProducts(shopId, query)
             } catch (e2: Exception) {
@@ -166,11 +166,11 @@ class ProductRepository @Inject constructor(
         }
     }
 
-    // ==================== LOCAL DATABASE METHODS ====================
+    
 
     private suspend fun getLocalProducts(shopId: String): List<Product> {
         return try {
-            // Get all products from local database
+            
             val entities = database.productDao().getAllProductsSuspend(shopId)
             entities.map { entity -> entity.toProduct() }
         } catch (e: Exception) {
@@ -183,7 +183,7 @@ class ProductRepository @Inject constructor(
         return try {
             println("📦 ProductRepository - Searching local products: '$query'")
 
-            // Use the suspend function for direct list result
+            
             val entities = database.productDao().searchProductsSuspend(shopId, query)
             val results = entities.map { it.toProduct() }
 
@@ -217,7 +217,7 @@ class ProductRepository @Inject constructor(
         }
     }
 
-    // ==================== OBSERVABLE FLOWS FOR UI ====================
+    
 
     fun observeProducts(): Flow<List<Product>> {
         val shopId = preferenceManager.getCurrentShopId()
@@ -251,7 +251,7 @@ class ProductRepository @Inject constructor(
             }
     }
 
-    // ==================== SINGLE PRODUCT OPERATIONS ====================
+    
 
     suspend fun getProductById(productId: String): Product? {
         return try {
@@ -262,7 +262,7 @@ class ProductRepository @Inject constructor(
         }
     }
 
-    // ==================== SYNC STATUS ====================
+    
 
     suspend fun getLocalProductCount(): Int {
         val shopId = preferenceManager.getCurrentShopId()
@@ -284,3 +284,4 @@ class ProductRepository @Inject constructor(
         }
     }
 }
+

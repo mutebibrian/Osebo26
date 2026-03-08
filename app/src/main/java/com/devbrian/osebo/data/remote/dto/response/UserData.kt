@@ -33,3 +33,4 @@ data class UserData(
     @SerializedName("role")
     val role: RoleData? = null
 )
+

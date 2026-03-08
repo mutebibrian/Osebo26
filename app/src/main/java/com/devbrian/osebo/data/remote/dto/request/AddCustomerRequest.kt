@@ -21,3 +21,4 @@ data class AddCustomerRequest(
     @SerializedName("address")
     val address: String? = null
 )
+

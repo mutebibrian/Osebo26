@@ -38,7 +38,7 @@ class ContactUsFragment : Fragment() {
     }
 
     private fun setupUI() {
-        // Setup category dropdown
+        
         val categories = listOf(
             "General Inquiry",
             "Technical Support",
@@ -72,7 +72,7 @@ class ContactUsFragment : Fragment() {
     }
 
     private fun setupClickListeners() {
-        // Quick actions
+        
         binding.callButton.setOnClickListener {
             makePhoneCall()
         }
@@ -85,7 +85,7 @@ class ContactUsFragment : Fragment() {
             openMaps()
         }
 
-        // FAQ buttons
+        
         binding.faq1Button.setOnClickListener {
             openFaqDetail(1)
         }
@@ -102,7 +102,7 @@ class ContactUsFragment : Fragment() {
             openAllFaq()
         }
 
-        // Submit button
+        
         binding.submitButton.setOnClickListener {
             submitSupportMessage()
         }
@@ -184,3 +184,4 @@ class ContactUsFragment : Fragment() {
         Snackbar.make(binding.root, message, Snackbar.LENGTH_SHORT).show()
     }
 }
+

@@ -22,3 +22,4 @@ data class SupportTicketDto(
     @SerializedName("created_at")
     val createdAt: String
 )
+

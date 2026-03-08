@@ -8,3 +8,4 @@ data class SupportTicketRequest(
     val shopId: String? = null,
     val priority: String = "normal"
 )
+

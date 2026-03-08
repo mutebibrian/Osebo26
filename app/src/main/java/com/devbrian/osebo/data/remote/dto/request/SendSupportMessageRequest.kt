@@ -18,3 +18,4 @@ data class SendSupportMessageRequest(
     @SerializedName("message")
     val message: String
 )
+

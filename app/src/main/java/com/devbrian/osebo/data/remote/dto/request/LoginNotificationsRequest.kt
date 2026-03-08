@@ -6,3 +6,4 @@ data class LoginNotificationsRequest(
     @SerializedName("enabled")
     val enabled: Boolean
 )
+

@@ -12,7 +12,7 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
-// Add this import
+
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.devbrian.osebo.R
@@ -48,7 +48,7 @@ class SalesFragment : Fragment() {
         setupSwipeRefresh()
 
 
-        // Load sales data
+        
         viewModel.loadRecentSales()
     }
 
@@ -100,7 +100,7 @@ class SalesFragment : Fragment() {
                 println("📱 Sale[$index]: ID=${sale.id}, Amount=${sale.amount}, Status=${sale.status}, Date=${sale.date}")
             }
 
-            // Show/hide empty state
+            
             if (sales.isEmpty()) {
                 binding.layoutEmptySales.visibility = View.VISIBLE
                 binding.rvRecentSales.visibility = View.GONE
@@ -141,7 +141,7 @@ class SalesFragment : Fragment() {
         }
     }
     private fun loadSalesData() {
-        // Data is loaded via ViewModel
+        
     }
 
     private fun setupSwipeRefresh() {
@@ -150,7 +150,7 @@ class SalesFragment : Fragment() {
             binding.swipeRefresh.isRefreshing = false
         }
 
-        // Optional: Set color scheme
+        
         binding.swipeRefresh.setColorSchemeColors(
             ContextCompat.getColor(requireContext(), R.color.colorPrimary),
             ContextCompat.getColor(requireContext(), R.color.green_success),
@@ -164,7 +164,7 @@ class SalesFragment : Fragment() {
     }
 
     private fun navigateToReports() {
-        // Navigate to reports fragment
+        
         Toast.makeText(requireContext(), "Reports coming soon", Toast.LENGTH_SHORT).show()
     }
 
@@ -175,7 +175,7 @@ class SalesFragment : Fragment() {
             return
         }
 
-        // Create a simple dialog to show all sales
+        
         val salesList = sales.joinToString("\n\n") { sale ->
             """${sale.customerName}
            Amount: ${formatCurrency(sale.amount)}
@@ -200,7 +200,7 @@ class SalesFragment : Fragment() {
     }
 
     private fun navigateToSaleDetails(saleId: String) {
-        // Navigate to sale details fragment
+        
         Toast.makeText(requireContext(), "View details for $saleId", Toast.LENGTH_SHORT).show()
     }
 
@@ -244,3 +244,4 @@ class SalesFragment : Fragment() {
         _binding = null
     }
 }
+

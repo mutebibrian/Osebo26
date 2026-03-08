@@ -62,3 +62,4 @@ data class PaymentPollData(
     @SerializedName("failure_reason")
     val failureReason: String? = null
 )
+

@@ -182,7 +182,7 @@ class InventoryViewModel @Inject constructor(
 
     private fun triggerSync() {
         viewModelScope.launch {
-            // Trigger background sync
+            
             _syncPending.value = false
             _successMessage.value = "Syncing changes with server..."
 
@@ -215,14 +215,15 @@ class InventoryViewModel @Inject constructor(
         }
     }
 
-    // ✅ ADD THIS METHOD - Get connection type
+    
     fun getConnectionType(): String {
         return NetworkUtils.getConnectionType(context)
     }
 
-    // ✅ ADD THIS METHOD - Check if can perform large sync
+    
     fun canPerformLargeSync(): Boolean {
         return NetworkUtils.isNetworkAvailable(context) &&
                 !NetworkUtils.isMeteredConnection(context)
     }
 }
+

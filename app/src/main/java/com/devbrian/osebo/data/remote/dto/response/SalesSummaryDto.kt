@@ -7,3 +7,4 @@ data class SalesSummaryDto(
     val percentage_change: Double,
     val transaction_count: Int
 )
+

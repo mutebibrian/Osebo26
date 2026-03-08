@@ -7,3 +7,4 @@ data class CreateSupportTicketRequest(
     val shopId: String? = null,
     val priority: String = "normal"
 )
+

@@ -5,3 +5,4 @@ data class InvoiceItemDto(
     val amount: Double,
     val quantity: Int
 )
+

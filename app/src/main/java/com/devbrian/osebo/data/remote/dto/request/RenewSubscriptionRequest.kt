@@ -22,3 +22,4 @@ data class RenewSubscriptionRequest(
     @SerializedName("currency")
     val currency: String = "UGX"
 )
+

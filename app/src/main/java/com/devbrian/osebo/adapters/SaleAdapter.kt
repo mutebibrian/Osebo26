@@ -78,49 +78,49 @@ class SaleAdapter(
                 }
             }
 
-            // Show/hide footer based on configuration
+            
             llSaleFooter.visibility = if (showFooterActions) View.VISIBLE else View.GONE
         }
 
         fun bind(sale: Sale) {
             currentSale = sale
 
-            // Set basic sale info
+            
             tvSaleId.text = sale.id.takeLast(8)
             tvCustomerName.text = sale.customerName
 
-            // Handle zero amounts specially
+            
             if (sale.amount == 0.0) {
                 tvSaleAmount.text = "Quotation"
                 tvSaleAmount.setTextColor(ContextCompat.getColor(itemView.context, R.color.orange_warning))
-                // Optionally show a badge or different background
+                
             } else {
                 tvSaleAmount.text = formatCurrency(sale.amount)
                 tvSaleAmount.setTextColor(ContextCompat.getColor(itemView.context, R.color.colorPrimary))
             }
 
-            // Use formatted date and time
+            
             tvSaleDate.text = sale.getFormattedDate()
             tvSaleTime.text = sale.getFormattedTime()
 
             tvItemsCount.text = "${sale.itemsCount} ${if (sale.itemsCount == 1) "item" else "items"}"
             tvPaymentMethod.text = sale.paymentMethod ?: "Cash"
 
-            // Set sale status with appropriate color
+            
             tvSaleStatus.text = sale.status
             setStatusBackground(sale.status)
 
-            // Set sale type icon based on payment method
+            
             setSaleTypeIcon(sale.paymentMethod)
 
-            // Style based on amount
+            
             if (sale.amount == 0.0) {
                 itemView.alpha = 0.7f
             } else {
                 itemView.alpha = 1.0f
             }
 
-            // Highlight high-value sales
+            
             if (sale.amount > 100000) {
                 itemView.setBackgroundColor(
                     ContextCompat.getColor(itemView.context, R.color.high_value_sale_background)
@@ -203,7 +203,7 @@ class SaleAdapter(
         }
     }
 
-    // Helper methods
+    
     fun getSaleAtPosition(position: Int): Sale? {
         return if (position in 0 until itemCount) {
             getItem(position)
@@ -241,3 +241,4 @@ class SaleAdapter(
         }
     }
 }
+

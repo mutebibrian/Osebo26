@@ -11,7 +11,7 @@ class UserRolesViewModel : ViewModel() {
     val userRoles: LiveData<List<UserRole>> = _userRoles
 
     init {
-        // Temporary demo data (replace with repository later)
+        
         _userRoles.value = listOf(
             UserRole("Admin", "Full system access"),
             UserRole("Manager", "Manage shop operations"),
@@ -19,3 +19,4 @@ class UserRolesViewModel : ViewModel() {
         )
     }
 }
+

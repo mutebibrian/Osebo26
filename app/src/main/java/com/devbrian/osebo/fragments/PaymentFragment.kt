@@ -31,7 +31,6 @@ class PaymentFragment : Fragment() {
 
     private val viewModel: SalesViewModel by viewModels()
 
-    // Safe args - access only after fragment is created
     private val args: PaymentFragmentArgs by navArgs()
 
     private val currencyFormat = NumberFormat.getCurrencyInstance(Locale.US).apply {
@@ -40,7 +39,9 @@ class PaymentFragment : Fragment() {
 
     private var selectedPaymentMethod = "cash"
 
-    // Extract args safely - use lazy initialization to avoid accessing before ready
+    // Store the sale response data to pass to receipt
+    private var saleResponseData: SaleData? = null
+
     private val customerId: String by lazy {
         args.customerId ?: run {
             println("❌ PaymentFragment - customerId is null, using default Walk-in Customer")
@@ -71,13 +72,11 @@ class PaymentFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Now it's safe to access args
         println("📱 PaymentFragment - Arguments received:")
         println("   - Customer ID: $customerId")
         println("   - Cart items count: ${cartItems.size}")
         println("   - Total amount: $totalAmount")
 
-        // Verify cart is not empty
         if (cartItems.isEmpty()) {
             Toast.makeText(requireContext(), "Error: Cart is empty", Toast.LENGTH_LONG).show()
             findNavController().navigateUp()
@@ -91,11 +90,9 @@ class PaymentFragment : Fragment() {
         displayCustomerInfo()
         displayCartSummary()
 
-        // Set cart items in ViewModel
         viewModel.setCartItems(cartItems.toList())
     }
 
-    // Rest of your code remains exactly the same...
     private fun setupToolbar() {
         binding.toolbar.setNavigationOnClickListener {
             findNavController().navigateUp()
@@ -105,7 +102,6 @@ class PaymentFragment : Fragment() {
     private fun setupUI() {
         binding.tvTotalAmount.text = currencyFormat.format(totalAmount)
 
-        // Set up payment method chips
         binding.chipCash.setOnClickListener {
             binding.chipCash.isChecked = true
             binding.chipCard.isChecked = false
@@ -142,7 +138,6 @@ class PaymentFragment : Fragment() {
             updatePaymentFields()
         }
 
-        // Default selection
         binding.chipCash.isChecked = true
     }
 
@@ -155,7 +150,6 @@ class PaymentFragment : Fragment() {
         val itemCount = cartItems.size
         binding.tvItemCount.text = "$itemCount items"
 
-        // Calculate total items quantity
         val totalQuantity = cartItems.sumOf { it.quantity }
 
         println("📱 PaymentFragment - Cart has $itemCount unique items, $totalQuantity total items")
@@ -197,6 +191,17 @@ class PaymentFragment : Fragment() {
                     resource.data?.let { saleData ->
                         binding.progressBar.visibility = View.GONE
                         Toast.makeText(requireContext(), "Payment successful!", Toast.LENGTH_SHORT).show()
+
+                        // Store the sale data for receipt navigation
+                        saleResponseData = saleData
+
+                        // Log the shop information from response
+                        println("📱 PaymentFragment - Shop data from response:")
+                        println("   - Shop Name: ${saleData.shop?.name ?: "Not available"}")
+                        println("   - Shop Address: ${saleData.shop?.address ?: "Not available"}")
+                        println("   - Shop Phone: ${saleData.shop?.phone ?: "Not available"}")
+                        println("   - Shop Description: ${saleData.shop?.description ?: "Not available"}")
+
                         navigateToReceipt(saleData)
                     }
                 }
@@ -221,16 +226,37 @@ class PaymentFragment : Fragment() {
 
     private fun navigateToReceipt(saleData: SaleData) {
         try {
+            // Extract shop information from sale data
+            val shopName = saleData.shop?.name
+            val shopAddress = saleData.shop?.address
+            val shopPhone = saleData.shop?.phone
+            val shopDescription = saleData.shop?.description
+            val saleDate = saleData.createdAt
+
+            println("📱 PaymentFragment - Navigating to receipt with shop data:")
+            println("   - Shop Name: $shopName")
+            println("   - Shop Address: $shopAddress")
+            println("   - Shop Phone: $shopPhone")
+
+            // Get customer phone from input
+            val customerPhone = binding.etPhoneNumber.text.toString().ifEmpty { "N/A" }
+
             val action = PaymentFragmentDirections.actionPaymentFragmentToReceiptFragment(
-                saleId = saleData.id,
                 invoiceNumber = saleData.invoiceNumber ?: "INV-${System.currentTimeMillis()}",
+                customerName = "Walk-in Customer",
+                customerPhone = customerPhone,
+                cartItems = cartItems,
                 totalAmount = saleData.totalAmount.toFloat(),
                 paidAmount = saleData.paidAmount.toFloat(),
                 change = saleData.change.toFloat(),
-                cartItems = cartItems, // Pass the actual cart items
                 paymentMethod = selectedPaymentMethod,
-                customerName = "Walk-in Customer", // You might want to pass the actual customer name
-                customerPhone = binding.etPhoneNumber.text.toString().ifEmpty { "N/A" }
+                // Pass shop data to receipt fragment
+                shopName = shopName ?: "",
+                shopAddress = shopAddress ?: "",
+                shopPhone = shopPhone ?: "",
+                shopDescription = shopDescription ?: "",
+                receiptDate = saleDate ?: "",
+                saleId = saleData.id
             )
             findNavController().navigate(action)
         } catch (e: Exception) {

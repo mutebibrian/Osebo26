@@ -59,3 +59,4 @@ data class SubscriptionHistoryDto(
     @SerializedName("date")
     val date: String
 )
+

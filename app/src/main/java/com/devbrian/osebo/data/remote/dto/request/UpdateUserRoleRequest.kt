@@ -12,3 +12,4 @@ data class UpdateUserRoleRequest(
     @SerializedName("permissions")
     val permissions: List<String>? = null
 )
+

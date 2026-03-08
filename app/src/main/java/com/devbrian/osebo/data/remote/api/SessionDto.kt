@@ -19,3 +19,4 @@ data class SessionDto(
     @SerializedName("is_current")
     val isCurrent: Boolean
 )
+

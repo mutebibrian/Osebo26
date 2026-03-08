@@ -27,3 +27,4 @@ data class InitiatePaymentRequest(
     @SerializedName("metadata")
     val metadata: Map<String, String> = emptyMap()
 )
+

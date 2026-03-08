@@ -19,4 +19,11 @@
         android:icon="@drawable/ic_email"
         android:title="Email"
         app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_test_printer"
+        android:icon="@drawable/ic_test"
+        android:title="Test Printer"
+        app:showAsAction="never" />
+
 </menu>

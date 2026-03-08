@@ -28,7 +28,7 @@ class EditAccountDialogFragment : DialogFragment() {
     }
 
     private fun setupUI() {
-        // Pre-populate fields with current account data
+        
     }
 
     private fun setupClickListeners() {
@@ -49,7 +49,7 @@ class EditAccountDialogFragment : DialogFragment() {
         val taxId = binding.taxIdEditText.text.toString()
         val address = binding.addressEditText.text.toString()
 
-        // Call ViewModel to update account
+        
     }
 
     override fun onStart() {
@@ -60,3 +60,4 @@ class EditAccountDialogFragment : DialogFragment() {
         )
     }
 }
+

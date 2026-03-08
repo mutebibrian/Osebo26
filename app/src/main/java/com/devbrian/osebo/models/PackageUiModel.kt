@@ -45,7 +45,7 @@ data class PackageUiModel(
                 )
             }
 
-            // Create features display text
+            
             val featureText = if (pkg.features.isNotEmpty()) {
                 pkg.features.joinToString("\n") { "✓ $it" }
             } else {
@@ -58,13 +58,13 @@ data class PackageUiModel(
                 displayName = displayName,
                 price = pkg.price,
                 currency = pkg.currency,
-                description = pkg.description,  // Use description directly
+                description = pkg.description,  
                 features = pkg.features,
                 isPopular = pkg.isPopular,
                 isFreeTrial = pkg.hasFreeTrial,
-                freeTrialDays = pkg.freeTrialDays,  // Use freeTrialDays from SubscriptionPackage
+                freeTrialDays = pkg.freeTrialDays,  
                 isCustom = pkg.isCustom,
-                monthlyPriceText = pkg.displayPrice,  // Use computed property from SubscriptionPackage
+                monthlyPriceText = pkg.displayPrice,  
                 featureText = featureText,
                 iconRes = iconRes,
                 colorRes = colorRes
@@ -183,3 +183,4 @@ data class PaymentStatusUi(
         }
     }
 }
+

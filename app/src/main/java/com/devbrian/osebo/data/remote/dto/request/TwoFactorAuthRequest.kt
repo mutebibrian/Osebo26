@@ -6,3 +6,4 @@ data class TwoFactorAuthRequest(
     @SerializedName("enabled")
     val enabled: Boolean
 )
+

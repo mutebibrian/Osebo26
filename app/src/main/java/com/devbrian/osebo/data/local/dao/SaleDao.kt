@@ -41,3 +41,4 @@ interface SaleDao {
     @Query("SELECT COUNT(*) FROM sales WHERE shopId = :shopId AND date(createdAt/1000, 'unixepoch') = date('now')")
     suspend fun getTodaySalesCount(shopId: String): Int
 }
+

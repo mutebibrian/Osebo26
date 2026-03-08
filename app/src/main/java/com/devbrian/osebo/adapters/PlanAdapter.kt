@@ -17,13 +17,13 @@ class PlanAdapter(
         RecyclerView.ViewHolder(binding.root) {
 
         fun bind(plan: SubscriptionPackage) {
-            // Set plan name
+            
             binding.planName.text = plan.displayName ?: plan.name
 
-            // Set price - use displayPrice property from model
+            
             binding.planPrice.text = plan.displayPrice
 
-            // Set plan type based on name
+            
             binding.planType.text = when (plan.name.uppercase()) {
                 "BASIC" -> "Basic"
                 "PRO" -> "Pro"
@@ -31,35 +31,35 @@ class PlanAdapter(
                 else -> "Custom"
             }
 
-            // Set description
+            
             binding.planDescription.text = plan.description ?: getDefaultDescription(plan.name)
 
-            // Show popular badge
+            
             binding.popularBadge.visibility = if (plan.isPopular) View.VISIBLE else View.GONE
 
-            // Set features list
+            
             binding.planFeatures.text = if (plan.features.isNotEmpty()) {
                 plan.features.joinToString("\n") { "✓ $it" }
             } else {
                 getDefaultFeatures(plan.name)
             }
 
-            // Set additional info
+            
             binding.additionalInfo.text = getAdditionalInfo(plan.name)
 
-            // Customize button for custom plans
+            
             binding.chooseButton.text = if (plan.isCustom) {
                 "Contact Sales"
             } else {
                 "Choose Plan"
             }
 
-            // Set click listener
+            
             binding.chooseButton.setOnClickListener {
                 onPlanSelected(plan)
             }
 
-            // Change button color for popular plans
+            
             if (plan.isPopular) {
                 binding.chooseButton.setBackgroundColor(
                     itemView.context.getColor(R.color.primary_color)
@@ -110,3 +110,4 @@ class PlanAdapter(
 
     override fun getItemCount() = plans.size
 }
+

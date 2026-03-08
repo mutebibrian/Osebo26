@@ -58,13 +58,13 @@ class LoginViewModel @Inject constructor(
                             println("👤 LOGIN: User Verified: ${authData.user.isVerified}")
                             println("👤 LOGIN: User Active: ${authData.user.isActive}")
 
-                            // Save user data to PreferenceManager
+                            
                             saveUserData(authData)
 
-                            // After successful login, we might need to fetch user's shops
-                            // For now, we'll assume user might need to create/select a shop
+                            
+                            
 
-                            // Create domain user for UI (without shopId)
+                            
                             val domainUser = DomainUser(
                                 id = authData.user.id,
                                 email = authData.user.email,
@@ -127,35 +127,35 @@ class LoginViewModel @Inject constructor(
         val user = authData.user
         val fullName = "${user.firstName} ${user.lastName}".trim()
 
-        // Save authentication token
+        
         preferences.saveAuthToken(authData.accessToken)
         println("💾 LOGIN: Token saved: ${authData.accessToken.take(20)}...")
 
-        // Save user information
+        
         preferences.saveUserId(user.id)
         preferences.saveUserEmail(user.email)
         preferences.saveUserName(fullName)
 
-        // Mark user as logged in
+        
         preferences.setUserLoggedIn(true)
 
-        // Save phone if available
+        
         user.phone?.let {
             preferences.saveUserPhone(it)
             println("💾 LOGIN: Phone saved: $it")
         }
 
-        // Save user role if available
+        
         user.role?.name?.let {
             preferences.saveUserRole(it)
             println("💾 LOGIN: Role saved: $it")
         }
 
-        // Save user verification status
+        
         preferences.saveUserVerified(user.isVerified)
         println("💾 LOGIN: User verified: ${user.isVerified}")
 
-        // Save last login timestamp
+        
         preferences.setLastLoginTimestamp(System.currentTimeMillis())
 
         println("💾 LOGIN: User data saved successfully")
@@ -187,7 +187,7 @@ class LoginViewModel @Inject constructor(
         preferences.setRememberMeEnabled(false)
     }
 
-    // Login State
+    
     sealed class LoginState {
         object Idle : LoginState()
         object Loading : LoginState()
@@ -195,7 +195,7 @@ class LoginViewModel @Inject constructor(
         data class Error(val message: String) : LoginState()
     }
 
-    // Domain Models for UI (without shopId)
+    
     data class DomainAuthData(
         val token: String,
         val user: DomainUser
@@ -209,3 +209,4 @@ class LoginViewModel @Inject constructor(
         val role: String
     )
 }
+

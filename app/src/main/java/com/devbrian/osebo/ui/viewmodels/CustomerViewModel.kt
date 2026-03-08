@@ -66,7 +66,7 @@ class CustomerViewModel @Inject constructor(
             when (result) {
                 is Resource.Success -> {
                     _successMessage.value = "Customer added successfully"
-                    // Refresh the list to show the new customer
+                    
                     refreshCustomers()
                 }
                 is Resource.Error -> {
@@ -94,3 +94,4 @@ class CustomerViewModel @Inject constructor(
         _successMessage.value = null
     }
 }
+

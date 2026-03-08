@@ -24,3 +24,4 @@ data class ActivateTrialRequest(
     val phoneNumber: String? = null
 )
 
+

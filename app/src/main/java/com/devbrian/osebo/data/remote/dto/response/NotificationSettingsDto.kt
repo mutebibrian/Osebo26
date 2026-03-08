@@ -9,3 +9,4 @@ data class NotificationSettingsDto(
     val subscriptionAlerts: Boolean,
     val salesNotifications: Boolean
 )
+

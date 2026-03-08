@@ -21,3 +21,4 @@ data class SupportMessageRequest(
     @SerializedName("timestamp")
     val timestamp: Long
 )
+

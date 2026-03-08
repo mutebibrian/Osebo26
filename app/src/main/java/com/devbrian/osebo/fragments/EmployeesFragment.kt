@@ -40,7 +40,7 @@ class EmployeesFragment : Fragment() {
 
     private fun setupRecyclerView() {
         employeeAdapter = EmployeeAdapter() { employee ->
-            // Handle employee item click
+            
             showEmployeeDetails(employee)
         }
 
@@ -82,8 +82,8 @@ class EmployeesFragment : Fragment() {
     }
 
     private fun loadEmployeeData() {
-        // TODO: Load from ViewModel/Repository
-        val hasEmployees = false // Change based on data
+        
+        val hasEmployees = false 
 
         if (hasEmployees) {
             showEmployeesList()
@@ -198,3 +198,4 @@ class EmployeesFragment : Fragment() {
         _binding = null
     }
 }
+

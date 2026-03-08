@@ -20,6 +20,8 @@ androidx-junit = "1.1.5"
 espresso = "3.5.1"
 play-services-games = "23.1.0"
 androidx-preference = "1.2.1"
+navigation-fragment-ktx = "2.9.7"
+navigation-ui-ktx = "2.9.7"
 
 [libraries]
 # Kotlin
@@ -85,6 +87,8 @@ androidx-espresso-core = { module = "androidx.test.espresso:espresso-core", vers
 
 # Play Services
 play-services-games = { module = "com.google.android.gms:play-services-games", version.ref = "play-services-games" }
+androidx-navigation-fragment-ktx = { group = "androidx.navigation", name = "navigation-fragment-ktx", version.ref = "navigation-fragment-ktx" }
+androidx-navigation-ui-ktx = { group = "androidx.navigation", name = "navigation-ui-ktx", version.ref = "navigation-ui-ktx" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

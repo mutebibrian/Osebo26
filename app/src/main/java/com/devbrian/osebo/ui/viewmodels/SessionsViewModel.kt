@@ -23,10 +23,10 @@ class SessionsViewModel : ViewModel() {
         viewModelScope.launch {
             _loading.value = true
 
-            // Simulate API call
+            
             delay(1000)
 
-            // Mock data
+            
             val mockSessions = listOf(
                 Session(
                     id = "1",
@@ -64,10 +64,10 @@ class SessionsViewModel : ViewModel() {
 
     fun terminateSession(sessionId: String) {
         viewModelScope.launch {
-            // Simulate API call to terminate session
+            
             delay(500)
 
-            // Update local list
+            
             val currentSessions = _sessions.value ?: emptyList()
             val updatedSessions = currentSessions.filter { it.id != sessionId }
             _sessions.value = updatedSessions
@@ -78,10 +78,10 @@ class SessionsViewModel : ViewModel() {
 
     fun terminateAllSessions() {
         viewModelScope.launch {
-            // Simulate API call to terminate all sessions
+            
             delay(500)
 
-            // Keep only current session
+            
             val currentSessions = _sessions.value ?: emptyList()
             val updatedSessions = currentSessions.filter { it.isCurrent }
             _sessions.value = updatedSessions
@@ -90,3 +90,4 @@ class SessionsViewModel : ViewModel() {
         }
     }
 }
+

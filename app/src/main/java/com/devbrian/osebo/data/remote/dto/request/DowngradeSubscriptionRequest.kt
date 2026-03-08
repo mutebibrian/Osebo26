@@ -4,3 +4,4 @@ data class DowngradeSubscriptionRequest(
     val planId: String,
     val atPeriodEnd: Boolean = true
 )
+

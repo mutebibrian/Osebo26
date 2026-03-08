@@ -92,7 +92,7 @@ class ProductDetailsFragment : Fragment() {
             message?.let {
                 Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
                 viewModel.clearMessages()
-                loadProduct() // Reload product data
+                loadProduct() 
             }
         }
     }
@@ -116,7 +116,7 @@ class ProductDetailsFragment : Fragment() {
             tvSupplier.text = product.supplierName ?: "No supplier"
             tvDescription.text = product.description ?: "No description available"
 
-            // Format currency
+            
             val currencyFormat = NumberFormat.getCurrencyInstance(Locale.US).apply {
                 currency = java.util.Currency.getInstance("UGX")
             }
@@ -124,7 +124,7 @@ class ProductDetailsFragment : Fragment() {
             tvSellingPrice.text = currencyFormat.format(product.price)
             tvCostPrice.text = product.cost?.let { currencyFormat.format(it) } ?: "N/A"
 
-            // Calculate profit margin
+            
             val profitMargin = if (product.cost != null && product.cost > 0) {
                 ((product.price - product.cost) / product.price * 100).toInt()
             } else {
@@ -132,7 +132,7 @@ class ProductDetailsFragment : Fragment() {
             }
             tvProfitMargin.text = "$profitMargin%"
 
-            // Stock information
+            
             tvCurrentStock.text = "${product.stock} units"
             tvLowStockThreshold.text = "${product.lowStockThreshold} units"
 
@@ -143,8 +143,8 @@ class ProductDetailsFragment : Fragment() {
             }
             tvStockStatus.text = stockStatus
 
-            // Stock level progress
-            val maxStock = product.lowStockThreshold * 3 // Arbitrary max for progress
+            
+            val maxStock = product.lowStockThreshold * 3 
             val progress = ((product.stock.toFloat() / maxStock) * 100).toInt().coerceIn(0, 100)
             progressStock.progress = progress
 
@@ -154,7 +154,7 @@ class ProductDetailsFragment : Fragment() {
                 else -> progressStock.progressTintList = ContextCompat.getColorStateList(requireContext(), R.color.green_success)
             }
 
-            // Additional details
+            
             tvBarcode.text = product.barcode ?: "N/A"
             tvLocation.text = product.location ?: "N/A"
             tvTaxRate.text = product.taxRate?.let { "$it%" } ?: "N/A"
@@ -264,3 +264,4 @@ class ProductDetailsFragment : Fragment() {
         _binding = null
     }
 }
+

@@ -13,3 +13,4 @@ data class UploadResponse(
     @SerializedName("file_name")
     val fileName: String
 )
+

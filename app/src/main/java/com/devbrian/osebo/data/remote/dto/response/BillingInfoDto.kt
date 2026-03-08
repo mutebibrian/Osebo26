@@ -8,3 +8,4 @@ data class BillingInfoDto(
     val nextBillingDate: String,
     val defaultCurrency: String
 )
+

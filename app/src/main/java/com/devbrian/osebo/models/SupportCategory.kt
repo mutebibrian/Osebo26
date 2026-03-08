@@ -5,3 +5,4 @@ data class SupportCategory(
     val name: String,
     val iconRes: Int
 )
+

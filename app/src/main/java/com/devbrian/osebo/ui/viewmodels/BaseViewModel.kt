@@ -20,3 +20,4 @@ abstract class BaseViewModel : ViewModel() {
         _loading.postValue(false)
     }
 }
+

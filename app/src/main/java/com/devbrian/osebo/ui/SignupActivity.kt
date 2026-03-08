@@ -29,7 +29,7 @@ class SignUpActivity : AppCompatActivity() {
     private lateinit var progressBar: ProgressBar
     private lateinit var tvPhoneHint: TextView
 
-    // Repository instance
+    
     private val authRepository = AuthRepository()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -53,7 +53,7 @@ class SignUpActivity : AppCompatActivity() {
         progressBar = findViewById(R.id.progressBar)
         tvPhoneHint = findViewById(R.id.tvPhoneHint)
 
-        // Set phone hint
+        
         tvPhoneHint.text = "Format: +2567XXXXXXXX or 07XXXXXXXX"
     }
 
@@ -76,24 +76,24 @@ class SignUpActivity : AppCompatActivity() {
         val password = etPassword.text.toString().trim()
         val confirmPassword = etConfirmPassword.text.toString().trim()
 
-        // Format phone number for Ugandan format
+        
         phone = formatUgandanPhone(phone)
 
-        // Validation
+        
         if (!validateInputs(firstName, lastName, email, phone, password, confirmPassword)) {
             return
         }
 
-        // Check internet connection
+        
         if (!NetworkUtils.isNetworkAvailable(this)) {
             Toast.makeText(this, "No internet connection", Toast.LENGTH_LONG).show()
             return
         }
 
-        // Show progress
+        
         showLoading(true)
 
-        // Create request object
+        
         val signUpRequest = SignUpRequest(
             firstName = firstName,
             lastName = lastName,
@@ -103,7 +103,7 @@ class SignUpActivity : AppCompatActivity() {
             title = "Shop Owner"
         )
 
-        // Make API call using Coroutines
+        
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val result = authRepository.signUp(signUpRequest)
@@ -111,33 +111,33 @@ class SignUpActivity : AppCompatActivity() {
                 withContext(Dispatchers.Main) {
                     showLoading(false)
 
-                    // Handle the Result wrapper
+                    
                     when {
                         result.isSuccess -> {
                             val response = result.getOrNull()
                             if (response != null && response.success) {
-                                // SUCCESS - Extract userId from response
+                                
                                 val userId = extractUserId(response)
 
                                 if (userId.isNullOrEmpty()) {
-                                    // If userId not found, show error
+                                    
                                     Toast.makeText(
                                         this@SignUpActivity,
                                         "Registration successful but user ID not received",
                                         Toast.LENGTH_LONG
                                     ).show()
-                                    // Navigate to login as fallback
+                                    
                                     startActivity(Intent(this@SignUpActivity, LoginActivity::class.java))
                                     finish()
                                 } else {
-                                    // Success with userId
+                                    
                                     Toast.makeText(
                                         this@SignUpActivity,
                                         "Account created! Please verify with OTP sent via SMS",
                                         Toast.LENGTH_LONG
                                     ).show()
 
-                                    // Navigate to OTP VERIFICATION with userId
+                                    
                                     val intent = Intent(this@SignUpActivity, OtpVerificationActivity::class.java)
                                     intent.putExtra("EMAIL", email)
                                     intent.putExtra("PHONE", phone)
@@ -146,13 +146,13 @@ class SignUpActivity : AppCompatActivity() {
                                     finish()
                                 }
                             } else {
-                                // API returned success=false
+                                
                                 val errorMessage = response?.message ?: "Sign up failed"
                                 handleSignUpError(errorMessage)
                             }
                         }
                         result.isFailure -> {
-                            // Network or other error
+                            
                             val errorMessage = result.exceptionOrNull()?.message ?: "Sign up failed"
                             handleSignUpError(errorMessage)
                         }
@@ -167,25 +167,22 @@ class SignUpActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * Extract userId from the signup response
-     * Based on your API response structure
-     */
+    
     private fun extractUserId(response: SignUpResponse): String? {
-        // Method 1: Check if userId is directly in response
+        
         if (!response.userId.isNullOrEmpty()) {
             println("DEBUG: Found userId in response.userId: ${response.userId}")
             return response.userId
         }
 
-        // Method 2: Check data field if it's a map
+        
         if (response.data != null) {
             when (response.data) {
                 is Map<*, *> -> {
                     val dataMap = response.data as Map<*, *>
                     println("DEBUG: Data is a Map, keys: ${dataMap.keys}")
 
-                    // Try common userId field names
+                    
                     val userId = dataMap["userId"]?.toString()
                         ?: dataMap["id"]?.toString()
                         ?: dataMap["user_id"]?.toString()
@@ -196,13 +193,13 @@ class SignUpActivity : AppCompatActivity() {
                     }
                 }
                 is String -> {
-                    // Data might be a JSON string
+                    
                     val dataString = response.data as String
                     println("DEBUG: Data is a String: $dataString")
 
-                    // Try to extract userId from JSON string
+                    
                     if (dataString.contains("userId") || dataString.contains("\"id\"")) {
-                        // Simple regex extraction (for debugging)
+                        
                         val patterns = listOf(
                             "\"userId\"\\s*:\\s*\"([^\"]+)\"",
                             "\"id\"\\s*:\\s*\"([^\"]+)\"",
@@ -226,10 +223,10 @@ class SignUpActivity : AppCompatActivity() {
             }
         }
 
-        // Method 3: Check message or other fields
+        
         if (!response.message.isNullOrEmpty()) {
             println("DEBUG: Message field: ${response.message}")
-            // Sometimes userId might be in message
+            
             if (response.message!!.contains("id:", ignoreCase = true)) {
                 val idPattern = "id:\\s*([\\w-]+)".toRegex(RegexOption.IGNORE_CASE)
                 val match = idPattern.find(response.message!!)
@@ -307,7 +304,7 @@ class SignUpActivity : AppCompatActivity() {
 
 
     private fun handleSignUpError(errorMessage: String) {
-        // Check for specific errors
+        
         when {
             errorMessage.contains("already exists", ignoreCase = true) -> {
                 etEmail.error = "Email already registered"
@@ -323,7 +320,7 @@ class SignUpActivity : AppCompatActivity() {
                 Toast.makeText(this, "Server error. Please try again later.", Toast.LENGTH_LONG).show()
             }
             errorMessage.contains("Validation Error", ignoreCase = true) -> {
-                // Show validation errors from API
+                
                 Toast.makeText(this, "Please check all fields and try again", Toast.LENGTH_LONG).show()
             }
             errorMessage.contains("phone", ignoreCase = true) && errorMessage.contains("Ugandan", ignoreCase = true) -> {
@@ -348,13 +345,13 @@ class SignUpActivity : AppCompatActivity() {
         etConfirmPassword.isEnabled = !isLoading
     }
 
-    // Clear errors when user starts typing
+    
     private fun setupTextChangeListeners() {
         val textWatcher = object : android.text.TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: android.text.Editable?) {
-                // Clear error when user starts typing
+                
                 etFirstName.error = null
                 etLastName.error = null
                 etEmail.error = null
@@ -372,7 +369,7 @@ class SignUpActivity : AppCompatActivity() {
         etPassword.addTextChangedListener(textWatcher)
         etConfirmPassword.addTextChangedListener(textWatcher)
 
-        // Special listener for phone field to auto-format
+        
         etPhone.addTextChangedListener(object : android.text.TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
@@ -380,7 +377,7 @@ class SignUpActivity : AppCompatActivity() {
                 s?.let {
                     val currentText = it.toString()
                     if (currentText.isNotEmpty() && !currentText.startsWith("+")) {
-                        // Auto-suggest +256 prefix when user types 07...
+                        
                         if (currentText.startsWith("07") && currentText.length == 10) {
                             val formatted = "+256${currentText.substring(1)}"
                             etPhone.removeTextChangedListener(this)
@@ -394,20 +391,20 @@ class SignUpActivity : AppCompatActivity() {
         })
     }
 
-    // Phone validation helper functions
+    
     private fun isValidUgandanPhone(phone: String): Boolean {
-        // Remove any spaces, dashes, parentheses
+        
         val cleanPhone = phone.replace("[\\s-()]".toRegex(), "")
 
-        // Check for valid Ugandan phone patterns
+        
         return when {
-            // +2567XXXXXXXX (13 characters)
+            
             cleanPhone.startsWith("+2567") && cleanPhone.length == 13 -> true
-            // 2567XXXXXXXX (12 characters)
+            
             cleanPhone.startsWith("2567") && cleanPhone.length == 12 -> true
-            // 07XXXXXXXX (10 characters)
+            
             cleanPhone.startsWith("07") && cleanPhone.length == 10 -> true
-            // 7XXXXXXXX (9 characters) - less common
+            
             cleanPhone.startsWith("7") && cleanPhone.length == 9 -> true
             else -> false
         }
@@ -416,26 +413,26 @@ class SignUpActivity : AppCompatActivity() {
     private fun formatUgandanPhone(phone: String): String {
         var formatted = phone.trim()
 
-        // Remove any spaces, dashes, parentheses
+        
         formatted = formatted.replace("[\\s-()]".toRegex(), "")
 
         return when {
-            // Already in +256 format
+            
             formatted.startsWith("+2567") && formatted.length == 13 -> formatted
-            // 256 format - add +
+            
             formatted.startsWith("2567") && formatted.length == 12 -> "+$formatted"
-            // 07 format - convert to +256
+            
             formatted.startsWith("07") && formatted.length == 10 -> "+256${formatted.substring(1)}"
-            // 7 format - add +256
+            
             formatted.startsWith("7") && formatted.length == 9 -> "+256$formatted"
-            // 0 format (if starts with 0 but not 07) - convert to +256
+            
             formatted.startsWith("0") && formatted.length == 10 -> "+256${formatted.substring(1)}"
-            // Return as-is for API to validate
+            
             else -> formatted
         }
     }
 
-    // Debug function to see what's in the response
+    
     private fun debugResponse(response: SignUpResponse) {
         println("DEBUG SIGNUP RESPONSE:")
         println("  Success: ${response.success}")
@@ -462,3 +459,4 @@ class SignUpActivity : AppCompatActivity() {
         }
     }
 }
+

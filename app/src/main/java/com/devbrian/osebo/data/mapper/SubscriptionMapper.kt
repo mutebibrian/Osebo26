@@ -86,7 +86,7 @@ class SubscriptionMapper @Inject constructor() {
         )
     }
 
-    // Helper functions
+    
     private fun extractPackageTypeFromPlanId(planId: String?): String? {
         return when (planId?.uppercase()) {
             "BASIC", "PRO_001", "PLAN_001" -> "BASIC"
@@ -164,3 +164,4 @@ class SubscriptionMapper @Inject constructor() {
         return dtos.map { planToDomain(it) }
     }
 }
+

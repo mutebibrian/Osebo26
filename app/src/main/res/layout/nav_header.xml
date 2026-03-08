@@ -2,14 +2,13 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="192dp"
+    android:layout_height="wrap_content"
     android:background="@color/colorPrimary"
-    android:gravity="bottom"
     android:orientation="vertical"
     android:padding="16dp"
     android:theme="@style/ThemeOverlay.MaterialComponents.Dark">
 
-    <!-- App Logo and Name -->
+    <!-- App Logo and Name with Subscription Badge -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -26,7 +25,7 @@
             android:layout_marginEnd="12dp"
             app:tint="@color/white" />
 
-        <!-- App Name -->
+        <!-- App Name and Subscription Badge -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -41,6 +40,21 @@
                 android:textSize="24sp"
                 android:textStyle="bold"/>
 
+            <!-- Subscription Badge - NEW -->
+            <TextView
+                android:id="@+id/tv_subscription_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="4dp"
+                android:layout_marginTop="4dp"
+                android:text="ACTIVE"
+                android:textColor="@android:color/white"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:background="@drawable/bg_subscription_badge"
+                android:visibility="gone" />
+
             <TextView
                 android:id="@+id/tv_app_version"
                 android:layout_width="wrap_content"
@@ -48,7 +62,7 @@
                 android:text="v1.2.0 (Build 305)"
                 android:textColor="@color/white_alpha_70"
                 android:textSize="12sp"
-                android:layout_marginTop="2dp"/>
+                android:layout_marginTop="4dp"/>
         </LinearLayout>
     </LinearLayout>
 

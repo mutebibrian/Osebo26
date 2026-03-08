@@ -7,3 +7,4 @@ data class ForgotPasswordRequest(
     @SerializedName("email")
     val email: String
 )
+

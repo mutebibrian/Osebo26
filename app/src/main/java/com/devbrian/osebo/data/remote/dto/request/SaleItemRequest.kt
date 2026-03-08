@@ -15,3 +15,4 @@ data class SaleItemRequest(
     @SerializedName("isCustomPrice")
     val isCustomPrice: Boolean
 )
+

@@ -15,3 +15,4 @@ data class CreateProductRequest(
     @SerializedName("barcode") val barcode: String?,
     @SerializedName("stock_category_id") val stockCategoryId: String
 )
+

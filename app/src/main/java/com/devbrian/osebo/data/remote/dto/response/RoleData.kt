@@ -12,3 +12,4 @@ data class RoleData(
     @SerializedName("description")
     val description: String? = null
 )
+

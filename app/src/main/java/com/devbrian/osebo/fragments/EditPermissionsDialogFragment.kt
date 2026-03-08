@@ -129,13 +129,13 @@ class EditPermissionsDialogFragment : DialogFragment() {
             return
         }
 
-        // Check if at least one permission is selected
+        
         if (selectedPermissions.isEmpty()) {
             Toast.makeText(requireContext(), "Please select at least one permission", Toast.LENGTH_SHORT).show()
             return
         }
 
-        // Create a request with all role data (not just permissions)
+        
         val request = CreateRoleRequest(
             name = role.name,
             description = role.description,
@@ -143,13 +143,13 @@ class EditPermissionsDialogFragment : DialogFragment() {
             shopId = role.shopId ?: ""
         )
 
-        // Show loading state
+        
         binding.saveButton.isEnabled = false
         binding.progressBar.visibility = View.VISIBLE
 
         val apiService = ApiClient.create()
 
-        // Use updateRole instead of updateRolePermissions
+        
         apiService.updateRole("Bearer $token", role.id, request).enqueue(object : Callback<ApiResponse<UserRole>> {
             override fun onResponse(call: Call<ApiResponse<UserRole>>, response: Response<ApiResponse<UserRole>>) {
                 binding.saveButton.isEnabled = true
@@ -199,3 +199,4 @@ class EditPermissionsDialogFragment : DialogFragment() {
         this.onPermissionsUpdatedListener = listener
     }
 }
+

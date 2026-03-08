@@ -16,6 +16,12 @@
         android:layout_height="wrap_content"
         android:text="git pull origin main --allow-unrelated-histories" />
 
+    <TextView
+        android:id="@+id/textView2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="git remote -v&#xA;" />
+
     <ImageView
         android:id="@+id/iv_back"
         android:layout_width="48dp"

@@ -20,10 +20,10 @@ data class CreateSubscriptionResponse(
 
 data class SubscriptionStatusResponse(
     @SerializedName("status")
-    val status: String, // active, expired, trial, pending, inactive
+    val status: String, 
 
     @SerializedName("type")
-    val type: String? = null, // BASIC, PRO, POPULAR
+    val type: String? = null, 
 
     @SerializedName("expiry_date")
     val expiryDate: String? = null,
@@ -31,3 +31,4 @@ data class SubscriptionStatusResponse(
     @SerializedName("is_active")
     val isActive: Boolean = false
 )
+

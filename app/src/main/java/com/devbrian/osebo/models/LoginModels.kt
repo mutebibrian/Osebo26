@@ -12,9 +12,10 @@ data class LoginResponse(
     @SerializedName("user")
     val user: User,
 
-    @SerializedName("shop_id")  // Add this if your API returns shop_id
+    @SerializedName("shop_id")  
     val shopId: String? = null,
 
-    @SerializedName("shop")  // Or if your API returns shop object
+    @SerializedName("shop")  
     val shop: Shop? = null
 )
+

@@ -86,7 +86,7 @@ class ShopsAdapter(
                 tvShopLocation.text = shop.location
                 tvShopCategory.text = shop.category
 
-                // Format currency values
+                
                 tvRevenue.text = String.format("KES %.2f", shop.totalRevenue)
                 tvExpenses.text = String.format("KES %.2f", shop.totalExpenses)
                 tvProfit.text = String.format("KES %.2f", shop.profit)
@@ -94,7 +94,7 @@ class ShopsAdapter(
                 tvProductsCount.text = shop.totalProducts.toString()
                 tvEmployeesCount.text = shop.totalEmployees.toString()
 
-                // Set shop logo
+                
                 if (!shop.logoUrl.isNullOrEmpty()) {
                     Glide.with(root.context)
                         .load(shop.logoUrl)
@@ -104,7 +104,7 @@ class ShopsAdapter(
                     ivShopLogo.setImageResource(R.drawable.ic_shop_placeholder)
                 }
 
-                // Highlight active shop
+                
                 val isActive = shop.id == activeShopId
                 if (isActive) {
                     root.setBackgroundResource(R.drawable.bg_active_shop)
@@ -116,7 +116,7 @@ class ShopsAdapter(
                     btnSetActive.visibility = View.VISIBLE
                 }
 
-                // Show/hide action buttons
+                
                 val showActions = PreferencesManager(root.context).getShopId() == shop.id
                 layoutActions.visibility = if (showActions) View.VISIBLE else View.GONE
             }
@@ -133,3 +133,4 @@ class ShopsAdapter(
         }
     }
 }
+

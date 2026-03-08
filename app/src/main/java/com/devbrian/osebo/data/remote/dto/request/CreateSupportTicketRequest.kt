@@ -15,3 +15,4 @@ data class CreateSupportTicketRequest(
     @SerializedName("priority")
     val priority: String = "normal"
 )
+

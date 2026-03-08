@@ -8,7 +8,7 @@ data class TransactionDto(
     val id: String,
 
     @SerializedName("type")
-    val type: String, // "income" or "expense"
+    val type: String, 
 
     @SerializedName("amount")
     val amount: Double,
@@ -25,3 +25,4 @@ data class TransactionDto(
     @SerializedName("reference")
     val reference: String?
 )
+

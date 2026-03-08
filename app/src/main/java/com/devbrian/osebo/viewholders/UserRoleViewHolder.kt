@@ -17,10 +17,10 @@ class UserRoleViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         roleNameTextView.text = role.name
         roleDescriptionTextView.text = role.description
 
-        // Customize based on role type
+        
         when (role.name.lowercase(Locale.ROOT)) {
             "owner" -> {
-                editButton.visibility = View.GONE // Owners cannot be edited
+                editButton.visibility = View.GONE 
             }
             "manager" -> {
                 editButton.text = "Edit Permissions"
@@ -31,3 +31,4 @@ class UserRoleViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         }
     }
 }
+

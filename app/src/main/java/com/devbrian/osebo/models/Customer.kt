@@ -24,3 +24,4 @@ data class Customer(
     val isPendingSync: Boolean = false,
     val syncAction: String? = null
 ) : Parcelable
+

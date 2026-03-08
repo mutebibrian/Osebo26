@@ -17,3 +17,4 @@ data class UpdateCustomerRequest(
     @SerializedName("location") val location: String? = null,
     @SerializedName("isDefault") val isDefault: Boolean? = null
 )
+

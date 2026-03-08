@@ -6,3 +6,4 @@ data class SignUpResponse(
     val data: Any?,
     val userId: String? = null
 )
+

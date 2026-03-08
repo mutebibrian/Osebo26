@@ -20,14 +20,14 @@ data class Employee(
     val updatedAt: String? = null
 ) {
     companion object {
-        // Status Constants
+        
         const val STATUS_ACTIVE = "ACTIVE"
         const val STATUS_INACTIVE = "INACTIVE"
         const val STATUS_ON_LEAVE = "ON_LEAVE"
         const val STATUS_SUSPENDED = "SUSPENDED"
         const val STATUS_TERMINATED = "TERMINATED"
 
-        // Role Constants
+        
         const val ROLE_MANAGER = "MANAGER"
         const val ROLE_SUPERVISOR = "SUPERVISOR"
         const val ROLE_STAFF = "STAFF"
@@ -35,7 +35,7 @@ data class Employee(
         const val ROLE_SALES = "SALES"
         const val ROLE_INVENTORY = "INVENTORY"
 
-        // Department Constants
+        
         const val DEPARTMENT_MANAGEMENT = "MANAGEMENT"
         const val DEPARTMENT_SALES = "SALES"
         const val DEPARTMENT_INVENTORY = "INVENTORY"
@@ -75,3 +75,4 @@ data class Employee(
         }
     }
 }
+

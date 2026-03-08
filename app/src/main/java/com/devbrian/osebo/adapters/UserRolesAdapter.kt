@@ -31,3 +31,4 @@ class UserRolesAdapter(
 
     override fun getItemCount(): Int = userRoles.size
 }
+

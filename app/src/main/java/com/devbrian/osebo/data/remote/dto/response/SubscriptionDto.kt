@@ -1,4 +1,4 @@
-// SubscriptionDto.kt in data/remote/dto/response
+
 package com.devbrian.osebo.data.remote.dto.response
 
 import com.google.gson.annotations.SerializedName
@@ -25,3 +25,4 @@ data class SubscriptionDto(
     @SerializedName("plan_id") val plan_id: String? = null,
     @SerializedName("price") val price: Double? = null
 )
+

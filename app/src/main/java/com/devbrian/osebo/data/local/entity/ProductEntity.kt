@@ -28,8 +28,8 @@ data class ProductEntity(
     val location: String? = null,
     val isActive: Boolean = true,
     val lastSyncedAt: Long = System.currentTimeMillis(),
-    val isPendingSync: Boolean = false,  // Mark if needs to be synced
-    val syncAction: String? = null,      // "CREATE", "UPDATE", "DELETE"
+    val isPendingSync: Boolean = false,  
+    val syncAction: String? = null,      
     val shopId: String
 ) {
     fun toProduct(): Product {
@@ -84,3 +84,4 @@ data class ProductEntity(
         }
     }
 }
+

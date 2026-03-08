@@ -22,3 +22,4 @@ data class SupplierDto(
     @SerializedName("phone")
     val phone: String
 )
+

@@ -124,14 +124,14 @@ class AddRoleDialogFragment : DialogFragment() {
             shopId = shopId
         )
 
-        // Show loading
+        
         binding.progressBar.visibility = View.VISIBLE
         binding.saveButton.isEnabled = false
         binding.cancelButton.isEnabled = false
 
         val apiService = ApiClient.create()
 
-        // Use coroutines instead of enqueue
+        
         lifecycleScope.launch {
             try {
                 val response = apiService.createRole("Bearer $token", request)
@@ -196,3 +196,4 @@ class AddRoleDialogFragment : DialogFragment() {
         this.onRoleAddedListener = listener
     }
 }
+

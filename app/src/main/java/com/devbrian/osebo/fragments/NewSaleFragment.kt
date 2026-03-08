@@ -7,11 +7,8 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
-import androidx.lifecycle.Observer
 import androidx.navigation.fragment.findNavController
-import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.devbrian.osebo.R
 import com.devbrian.osebo.adapters.CartAdapter
 import com.devbrian.osebo.adapters.ProductAdapter
 import com.devbrian.osebo.databinding.FragmentNewSaleBinding
@@ -30,7 +27,7 @@ class NewSaleFragment : Fragment() {
     private lateinit var productAdapter: ProductAdapter
     private lateinit var cartAdapter: CartAdapter
 
-    // Default Walk-in Customer
+    
     private val walkInCustomer = Customer(
         id = "797231da-d7c2-4f8c-bf13-1e3fc08b2e8e",
         name = "Walk-in Customer",
@@ -57,11 +54,11 @@ class NewSaleFragment : Fragment() {
         setupObservers()
         setupSearchListener()
 
-        // Load data
+        
         viewModel.loadProducts()
         viewModel.loadCustomers()
 
-        // Select Walk-in Customer by default
+        
         viewModel.selectCustomer(walkInCustomer)
     }
 
@@ -72,7 +69,7 @@ class NewSaleFragment : Fragment() {
     }
 
     private fun setupRecyclerViews() {
-        // Products RecyclerView - CHANGE TO 1 COLUMN
+        
         productAdapter = ProductAdapter(
             onItemClick = { product ->
                 println("📱 FRAGMENT - Product clicked: ${product.name}")
@@ -81,13 +78,13 @@ class NewSaleFragment : Fragment() {
         )
 
         binding.rvProducts.apply {
-            // Use LinearLayoutManager for single column
+            
             layoutManager = LinearLayoutManager(requireContext())
             adapter = productAdapter
             setHasFixedSize(true)
         }
 
-        // Cart RecyclerView (keep as is)
+        
         cartAdapter = CartAdapter(
             onQuantityChanged = { item, newQuantity ->
                 viewModel.updateCartItemQuantity(item, newQuantity)
@@ -106,9 +103,9 @@ class NewSaleFragment : Fragment() {
             setHasFixedSize(true)
         }
     }
-    // Update showDiscountDialog to accept discount percentage
+    
     private fun showDiscountDialog(item: com.devbrian.osebo.models.CartItem, initialDiscount: Double = 0.0) {
-        // Create an EditText for discount input
+        
         val input = android.widget.EditText(requireContext()).apply {
             hint = "Discount %"
             inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
@@ -151,34 +148,34 @@ class NewSaleFragment : Fragment() {
         }
 
         binding.btnAddCustomer.setOnClickListener {
-            // Navigate to add customer fragment
+            
             Toast.makeText(requireContext(), "Add customer coming soon", Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun setupObservers() {
-        // Observe products
+        
         viewModel.products.observe(viewLifecycleOwner) { products ->
             println("📱 NewSaleFragment - Products received: ${products.size}")
 
             if (products.isEmpty()) {
                 println("📱 No products to display")
                 binding.rvProducts.visibility = View.GONE
-                // Show empty state if you have one
-                // binding.tvEmptyProducts.visibility = View.VISIBLE
+                
+                
             } else {
                 println("📱 Showing ${products.size} products")
-                // Log first few products for debugging
+                
                 products.take(3).forEachIndexed { index, product ->
                     println("   Product[$index]: ${product.name} - ${product.price} - SKU: ${product.sku}")
                 }
                 binding.rvProducts.visibility = View.VISIBLE
-                // binding.tvEmptyProducts.visibility = View.GONE
+                
                 productAdapter.submitList(products)
             }
         }
 
-        // Observe cart items
+        
         viewModel.cartItems.observe(viewLifecycleOwner) { cartItems ->
             println("📱 Cart updated - ${cartItems.size} items")
 
@@ -195,7 +192,7 @@ class NewSaleFragment : Fragment() {
             updateCartSummary()
         }
 
-        // Observe selected customer
+        
         viewModel.selectedCustomer.observe(viewLifecycleOwner) { customer ->
             customer?.let {
                 binding.tvSelectedCustomer.text = it.name
@@ -208,13 +205,13 @@ class NewSaleFragment : Fragment() {
             }
         }
 
-        // Observe loading state
+        
         viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
             binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
             println("📱 Loading state: $isLoading")
         }
 
-        // Observe error messages
+        
         viewModel.errorMessage.observe(viewLifecycleOwner) { message ->
             message?.let {
                 println("❌ Error: $it")
@@ -223,7 +220,7 @@ class NewSaleFragment : Fragment() {
             }
         }
 
-        // Observe success messages
+        
         viewModel.successMessage.observe(viewLifecycleOwner) { message ->
             message?.let {
                 println("✅ Success: $it")
@@ -232,7 +229,7 @@ class NewSaleFragment : Fragment() {
             }
         }
 
-        // Observe offline status
+        
         viewModel.isOffline.observe(viewLifecycleOwner) { isOffline ->
             binding.tvOfflineIndicator.visibility = if (isOffline) View.VISIBLE else View.GONE
             println("📱 Offline mode: $isOffline")
@@ -266,7 +263,7 @@ class NewSaleFragment : Fragment() {
     }
 
     private fun showDiscountDialog(item: com.devbrian.osebo.models.CartItem) {
-        // Simple discount dialog
+        
         android.app.AlertDialog.Builder(requireContext())
             .setTitle("Apply Discount")
             .setMessage("Enter discount percentage for ${item.product.name}")
@@ -289,8 +286,8 @@ class NewSaleFragment : Fragment() {
     }
 
     private fun showCustomerSelectionDialog() {
-        // Simple customer selection dialog with Walk-in Customer as default
-        val customers = listOf(walkInCustomer) // You can add more customers here
+        
+        val customers = listOf(walkInCustomer) 
 
         val customerNames = customers.map { it.name }.toTypedArray()
 
@@ -316,11 +313,11 @@ class NewSaleFragment : Fragment() {
         println("✅ Checkout - Total: $totalAmount, Customer: ${customer.name} (${customer.id}), Items: ${cartItems.size}")
 
         try {
-            // Create a new list and convert to array
+            
             val itemsList = ArrayList(cartItems)
             val itemsArray = itemsList.toTypedArray()
 
-            // Use Safe Args to navigate
+            
             val action = NewSaleFragmentDirections.actionNewSaleFragmentToPaymentFragment(
                 customerId = customer.id,
                 cartItems = itemsArray,
@@ -338,3 +335,4 @@ class NewSaleFragment : Fragment() {
         _binding = null
     }
 }
+

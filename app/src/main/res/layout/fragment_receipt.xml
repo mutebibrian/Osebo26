@@ -73,56 +73,85 @@
                     android:orientation="vertical"
                     android:padding="20dp">
 
-                    <!-- Store Header with Shop Details -->
+                    <!-- Store Header with Shop Details - ENHANCED -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
                         android:gravity="center"
-                        android:layout_marginBottom="16dp">
+                        android:layout_marginBottom="16dp"
+                        android:background="@drawable/shop_header_background"
+                        android:padding="16dp">
 
                         <ImageView
-                            android:layout_width="48dp"
-                            android:layout_height="48dp"
+                            android:layout_width="56dp"
+                            android:layout_height="56dp"
                             android:src="@drawable/ic_store"
                             android:tint="@color/colorPrimary"
                             android:layout_marginBottom="8dp" />
 
+                        <!-- Shop Name - MUCH BIGGER AND BOLDER (40sp) -->
                         <TextView
                             android:id="@+id/tv_shop_name"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Osebo POS"
-                            android:textSize="20sp"
+                            android:text="AK SHOPPERS"
+                            android:textSize="40sp"
                             android:textStyle="bold"
-                            android:textColor="@color/colorPrimary" />
+                            android:textColor="@color/colorPrimary"
+                            android:textAlignment="center"
+                            android:letterSpacing="0.05"
+                            android:shadowColor="#33000000"
+                            android:shadowDx="2"
+                            android:shadowDy="2"
+                            android:shadowRadius="4"
+                            android:paddingVertical="4dp"
+                            android:layout_marginBottom="4dp" />
 
+                        <!-- Business Type - Now visible with styling -->
                         <TextView
                             android:id="@+id/tv_business_type"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Retail Store"
-                            android:textSize="12sp"
-                            android:textColor="@color/text_secondary"
+                            android:text="RETAIL STORE"
+                            android:textSize="16sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/colorPrimaryDark"
+                            android:textAlignment="center"
+                            android:background="@color/light_gray"
+                            android:paddingHorizontal="12dp"
+                            android:paddingVertical="4dp"
+                            android:layout_marginVertical="8dp"
                             android:visibility="gone" />
 
+                        <!-- Shop Address - Enhanced -->
                         <TextView
                             android:id="@+id/tv_shop_address"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Kampala, Uganda"
-                            android:textSize="12sp"
-                            android:textColor="@color/text_secondary"
-                            android:layout_marginTop="4dp" />
+                            android:text="Kiwatule, Kampala"
+                            android:textSize="14sp"
+                            android:textColor="@color/text_primary"
+                            android:textStyle="normal"
+                            android:layout_marginTop="4dp"
+                            android:textAlignment="center"
+                            android:paddingHorizontal="8dp" />
 
+                        <!-- Shop Phone - Enhanced -->
                         <TextView
                             android:id="@+id/tv_shop_contact"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Tel: +256 700 000000"
-                            android:textSize="12sp"
-                            android:textColor="@color/text_secondary"
-                            android:visibility="gone" />
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/colorPrimary"
+                            android:layout_marginTop="8dp"
+                            android:textAlignment="center"
+                            android:background="@drawable/phone_background"
+                            android:paddingHorizontal="16dp"
+                            android:paddingVertical="6dp"
+                            android:visibility="visible" />
                     </LinearLayout>
 
                     <!-- Divider with style -->
@@ -139,7 +168,8 @@
                         android:orientation="horizontal"
                         android:background="@color/light_gray"
                         android:padding="12dp"
-                        android:layout_marginBottom="16dp">
+                        android:layout_marginBottom="16dp"
+                        android:elevation="2dp">
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -161,6 +191,7 @@
                                 android:text="INV-20250215-001"
                                 android:textSize="14sp"
                                 android:textStyle="bold"
+                                android:textColor="@color/colorPrimary"
                                 android:layout_marginTop="2dp" />
                         </LinearLayout>
 
@@ -185,6 +216,7 @@
                                 android:text="Feb 15, 2026"
                                 android:textSize="14sp"
                                 android:textStyle="bold"
+                                android:textColor="@color/colorPrimary"
                                 android:layout_marginTop="2dp" />
                         </LinearLayout>
                     </LinearLayout>
@@ -196,7 +228,8 @@
                         android:orientation="horizontal"
                         android:background="@color/colorPrimaryLight"
                         android:padding="12dp"
-                        android:layout_marginBottom="16dp">
+                        android:layout_marginBottom="16dp"
+                        android:elevation="2dp">
 
                         <ImageView
                             android:layout_width="24dp"
@@ -217,7 +250,8 @@
                                 android:layout_height="wrap_content"
                                 android:text="Walk-in Customer"
                                 android:textSize="14sp"
-                                android:textStyle="bold" />
+                                android:textStyle="bold"
+                                android:textColor="@color/colorPrimary" />
 
                             <TextView
                                 android:id="@+id/tv_customer_phone"
@@ -230,39 +264,54 @@
                         </LinearLayout>
                     </LinearLayout>
 
-                    <!-- Items Header with better styling -->
+                    <!-- Items Header with better styling and alignment -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
                         android:paddingVertical="8dp"
-                        android:background="@color/colorPrimaryLight">
+                        android:background="@color/colorPrimary"
+                        android:elevation="2dp">
 
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="3"
-                            android:text="Item"
+                            android:text="ITEM"
                             android:textStyle="bold"
                             android:textSize="12sp"
+                            android:textColor="@color/white"
                             android:paddingStart="8dp" />
 
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Qty"
+                            android:text="QTY"
                             android:textStyle="bold"
                             android:textSize="12sp"
+                            android:textColor="@color/white"
                             android:gravity="center" />
 
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_weight="2"
-                            android:text="Price"
+                            android:layout_weight="1"
+                            android:text="PRICE"
                             android:textStyle="bold"
                             android:textSize="12sp"
+                            android:textColor="@color/white"
+                            android:gravity="end"
+                            android:paddingEnd="8dp" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="TOTAL"
+                            android:textStyle="bold"
+                            android:textSize="12sp"
+                            android:textColor="@color/white"
                             android:gravity="end"
                             android:paddingEnd="8dp" />
                     </LinearLayout>
@@ -282,13 +331,14 @@
                         android:background="@drawable/dashed_line"
                         android:layout_marginVertical="16dp" />
 
-                    <!-- Summary with better spacing -->
+                    <!-- Summary with better spacing and alignment -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:padding="8dp"
-                        android:background="@color/light_gray">
+                        android:padding="12dp"
+                        android:background="@color/light_gray"
+                        android:elevation="2dp">
 
                         <!-- Subtotal -->
                         <LinearLayout
@@ -303,7 +353,8 @@
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
                                 android:text="Subtotal"
-                                android:textSize="14sp" />
+                                android:textSize="14sp"
+                                android:textColor="@color/text_primary" />
 
                             <TextView
                                 android:id="@+id/tv_subtotal"
@@ -311,7 +362,9 @@
                                 android:layout_height="wrap_content"
                                 android:text="UGX 0"
                                 android:textSize="14sp"
-                                android:textStyle="bold" />
+                                android:textStyle="bold"
+                                android:textColor="@color/colorPrimary"
+                                android:gravity="end" />
                         </LinearLayout>
 
                         <!-- Discount -->
@@ -327,7 +380,8 @@
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
                                 android:text="Discount"
-                                android:textSize="14sp" />
+                                android:textSize="14sp"
+                                android:textColor="@color/text_primary" />
 
                             <TextView
                                 android:id="@+id/tv_discount"
@@ -335,7 +389,9 @@
                                 android:layout_height="wrap_content"
                                 android:text="-UGX 0"
                                 android:textColor="@color/green_success"
-                                android:textSize="14sp" />
+                                android:textSize="14sp"
+                                android:textStyle="bold"
+                                android:gravity="end" />
                         </LinearLayout>
 
                         <!-- Tax -->
@@ -351,14 +407,17 @@
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
                                 android:text="Tax"
-                                android:textSize="14sp" />
+                                android:textSize="14sp"
+                                android:textColor="@color/text_primary" />
 
                             <TextView
                                 android:id="@+id/tv_tax"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="UGX 0"
-                                android:textSize="14sp" />
+                                android:textSize="14sp"
+                                android:textColor="@color/text_secondary"
+                                android:gravity="end" />
                         </LinearLayout>
 
                         <View
@@ -379,18 +438,20 @@
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:text="Total"
-                                android:textSize="16sp"
-                                android:textStyle="bold" />
+                                android:text="TOTAL"
+                                android:textSize="18sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/text_primary" />
 
                             <TextView
                                 android:id="@+id/tv_total"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="UGX 0"
-                                android:textSize="20sp"
+                                android:textSize="24sp"
                                 android:textColor="@color/colorPrimary"
-                                android:textStyle="bold" />
+                                android:textStyle="bold"
+                                android:gravity="end" />
                         </LinearLayout>
 
                         <!-- Paid -->
@@ -406,7 +467,8 @@
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
                                 android:text="Paid"
-                                android:textSize="14sp" />
+                                android:textSize="14sp"
+                                android:textColor="@color/text_primary" />
 
                             <TextView
                                 android:id="@+id/tv_paid"
@@ -414,7 +476,9 @@
                                 android:layout_height="wrap_content"
                                 android:text="UGX 0"
                                 android:textSize="14sp"
-                                android:textStyle="bold" />
+                                android:textStyle="bold"
+                                android:textColor="@color/colorPrimary"
+                                android:gravity="end" />
                         </LinearLayout>
 
                         <!-- Change -->
@@ -430,7 +494,8 @@
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
                                 android:text="Change"
-                                android:textSize="14sp" />
+                                android:textSize="14sp"
+                                android:textColor="@color/text_primary" />
 
                             <TextView
                                 android:id="@+id/tv_change"
@@ -439,7 +504,8 @@
                                 android:text="UGX 0"
                                 android:textSize="14sp"
                                 android:textColor="@color/green_success"
-                                android:textStyle="bold" />
+                                android:textStyle="bold"
+                                android:gravity="end" />
                         </LinearLayout>
                     </LinearLayout>
 
@@ -451,7 +517,8 @@
                         android:gravity="center_vertical"
                         android:layout_marginTop="16dp"
                         android:padding="12dp"
-                        android:background="@color/colorPrimaryLight">
+                        android:background="@color/colorPrimaryLight"
+                        android:elevation="2dp">
 
                         <ImageView
                             android:layout_width="24dp"
@@ -474,7 +541,8 @@
                             android:layout_height="wrap_content"
                             android:text="Cash"
                             android:textSize="14sp"
-                            android:textStyle="bold" />
+                            android:textStyle="bold"
+                            android:textColor="@color/colorPrimary" />
                     </LinearLayout>
 
                     <!-- Footer with thank you message -->
@@ -489,7 +557,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Thank you for your purchase!"
-                            android:textSize="14sp"
+                            android:textSize="16sp"
                             android:textStyle="bold"
                             android:textColor="@color/colorPrimary" />
 
@@ -497,9 +565,21 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Visit us again!"
-                            android:textSize="12sp"
+                            android:textSize="14sp"
                             android:textColor="@color/text_secondary"
                             android:layout_marginTop="4dp" />
+
+                        <!-- Shop Name in footer for branding -->
+                        <TextView
+                            android:id="@+id/tv_footer_shop"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="AK SHOPPERS"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/colorPrimary"
+                            android:layout_marginTop="8dp"
+                            android:visibility="gone" />
                     </LinearLayout>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
@@ -520,7 +600,9 @@
                     android:text="Print"
                     style="@style/Widget.Material3.Button.OutlinedButton"
                     app:icon="@drawable/ic_print"
-                    app:iconGravity="textStart" />
+                    app:iconGravity="textStart"
+                    android:textColor="@color/colorPrimary"
+                    app:strokeColor="@color/colorPrimary" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_share"
@@ -531,7 +613,9 @@
                     android:text="Share"
                     style="@style/Widget.Material3.Button.OutlinedButton"
                     app:icon="@drawable/ic_share"
-                    app:iconGravity="textStart" />
+                    app:iconGravity="textStart"
+                    android:textColor="@color/colorPrimary"
+                    app:strokeColor="@color/colorPrimary" />
             </LinearLayout>
 
             <!-- New Sale Button -->
@@ -540,8 +624,12 @@
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
                 android:text="New Sale"
+                android:backgroundTint="@color/colorPrimary"
                 app:icon="@drawable/ic_add"
-                app:iconGravity="textStart" />
+                app:iconGravity="textStart"
+                android:textColor="@color/white"
+                android:textAllCaps="false"
+                android:textSize="16sp" />
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

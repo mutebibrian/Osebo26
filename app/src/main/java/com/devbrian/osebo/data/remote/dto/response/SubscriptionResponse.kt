@@ -32,14 +32,15 @@ data class SubscriptionData(
 )
 
 
-// Payment.kt
+
 data class Payment(
     @SerializedName("id") val id: String,
     @SerializedName("subscription_id") val subscriptionId: String,
     @SerializedName("amount") val amount: Double,
     @SerializedName("currency") val currency: String,
-    @SerializedName("status") val status: String, // PENDING, COMPLETED, FAILED
+    @SerializedName("status") val status: String, 
     @SerializedName("payment_method") val paymentMethod: String,
     @SerializedName("transaction_id") val transactionId: String?,
     @SerializedName("paid_at") val paidAt: String?
 )
+

@@ -9,3 +9,4 @@ data class Session(
     val lastActive: String,
     val isCurrent: Boolean = false
 )
+

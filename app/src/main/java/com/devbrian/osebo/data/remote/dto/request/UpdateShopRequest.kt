@@ -19,3 +19,4 @@ data class UpdateShopRequest(
     @SerializedName("status")
     val status: String? = null
 )
+

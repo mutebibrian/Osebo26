@@ -3,7 +3,7 @@ package com.devbrian.osebo.workers
 import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.devbrian.osebo.data.PreferenceManager  // ✅ Fix import - your custom PreferenceManager
+import com.devbrian.osebo.data.PreferenceManager  
 import com.devbrian.osebo.data.local.AppDatabase
 import com.devbrian.osebo.data.local.entity.ProductEntity
 import com.devbrian.osebo.data.local.entity.SyncQueueEntity
@@ -18,10 +18,10 @@ class SyncWorker(
 
     private val database = AppDatabase.getInstance(applicationContext)
     private val gson = Gson()
-    private val preferenceManager = PreferenceManager.getInstance(applicationContext)  // ✅ Now correct
+    private val preferenceManager = PreferenceManager.getInstance(applicationContext)  
 
     override suspend fun doWork(): Result {
-        // Check network first
+        
         if (!NetworkUtils.isNetworkAvailable(applicationContext)) {
             return Result.retry()
         }
@@ -66,16 +66,16 @@ class SyncWorker(
         return try {
             when (item.action) {
                 "CREATE" -> {
-                    // TODO: Call API to create product
-                    // You'll need to inject ApiService here
+                    
+                    
                     true
                 }
                 "UPDATE" -> {
-                    // TODO: Call API to update product
+                    
                     true
                 }
                 "DELETE" -> {
-                    // TODO: Call API to delete product
+                    
                     true
                 }
                 else -> false
@@ -85,3 +85,4 @@ class SyncWorker(
         }
     }
 }
+

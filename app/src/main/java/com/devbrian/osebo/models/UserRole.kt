@@ -28,3 +28,4 @@ data class UserRole(
     @SerializedName("updated_at")
     val updatedAt: String = ""
 ) : Parcelable
+

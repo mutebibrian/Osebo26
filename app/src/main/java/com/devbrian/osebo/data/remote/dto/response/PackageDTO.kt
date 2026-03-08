@@ -40,3 +40,4 @@ data class FeatureDto(
     @SerializedName("description")
     val description: String
 )
+

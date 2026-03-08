@@ -85,7 +85,7 @@ class FinanceFragment : Fragment() {
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         binding.spinnerPeriod.adapter = adapter
 
-        // Set default selection
+        
         val defaultPosition = periods.indexOf(selectedPeriod)
         if (defaultPosition != -1) {
             binding.spinnerPeriod.setSelection(defaultPosition)
@@ -123,7 +123,7 @@ class FinanceFragment : Fragment() {
     }
 
     private fun setupClickListeners() {
-        // Quick Action Cards
+        
         binding.cardAddIncome.setOnClickListener {
             navigateToAddIncome()
         }
@@ -148,17 +148,17 @@ class FinanceFragment : Fragment() {
             navigateToBudgetPlanning()
         }
 
-        // View All Transactions
+        
         binding.tvViewAllTransactions.setOnClickListener {
             navigateToAllTransactions()
         }
 
-        // Add First Transaction Button
+        
         binding.btnAddFirstTransaction.setOnClickListener {
             navigateToAddIncome()
         }
 
-        // FAB
+        
         binding.fabAddTransaction.setOnClickListener {
             showAddTransactionMenu()
         }
@@ -167,7 +167,7 @@ class FinanceFragment : Fragment() {
     private fun loadFinancialData() {
         binding.progressBar.visibility = View.VISIBLE
 
-        // Simulate API delay
+        
         binding.root.postDelayed({
             val transactions = generateSampleTransactions()
 
@@ -189,7 +189,7 @@ class FinanceFragment : Fragment() {
                 id = "TRX001",
                 description = "Sale - iPhone 15 Pro",
                 amount = 45000.0,
-                date = getFormattedDate(-1), // Yesterday
+                date = getFormattedDate(-1), 
                 type = Transaction.TYPE_INCOME,
                 category = Transaction.CATEGORY_SALES,
                 paymentMethod = Transaction.PAYMENT_CASH,
@@ -281,7 +281,7 @@ class FinanceFragment : Fragment() {
         binding.tvNetProfit.text = "UGX ${formatter.format(netProfit.toInt())}"
         binding.tvProfitPeriod.text = "$selectedPeriod • ${String.format("%.1f", profitMargin)}% profit margin"
 
-        // Update change indicators (mock data)
+        
         binding.tvIncomeChange.text = "↑ 15% from last month"
         binding.tvExpenseChange.text = "↓ 8% from last month"
     }
@@ -302,7 +302,7 @@ class FinanceFragment : Fragment() {
             "Transaction: ${transaction.description}",
             Toast.LENGTH_SHORT
         ).show()
-        // Navigate to transaction details screen
+        
     }
 
     private fun showTransactionOptionsMenu(transaction: Transaction, anchorView: View) {
@@ -371,7 +371,7 @@ class FinanceFragment : Fragment() {
         popup.show()
     }
 
-    // navigation Methods
+    
     private fun navigateToAddIncome() {
         Toast.makeText(requireContext(), "Navigate to Add Income", Toast.LENGTH_SHORT).show()
     }
@@ -412,7 +412,7 @@ class FinanceFragment : Fragment() {
         Toast.makeText(requireContext(), "Navigate to Finance Settings", Toast.LENGTH_SHORT).show()
     }
 
-    // Transaction Actions
+    
     private fun editTransaction(transaction: Transaction) {
         Toast.makeText(requireContext(), "Edit Transaction: ${transaction.id}", Toast.LENGTH_SHORT).show()
     }
@@ -440,7 +440,7 @@ class FinanceFragment : Fragment() {
             .show()
     }
 
-    // Toolbar Actions
+    
     private fun showFilterDialog() {
         Toast.makeText(requireContext(), "Show Filter Dialog", Toast.LENGTH_SHORT).show()
     }
@@ -486,3 +486,4 @@ class FinanceFragment : Fragment() {
         _binding = null
     }
 }
+

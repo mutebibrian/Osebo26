@@ -95,7 +95,7 @@ class CartAdapter(
                     if (item.quantity > 1) {
                         onQuantityChanged(item, item.quantity - 1)
                     } else {
-                        // If quantity is 1, removing is better than going to 0
+                        
                         onRemoveItem(item)
                     }
                 }
@@ -139,15 +139,16 @@ class CartAdapter(
                 tvDiscount.visibility = View.GONE
             }
 
-            // Log binding for debugging
+            
             println("📦 CartViewHolder - Bound ${item.product.name}: qty=${item.quantity}, price=${item.unitPrice}, subtotal=${item.subtotal}")
         }
 
         private fun showDiscountDialog(item: CartItem) {
-            // For now, just apply a sample discount
-            // In a real app, you'd show a dialog for user input
+            
+            
             println("📦 CartAdapter - Applying 10% discount to ${item.product.name}")
             onDiscountApplied(item, 10.0)
         }
     }
 }
+

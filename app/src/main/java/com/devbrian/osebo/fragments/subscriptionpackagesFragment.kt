@@ -27,6 +27,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import android.view.ViewTreeObserver
+import com.devbrian.osebo.data.PreferenceManager
 import com.devbrian.osebo.ui.MainActivity
 
 @AndroidEntryPoint
@@ -40,6 +41,8 @@ class SubscriptionPackagesFragment : Fragment() {
 
     private var shop: Shop? = null
     private var currentPackage: String? = null
+    private var selectedPackage: SubscriptionPackage? = null
+    private var shopId: String = ""
 
     private val args: SubscriptionPackagesFragmentArgs by navArgs()
 
@@ -55,9 +58,46 @@ class SubscriptionPackagesFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Get data from navigation arguments
+        // Get args - shop can now be null
         shop = args.shop
         currentPackage = args.currentPackage
+
+        // Handle null shop - try to get from preferences
+        if (shop == null) {
+            val preferenceManager = PreferenceManager.getInstance(requireContext())
+            shopId = preferenceManager.getCurrentShopId()
+            val shopName = preferenceManager.getCurrentShopName()
+
+            if (shopId.isNotEmpty()) {
+                // Create a basic shop object from preferences
+                shop = Shop(
+                    id = shopId,
+                    name = shopName,
+                    description = preferenceManager.getShopLocation(),
+                    address = preferenceManager.getShopLocation(),
+                    shopType = preferenceManager.getBusinessType(),
+                    totalRevenue = 0.0,
+                    totalExpenses = 0.0,
+                    profit = 0.0,
+                    totalProducts = 0,
+                    totalEmployees = 0,
+                    logoUrl = null,
+                    subscription = null
+                )
+                println("✅ Created shop from preferences: $shopName")
+            } else {
+                // No shop available - show error and navigate back
+                Toast.makeText(
+                    requireContext(),
+                    "No shop selected. Please select a shop first.",
+                    Toast.LENGTH_LONG
+                ).show()
+                findNavController().navigateUp()
+                return
+            }
+        } else {
+            shopId = shop?.id ?: ""
+        }
 
         setupUI()
         setupRecyclerView()
@@ -65,7 +105,6 @@ class SubscriptionPackagesFragment : Fragment() {
         observeViewModel()
         loadSubscriptionPackages()
 
-        // Check RecyclerView visibility after layout
         checkRecyclerViewVisibility()
     }
 
@@ -75,12 +114,10 @@ class SubscriptionPackagesFragment : Fragment() {
             findNavController().navigateUp()
         }
 
-        // Set shop info as toolbar subtitle
         shop?.let {
             binding.toolbar.subtitle = it.name
         }
 
-        // Show current plan if available
         currentPackage?.let { packageType ->
             binding.tvCurrentPlan.text = "Current: ${getPackageDisplayName(packageType)}"
             binding.tvCurrentPlan.visibility = View.VISIBLE
@@ -153,16 +190,14 @@ class SubscriptionPackagesFragment : Fragment() {
                     showErrorState(resource.message ?: "Failed to load packages")
                 }
                 is Resource.Loading -> {
-                    // No progress bar to show
+                    // Show loading
                 }
             }
         }
 
-        // Observe subscription creation result
         viewModel.subscriptionResult.observe(viewLifecycleOwner) { resource ->
             when (resource) {
                 is Resource.Success -> {
-                    // ✅ Get paymentId from response.data
                     val paymentId = resource.data?.data?.paymentId
                     if (!paymentId.isNullOrBlank()) {
                         navigateToPayment(paymentId)
@@ -183,11 +218,11 @@ class SubscriptionPackagesFragment : Fragment() {
                     ).show()
                 }
                 is Resource.Loading -> {
-                    // No progress bar to show
+                    // Show loading
                 }
             }
         }
-        // Observe trial activation result
+
         viewModel.activateTrialResult.observe(viewLifecycleOwner) { resource ->
             when (resource) {
                 is Resource.Success -> {
@@ -210,7 +245,6 @@ class SubscriptionPackagesFragment : Fragment() {
         }
     }
 
-    // Check RecyclerView visibility and dimensions
     private fun checkRecyclerViewVisibility() {
         val listener = object : ViewTreeObserver.OnGlobalLayoutListener {
             override fun onGlobalLayout() {
@@ -228,7 +262,6 @@ class SubscriptionPackagesFragment : Fragment() {
         binding.rvPackages.viewTreeObserver.addOnGlobalLayoutListener(listener)
     }
 
-    // Check RecyclerView state after data is loaded
     private fun checkRecyclerViewState() {
         println("📏 RECYCLERVIEW STATE DEBUG")
         println("📏 RecyclerView child count: ${binding.rvPackages.childCount}")
@@ -242,18 +275,17 @@ class SubscriptionPackagesFragment : Fragment() {
     }
 
     private fun onPackageSelected(packageItem: SubscriptionPackage) {
+        selectedPackage = packageItem
         updateSelectedPackageUI(packageItem)
     }
 
     private fun updateSelectedPackageUI(packageItem: SubscriptionPackage) {
-        // Show the selected package details card
         binding.cardSelectedPackage.visibility = View.VISIBLE
 
         binding.tvSelectedPackageName.text = packageItem.displayName
         binding.tvSelectedPackagePrice.text = packageItem.displayPrice
         binding.tvSelectedPackageDescription.text = packageItem.description
 
-        // Update Continue button
         binding.btnContinue.isEnabled = true
 
         binding.btnContinue.text = when {
@@ -262,7 +294,6 @@ class SubscriptionPackagesFragment : Fragment() {
             else -> "CONTINUE WITH ${packageItem.displayName.uppercase()}"
         }
 
-        // Show trial info if available
         if (packageItem.hasFreeTrial && currentPackage == null) {
             binding.layoutTrialInfo.visibility = View.VISIBLE
             binding.tvTrialDays.text = "${packageItem.freeTrialDays} days free trial"
@@ -270,7 +301,6 @@ class SubscriptionPackagesFragment : Fragment() {
             binding.layoutTrialInfo.visibility = View.GONE
         }
 
-        // Update features list
         updateFeaturesList(packageItem.featureList)
     }
 
@@ -304,15 +334,12 @@ class SubscriptionPackagesFragment : Fragment() {
         shop?.let { shop ->
             when {
                 packageItem.hasFreeTrial && currentPackage == null -> {
-                    // Activate free trial
                     showTrialConfirmationDialog(packageItem, shop)
                 }
                 packageItem.isCustom -> {
-                    // Custom/Enterprise plan
                     showContactDialog(packageItem)
                 }
                 else -> {
-                    // ✅ PAID SUBSCRIPTION - Show Payment Dialog Fragment
                     showPaymentDialog(packageItem, shop)
                 }
             }
@@ -325,20 +352,24 @@ class SubscriptionPackagesFragment : Fragment() {
         }
     }
 
-    // ✅ NEW METHOD: Show PaymentDialogFragment
     private fun showPaymentDialog(packageItem: SubscriptionPackage, shop: Shop) {
+        selectedPackage = packageItem
+
+        // Convert String to Double safely
+        val amount = packageItem.unitMonthlyAmount?.toDoubleOrNull() ?: 0.0
+
         val dialog = PaymentDialogFragment.newInstance(
             shopId = shop.id,
             packageId = packageItem.id,
             packageName = packageItem.displayName,
-            amount = packageItem.price
+            amount = amount
         )
 
         dialog.setPaymentListener { phoneNumber, packageId, months ->
-            createSubscription(shop.id, packageId, phoneNumber)
+            createSubscription(shop.id, packageId, phoneNumber, months)
         }
 
-        dialog.show(parentFragmentManager, PaymentDialogFragment.TAG)
+        dialog.show(parentFragmentManager, "PaymentDialog")
     }
 
     private fun showTrialConfirmationDialog(packageItem: SubscriptionPackage, shop: Shop) {
@@ -383,38 +414,98 @@ class SubscriptionPackagesFragment : Fragment() {
         }
     }
 
-    // ✅ REMOVED: showPaymentMethodDialog and showPhoneNumberDialog - replaced by PaymentDialogFragment
-
-    // After successfully activating subscription or trial
     private fun activateFreeTrial(shopId: String, packageId: String) {
         lifecycleScope.launch {
             viewModel.activateFreeTrial(shopId, packageId)
 
-            // After trial is activated, refresh the navigation menu in MainActivity
-            (requireActivity() as? MainActivity)?.refreshNavigationMenu()
+            if (isAdded) {
+                (requireActivity() as? MainActivity)?.refreshNavigationMenu()
+            }
         }
     }
 
+    // FIXED: Use a simple approach with viewLifecycleOwner but with safe checks
     private fun createSubscription(
         shopId: String,
         packageId: String,
-        phoneNumber: String
+        phoneNumber: String,
+        months: Int
     ) {
-        lifecycleScope.launch {
-            viewModel.createSubscription(shopId, packageId, phoneNumber, 1)
+        // First, check if fragment is still added
+        if (!isAdded) return
 
-            // Observe the result and refresh menu when successful
-            viewModel.subscriptionResult.observe(viewLifecycleOwner) { resource ->
-                when (resource) {
-                    is Resource.Success -> {
-                        if (resource.data?.success == true) {
-                            // Refresh navigation menu
-                            (requireActivity() as? MainActivity)?.refreshNavigationMenu()
+        // Start the subscription process
+        viewModel.createSubscription(shopId, packageId, phoneNumber, months)
+
+        // Use a one-time observer with viewLifecycleOwner, but with a try-catch
+        try {
+            viewLifecycleOwner.lifecycleScope.launch {
+                // Collect the result once
+                viewModel.subscriptionResult.observe(viewLifecycleOwner) { resource ->
+                    // Double-check if fragment is still added
+                    if (!isAdded) return@observe
+
+                    when (resource) {
+                        is Resource.Success -> {
+                            resource.data?.let { response ->
+                                if (response.success) {
+                                    val paymentId = response.data?.paymentId
+                                    if (!paymentId.isNullOrBlank()) {
+                                        try {
+                                            val packagePrice = selectedPackage?.unitMonthlyAmount?.toDoubleOrNull() ?: 0.0
+                                            val totalAmount = packagePrice * months
+
+                                            // Check again before navigation
+                                            if (isAdded) {
+                                                val action = SubscriptionPackagesFragmentDirections
+                                                    .actionSubscriptionPackagesFragmentToPaymentStatusFragment(
+                                                        transactionId = paymentId,
+                                                        shopId = shopId,
+                                                        amount = totalAmount.toFloat(),
+                                                        currency = "UGX",
+                                                        phoneNumber = phoneNumber
+                                                    )
+                                                findNavController().navigate(action)
+                                            }
+                                        } catch (e: Exception) {
+                                            if (isAdded) {
+                                                Toast.makeText(requireContext(),
+                                                    "Navigation error", Toast.LENGTH_SHORT).show()
+                                            }
+                                        }
+                                    } else {
+                                        if (isAdded) {
+                                            Toast.makeText(requireContext(),
+                                                "Subscription created successfully!",
+                                                Toast.LENGTH_SHORT).show()
+                                            findNavController().popBackStack()
+                                        }
+                                    }
+                                } else {
+                                    if (isAdded) {
+                                        Toast.makeText(requireContext(),
+                                            response.message ?: "Failed to create subscription",
+                                            Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            }
+                        }
+                        is Resource.Error -> {
+                            if (isAdded) {
+                                Toast.makeText(requireContext(),
+                                    resource.message ?: "Error creating subscription",
+                                    Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                        is Resource.Loading -> {
+                            // Show loading if needed
                         }
                     }
-                    else -> {}
                 }
             }
+        } catch (e: IllegalStateException) {
+            // This happens when viewLifecycleOwner is not available
+            println("⚠️ ViewLifecycleOwner not available: ${e.message}")
         }
     }
 
@@ -430,7 +521,8 @@ class SubscriptionPackagesFragment : Fragment() {
                         transactionId = transactionId,
                         shopId = shop.id,
                         amount = amount,
-                        currency = currency
+                        currency = currency,
+                        phoneNumber = ""
                     )
                 findNavController().navigate(action)
             }

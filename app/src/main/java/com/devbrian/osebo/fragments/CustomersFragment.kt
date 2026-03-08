@@ -74,7 +74,7 @@ class CustomersFragment : Fragment() {
         }
 
         viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
-            // Show/hide progress if you have one
+            
         }
 
         viewModel.errorMessage.observe(viewLifecycleOwner) { message ->
@@ -186,7 +186,7 @@ class CustomersFragment : Fragment() {
             .setTitle("Delete Customer")
             .setMessage("Delete ${customer.name}?")
             .setPositiveButton("Delete") { _, _ ->
-                // Add delete functionality later
+                
                 Toast.makeText(requireContext(), "Delete feature coming soon", Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton("Cancel", null)
@@ -206,3 +206,4 @@ class CustomersFragment : Fragment() {
         _binding = null
     }
 }
+

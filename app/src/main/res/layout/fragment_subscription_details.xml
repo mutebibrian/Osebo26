@@ -65,6 +65,7 @@
                     app:tint="@color/error" />
 
                 <TextView
+                    android:id="@+id/tvErrorMessage"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Failed to load subscription details"
@@ -320,11 +321,14 @@
 
                 <!-- Features Card -->
                 <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/featuresSection"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     app:cardCornerRadius="12dp"
                     app:cardElevation="1dp"
-                    android:layout_marginBottom="24dp">
+                    android:layout_marginBottom="24dp"
+                    android:visibility="gone"
+                    tools:visibility="visible">
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -341,26 +345,12 @@
                             android:textColor="@color/on_surface"
                             android:layout_marginBottom="16dp" />
 
-                        <!-- Features List -->
-                        <LinearLayout
+                        <!-- Features RecyclerView -->
+                        <androidx.recyclerview.widget.RecyclerView
+                            android:id="@+id/rvFeatures"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            tools:ignore="MissingPrefix">
-
-                            <include layout="@layout/item_feature"
-                                android:id="@+id/feature1" />
-
-                            <include layout="@layout/item_feature"
-                                android:id="@+id/feature2" />
-
-                            <include layout="@layout/item_feature"
-                                android:id="@+id/feature3" />
-
-                            <include layout="@layout/item_feature"
-                                android:id="@+id/feature4" />
-
-                        </LinearLayout>
+                            android:nestedScrollingEnabled="false" />
 
                     </LinearLayout>
 
@@ -433,7 +423,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     app:cardCornerRadius="12dp"
-                    app:cardElevation="1dp">
+                    app:cardElevation="1dp"
+                    android:layout_marginBottom="16dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"

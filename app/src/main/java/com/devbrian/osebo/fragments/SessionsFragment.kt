@@ -40,12 +40,12 @@ class SessionsFragment : Fragment() {
     }
 
     private fun setupUI() {
-        // Setup toolbar
+        
         binding.toolbar.setNavigationOnClickListener {
             requireActivity().onBackPressed()
         }
 
-        // Setup RecyclerView
+        
         sessionsAdapter = SessionsAdapter(emptyList()) { session ->
             showSessionActions(session)
         }
@@ -135,3 +135,4 @@ class SessionsFragment : Fragment() {
         Snackbar.make(binding.root, message, Snackbar.LENGTH_SHORT).show()
     }
 }
+

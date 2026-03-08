@@ -13,14 +13,19 @@ import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.devbrian.osebo.R
+import com.devbrian.osebo.adapters.FeatureListAdapter
 import com.devbrian.osebo.adapters.SubscriptionHistoryAdapter
 import com.devbrian.osebo.databinding.FragmentSubscriptionDetailsBinding
-import com.devbrian.osebo.models.SubscriptionHistoryItem
+import com.devbrian.osebo.models.Feature
+import com.devbrian.osebo.models.Subscription
 import com.devbrian.osebo.ui.viewmodels.SubscriptionViewModel
 import com.devbrian.osebo.utils.Resource
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Locale
+import java.util.TimeZone
 
 @AndroidEntryPoint
 class SubscriptionDetailsFragment : Fragment() {
@@ -29,11 +34,11 @@ class SubscriptionDetailsFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val viewModel: SubscriptionViewModel by viewModels()
-    private lateinit var subscriptionHistoryAdapter: SubscriptionHistoryAdapter
 
-    private var subscription: com.devbrian.osebo.models.Subscription? = null
-    private var subscriptionId: String? = null
-    private var shopId: String? = null
+    private lateinit var subscriptionHistoryAdapter: SubscriptionHistoryAdapter
+    private lateinit var featureAdapter: FeatureListAdapter
+
+    private var currentSubscription: Subscription? = null
 
     private val args: SubscriptionDetailsFragmentArgs by navArgs()
 
@@ -49,12 +54,8 @@ class SubscriptionDetailsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Get data from navigation arguments - USE IDS, NOT OBJECTS
-        shopId = args.shopId
-        subscriptionId = args.subscriptionId
-
         setupUI()
-        setupRecyclerView()
+        setupRecyclerViews()
         setupClickListeners()
         observeViewModel()
         loadSubscriptionDetails()
@@ -62,40 +63,37 @@ class SubscriptionDetailsFragment : Fragment() {
 
     private fun setupUI() {
         binding.toolbar.title = "Subscription Details"
-        binding.toolbar.setNavigationOnClickListener {
-            findNavController().navigateUp()
-        }
-
-        // Remove subtitle since we don't have shop object
-        binding.toolbar.subtitle = null
+        binding.toolbar.setNavigationOnClickListener { findNavController().navigateUp() }
     }
 
-    private fun setupRecyclerView() {
-        // Initialize adapter with empty list
-        subscriptionHistoryAdapter = SubscriptionHistoryAdapter(emptyList())
+    private fun setupRecyclerViews() {
+        subscriptionHistoryAdapter = SubscriptionHistoryAdapter { subscription ->
+            Toast.makeText(
+                requireContext(),
+                "${subscription.displayPackage}: ${subscription.formattedAmount}",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+
         binding.rvPaymentHistory.apply {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = subscriptionHistoryAdapter
             setHasFixedSize(true)
         }
+
+        featureAdapter = FeatureListAdapter()
+        binding.rvFeatures.apply {
+            layoutManager = LinearLayoutManager(requireContext())
+            adapter = featureAdapter
+        }
     }
 
     private fun setupClickListeners() {
-        binding.btnUpgrade.setOnClickListener {
-            navigateToUpgrade()
-        }
-
-        binding.btnCancel.setOnClickListener {
-            showCancelConfirmationDialog()
-        }
-
-        binding.btnViewAllPayments.setOnClickListener {
-            navigateToPaymentHistory()
-        }
-
-        binding.btnManageSubscription.setOnClickListener {
-            showManageOptionsDialog()
-        }
+        binding.btnUpgrade.setOnClickListener { navigateToUpgrade() }
+        binding.btnCancel.setOnClickListener { showCancelConfirmationDialog() }
+        binding.btnViewAllPayments.setOnClickListener { navigateToPaymentHistory() }
+        binding.btnManageSubscription.setOnClickListener { showManageOptionsDialog() }
+        binding.btnRetry.setOnClickListener { loadSubscriptionDetails() }
     }
 
     private fun observeViewModel() {
@@ -104,101 +102,44 @@ class SubscriptionDetailsFragment : Fragment() {
                 is Resource.Loading -> {
                     showLoading(true)
                     binding.layoutContent.visibility = View.GONE
+                    binding.layoutError.visibility = View.GONE
                 }
+
                 is Resource.Success -> {
                     showLoading(false)
-                    resource.data?.let { subscription ->
-                        this.subscription = subscription
-                        binding.layoutContent.visibility = View.VISIBLE
-                        updateUI(subscription)
-                        // Load payment history
-                        loadPaymentHistory(subscription.id)
-                    } ?: run {
-                        showErrorState()
+                    val sub = resource.data
+                    if (sub == null) {
+                        showErrorState("Subscription data not found")
+                        return@observe
                     }
+
+                    currentSubscription = sub
+
+                    binding.layoutContent.visibility = View.VISIBLE
+                    binding.layoutError.visibility = View.GONE
+
+                    updateUI(sub)
+                    subscriptionHistoryAdapter.submitList(listOf(sub))
+                    loadFeatures(sub)
                 }
+
                 is Resource.Error -> {
                     showLoading(false)
-                    Toast.makeText(
-                        requireContext(),
-                        resource.message ?: "Failed to load subscription details",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    showErrorState()
-                }
-            }
-        }
-
-        viewModel.paymentHistory.observe(viewLifecycleOwner) { resource ->
-            when (resource) {
-                is Resource.Loading -> {
-                    binding.rvPaymentHistory.visibility = View.GONE
-                    binding.progressBarPayments.visibility = View.VISIBLE
-                    binding.tvNoPayments.visibility = View.GONE
-                }
-                is Resource.Success -> {
-                    binding.progressBarPayments.visibility = View.GONE
-                    resource.data?.let { payments ->
-                        // Convert Payment objects to SubscriptionHistoryItem
-                        val historyItems = payments.map { payment ->
-                            SubscriptionHistoryItem(
-                                id = payment.id,
-                                planName = subscription?.displayPackage ?: "Subscription Plan",
-                                amount = payment.amount,
-                                currency = payment.currency,
-                                paymentMethod = payment.displayMethod,
-                                status = payment.status,
-                                date = payment.paidAt ?: payment.createdAt
-                            )
-                        }
-
-                        if (historyItems.isEmpty()) {
-                            binding.rvPaymentHistory.visibility = View.GONE
-                            binding.tvNoPayments.visibility = View.VISIBLE
-                            binding.btnViewAllPayments.visibility = View.GONE
-                        } else {
-                            binding.rvPaymentHistory.visibility = View.VISIBLE
-                            binding.tvNoPayments.visibility = View.GONE
-                            // Show last 3 payments
-                            val recentPayments = historyItems.take(3)
-                            subscriptionHistoryAdapter.updateHistory(recentPayments)
-
-                            if (historyItems.size > 3) {
-                                binding.btnViewAllPayments.visibility = View.VISIBLE
-                            } else {
-                                binding.btnViewAllPayments.visibility = View.GONE
-                            }
-                        }
-                    } ?: run {
-                        binding.rvPaymentHistory.visibility = View.GONE
-                        binding.tvNoPayments.visibility = View.VISIBLE
-                        binding.btnViewAllPayments.visibility = View.GONE
-                    }
-                }
-                is Resource.Error -> {
-                    binding.progressBarPayments.visibility = View.GONE
-                    binding.rvPaymentHistory.visibility = View.GONE
-                    binding.tvNoPayments.visibility = View.VISIBLE
-                    binding.tvNoPayments.text = "Failed to load payment history"
-                    Toast.makeText(
-                        requireContext(),
-                        resource.message ?: "Failed to load payment history",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    showErrorState(resource.message ?: "Failed to load subscription details")
                 }
             }
         }
 
         viewModel.cancelSubscriptionResult.observe(viewLifecycleOwner) { resource ->
             when (resource) {
-                is Resource.Loading -> {
-                    showCancelLoading(true)
-                }
+                is Resource.Loading -> showCancelLoading(true)
+
                 is Resource.Success -> {
                     showCancelLoading(false)
                     Toast.makeText(requireContext(), "Subscription cancelled successfully", Toast.LENGTH_SHORT).show()
                     findNavController().navigateUp()
                 }
+
                 is Resource.Error -> {
                     showCancelLoading(false)
                     Toast.makeText(
@@ -209,66 +150,90 @@ class SubscriptionDetailsFragment : Fragment() {
                 }
             }
         }
-
-        viewModel.renewSubscriptionResult.observe(viewLifecycleOwner) { resource ->
-            when (resource) {
-                is Resource.Loading -> {
-                    // Show renew loading if needed
-                    binding.btnUpgrade.isEnabled = false
-                    binding.btnUpgrade.text = "Processing..."
-                }
-                is Resource.Success -> {
-                    binding.btnUpgrade.isEnabled = true
-                    binding.btnUpgrade.text = "Upgrade Plan"
-                    Toast.makeText(requireContext(), "Subscription renewed successfully", Toast.LENGTH_SHORT).show()
-                    // Refresh subscription details
-                    loadSubscriptionDetails()
-                }
-                is Resource.Error -> {
-                    binding.btnUpgrade.isEnabled = true
-                    binding.btnUpgrade.text = "Upgrade Plan"
-                    Toast.makeText(
-                        requireContext(),
-                        resource.message ?: "Failed to renew subscription",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            }
-        }
     }
 
     private fun loadSubscriptionDetails() {
-        // Load from API using subscriptionId
-        subscriptionId?.let { subId ->
-            shopId?.let { shpId ->
-                lifecycleScope.launch {
-                    viewModel.getSubscriptionDetails(shpId, subId)
+        currentSubscription?.let { sub ->
+            binding.layoutContent.visibility = View.VISIBLE
+            binding.layoutError.visibility = View.GONE
+            updateUI(sub)
+            subscriptionHistoryAdapter.submitList(listOf(sub))
+            loadFeatures(sub)
+            return
+        }
+
+        lifecycleScope.launch {
+            // FIX: args.shopId might be nullable in generated args -> require non-null before use
+            val shopId: String = args.shopId
+                ?: run {
+                    showErrorState("Missing shop id")
+                    return@launch
                 }
-            } ?: run {
-                showErrorState()
-                Toast.makeText(requireContext(), "Shop ID not available", Toast.LENGTH_SHORT).show()
-            }
-        } ?: run {
-            // If no subscription ID, try to load active subscription for shop
-            shopId?.let { id ->
-                lifecycleScope.launch {
-                    viewModel.getShopActiveSubscription(id)
-                }
-            } ?: run {
-                showErrorState()
-                Toast.makeText(requireContext(), "No subscription ID or shop ID provided", Toast.LENGTH_SHORT).show()
+
+            val subscriptionId: String? = args.subscriptionId
+            if (!subscriptionId.isNullOrBlank()) {
+                // FIX: ViewModel expects non-null String
+                viewModel.getSubscriptionDetails(shopId, subscriptionId)
+            } else {
+                viewModel.getShopActiveSubscription(shopId)
             }
         }
     }
 
-    private fun updateUI(subscription: com.devbrian.osebo.models.Subscription) {
-        this.subscription = subscription
+    private fun loadFeatures(subscription: Subscription) {
+        val features = subscription.packageDetails?.features
+        if (!features.isNullOrEmpty()) {
+            binding.featuresSection.visibility = View.VISIBLE
+            featureAdapter.submitList(features)
+        } else {
+            val defaultFeatures = getDefaultFeaturesForPlan(subscription.packageType)
+            if (defaultFeatures.isNotEmpty()) {
+                binding.featuresSection.visibility = View.VISIBLE
+                featureAdapter.submitList(defaultFeatures)
+            } else {
+                binding.featuresSection.visibility = View.GONE
+            }
+        }
+    }
 
-        // Plan name and status
+    private fun getDefaultFeaturesForPlan(packageType: String?): List<Feature> {
+        return when (packageType?.uppercase()) {
+            "BASIC" -> listOf(
+                Feature(name = "Up to 500 products", included = true, description = ""),
+                Feature(name = "Basic inventory management", included = true, description = ""),
+                Feature(name = "Sales tracking", included = true, description = ""),
+                Feature(name = "Customer management", included = true, description = ""),
+                Feature(name = "Basic reports", included = true, description = "")
+            )
+
+            "PRO" -> listOf(
+                Feature(name = "Unlimited products", included = true, description = ""),
+                Feature(name = "Advanced inventory management", included = true, description = ""),
+                Feature(name = "Sales analytics", included = true, description = ""),
+                Feature(name = "Customer loyalty program", included = true, description = ""),
+                Feature(name = "Employee management", included = true, description = ""),
+                Feature(name = "Advanced reports", included = true, description = "")
+            )
+
+            "POPULAR", "ENTERPRISE" -> listOf(
+                Feature(name = "Unlimited products", included = true, description = ""),
+                Feature(name = "Advanced inventory management", included = true, description = ""),
+                Feature(name = "Sales analytics", included = true, description = ""),
+                Feature(name = "Customer loyalty program", included = true, description = ""),
+                Feature(name = "Employee management", included = true, description = ""),
+                Feature(name = "Advanced reports", included = true, description = ""),
+                Feature(name = "Multi-store support", included = true, description = ""),
+                Feature(name = "API access", included = true, description = "")
+            )
+
+            else -> emptyList()
+        }
+    }
+
+    private fun updateUI(subscription: Subscription) {
         binding.tvPlanName.text = subscription.displayPackage
-        binding.tvPlanStatus.text = subscription.displayStatus
+        binding.tvPlanStatus.text = subscription.displayStatus.uppercase()
 
-        // Status color
         val statusColor = when (subscription.status?.uppercase()) {
             "ACTIVE" -> R.color.green_500
             "EXPIRED" -> R.color.red_500
@@ -277,321 +242,145 @@ class SubscriptionDetailsFragment : Fragment() {
             else -> R.color.gray_500
         }
         binding.tvPlanStatus.setTextColor(ContextCompat.getColor(requireContext(), statusColor))
-        binding.tvPlanStatus.background = ContextCompat.getDrawable(
-            requireContext(),
-            when (subscription.status?.uppercase()) {
-                "ACTIVE" -> R.drawable.bg_status_active
-                "TRIAL" -> R.drawable.bg_status_trial
-                "EXPIRED" -> R.drawable.bg_status_expired
-                "PENDING" -> R.drawable.bg_status_pending
-                else -> R.drawable.bg_status_inactive
-            }
-        )
 
-        // Plan icon based on package type
-        val (iconRes, iconColor) = when (subscription.packageType) {
-            "BASIC" -> Pair(R.drawable.ic_package_basic, R.color.blue_500)
-            "PRO" -> Pair(R.drawable.ic_package_pro, R.color.purple_500)
-            "POPULAR", "ENTERPRISE" -> Pair(R.drawable.ic_package_enterprise, R.color.orange_500)
-            else -> Pair(R.drawable.ic_package_basic, R.color.blue_500)
-        }
-        binding.ivPlanIcon.setImageResource(iconRes)
-        binding.ivPlanIcon.imageTintList = android.content.res.ColorStateList.valueOf(
-            ContextCompat.getColor(requireContext(), iconColor)
-        )
+        binding.tvPlanPrice.text = if (subscription.isTrial) "Free Trial" else subscription.formattedAmount
 
-        // Description
-        val description = when (subscription.packageType) {
-            "BASIC" -> "Perfect for small businesses getting started with inventory management. Includes 1 month free trial."
-            "PRO" -> "Advanced features for growing businesses with analytics, reporting, and priority support."
-            "POPULAR", "ENTERPRISE" -> "Enterprise solution with custom features, API access, and dedicated support."
-            else -> "Subscription plan for your business"
-        }
-        binding.tvPlanDescription.text = description
+        subscription.startDate?.let {
+            binding.tvStartDate.text = formatDateForDisplay(it)
+            binding.layoutStartDate.visibility = View.VISIBLE
+        } ?: run { binding.layoutStartDate.visibility = View.GONE }
 
-        // Price
-        binding.tvPlanPrice.text = if (subscription.isTrial) {
-            "Free Trial"
-        } else {
-            "${subscription.currency} ${subscription.amount.toInt()}"
-        }
-
-        // Dates
-        subscription.startDate?.let { startDate ->
-            binding.tvStartDate.text = formatDate(startDate)
-        } ?: run {
-            binding.layoutStartDate.visibility = View.GONE
-        }
-
-        subscription.endDate?.let { endDate ->
-            binding.tvRenewalDate.text = formatDate(endDate)
-            binding.tvNextBilling.text = formatDate(endDate)
+        subscription.endDate?.let {
+            binding.tvRenewalDate.text = formatDateForDisplay(it)
+            binding.tvNextBilling.text = formatDateForDisplay(it)
+            binding.layoutRenewalDate.visibility = View.VISIBLE
+            binding.layoutNextBilling.visibility = View.VISIBLE
         } ?: run {
             binding.layoutRenewalDate.visibility = View.GONE
             binding.layoutNextBilling.visibility = View.GONE
         }
 
-        // Trial info
         if (subscription.isTrial && subscription.trialEndsAt != null) {
             binding.layoutTrialInfo.visibility = View.VISIBLE
-            binding.tvTrialEndsAt.text = formatDate(subscription.trialEndsAt)
+            binding.tvTrialEndsAt.text = formatDateForDisplay(subscription.trialEndsAt)
         } else {
             binding.layoutTrialInfo.visibility = View.GONE
-        }
-
-        // Payment method
-        subscription.paymentMethod?.let { method ->
-            binding.tvPaymentMethod.text = when (method.uppercase()) {
-                "MOBILE_MONEY" -> "Mobile Money"
-                "CREDIT_CARD" -> "Credit Card"
-                "BANK_TRANSFER" -> "Bank Transfer"
-                else -> method
-            }
-        } ?: run {
-            binding.layoutPaymentMethod.visibility = View.GONE
-        }
-
-        // Phone number
-        subscription.phoneNumber?.let { phone ->
-            binding.tvBillingPhone.text = phone
-        } ?: run {
-            binding.layoutBillingPhone.visibility = View.GONE
-        }
-
-        // Update button states based on status
-        updateButtonStates(subscription)
-    }
-
-    private fun updateButtonStates(subscription: com.devbrian.osebo.models.Subscription) {
-        when (subscription.status?.uppercase()) {
-            "ACTIVE" -> {
-                binding.btnUpgrade.text = "Upgrade Plan"
-                binding.btnUpgrade.visibility = View.VISIBLE
-                binding.btnCancel.text = "Cancel Subscription"
-                binding.btnCancel.visibility = View.VISIBLE
-                binding.btnManageSubscription.visibility = View.VISIBLE
-            }
-            "TRIAL" -> {
-                binding.btnUpgrade.text = "Upgrade Now"
-                binding.btnUpgrade.visibility = View.VISIBLE
-                binding.btnCancel.text = "End Trial"
-                binding.btnCancel.visibility = View.VISIBLE
-                binding.btnManageSubscription.visibility = View.VISIBLE
-            }
-            "EXPIRED" -> {
-                binding.btnUpgrade.text = "Renew Now"
-                binding.btnUpgrade.visibility = View.VISIBLE
-                binding.btnCancel.visibility = View.GONE
-                binding.btnManageSubscription.visibility = View.GONE
-            }
-            "PENDING" -> {
-                binding.btnUpgrade.text = "Complete Payment"
-                binding.btnUpgrade.visibility = View.VISIBLE
-                binding.btnCancel.text = "Cancel Payment"
-                binding.btnCancel.visibility = View.VISIBLE
-                binding.btnManageSubscription.visibility = View.GONE
-            }
-            else -> {
-                binding.btnUpgrade.visibility = View.GONE
-                binding.btnCancel.visibility = View.GONE
-                binding.btnManageSubscription.visibility = View.GONE
-            }
-        }
-    }
-
-    private fun loadPaymentHistory(subscriptionId: String) {
-        shopId?.let { shpId ->
-            lifecycleScope.launch {
-                viewModel.getPaymentHistory(shpId, subscriptionId)
-            }
-        } ?: run {
-            Toast.makeText(requireContext(), "Shop ID not available", Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun navigateToUpgrade() {
-        subscription?.let { currentSubscription ->
-            when (currentSubscription.status?.uppercase()) {
-                "EXPIRED", "INACTIVE" -> {
-                    // Navigate to package selection for renewal
-                    val action = SubscriptionDetailsFragmentDirections
-                        .actionSubscriptionDetailsFragmentToSubscriptionPackagesFragment(
-                            shop = null,
-                            currentPackage = currentSubscription.packageType
-                        )
-                    findNavController().navigate(action)
-                }
-                "PENDING" -> {
-                    // Navigate to payment completion
-                    val action = SubscriptionDetailsFragmentDirections
-                        .actionSubscriptionDetailsFragmentToPaymentStatusFragment(
-                            transactionId = currentSubscription.transactionId ?: "",
-                            shopId = currentSubscription.shopId,
-                            subscriptionId = currentSubscription.id,
-                            amount = currentSubscription.amount.toFloat(),
-                            currency = currentSubscription.currency,
-                            phoneNumber = currentSubscription.phoneNumber ?: ""
-                        )
-                    findNavController().navigate(action)
-                }
-                else -> {
-                    // Navigate to package selection for upgrade
-                    val action = SubscriptionDetailsFragmentDirections
-                        .actionSubscriptionDetailsFragmentToSubscriptionPackagesFragment(
-                            shop = null,
-                            currentPackage = currentSubscription.packageType
-                        )
-                    findNavController().navigate(action)
-                }
-            }
-        }
-    }
+        val currentPackage: String = currentSubscription?.packageType ?: ""
 
-    private fun showCancelConfirmationDialog() {
-        subscription?.let { sub ->
-            val title = when (sub.status?.uppercase()) {
-                "TRIAL" -> "End Free Trial"
-                "PENDING" -> "Cancel Payment"
-                else -> "Cancel Subscription"
-            }
-
-            val message = when (sub.status?.uppercase()) {
-                "TRIAL" -> "Are you sure you want to end your free trial? You'll lose access to premium features immediately."
-                "PENDING" -> "Are you sure you want to cancel this pending payment? Your subscription will not be activated."
-                else -> "Are you sure you want to cancel your subscription? You'll continue to have access until the end of your current billing period (${formatDate(sub.endDate ?: "")})."
-            }
-
-            MaterialAlertDialogBuilder(requireContext())
-                .setTitle(title)
-                .setMessage(message)
-                .setPositiveButton("Yes, Cancel") { _, _ ->
-                    cancelSubscription()
-                }
-                .setNegativeButton("Keep It", null)
-                .show()
-        }
-    }
-
-    private fun cancelSubscription() {
-        subscription?.let { sub ->
-            shopId?.let { shpId ->
-                lifecycleScope.launch {
-                    viewModel.cancelSubscription(shpId, sub.id)
-                }
-            } ?: run {
-                Toast.makeText(requireContext(), "Shop ID not available", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
-    private fun showManageOptionsDialog() {
-        subscription?.let { sub ->
-            val options = arrayOf(
-                "Change Payment Method",
-                "Update Billing Information",
-                "Download Invoice",
-                "View Usage Statistics"
+        val action = SubscriptionDetailsFragmentDirections
+            .actionSubscriptionDetailsFragmentToSubscriptionPackagesFragment(
+                shop = null,
+                currentPackage = currentPackage
             )
-
-            MaterialAlertDialogBuilder(requireContext())
-                .setTitle("Manage Subscription")
-                .setItems(options) { _, which ->
-                    when (which) {
-                        0 -> showChangePaymentMethod()
-                        1 -> updateBillingInfo()
-                        2 -> downloadInvoice()
-                        3 -> viewUsageStatistics()
-                    }
-                }
-                .setNegativeButton("Cancel", null)
-                .show()
-        }
-    }
-
-    private fun showChangePaymentMethod() {
-        Toast.makeText(requireContext(), "Change payment method feature coming soon", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun updateBillingInfo() {
-        Toast.makeText(requireContext(), "Update billing info feature coming soon", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun downloadInvoice() {
-        subscription?.let { sub ->
-            // In a real app, this would download a PDF invoice
-            Toast.makeText(requireContext(), "Downloading invoice...", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun viewUsageStatistics() {
-        shopId?.let { id ->
-            val action = SubscriptionDetailsFragmentDirections
-                .actionSubscriptionDetailsFragmentToUsageStatisticsFragment(
-                    shopId = id
-                )
-            findNavController().navigate(action)
-        } ?: run {
-            Toast.makeText(requireContext(), "Shop ID not available", Toast.LENGTH_SHORT).show()
-        }
+        findNavController().navigate(action)
     }
 
     private fun navigateToPaymentHistory() {
-        subscription?.let { sub ->
-            val action = SubscriptionDetailsFragmentDirections
-                .actionSubscriptionDetailsFragmentToPaymentHistoryFragment(
-                    subscriptionId = sub.id
-                )
-            findNavController().navigate(action)
-        }
+        val subscriptionId: String = currentSubscription?.id
+            ?: args.subscriptionId
+            ?: run {
+                Toast.makeText(requireContext(), "Missing subscription ID", Toast.LENGTH_SHORT).show()
+                return
+            }
+
+        val action = SubscriptionDetailsFragmentDirections
+            .actionSubscriptionDetailsFragmentToPaymentHistoryFragment(subscriptionId)
+
+        findNavController().navigate(action)
     }
 
-    private fun formatDate(dateString: String?): String {
-        if (dateString.isNullOrEmpty()) return "N/A"
+    private fun showCancelConfirmationDialog() {
+        val sub = currentSubscription ?: return
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Cancel Subscription")
+            .setMessage("Are you sure you want to cancel your subscription?")
+            .setPositiveButton("Yes, Cancel") { _, _ -> cancelSubscription(sub.id) }
+            .setNegativeButton("No", null)
+            .show()
+    }
 
+    private fun cancelSubscription(subscriptionId: String) {
+        val shopId: String = args.shopId
+            ?: run {
+                Toast.makeText(requireContext(), "Missing shop ID", Toast.LENGTH_SHORT).show()
+                return
+            }
+
+        lifecycleScope.launch { viewModel.cancelSubscription(shopId, subscriptionId) }
+    }
+
+    private fun showManageOptionsDialog() {
+        val options = arrayOf(
+            "Change Payment Method",
+            "Update Billing Information",
+            "Download Invoice",
+            "View Usage Statistics"
+        )
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Manage Subscription")
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> Toast.makeText(requireContext(), "Change payment method", Toast.LENGTH_SHORT).show()
+                    1 -> Toast.makeText(requireContext(), "Update billing info", Toast.LENGTH_SHORT).show()
+                    2 -> Toast.makeText(requireContext(), "Downloading invoice...", Toast.LENGTH_SHORT).show()
+                    3 -> viewUsageStatistics()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun viewUsageStatistics() {
+        val shopId: String = args.shopId
+            ?: run {
+                Toast.makeText(requireContext(), "Missing shop ID", Toast.LENGTH_SHORT).show()
+                return
+            }
+
+        val action = SubscriptionDetailsFragmentDirections
+            .actionSubscriptionDetailsFragmentToUsageStatisticsFragment(shopId)
+        findNavController().navigate(action)
+    }
+
+    private fun showLoading(show: Boolean) {
+        binding.progressBar.visibility = if (show) View.VISIBLE else View.GONE
+    }
+
+    private fun showCancelLoading(show: Boolean) {
+        if (show) Toast.makeText(requireContext(), "Cancelling...", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun showErrorState(message: String) {
+        binding.layoutContent.visibility = View.GONE
+        binding.layoutError.visibility = View.VISIBLE
+        binding.tvErrorMessage.text = message
+        binding.progressBar.visibility = View.GONE
+    }
+
+    private fun formatDateForDisplay(dateString: String?): String {
+        if (dateString.isNullOrEmpty()) return "N/A"
         return try {
-            // Simple formatting - in production, use SimpleDateFormat or LocalDateTime
-            if (dateString.length >= 10) {
-                val parts = dateString.substring(0, 10).split("-")
-                if (parts.size == 3) {
-                    "${parts[2]}/${parts[1]}/${parts[0]}" // DD/MM/YYYY format
-                } else {
-                    dateString
+            val inputFormat = if (dateString.contains("T")) {
+                SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()).apply {
+                    timeZone = TimeZone.getTimeZone("UTC")
                 }
             } else {
-                dateString
+                SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
             }
+            val outputFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+            val date = inputFormat.parse(dateString)
+            if (date == null) "N/A" else outputFormat.format(date)
         } catch (e: Exception) {
             dateString
         }
     }
 
-    private fun showLoading(show: Boolean) {
-        binding.progressBar.visibility = if (show) View.VISIBLE else View.GONE
-        binding.layoutError.visibility = View.GONE
-    }
-
-    private fun showCancelLoading(show: Boolean) {
-        // You can add a progress bar for cancel operation
-        if (show) {
-            Toast.makeText(requireContext(), "Cancelling subscription...", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun showErrorState() {
-        binding.layoutContent.visibility = View.GONE
-        binding.layoutError.visibility = View.VISIBLE
-        binding.btnRetry.setOnClickListener {
-            loadSubscriptionDetails()
-        }
-    }
-
     override fun onDestroyView() {
         super.onDestroyView()
-        stopPolling()
         _binding = null
-    }
-
-    private fun stopPolling() {
-        // Implement if needed
     }
 }

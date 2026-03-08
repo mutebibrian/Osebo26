@@ -6,20 +6,6 @@
     android:layout_height="match_parent"
     android:background="@color/surface">
 
-    <!-- In your LinearLayout inside NestedScrollView, add this: -->
-    <TextView
-        android:id="@+id/tvShopName"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Shop Name"
-        android:textSize="14sp"
-        android:textColor="@color/on_surface_variant"
-        android:background="@drawable/bg_current_plan"
-        android:paddingHorizontal="12dp"
-        android:paddingVertical="6dp"
-        android:layout_marginBottom="16dp"
-        android:visibility="gone" />
-
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -144,67 +130,14 @@
 
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Payment Method -->
+            <!-- Payment Method - Simplified -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Payment Method"
+                android:text="Mobile Money Number"
                 android:textSize="16sp"
                 android:textStyle="bold"
-                android:layout_marginBottom="12dp" />
-
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:cardCornerRadius="8dp"
-                app:strokeColor="@color/primary"
-                app:strokeWidth="2dp"
-                android:layout_marginBottom="24dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:padding="16dp">
-
-                    <ImageView
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
-                        android:src="@drawable/ic_mobile_money"
-                        android:tint="@color/primary" />
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:layout_marginStart="12dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Mobile Money"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="MTN, Airtel, etc."
-                            android:textSize="12sp"
-                            android:textColor="@color/on_surface_variant" />
-
-                    </LinearLayout>
-
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@drawable/ic_check_circle"
-                        android:tint="@color/primary" />
-
-                </LinearLayout>
-
-            </com.google.android.material.card.MaterialCardView>
+                android:layout_marginBottom="8dp" />
 
             <!-- Phone Input -->
             <com.google.android.material.textfield.TextInputLayout
@@ -212,18 +145,31 @@
                 style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Phone Number"
+                android:hint="Enter your mobile money number"
                 app:startIconDrawable="@drawable/ic_phone"
-                android:layout_marginBottom="24dp">
+                app:endIconMode="clear_text"
+                android:layout_marginBottom="16dp">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/etPhoneNumber"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:inputType="phone"
-                    android:text="+256" />
+                    android:maxLines="1"
+                    android:text="+256"
+                    android:maxLength="15" />
 
             </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Info Text -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="You will receive a payment request on your phone. Supported networks: MTN, Airtel, Africell"
+                android:textSize="12sp"
+                android:textColor="@color/on_surface_variant"
+                android:gravity="center"
+                android:layout_marginBottom="24dp" />
 
             <!-- Proceed Button -->
             <com.google.android.material.button.MaterialButton
@@ -231,14 +177,15 @@
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
                 android:text="PROCEED TO PAY"
-                app:icon="@drawable/ic_lock" />
+                app:icon="@drawable/ic_lock"
+                app:iconGravity="textStart" />
 
-            <!-- Info Text -->
+            <!-- Terms Text -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="You will receive a payment request on your phone"
-                android:textSize="12sp"
+                android:text="By proceeding, you agree to receive a payment request on your mobile money account"
+                android:textSize="10sp"
                 android:textColor="@color/on_surface_variant"
                 android:gravity="center"
                 android:layout_marginTop="16dp" />

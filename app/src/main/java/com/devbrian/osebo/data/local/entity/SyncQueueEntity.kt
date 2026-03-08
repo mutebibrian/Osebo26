@@ -8,13 +8,14 @@ import java.util.Date
 data class SyncQueueEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
-    val entityType: String,  // "PRODUCT", "CATEGORY"
+    val entityType: String,  
     val entityId: String,
-    val action: String,      // "CREATE", "UPDATE", "DELETE"
-    val data: String,        // JSON of the entity
+    val action: String,      
+    val data: String,        
     val shopId: String,
     val retryCount: Int = 0,
     val createdAt: Long = System.currentTimeMillis(),
     val lastAttemptAt: Long? = null,
-    val status: String = "PENDING"  // "PENDING", "PROCESSING", "COMPLETED", "FAILED"
+    val status: String = "PENDING"  
 )
+

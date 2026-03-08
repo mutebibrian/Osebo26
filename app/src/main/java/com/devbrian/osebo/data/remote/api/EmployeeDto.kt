@@ -28,3 +28,4 @@ data class EmployeeDto(
     @SerializedName("status")
     val status: String
 )
+

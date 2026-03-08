@@ -15,3 +15,4 @@ data class CreateTransferRequest(
     @SerializedName("notes")
     val notes: String? = null
 )
+

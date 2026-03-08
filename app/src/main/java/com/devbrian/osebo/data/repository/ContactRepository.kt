@@ -18,3 +18,4 @@ interface ContactRepository {
         onError: (String) -> Unit
     )
 }
+

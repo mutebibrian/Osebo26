@@ -31,7 +31,6 @@ data class SubscriptionPackage(
     @SerializedName("is_active")
     val isActive: Boolean = true,
 
-    // Additional fields from API
     @SerializedName("code")
     val code: String? = null,
 
@@ -57,10 +56,10 @@ data class SubscriptionPackage(
     val hasTrial: Boolean = false,
 
     @SerializedName("is_popular")
-    val isPopularFromApi: Boolean = false,  // ✅ Renamed to avoid conflict
+    val isPopularFromApi: Boolean = false,
 
     @SerializedName("is_custom")
-    val isCustomFromApi: Boolean = false,    // ✅ Renamed to avoid conflict
+    val isCustomFromApi: Boolean = false,
 
     @SerializedName("max_employees")
     val maxEmployees: Int = 0,
@@ -120,7 +119,6 @@ data class SubscriptionPackage(
     val updatedAt: String? = null
 ) : Parcelable, Serializable {
 
-    // Computed properties - these don't conflict with constructor params
     val displayName: String
         get() = when {
             !displayNameFromApi.isNullOrBlank() -> displayNameFromApi
@@ -149,7 +147,6 @@ data class SubscriptionPackage(
             else -> "$currency ${String.format("%,.0f", price)}/month"
         }
 
-    // ✅ Fixed: Use the renamed API fields
     val isPopular: Boolean
         get() = isPopularFromApi || tier.lowercase() == "pro"
 
@@ -204,7 +201,6 @@ data class SubscriptionPackage(
     companion object {
         val EMPTY = SubscriptionPackage()
 
-        // ✅ Fixed: Use correct parameter names in copy()
         val SAMPLE_BASIC = SubscriptionPackage(
             id = "basic_123",
             name = "Basic",
@@ -270,6 +266,7 @@ data class SubscriptionPackage(
     }
 }
 
+// Single definition of Feature — DELETE your Feature.kt file entirely
 @Parcelize
 data class Feature(
     @SerializedName("id")

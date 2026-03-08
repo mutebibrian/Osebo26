@@ -28,7 +28,7 @@ class SalesViewModel @Inject constructor(
 
 ) : ViewModel() {
 
-    // ==================== EXISTING PROPERTIES ====================
+    
     private val _recentSales = MutableLiveData<List<Sale>>(emptyList())
     val recentSales: LiveData<List<Sale>> = _recentSales
 
@@ -53,23 +53,23 @@ class SalesViewModel @Inject constructor(
     private val _saleResult = MutableLiveData<Resource<SaleData>>()
     val saleResult: LiveData<Resource<SaleData>> = _saleResult
 
-    // ==================== PRODUCTS ====================
+    
     private val _products = MutableLiveData<List<Product>>(emptyList())
     val products: LiveData<List<Product>> = _products
 
-    // ==================== CART ====================
+    
     private val _cartItems = MutableLiveData<List<CartItem>>(emptyList())
     val cartItems: LiveData<List<CartItem>> = _cartItems
 
-    // ==================== MESSAGES ====================
+    
     private val _successMessage = MutableLiveData<String?>()
     val successMessage: LiveData<String?> = _successMessage
 
-    // ==================== OFFLINE STATUS ====================
+    
     private val _isOffline = MutableLiveData(false)
     val isOffline: LiveData<Boolean> = _isOffline
 
-    // ==================== SELECTED CUSTOMER ====================
+    
     private val _selectedCustomer = MutableLiveData<Customer?>()
     val selectedCustomer: LiveData<Customer?> = _selectedCustomer
 
@@ -78,7 +78,7 @@ class SalesViewModel @Inject constructor(
         loadProducts()
     }
 
-    // ==================== PRODUCT METHODS ====================
+    
 
     fun loadProducts() {
         viewModelScope.launch {
@@ -95,7 +95,7 @@ class SalesViewModel @Inject constructor(
                         _isOffline.value = false
                         println("📱 SalesViewModel - Products loaded: ${products.size}")
 
-                        // Log first few products for debugging
+                        
                         if (products.isNotEmpty()) {
                             println("📱 First 3 products:")
                             products.take(3).forEachIndexed { index, product ->
@@ -110,7 +110,7 @@ class SalesViewModel @Inject constructor(
                         _isOffline.value = true
                         println("📱 SalesViewModel - Error loading products: ${result.message}")
 
-                        // Try to load from local cache as fallback
+                        
                         loadProductsFromCache()
                     }
                     is Resource.Loading -> {
@@ -123,7 +123,7 @@ class SalesViewModel @Inject constructor(
                 println("📱 SalesViewModel - Exception: ${e.message}")
                 e.printStackTrace()
 
-                // Try to load from local cache as fallback
+                
                 loadProductsFromCache()
             } finally {
                 _isLoading.value = false
@@ -131,11 +131,11 @@ class SalesViewModel @Inject constructor(
         }
     }
 
-    // Add this function to load from cache
+    
     private fun loadProductsFromCache() {
         viewModelScope.launch {
             try {
-                // Try to get products from local database
+                
                 productRepository.observeProducts().collect { cachedProducts ->
                     if (cachedProducts.isNotEmpty()) {
                         _products.value = cachedProducts
@@ -196,7 +196,7 @@ class SalesViewModel @Inject constructor(
         }
     }
 
-    // ==================== CART MANAGEMENT METHODS ====================
+    
 
     fun addToCart(product: Product) {
         println("📱 VIEWMODEL - addToCart called with: ${product.name}")
@@ -287,7 +287,7 @@ class SalesViewModel @Inject constructor(
         _successMessage.value = "Sale held successfully"
     }
 
-    // ==================== CART SUMMARY METHODS ====================
+    
 
     fun getCartSummary(): CartSummary {
         val items = _cartItems.value ?: emptyList()
@@ -314,7 +314,7 @@ class SalesViewModel @Inject constructor(
         }
     }
 
-    // ==================== CUSTOMER METHODS ====================
+    
 
     fun selectCustomer(customer: Customer) {
         _selectedCustomer.value = customer
@@ -327,7 +327,7 @@ class SalesViewModel @Inject constructor(
         println("📱 VIEWMODEL - Customer cleared")
     }
 
-    // ==================== SALES METHODS WITH FIXED DATE CALCULATIONS ====================
+    
 
     fun loadRecentSales() {
         viewModelScope.launch {
@@ -338,20 +338,20 @@ class SalesViewModel @Inject constructor(
                 salesRepository.getRecentSales().collect { sales ->
                     println("📊 SalesViewModel - Received ${sales.size} sales")
 
-                    // Log each sale for debugging
+                    
                     sales.forEachIndexed { index, sale ->
                         println("📊 Sale[$index]: ID=${sale.id}, Amount=${sale.amount}, Date=${sale.date}, Status=${sale.status}")
                     }
 
                     _recentSales.value = sales
 
-                    // Calculate today's sales total
+                    
                     val todayTotal = calculateTodayTotal(sales)
                     _todaySalesTotal.value = todayTotal
 
                     println("📊 Today's sales total calculated: $todayTotal")
 
-                    // Calculate this month's sales stats
+                    
                     val monthStats = calculateMonthStats(sales)
                     _monthSalesTotal.value = monthStats.first
                     _monthSalesCount.value = monthStats.second
@@ -368,9 +368,7 @@ class SalesViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Calculate total sales for today
-     */
+    
     private fun calculateTodayTotal(sales: List<Sale>): Double {
         val calendar = Calendar.getInstance()
         val today = calendar.get(Calendar.DAY_OF_YEAR)
@@ -378,7 +376,7 @@ class SalesViewModel @Inject constructor(
 
         return sales.filter { sale ->
             try {
-                // Only include completed sales with positive amounts
+                
                 if (sale.amount <= 0) return@filter false
 
                 val saleDate = parseSaleDate(sale.date)
@@ -402,9 +400,7 @@ class SalesViewModel @Inject constructor(
         }.sumOf { it.amount }
     }
 
-    /**
-     * Calculate total sales and count for current month
-     */
+    
     private fun calculateMonthStats(sales: List<Sale>): Pair<Double, Int> {
         val calendar = Calendar.getInstance()
         val currentMonth = calendar.get(Calendar.MONTH)
@@ -412,7 +408,7 @@ class SalesViewModel @Inject constructor(
 
         val monthSales = sales.filter { sale ->
             try {
-                // Only include completed sales with positive amounts
+                
                 if (sale.amount <= 0) return@filter false
 
                 val saleDate = parseSaleDate(sale.date)
@@ -441,29 +437,26 @@ class SalesViewModel @Inject constructor(
         return Pair(total, count)
     }
 
-    /**
-     * Parse sale date string to Calendar object
-     * Supports multiple date formats
-     */
+    
     private fun parseSaleDate(dateString: String): Calendar? {
         return try {
             val calendar = Calendar.getInstance()
 
-            // Try parsing as timestamp (milliseconds)
+            
             val timestamp = dateString.toLongOrNull()
             if (timestamp != null) {
                 calendar.timeInMillis = timestamp
                 return calendar
             }
 
-            // Try parsing as timestamp in seconds
+            
             val timestampSeconds = dateString.toLongOrNull()
             if (timestampSeconds != null && timestampSeconds < 10000000000L) {
                 calendar.timeInMillis = timestampSeconds * 1000
                 return calendar
             }
 
-            // Try various date formats
+            
             val dateFormats = listOf(
                 SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()),
                 SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()),
@@ -480,15 +473,15 @@ class SalesViewModel @Inject constructor(
                     calendar.time = date
                     return calendar
                 } catch (e: Exception) {
-                    // Try next format
+                    
                 }
             }
 
-            // Try to extract date from common patterns using regex
+            
             val patterns = listOf(
-                Regex("""(\d{4})-(\d{2})-(\d{2})"""), // yyyy-MM-dd
-                Regex("""(\d{2})/(\d{2})/(\d{4})"""), // dd/MM/yyyy or MM/dd/yyyy
-                Regex("""(\d{2})-(\d{2})-(\d{4})""")  // dd-MM-yyyy or MM-dd-yyyy
+                Regex("""(\d{4})-(\d{2})-(\d{2})"""), 
+                Regex("""(\d{2})/(\d{2})/(\d{4})"""), 
+                Regex("""(\d{2})-(\d{2})-(\d{4})""")  
             )
 
             for (pattern in patterns) {
@@ -496,7 +489,7 @@ class SalesViewModel @Inject constructor(
                 if (matchResult != null) {
                     val (first, second, third) = matchResult.destructured
 
-                    // Try to determine format based on values
+                    
                     val year = when {
                         first.length == 4 -> first.toInt()
                         third.length == 4 -> third.toInt()
@@ -515,7 +508,7 @@ class SalesViewModel @Inject constructor(
                         else -> continue
                     }
 
-                    // Validate month and day
+                    
                     if (month in 1..12 && day in 1..31) {
                         calendar.set(year, month - 1, day)
                         return calendar
@@ -550,7 +543,7 @@ class SalesViewModel @Inject constructor(
 
             try {
                 val customer = if (customerId != null) {
-                    // You might want to fetch the full customer details here
+                    
                     Customer(id = customerId, name = "", phone = "", email = "", address = "")
                 } else {
                     null
@@ -562,7 +555,7 @@ class SalesViewModel @Inject constructor(
                         if (isNotEmpty()) append(", ")
                         append("Phone: $phoneNumber")
                     }
-                    // Add note about change if any
+                    
                     val change = paidAmount - totalAmount
                     if (change > 0) {
                         if (isNotEmpty()) append(", ")
@@ -573,7 +566,7 @@ class SalesViewModel @Inject constructor(
                 val result = salesRepository.createSale(
                     customer = customer,
                     cartItems = _cartItems.value ?: emptyList(),
-                    paidAmount = paidAmount, // This is now the exact total
+                    paidAmount = paidAmount, 
                     saleType = saleType,
                     paymentMethod = paymentMethod,
                     notes = notes
@@ -595,7 +588,7 @@ class SalesViewModel @Inject constructor(
                         _errorMessage.value = result.message
                     }
                     is Resource.Loading -> {
-                        // Handle loading state
+                        
                     }
                 }
             } catch (e: Exception) {
@@ -622,22 +615,17 @@ class SalesViewModel @Inject constructor(
 
     fun refreshSales() {
         viewModelScope.launch {
-            loadRecentSales() // This will reload the sales data
+            loadRecentSales() 
         }
     }
 
-    /**
-     * Refresh all sales data
-     * Call this when returning to the sales screen
-     */
+    
     fun refreshSalesData() {
         println("🔄 Refreshing sales data...")
         loadRecentSales()
     }
 
-    /**
-     * Get sales for a specific date range
-     */
+    
     fun getSalesInDateRange(startDate: Long, endDate: Long): List<Sale> {
         return _recentSales.value?.filter { sale ->
             try {
@@ -654,15 +642,13 @@ class SalesViewModel @Inject constructor(
         } ?: emptyList()
     }
 
-    /**
-     * Get total sales for a specific date range
-     */
+    
     fun getTotalInDateRange(startDate: Long, endDate: Long): Double {
         return getSalesInDateRange(startDate, endDate).sumOf { it.amount }
     }
 }
 
-// ==================== DATA CLASS FOR CART SUMMARY ====================
+
 
 data class CartSummary(
     val subtotal: Double,
@@ -671,3 +657,4 @@ data class CartSummary(
     val total: Double,
     val itemCount: Int
 )
+

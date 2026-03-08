@@ -29,3 +29,4 @@ interface CategoryDao {
     @Query("SELECT * FROM categories WHERE isPendingSync = 1")
     suspend fun getPendingSyncCategories(): List<CategoryEntity>
 }
+

@@ -75,10 +75,10 @@ class UserRolesFragment : Fragment() {
             return
         }
 
-        // Create API service
+        
         val apiService = ApiClient.create()
 
-        // Use the existing getRoles method from ApiService
+        
         apiService.getRoles("Bearer $token", shopId).enqueue(object : Callback<ApiResponse<List<UserRole>>> {
             override fun onResponse(call: Call<ApiResponse<List<UserRole>>>, response: Response<ApiResponse<List<UserRole>>>) {
                 handleRolesResponse(response)
@@ -128,7 +128,7 @@ class UserRolesFragment : Fragment() {
     private fun updateUserRolesList(roles: List<UserRole>) {
         userRoles.clear()
 
-        // Filter and sort roles for African business context
+        
         val filteredRoles = roles.filter { role ->
             role.name.lowercase() !in listOf("owner", "admin", "superadmin")
         }.sortedBy { role ->
@@ -161,7 +161,7 @@ class UserRolesFragment : Fragment() {
         adapter.notifyDataSetChanged()
         showEmptyState(false)
 
-        // Update UI to show this is sample data
+        
         binding.titleTextView.text = "User Roles (Sample Data)"
         binding.descriptionTextView.text = "Sample roles for African businesses. Connect to your Osebo account to see real data."
         binding.emptyStateTextView.visibility = View.GONE
@@ -224,7 +224,7 @@ class UserRolesFragment : Fragment() {
     }
 
     private fun navigateToEditPermissions(role: UserRole) {
-        // Don't allow editing of demo roles
+        
         if (role.id.startsWith("demo_") || role.id.toIntOrNull() != null) {
             Toast.makeText(
                 requireContext(),
@@ -241,7 +241,7 @@ class UserRolesFragment : Fragment() {
 
         val dialog = EditPermissionsDialogFragment.newInstance(role)
         dialog.setOnPermissionsUpdatedListener { updatedRole ->
-            // Update the role in the list
+            
             val index = userRoles.indexOfFirst { it.id == updatedRole.id }
             if (index != -1) {
                 userRoles[index] = updatedRole
@@ -306,3 +306,4 @@ class UserRolesFragment : Fragment() {
         }
     }
 }
+

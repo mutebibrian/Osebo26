@@ -21,3 +21,4 @@ data class ShopType(
     @SerializedName("updated_at")
     val updatedAt: String? = null
 )
+

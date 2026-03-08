@@ -7,3 +7,4 @@ data class UpdatePermissionsRequest(
     @SerializedName("permissions")
     val permissions: List<String>
 )
+

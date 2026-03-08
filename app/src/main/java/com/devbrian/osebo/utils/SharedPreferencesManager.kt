@@ -8,13 +8,13 @@ import javax.inject.Singleton
 
 @Singleton
 class SharedPreferencesManager @Inject constructor(
-    @ApplicationContext private val context: Context  // Add @ApplicationContext
+    @ApplicationContext private val context: Context  
 ) {
 
     companion object {
         private const val PREFS_NAME = "OseboPrefs"
 
-        // Keys
+        
         private const val KEY_AUTH_TOKEN = "auth_token"
         private const val KEY_USER_ID = "user_id"
         private const val KEY_USER_EMAIL = "user_email"
@@ -35,11 +35,11 @@ class SharedPreferencesManager @Inject constructor(
         private const val KEY_NOTIFICATIONS_ENABLED = "notifications_enabled"
         private const val KEY_LANGUAGE = "app_language"
 
-        // Additional keys for LoginViewModel compatibility
+        
         private const val KEY_USER_VERIFIED = "user_verified"
         private const val KEY_USER_TITLE = "user_title"
 
-        // Subscription keys
+        
         private const val KEY_SUBSCRIPTION_ID = "subscription_id"
         private const val KEY_SUBSCRIPTION_STATUS = "subscription_status"
         private const val KEY_SUBSCRIPTION_TYPE = "subscription_type"
@@ -49,18 +49,18 @@ class SharedPreferencesManager @Inject constructor(
 
     private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-    // Get SharedPreferences instance
+    
     fun getSharedPreferences(): SharedPreferences = prefs
 
-    // Get context (for NetworkUtils)
+    
     fun getContext(): Context = context
 
-    // ==================== AUTHENTICATION ====================
+    
     fun saveAuthToken(token: String) = prefs.edit().putString(KEY_AUTH_TOKEN, token).apply()
     fun getAuthToken(): String = prefs.getString(KEY_AUTH_TOKEN, "") ?: ""
     fun clearAuthToken() = prefs.edit().remove(KEY_AUTH_TOKEN).apply()
 
-    // ==================== USER DATA ====================
+    
     fun saveUserId(userId: String) = prefs.edit().putString(KEY_USER_ID, userId).apply()
     fun getUserId(): String = prefs.getString(KEY_USER_ID, "") ?: ""
 
@@ -76,18 +76,18 @@ class SharedPreferencesManager @Inject constructor(
     fun saveUserRole(role: String) = prefs.edit().putString(KEY_USER_ROLE, role).apply()
     fun getUserRole(): String = prefs.getString(KEY_USER_ROLE, "") ?: ""
 
-    // ==================== USER ADDITIONAL DATA ====================
+    
     fun saveUserTitle(title: String) = prefs.edit().putString(KEY_USER_TITLE, title).apply()
     fun getUserTitle(): String = prefs.getString(KEY_USER_TITLE, "") ?: ""
 
     fun setUserVerified(isVerified: Boolean) = prefs.edit().putBoolean(KEY_USER_VERIFIED, isVerified).apply()
     fun isUserVerified(): Boolean = prefs.getBoolean(KEY_USER_VERIFIED, false)
 
-    // ==================== LOGIN STATE ====================
+    
     fun setUserLoggedIn(isLoggedIn: Boolean) = prefs.edit().putBoolean(KEY_IS_LOGGED_IN, isLoggedIn).apply()
     fun isUserLoggedIn(): Boolean = prefs.getBoolean(KEY_IS_LOGGED_IN, false)
 
-    // ==================== SHOP DATA ====================
+    
     fun saveCurrentShopId(shopId: String) = prefs.edit().putString(KEY_CURRENT_SHOP_ID, shopId).apply()
     fun getCurrentShopId(): String = prefs.getString(KEY_CURRENT_SHOP_ID, "") ?: ""
 
@@ -112,7 +112,7 @@ class SharedPreferencesManager @Inject constructor(
     fun setHasShop(hasShop: Boolean) = prefs.edit().putBoolean(KEY_HAS_SHOP, hasShop).apply()
     fun hasShop(): Boolean = prefs.getBoolean(KEY_HAS_SHOP, false)
 
-    // ==================== SUBSCRIPTION MANAGEMENT ====================
+    
 
     fun saveSubscriptionId(subscriptionId: String) = prefs.edit().putString(KEY_SUBSCRIPTION_ID, subscriptionId).apply()
     fun getSubscriptionId(): String = prefs.getString(KEY_SUBSCRIPTION_ID, "") ?: ""
@@ -164,7 +164,7 @@ class SharedPreferencesManager @Inject constructor(
         }.apply()
     }
 
-    // ==================== APP SETTINGS ====================
+    
     fun setIsFirstLaunch(isFirstLaunch: Boolean) = prefs.edit().putBoolean(KEY_IS_FIRST_LAUNCH, isFirstLaunch).apply()
     fun isFirstLaunch(): Boolean = prefs.getBoolean(KEY_IS_FIRST_LAUNCH, true)
 
@@ -177,7 +177,7 @@ class SharedPreferencesManager @Inject constructor(
     fun saveAppLanguage(language: String) = prefs.edit().putString(KEY_LANGUAGE, language).apply()
     fun getAppLanguage(): String = prefs.getString(KEY_LANGUAGE, "en") ?: "en"
 
-    // ==================== UTILITY METHODS ====================
+    
     fun isLoggedIn(): Boolean {
         val token = getAuthToken()
         val userId = getUserId()
@@ -188,7 +188,7 @@ class SharedPreferencesManager @Inject constructor(
         return getCurrentShopId().isNotBlank() && hasShop()
     }
 
-    // Clear all user data (logout)
+    
     fun clearUserData() {
         prefs.edit().apply {
             remove(KEY_AUTH_TOKEN)
@@ -204,7 +204,7 @@ class SharedPreferencesManager @Inject constructor(
         }
     }
 
-    // Clear shop data (when switching shops or deleting shop)
+    
     fun clearShopData() {
         prefs.edit().apply {
             remove(KEY_CURRENT_SHOP_ID)
@@ -219,12 +219,12 @@ class SharedPreferencesManager @Inject constructor(
         }
     }
 
-    // Clear all data (complete reset)
+    
     fun clearAll() {
         prefs.edit().clear().apply()
     }
 
-    // Save all user data at once
+    
     fun saveUserData(
         userId: String,
         email: String,
@@ -247,7 +247,7 @@ class SharedPreferencesManager @Inject constructor(
         }
     }
 
-    // Save all shop data at once
+    
     fun saveShopData(
         shopId: String,
         shopName: String,
@@ -270,7 +270,7 @@ class SharedPreferencesManager @Inject constructor(
         }
     }
 
-    // Get shop info as a map
+    
     fun getShopInfo(): Map<String, String> {
         return mapOf(
             "id" to getCurrentShopId(),
@@ -283,7 +283,7 @@ class SharedPreferencesManager @Inject constructor(
         )
     }
 
-    // Get user info as a map
+    
     fun getUserInfo(): Map<String, String> {
         return mapOf(
             "id" to getUserId(),
@@ -295,7 +295,7 @@ class SharedPreferencesManager @Inject constructor(
         )
     }
 
-    // Get subscription info as a map
+    
     fun getSubscriptionInfo(): Map<String, String> {
         return mapOf(
             "id" to getSubscriptionId(),
@@ -306,19 +306,19 @@ class SharedPreferencesManager @Inject constructor(
         )
     }
 
-    // ==================== ADDITIONAL HELPER METHODS ====================
+    
 
-    // Check if user has completed onboarding/setup
+    
     fun hasCompletedSetup(): Boolean {
         return isLoggedIn() && (hasShop() || !isFirstLaunch())
     }
 
-    // Mark setup as completed
+    
     fun markSetupCompleted() {
         setIsFirstLaunch(false)
     }
 
-    // Get user display name (fallback to email if name is empty)
+    
     fun getUserDisplayName(): String {
         val name = getUserName()
         return if (name.isNotBlank()) {
@@ -328,14 +328,14 @@ class SharedPreferencesManager @Inject constructor(
         }
     }
 
-    // Quick logout method
+    
     fun logout() {
         clearUserData()
         clearShopData()
         clearSubscriptionInfo()
     }
 
-    // Quick login method
+    
     fun login(
         token: String,
         userId: String,
@@ -350,3 +350,4 @@ class SharedPreferencesManager @Inject constructor(
         saveUserData(userId, email, name, phone, role, title, isVerified)
     }
 }
+

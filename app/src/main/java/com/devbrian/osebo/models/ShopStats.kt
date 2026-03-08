@@ -9,3 +9,4 @@ data class ShopStats(
     val totalEmployees: Int,
     val lowStockItems: Int
 )
+

@@ -15,3 +15,4 @@ data class DashboardSummaryDto(
     @SerializedName("total_products")
     val totalProducts: Int
 )
+

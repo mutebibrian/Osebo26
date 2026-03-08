@@ -28,3 +28,4 @@ data class AddInventoryItemRequest(
     @SerializedName("supplier_id")
     val supplierId: String? = null
 )
+

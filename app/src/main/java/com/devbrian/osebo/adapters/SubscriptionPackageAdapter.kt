@@ -24,7 +24,7 @@ class SubscriptionPackageAdapter(
 
         fun bind(packageItem: SubscriptionPackage, position: Int) {
             binding.apply {
-                // Package name and tier
+                
                 tvPackageName.text = when (packageItem.tier.lowercase()) {
                     "basic" -> "Basic Plan"
                     "pro" -> "Pro Plan"
@@ -32,21 +32,21 @@ class SubscriptionPackageAdapter(
                     else -> packageItem.name
                 }
 
-                // Price formatting based on your API response
+                
                 tvPackagePrice.text = if (packageItem.price > 0) {
                     "UGX ${String.format("%,.0f", packageItem.price)}/month"
                 } else {
                     "Contact Sales"
                 }
 
-                // Description from API
+                
                 tvPackageDescription.text = packageItem.description
 
-                // Features - format as bullet points or comma separated
+                
                 val featuresText = packageItem.featureList.joinToString(" • ")
                 tvFeatures.text = featuresText
 
-                // Popular tag - only show for Pro plan (tier = "pro")
+                
                 if (packageItem.tier.lowercase() == "pro") {
                     tvPopularTag.visibility = View.VISIBLE
                     tvPopularTag.text = "POPULAR"
@@ -54,7 +54,7 @@ class SubscriptionPackageAdapter(
                     tvPopularTag.visibility = View.GONE
                 }
 
-                // Custom tag for Enterprise plan
+                
                 if (packageItem.tier.lowercase() == "custom") {
                     tvCustomTag.visibility = View.VISIBLE
                     tvCustomTag.text = "CUSTOM"
@@ -62,18 +62,18 @@ class SubscriptionPackageAdapter(
                     tvCustomTag.visibility = View.GONE
                 }
 
-                // Trial info - API doesn't show trial, so hide it
+                
                 tvTrialInfo.visibility = View.GONE
 
-                // Set selection state
+                
                 (binding.cardPackage as? com.google.android.material.card.MaterialCardView)?.isChecked =
                     position == selectedPosition
 
-                // Disable click for inactive packages
+                
                 root.isEnabled = packageItem.isActive
                 root.alpha = if (packageItem.isActive) 1.0f else 0.5f
 
-                // Set click listener
+                
                 root.setOnClickListener {
                     if (packageItem.isActive) {
                         selectPackage(packageItem)
@@ -81,7 +81,7 @@ class SubscriptionPackageAdapter(
                     }
                 }
 
-                // Hide price for custom plan
+                
                 if (packageItem.tier.lowercase() == "custom") {
                     tvPackagePrice.visibility = View.GONE
                     tvContactSales.visibility = View.VISIBLE
@@ -155,3 +155,4 @@ class PackageDiffCallback : DiffUtil.ItemCallback<SubscriptionPackage>() {
                 oldItem.isActive == newItem.isActive
     }
 }
+

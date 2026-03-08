@@ -9,3 +9,4 @@ data class PaymentRequest(
     @SerializedName("reference") val reference: String? = null,
     @SerializedName("notes") val notes: String? = null
 )
+

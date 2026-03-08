@@ -34,7 +34,7 @@ interface ProductDao {
     """)
     fun searchProducts(shopId: String, query: String): Flow<List<ProductEntity>>
 
-    // Add this method for suspend search (non-flow) used in repository
+    
     @Query("""
         SELECT * FROM products 
         WHERE shopId = :shopId 
@@ -93,8 +93,9 @@ interface ProductDao {
 
     @Transaction
     suspend fun syncProducts(products: List<ProductEntity>, shopId: String) {
-        // Use a transaction for atomic operation
+        
         clearProducts(shopId)
         insertAllProducts(products)
     }
 }
+

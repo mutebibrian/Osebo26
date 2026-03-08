@@ -27,7 +27,7 @@ data class PaymentStatusData(
     val currency: String,
 
     @SerializedName("status")
-    val status: String, // "pending", "completed", "failed", "cancelled"
+    val status: String, 
 
     @SerializedName("provider")
     val provider: String,
@@ -47,3 +47,4 @@ data class PaymentStatusData(
     @SerializedName("metadata")
     val metadata: Map<String, String>? = null
 )
+

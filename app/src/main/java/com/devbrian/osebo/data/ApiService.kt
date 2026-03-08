@@ -29,11 +29,33 @@ import retrofit2.http.*
 
 interface ApiService {
 
-    // ==================== SUBSCRIPTION PACKAGES ====================
+    @GET("api/analytics/shop-summary")
+    suspend fun getShopSummary(
+        @Header("X-Shop") shopId: String
+    ): Response<ApiResponse<ShopSummaryDto>>
+
+    @GET("api/analytics/time-series")
+    suspend fun getTimeSeries(
+        @Header("X-Shop") shopId: String,
+        @Query("range") range: String = "monthly"
+    ): Response<ApiResponse<TimeSeriesDto>>
+
+    @GET("api/analytics/top-stock-items")
+    suspend fun getTopStockItems(
+        @Header("X-Shop") shopId: String
+    ): Response<ApiResponse<TopStockItemsDto>>
+
+    @GET("api/analytics/shop-financial-statement")
+    suspend fun getFinancialStatement(
+        @Header("X-Shop") shopId: String,
+        @Query("range") range: String = "yearly"
+    ): Response<ApiResponse<FinancialStatementDto>>
+
+
     @GET("api/package")
     suspend fun getSubscriptionPackages(): Response<ApiResponse<List<PackageDto>>>
 
-    // ==================== SUBSCRIPTION ENDPOINTS ====================
+
     @POST("api/subscription")
     suspend fun createSubscription(
         @Header("X-Shop") shopId: String,
@@ -69,7 +91,7 @@ interface ApiService {
         @Body request: PollPaymentStatusRequest
     ): Response<ApiResponse<PaymentPollResponse>>
 
-    @GET("api/subscription/FindByShoplid")
+    @GET("api/subscription/shop")
     suspend fun getShopSubscriptions(
         @Query("shopId") shopId: String
     ): Response<ApiResponse<List<Subscription>>>
@@ -100,7 +122,7 @@ interface ApiService {
         @Path("subscriptionId") subscriptionId: String
     ): Response<ApiResponse<Unit>>
 
-    // ==================== PAYMENT ENDPOINTS ====================
+
     @POST("api/payment/initiate")
     suspend fun initiatePayment(
         @Header("X-Shop") shopId: String,
@@ -113,7 +135,7 @@ interface ApiService {
         @Path("transactionId") transactionId: String
     ): Response<ApiResponse<PaymentStatusResponse>>
 
-    // ==================== EXISTING PAYMENT ENDPOINTS ====================
+
     @GET("api/payments")
     suspend fun getPayments(
         @Query("shop_id") shopId: String? = null,
@@ -123,11 +145,11 @@ interface ApiService {
     @POST("api/payments")
     suspend fun createPayment(@Body request: CreatePaymentRequest): Response<ApiResponse<PaymentDto>>
 
-    // ==================== SHOPS ====================
+
     @GET("api/shops")
     suspend fun getShops(): Response<ApiResponse<List<ShopDto>>>
 
-    @POST("shops")
+    @POST("api/shops")
     suspend fun createShop(@Body request: CreateShopRequest): Response<ApiResponse<ShopDto>>
 
     @PUT("shops/{id}")
@@ -139,14 +161,14 @@ interface ApiService {
     @DELETE("shops/{id}")
     suspend fun deleteShop(@Path("id") shopId: String): Response<ApiResponse<Unit>>
 
-    // ==================== AUTHENTICATION ENDPOINTS ====================
+
     @POST("api/auth/signin")
     suspend fun signIn(
         @Body request: LoginRequest
     ): Response<AuthResponse>
 
-    @POST("api/auth/signup")
-    suspend fun register(@Body request: RegisterRequest): Response<ApiResponse<AuthResponse>>
+    @POST("auth/signup")
+    suspend fun register(@Body request: RegisterRequest): Response<AuthResponse>
 
     @POST("auth/logout")
     suspend fun logout(): Response<ApiResponse<Unit>>
@@ -160,7 +182,7 @@ interface ApiService {
     @POST("auth/reset-password")
     suspend fun resetPassword(@Body request: ResetPasswordRequest): Response<ApiResponse<Unit>>
 
-    // ==================== USER MANAGEMENT ====================
+
     @GET("users/profile")
     suspend fun getCurrentUser(): Response<ApiResponse<UserDto>>
 
@@ -170,8 +192,8 @@ interface ApiService {
     @PUT("users/password")
     suspend fun changePassword(@Body request: ChangePasswordRequest): Response<ApiResponse<Unit>>
 
-    // ==================== INVENTORY MANAGEMENT ====================
-    // ADD THESE METHODS HERE (in the inventory section)
+
+
     @Multipart
     @POST("api/stock-item/single")
     suspend fun createProduct(
@@ -181,12 +203,12 @@ interface ApiService {
         @Part("description") description: RequestBody?,
         @Part("low_quantity_mark") lowQuantityMark: RequestBody,
         @Part("purchase_price") purchasePrice: RequestBody,
-        @Part("selling_price") sellingPrice: RequestBody,  // Changed from sell_price
+        @Part("selling_price") sellingPrice: RequestBody,
         @Part("max_discount") maxDiscount: RequestBody,
         @Part("quantity") quantity: RequestBody,
         @Part("unit_measure") unitMeasure: RequestBody,
-        // Remove barcode if not in error list
-        @Part("stock_category_id") stockCategoryId: RequestBody,  // Changed from key
+
+        @Part("stock_category_id") stockCategoryId: RequestBody,
         @Part photo: MultipartBody.Part? = null
     ): Response<ApiResponse<ProductDto>>
 
@@ -205,7 +227,7 @@ interface ApiService {
     suspend fun updateProduct(
         @Header("X-Shop") shopId: String,
         @Path("productId") productId: String,
-        @Body request: UpdateProductRequest  // Using the new DTO
+        @Body request: UpdateProductRequest
     ): Response<ApiResponse<ProductDto>>
 
     @DELETE("api/stock/{productId}")
@@ -214,16 +236,12 @@ interface ApiService {
         @Path("productId") productId: String
     ): Response<ApiResponse<Unit>>
 
-
-
     @GET("api/stock-item")
     suspend fun getProducts(
         @Header("X-Shop") shopId: String
     ): Response<ApiResponse<List<ProductDto>>>
 
 
-
-    // ==================== CUSTOMER ENDPOINTS ====================
     @GET("api/customer")
     suspend fun getCustomers(
         @Header("X-Shop") shopId: String
@@ -254,41 +272,39 @@ interface ApiService {
         @Path("customerId") customerId: String
     ): Response<ApiResponse<Unit>>
 
-    // ==================== SALES ENDPOINTS ====================
+    // FIXED: Consistent return types for sale endpoints
     @POST("api/sale")
     suspend fun createSale(
         @Header("X-Shop") shopId: String,
         @Body request: SaleRequest
-    ): Response<ApiResponse<SaleData>>
-
-
+    ): Response<SaleApiResponse>  // Using SaleApiResponse
 
     @GET("api/sale/{saleId}")
     suspend fun getSale(
         @Header("X-Shop") shopId: String,
         @Path("saleId") saleId: String
-    ): Response<ApiResponse<SaleData>>
+    ): Response<SaleApiResponse>  // Changed from ApiResponse<SaleData> to SaleApiResponse
 
     @GET("api/sale/customer/{customerId}")
     suspend fun getCustomerSales(
         @Header("X-Shop") shopId: String,
         @Path("customerId") customerId: String,
         @Query("type") type: String? = null
-    ): Response<ApiResponse<List<SaleData>>>
+    ): Response<SaleListApiResponse>  // New type for list responses
 
     @GET("api/sale/customer-sale-history/{customerId}")
     suspend fun getCustomerSaleHistory(
         @Header("X-Shop") shopId: String,
         @Path("customerId") customerId: String
-    ): Response<ApiResponse<List<SaleData>>>
+    ): Response<SaleListApiResponse>  // New type for list responses
 
     @GET("api/sale/{saleId}")
     suspend fun getSaleDetails(
         @Header("X-Shop") shopId: String,
         @Path("saleId") saleId: String
-    ): Response<ApiResponse<SaleData>>
+    ): Response<SaleApiResponse>  // Changed to SaleApiResponse
 
-    // ==================== ROLES ====================
+
     @GET("roles")
     fun getRoles(
         @Header("Authorization") authorization: String,
@@ -309,15 +325,13 @@ interface ApiService {
     ): Call<ApiResponse<UserRole>>
 
 
-
-    // ==================== EXISTING SUBSCRIPTION ENDPOINTS (Legacy - Keep for compatibility) ====================
     @GET("api/subscriptions")
     suspend fun getSubscriptions(): Response<ApiResponse<List<SubscriptionDto>>>
 
     @POST("api/subscriptions")
     suspend fun createLegacySubscription(@Body request: SubscribeRequest): Response<ApiResponse<SubscriptionDto>>
 
-    // ==================== NOTIFICATIONS ====================
+
     @GET("notifications")
     suspend fun getNotifications(
         @Query("unreadOnly") unreadOnly: Boolean = false,
@@ -331,14 +345,14 @@ interface ApiService {
     @PUT("notifications/read-all")
     suspend fun markAllNotificationsAsRead(): Response<ApiResponse<Unit>>
 
-    // ==================== SUPPORT ====================
+
     @POST("support/tickets")
     suspend fun createSupportTicket(@Body request: CreateSupportTicketRequest): Response<ApiResponse<SupportTicketDto>>
 
     @GET("support/faqs")
     suspend fun getFaqs(): Response<ApiResponse<List<FaqDto>>>
 
-    // ==================== REPORTS ====================
+
     @GET("reports/sales")
     suspend fun getSalesReport(
         @Query("shopId") shopId: String? = null,

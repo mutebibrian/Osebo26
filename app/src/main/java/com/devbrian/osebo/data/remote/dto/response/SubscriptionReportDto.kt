@@ -9,7 +9,7 @@ data class SubscriptionReportDto(
     @SerializedName("active_subscriptions")
     val activeSubscriptions: Int,
 
-    @SerializedName("new_subscriptions")  // Added val keyword
+    @SerializedName("new_subscriptions")  
     val newSubscriptions: Int,
 
     @SerializedName("cancelled_subscriptions")
@@ -32,3 +32,4 @@ data class MonthlyRevenueDto(
     @SerializedName("new_subscriptions")
     val newSubscriptions: Int
 )
+

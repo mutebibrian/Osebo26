@@ -10,9 +10,9 @@ data class NotificationSettingsRequest(
     val salesNotifications: Boolean? = null
 )
 
-// System DTOs
+
 data class SystemHealthDto(
-    val status: String, // "healthy", "degraded", "unhealthy"
+    val status: String, 
     val uptime: Long,
     val database: String,
     val cache: String,
@@ -30,3 +30,4 @@ data class SystemVersionDto(
     val releaseDate: String,
     val changelog: String?
 )
+

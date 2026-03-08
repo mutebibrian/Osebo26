@@ -252,81 +252,13 @@
 
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- Payment Provider Selection -->
-    <TextView
-        android:id="@+id/tvProviderLabel"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Select Payment Provider"
-        android:textSize="14sp"
-        android:textStyle="bold"
-        android:textColor="@color/black"
-        android:layout_marginTop="20dp"
-        app:layout_constraintTop_toBottomOf="@id/packageCard"
-        app:layout_constraintStart_toStartOf="parent" />
-
-    <com.google.android.material.chip.ChipGroup
-        android:id="@+id/chipGroupProvider"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        app:singleSelection="true"
-        app:selectionRequired="true"
-        app:layout_constraintTop_toBottomOf="@id/tvProviderLabel"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
-
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chipMtn"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="MTN"
-            android:textColor="@color/black"
-            app:chipBackgroundColor="@drawable/chip_background_selector"
-            app:chipStrokeColor="@drawable/chip_stroke_selector"
-            app:chipStrokeWidth="1dp"
-            app:chipIcon="@drawable/ic_mtn"
-            app:chipIconTint="@color/yellow_700"
-            app:checkedIconVisible="false"
-            style="@style/Widget.MaterialComponents.Chip.Choice" />
-
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chipAirtel"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Airtel"
-            android:textColor="@color/black"
-            app:chipBackgroundColor="@drawable/chip_background_selector"
-            app:chipStrokeColor="@drawable/chip_stroke_selector"
-            app:chipStrokeWidth="1dp"
-            app:chipIcon="@drawable/ic_airtel"
-            app:chipIconTint="@color/red_500"
-            app:checkedIconVisible="false"
-            style="@style/Widget.MaterialComponents.Chip.Choice" />
-
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chipMpesa"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="M-Pesa"
-            android:textColor="@color/black"
-            app:chipBackgroundColor="@drawable/chip_background_selector"
-            app:chipStrokeColor="@drawable/chip_stroke_selector"
-            app:chipStrokeWidth="1dp"
-            app:chipIcon="@drawable/ic_mpesa"
-            app:chipIconTint="@color/green_500"
-            app:checkedIconVisible="false"
-            style="@style/Widget.MaterialComponents.Chip.Choice" />
-
-    </com.google.android.material.chip.ChipGroup>
-
-    <!-- Phone Number Input -->
+    <!-- Phone Number Input - Removed provider selection chips -->
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/tilPhoneNumber"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        app:layout_constraintTop_toBottomOf="@id/chipGroupProvider"
+        android:layout_marginTop="20dp"
+        app:layout_constraintTop_toBottomOf="@id/packageCard"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:boxCornerRadiusBottomEnd="8dp"
@@ -338,7 +270,7 @@
         app:endIconMode="clear_text"
         app:endIconTint="@color/grey_600"
         app:errorEnabled="true"
-        app:placeholderText="e.g., 0772123456">
+        app:placeholderText="e.g., 0772123456 or 256772123456">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/etPhoneNumber"
@@ -351,7 +283,22 @@
 
     </com.google.android.material.textfield.TextInputLayout>
 
-    <!-- Error Message (Added) -->
+    <!-- Info Text - Simplified -->
+    <TextView
+        android:id="@+id/tvInfoText"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Enter your mobile money number. You will receive a payment prompt on your phone."
+        android:textSize="12sp"
+        android:textColor="@color/grey_600"
+        android:gravity="start"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        app:layout_constraintTop_toBottomOf="@id/tilPhoneNumber"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Error Message -->
     <TextView
         android:id="@+id/tvErrorMessage"
         android:layout_width="0dp"
@@ -360,7 +307,7 @@
         android:textSize="14sp"
         android:visibility="gone"
         android:layout_marginTop="8dp"
-        app:layout_constraintTop_toBottomOf="@id/tilPhoneNumber"
+        app:layout_constraintTop_toBottomOf="@id/tvInfoText"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         tools:text="Invalid phone number" />
@@ -382,7 +329,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:layout_marginTop="24dp"
+        android:layout_marginTop="16dp"
         android:weightSum="2"
         app:layout_constraintTop_toBottomOf="@id/tvErrorMessage"
         app:layout_constraintStart_toStartOf="parent"
@@ -413,11 +360,11 @@
 
     </LinearLayout>
 
-    <!-- Secure Payment Note -->
+    <!-- Secure Payment Note - Updated -->
     <TextView
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="🔒 Secured by MTN, Airtel &amp; M-Pesa Mobile Money"
+        android:text="🔒 Secured payment - Your provider will be detected automatically"
         android:textSize="12sp"
         android:textColor="@color/grey_600"
         android:gravity="center"

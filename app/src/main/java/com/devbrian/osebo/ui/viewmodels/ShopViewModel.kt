@@ -5,6 +5,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.devbrian.osebo.data.repository.ShopRepository
+import com.devbrian.osebo.models.PaymentHistory
 import com.devbrian.osebo.models.Shop
 import com.devbrian.osebo.utils.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -57,4 +58,23 @@ class ShopViewModel @Inject constructor(
             }
         }
     }
+
+    // Add this LiveData
+    private val _paymentHistory = MutableLiveData<Resource<List<PaymentHistory>>>()
+    val paymentHistory: LiveData<Resource<List<PaymentHistory>>> = _paymentHistory
+
+    // Add this method
+    fun getPaymentHistory(shopId: String, subscriptionId: String) {
+        viewModelScope.launch {
+            _paymentHistory.value = Resource.Loading
+
+            try {
+            //    val result = repository.getPaymentHistory(shopId, subscriptionId)
+              //  _paymentHistory.value = result
+            } catch (e: Exception) {
+                _paymentHistory.value = Resource.Error(e.message ?: "Failed to load payment history")
+            }
+        }
+    }
 }
+

@@ -16,3 +16,4 @@ data class UpdateProductRequest(
     @SerializedName("image_url") val imageUrl: String? = null,
     @SerializedName("tax_rate") val taxRate: Double? = null
 )
+

@@ -26,7 +26,7 @@ class InventoryRepository @Inject constructor(
     private val gson: Gson
 ) {
 
-    // ==================== OBSERVABLE DATA (LIVE FROM LOCAL DB) ====================
+    
 
     fun getProducts(): Flow<List<Product>> {
         val shopId = preferenceManager.getCurrentShopId()
@@ -72,7 +72,7 @@ class InventoryRepository @Inject constructor(
         return database.productDao().getProductById(productId)?.toProduct()
     }
 
-    // ==================== SYNC OPERATIONS ====================
+    
 
     suspend fun refreshProducts(): Resource<Boolean> {
         val shopId = preferenceManager.getCurrentShopId()
@@ -94,7 +94,7 @@ class InventoryRepository @Inject constructor(
                     val productDtos = apiResponse.data ?: emptyList()
                     println("📦 InventoryRepository - Received ${productDtos.size} products from API")
 
-                    // Convert to entities
+                    
                     val entities = productDtos.map { dto ->
                         ProductEntity.fromProduct(
                             product = dto.toProduct(),
@@ -103,7 +103,7 @@ class InventoryRepository @Inject constructor(
                         )
                     }
 
-                    // Save to local DB using syncProducts which handles clearing and inserting
+                    
                     database.productDao().syncProducts(entities, shopId)
                     println("📦 InventoryRepository - Saved ${entities.size} products to local DB")
 
@@ -123,7 +123,7 @@ class InventoryRepository @Inject constructor(
         }
     }
 
-    // ==================== CREATE OPERATION (OFFLINE-FIRST) ====================
+    
 
     suspend fun createProduct(product: Product): Resource<String> {
         val shopId = preferenceManager.getCurrentShopId()
@@ -131,11 +131,11 @@ class InventoryRepository @Inject constructor(
             return Resource.Error("No shop selected")
         }
 
-        // Generate temp ID for offline use
+        
         val tempId = "temp_${System.currentTimeMillis()}"
         val productWithTempId = product.copy(id = tempId)
 
-        // Save to local DB with pending sync flag
+        
         val entity = ProductEntity.fromProduct(
             product = productWithTempId,
             shopId = shopId,
@@ -149,7 +149,7 @@ class InventoryRepository @Inject constructor(
         if (NetworkUtils.isNetworkAvailable(preferenceManager.getContext())) {
             syncCreateProduct(entity)
         } else {
-            // Queue for background sync
+            
             queueForSync(entity, "CREATE")
             println("📦 InventoryRepository - Queued for sync (offline)")
         }
@@ -157,7 +157,7 @@ class InventoryRepository @Inject constructor(
         return Resource.Success(tempId)
     }
 
-    // ==================== UPDATE OPERATION (OFFLINE-FIRST) ====================
+    
 
     suspend fun updateProduct(product: Product): Resource<Boolean> {
         val shopId = preferenceManager.getCurrentShopId()
@@ -165,13 +165,13 @@ class InventoryRepository @Inject constructor(
             return Resource.Error("No shop selected")
         }
 
-        // Check if product exists locally
+        
         val existing = database.productDao().getProductById(product.id)
         if (existing == null) {
             return Resource.Error("Product not found")
         }
 
-        // Update local DB with pending sync flag
+        
         val entity = ProductEntity.fromProduct(
             product = product,
             shopId = shopId,
@@ -185,7 +185,7 @@ class InventoryRepository @Inject constructor(
         if (NetworkUtils.isNetworkAvailable(preferenceManager.getContext())) {
             syncUpdateProduct(entity)
         } else {
-            // Queue for background sync
+            
             queueForSync(entity, "UPDATE")
             println("📦 InventoryRepository - Queued for sync (offline)")
         }
@@ -193,7 +193,7 @@ class InventoryRepository @Inject constructor(
         return Resource.Success(true)
     }
 
-    // ==================== DELETE OPERATION (OFFLINE-FIRST) ====================
+    
 
     suspend fun deleteProduct(productId: String): Resource<Boolean> {
         val product = database.productDao().getProductById(productId)
@@ -201,14 +201,14 @@ class InventoryRepository @Inject constructor(
             return Resource.Error("Product not found")
         }
 
-        // For temp products (not yet synced), just delete locally
+        
         if (product.id.startsWith("temp_")) {
             database.productDao().deleteProduct(product)
             println("📦 InventoryRepository - Deleted temp product: $productId")
             return Resource.Success(true)
         }
 
-        // Mark for deletion
+        
         val updatedProduct = product.copy(isPendingSync = true, syncAction = "DELETE")
         database.productDao().updateProduct(updatedProduct)
         println("📦 InventoryRepository - Marked product for deletion: $productId")
@@ -216,7 +216,7 @@ class InventoryRepository @Inject constructor(
         if (NetworkUtils.isNetworkAvailable(preferenceManager.getContext())) {
             syncDeleteProduct(updatedProduct)
         } else {
-            // Queue for background sync
+            
             queueForSync(updatedProduct, "DELETE")
             println("📦 InventoryRepository - Queued for deletion sync (offline)")
         }
@@ -224,13 +224,13 @@ class InventoryRepository @Inject constructor(
         return Resource.Success(true)
     }
 
-    // ==================== SYNC HELPERS ====================
+    
 
     private suspend fun syncCreateProduct(entity: ProductEntity) {
         try {
             println("📦 InventoryRepository - Syncing create product: ${entity.id}")
 
-            // First, get a valid category ID (you've already done this)
+            
             val categoryId = getDefaultCategoryId()
 
             val name = entity.name.toRequestBody("text/plain".toMediaType())
@@ -241,7 +241,7 @@ class InventoryRepository @Inject constructor(
             val sellingPrice = entity.price.toString().toRequestBody("text/plain".toMediaType())
             val maxDiscount = "0".toRequestBody("text/plain".toMediaType())
             val quantity = entity.stock.toString().toRequestBody("text/plain".toMediaType())
-            // Try "pcs" instead of "piece"
+            
             val unitMeasure = "pcs".toRequestBody("text/plain".toMediaType())
             val stockCategoryId = categoryId.toRequestBody("text/plain".toMediaType())
 
@@ -284,7 +284,7 @@ class InventoryRepository @Inject constructor(
                 }
             } else {
                 println("📦 InventoryRepository - Sync failed with code: ${response.code()}")
-                // Log the error body for more details
+                
                 val errorBody = response.errorBody()?.string()
                 println("❌ Error body: $errorBody")
                 queueForSync(entity, "CREATE")
@@ -296,10 +296,10 @@ class InventoryRepository @Inject constructor(
         }
     }
 
-    // In InventoryRepository.kt
+    
     private suspend fun getDefaultCategoryId(): String {
         return try {
-            // Try to get categories from API
+            
             val shopId = preferenceManager.getCurrentShopId()
             val response = apiService.getCategories(shopId)
 
@@ -308,21 +308,21 @@ class InventoryRepository @Inject constructor(
                 if (apiResponse?.success == true) {
                     val categories = apiResponse.data
                     if (!categories.isNullOrEmpty()) {
-                        // Return the first category ID
+                        
                         println("📦 Using category: ${categories.first().id}")
                         return categories.first().id
                     }
                 }
             }
 
-            // If API fails, use a default category ID (you need to know one)
-            // This should be a real UUID from your system
+            
+            
             println("⚠️ No categories found, using fallback")
-            return "00000000-0000-0000-0000-000000000000" // This won't work - needs real UUID
+            return "00000000-0000-0000-0000-000000000000" 
 
         } catch (e: Exception) {
             println("❌ Error fetching categories: ${e.message}")
-            // Return a fallback - but this needs to be a real UUID from your system
+            
             return "00000000-0000-0000-0000-000000000000"
         }
     }
@@ -330,7 +330,7 @@ class InventoryRepository @Inject constructor(
         try {
             println("📦 InventoryRepository - Syncing update product: ${entity.id}")
 
-            // Create the request DTO without location
+            
             val request = UpdateProductRequest(
                 name = entity.name,
                 price = entity.price,
@@ -360,7 +360,7 @@ class InventoryRepository @Inject constructor(
                     )
                     database.productDao().updateProduct(updatedEntity)
 
-                    // Remove from sync queue if exists
+                    
                     removeFromSyncQueue(entity.id)
                 } else {
                     println("📦 InventoryRepository - Update failed: ${apiResponse?.message}")
@@ -393,7 +393,7 @@ class InventoryRepository @Inject constructor(
 
                     database.productDao().deleteProduct(entity)
 
-                    // Remove from sync queue if exists
+                    
                     removeFromSyncQueue(entity.id)
                 } else {
                     println("📦 InventoryRepository - Delete failed: ${apiResponse?.message}")
@@ -426,13 +426,13 @@ class InventoryRepository @Inject constructor(
     }
 
     private suspend fun removeFromSyncQueue(entityId: String) {
-        // Since we don't have a direct method to delete by entityId,
-        // we'll need to handle this in a background worker
-        // For now, we'll just leave it - the sync worker will handle it
+        
+        
+        
         println("📦 InventoryRepository - Sync complete for: $entityId")
     }
 
-    // ==================== STATS METHODS ====================
+    
 
     suspend fun getInventoryStats(): InventoryStats {
         val shopId = preferenceManager.getCurrentShopId()
@@ -449,7 +449,7 @@ class InventoryRepository @Inject constructor(
         val totalValue: Double
     )
 
-    // ==================== NETWORK STATUS HELPERS ====================
+    
 
     fun getNetworkStatusMessage(): String {
         return when {
@@ -471,3 +471,4 @@ class InventoryRepository @Inject constructor(
                 !NetworkUtils.isMeteredConnection(preferenceManager.getContext())
     }
 }
+

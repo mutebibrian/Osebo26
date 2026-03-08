@@ -44,7 +44,7 @@ class SplashActivity : AppCompatActivity() {
     }
 
     private fun startAnimations() {
-        // 1. Scale animation for logo
+        
         val scaleX = PropertyValuesHolder.ofFloat("scaleX", 0.5f, 1.0f)
         val scaleY = PropertyValuesHolder.ofFloat("scaleY", 0.5f, 1.0f)
         val alpha = PropertyValuesHolder.ofFloat("alpha", 0.2f, 0.9f)
@@ -54,14 +54,14 @@ class SplashActivity : AppCompatActivity() {
         logoAnimator.interpolator = AnticipateOvershootInterpolator()
         logoAnimator.start()
 
-        // 2. Rotate animation for logo (subtle)
+        
         val rotateAnimator = ObjectAnimator.ofFloat(ivLogo, "rotation", 0f, 360f)
         rotateAnimator.duration = 1500
         rotateAnimator.interpolator = AccelerateDecelerateInterpolator()
         rotateAnimator.startDelay = 300
         rotateAnimator.start()
 
-        // 3. Text animation (slide up and fade in)
+        
         Handler(Looper.getMainLooper()).postDelayed({
             tvAppName.alpha = 0f
             tvAppName.translationY = 50f
@@ -78,7 +78,7 @@ class SplashActivity : AppCompatActivity() {
             textTranslate.start()
         }, 600)
 
-        // 4. Show progress bar after animations
+        
         Handler(Looper.getMainLooper()).postDelayed({
             progressBar.visibility = ProgressBar.VISIBLE
             val progressAlpha = ObjectAnimator.ofFloat(progressBar, "alpha", 0f, 0.8f)
@@ -86,19 +86,19 @@ class SplashActivity : AppCompatActivity() {
             progressAlpha.start()
         }, 1400)
 
-        // 5. Navigate to next activity
+        
         Handler(Looper.getMainLooper()).postDelayed({
             navigateToNextScreen()
         }, 2800)
     }
 
     private fun navigateToNextScreen() {
-        // Fade out animation before leaving
+        
         val fadeOut = ObjectAnimator.ofFloat(ivLogo, "alpha", 0.9f, 0f)
         fadeOut.duration = 300
         fadeOut.addListener(object : AnimatorListenerAdapter() {
             override fun onAnimationEnd(animation: Animator) {
-                // Check if user is logged in
+                
                 val intent = if (preferenceManager.isLoggedIn()) {
                     Intent(this@SplashActivity, MainActivity::class.java)
                 } else {
@@ -112,3 +112,4 @@ class SplashActivity : AppCompatActivity() {
         fadeOut.start()
     }
 }
+

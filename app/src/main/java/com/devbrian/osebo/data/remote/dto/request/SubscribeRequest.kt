@@ -6,3 +6,4 @@ data class SubscribeRequest(
     val paymentMethod: String,
     val autoRenew: Boolean = true
 )
+

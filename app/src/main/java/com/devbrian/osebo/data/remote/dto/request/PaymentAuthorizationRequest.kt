@@ -9,3 +9,4 @@ data class PaymentAuthorizationRequest(
     @SerializedName("phone_number")
     val phoneNumber: String
 )
+

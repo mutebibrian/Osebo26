@@ -21,7 +21,7 @@ class ShopCreationActivity : AppCompatActivity() {
     private lateinit var apiService: ApiService
     private var shopTypesList: List<ShopType> = emptyList()
 
-    // Map of shop type names to IDs (for testing - should come from API)
+    
     private val shopTypeIds = mapOf(
         "Retail" to "3e85af38-a3c9-4167-a3f6-6acf4c9fdc9d",
         "Other" to "9423230e-df5a-4669-8fd8-193e11ce72b0"
@@ -32,45 +32,30 @@ class ShopCreationActivity : AppCompatActivity() {
         binding = ActivityShopCreationBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Initialize API service
+        
         apiService = ApiClient.createWithAuth(this)
 
         setupUI()
         setupListeners()
-        loadShopTypes() // Optional: Load shop types from API
+        loadShopTypes() 
     }
 
     private fun setupUI() {
-        // Setup shop type dropdown with hardcoded types for now
-        val shopTypeNames = listOf("Retail", "Other")  // Only these two exist
+        
+        val shopTypeNames = listOf("Retail", "Other")  
         val adapter = ArrayAdapter(this, R.layout.dropdown_item, shopTypeNames)
         binding.actvShopType.setAdapter(adapter)
 
-        // Set default shop type
-        // Set default to "Retail"
+        
+        
         if (binding.actvShopType.text.isEmpty()) {
             binding.actvShopType.setText("Retail", false)
         }
     }
 
     private fun loadShopTypes() {
-        // Optional: Uncomment this to load shop types from API
-        /*
-        lifecycleScope.launch {
-            try {
-                val response = apiService.getShopTypes()
-                if (response.isSuccessful) {
-                    val apiResponse = response.body()
-                    if (apiResponse?.success == true) {
-                        shopTypesList = apiResponse.data ?: emptyList()
-                        updateShopTypeDropdownFromApi()
-                    }
-                }
-            } catch (e: Exception) {
-                // Keep using hardcoded types if API fails
-            }
-        }
-        */
+        
+        
     }
 
     private fun updateShopTypeDropdownFromApi() {
@@ -108,7 +93,7 @@ class ShopCreationActivity : AppCompatActivity() {
         val description = binding.etDescription.text.toString().trim()
 
         if (validateInputs(shopName, address, selectedShopTypeName)) {
-            // Get shop type ID from map
+            
             val shopTypeId = shopTypeIds[selectedShopTypeName] ?: ""
 
             if (shopTypeId.isEmpty()) {
@@ -116,21 +101,21 @@ class ShopCreationActivity : AppCompatActivity() {
                 return
             }
 
-            // Show loading
+            
             binding.btnCreateShop.isEnabled = false
             binding.btnCreateShop.text = "Creating..."
 
-            // ✅ CORRECT: Create shop request with camelCase parameter names
+            
             val shopRequest = CreateShopRequest(
                 name = shopName,
                 address = address,
-                shopTypeId = shopTypeId, // camelCase - matches your data class
+                shopTypeId = shopTypeId, 
                 registrationNumber = if (registrationNumber.isNotEmpty()) registrationNumber else null,
                 taxIdentificationNumber = if (tin.isNotEmpty()) tin else null,
                 description = if (description.isNotEmpty()) description else null
             )
 
-            // Call API to create shop
+            
             createShopApiCall(shopRequest)
         }
     }
@@ -142,12 +127,12 @@ class ShopCreationActivity : AppCompatActivity() {
     ): Boolean {
         var isValid = true
 
-        // Reset errors
+        
         binding.shopNameInputLayout.error = null
         binding.addressInputLayout.error = null
         binding.shopTypeInputLayout.error = null
 
-        // Shop name validation
+        
         if (shopName.isEmpty()) {
             binding.shopNameInputLayout.error = "Shop name is required"
             isValid = false
@@ -156,13 +141,13 @@ class ShopCreationActivity : AppCompatActivity() {
             isValid = false
         }
 
-        // Address validation
+        
         if (address.isEmpty()) {
             binding.addressInputLayout.error = "Address is required"
             isValid = false
         }
 
-        // Shop type validation
+        
         if (shopType.isEmpty()) {
             binding.shopTypeInputLayout.error = "Shop type is required"
             isValid = false
@@ -184,22 +169,25 @@ class ShopCreationActivity : AppCompatActivity() {
 
                     if (apiResponse?.success == true) {
                         apiResponse.data?.let { shop ->
-                            // Save shop data
+                            // Save basic shop info
                             ApiClient.saveCurrentShopId(this@ShopCreationActivity, shop.id)
                             ApiClient.saveCurrentShopName(this@ShopCreationActivity, shop.name)
 
-                            // Save additional shop details
                             val sharedPref = getSharedPreferences("OseboPrefs", MODE_PRIVATE)
                             with(sharedPref.edit()) {
                                 putString("shop_address", shop.address ?: "")
                                 putString("shop_type", shop.shopType ?: "")
-
-                                // Use the input values from the form instead of API response
                                 putString("shop_registration", binding.etRegistrationNumber.text.toString().trim())
                                 putString("shop_tin", binding.etTin.text.toString().trim())
-
                                 putString("shop_description", shop.description ?: "")
                                 putBoolean("has_shop", true)
+
+                                // SET TRIAL STATUS HERE - 15 days free trial
+                                putString("subscription_status", "TRIAL")
+                                putString("subscription_type", "BASIC")
+                                putString("subscription_expiry", calculateTrialEndDate(15))
+                                putBoolean("subscription_active", true)
+
                                 apply()
                             }
 
@@ -212,7 +200,6 @@ class ShopCreationActivity : AppCompatActivity() {
                         showErrorMessage(apiResponse?.message ?: "Failed to create shop")
                     }
                 } else {
-                    // Handle HTTP error
                     when (response.code()) {
                         400 -> showErrorMessage("Invalid shop data")
                         401 -> showErrorMessage("Unauthorized - Please login again")
@@ -224,11 +211,18 @@ class ShopCreationActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 showErrorMessage("Network error: ${e.message}")
             } finally {
-                // Reset button state
                 binding.btnCreateShop.isEnabled = true
                 binding.btnCreateShop.text = "Create Shop"
             }
         }
+    }
+
+    // Add this helper function
+    private fun calculateTrialEndDate(days: Int): String {
+        val calendar = java.util.Calendar.getInstance()
+        calendar.add(java.util.Calendar.DAY_OF_YEAR, days)
+        val dateFormat = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+        return dateFormat.format(calendar.time)
     }
 
     private fun navigateToMainActivity() {
@@ -250,4 +244,5 @@ class ShopCreationActivity : AppCompatActivity() {
         Toast.makeText(this, message, Toast.LENGTH_LONG).show()
     }
 }
-// END OF FILE - Nothing below this line
+
+

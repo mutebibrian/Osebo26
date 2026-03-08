@@ -126,22 +126,22 @@ class ShopsFragment : Fragment() {
 
             fun bind(shop: Shop) {
                 binding.apply {
-                    // Shop basic info
+
                     tvShopName.text = shop.name
                     tvShopDescription.text = shop.description ?: "No description available"
                     tvShopLocation.text = shop.address ?: "Location not set"
                     tvShopCategory.text = shop.shopType ?: "General"
 
-                    // Format currency values with thousand separators
+
                     tvRevenue.text = String.format("UGX %,.0f", shop.totalRevenue)
                     tvExpenses.text = String.format("UGX %,.0f", shop.totalExpenses)
                     tvProfit.text = String.format("UGX %,.0f", shop.profit)
 
-                    // Set product and employee counts
+
                     tvProductsCount.text = shop.totalProducts.toString()
                     tvEmployeesCount.text = shop.totalEmployees.toString()
 
-                    // Set shop logo
+
                     if (!shop.logoUrl.isNullOrEmpty()) {
                         Glide.with(root.context)
                             .load(shop.logoUrl)
@@ -151,12 +151,12 @@ class ShopsFragment : Fragment() {
                         ivShopLogo.setImageResource(R.drawable.ic_shop_placeholder)
                     }
 
-                    // Highlight active shop
+
                     val currentShopId = preferencesManager.getCurrentShopId()
                     val isActive = shop.id == currentShopId
 
                     if (isActive) {
-                        // This shop is the active one
+
                         root.setBackgroundResource(R.drawable.bg_active_shop)
                         tvActiveBadge.visibility = View.VISIBLE
                         layoutActions.visibility = View.VISIBLE
@@ -164,7 +164,7 @@ class ShopsFragment : Fragment() {
                         btnEdit.visibility = View.VISIBLE
                         btnDelete.visibility = View.VISIBLE
                     } else {
-                        // This is not the active shop
+
                         root.setBackgroundResource(android.R.color.transparent)
                         tvActiveBadge.visibility = View.GONE
                         layoutActions.visibility = View.VISIBLE
@@ -230,7 +230,9 @@ class ShopsFragment : Fragment() {
             when (resource) {
                 is Resource.Loading -> {
                     binding.progressBar.visibility = View.VISIBLE
-                    binding.tvEmptyMessage.visibility = View.GONE
+                    binding.emptyStateLayout.visibility = View.GONE
+                    binding.rvShops.visibility = View.GONE
+                    binding.fabAddShop.visibility = View.GONE
                 }
 
                 is Resource.Success -> {
@@ -238,30 +240,35 @@ class ShopsFragment : Fragment() {
                     binding.swipeRefreshLayout.isRefreshing = false
 
                     val shops = resource.data ?: emptyList()
-                    if (shops.isEmpty()) {
-                        binding.tvEmptyMessage.visibility = View.VISIBLE
-                        binding.tvEmptyMessage.text = "You haven't created any shops yet"
-                        binding.rvShops.visibility = View.GONE
-                    } else {
-                        binding.tvEmptyMessage.visibility = View.GONE
-                        binding.rvShops.visibility = View.VISIBLE
-                        shopsAdapter.submitList(shops)
-                    }
-
-                    // Update shop count
                     binding.tvShopCount.text = "${shops.size} shops"
 
-                    // Set active shop
-                    val currentShopId = preferencesManager.getCurrentShopId()
-                    shopsAdapter.setActiveShopId(currentShopId)
+                    if (shops.isEmpty()) {
+                        // Show empty state with Create Shop button
+                        binding.emptyStateLayout.visibility = View.VISIBLE
+                        binding.rvShops.visibility = View.GONE
+                        binding.fabAddShop.visibility = View.GONE
+                        binding.tvEmptyMessage.text = "You haven't created any shops yet"
+                    } else {
+                        // Show shops list and FAB
+                        binding.emptyStateLayout.visibility = View.GONE
+                        binding.rvShops.visibility = View.VISIBLE
+                        binding.fabAddShop.visibility = View.VISIBLE
+                        shopsAdapter.submitList(shops)
+
+                        val currentShopId = preferencesManager.getCurrentShopId()
+                        shopsAdapter.setActiveShopId(currentShopId)
+                    }
                 }
 
                 is Resource.Error -> {
                     binding.progressBar.visibility = View.GONE
                     binding.swipeRefreshLayout.isRefreshing = false
-                    binding.tvEmptyMessage.visibility = View.VISIBLE
-                    binding.tvEmptyMessage.text = "Failed to load shops: ${resource.message}"
+
+                    // Show error in empty state
+                    binding.emptyStateLayout.visibility = View.VISIBLE
                     binding.rvShops.visibility = View.GONE
+                    binding.fabAddShop.visibility = View.GONE
+                    binding.tvEmptyMessage.text = "Failed to load shops: ${resource.message}"
 
                     Toast.makeText(requireContext(), "Failed to load shops", Toast.LENGTH_SHORT).show()
                 }
@@ -285,7 +292,11 @@ class ShopsFragment : Fragment() {
 
     private fun setupClickListeners() {
         binding.fabAddShop.setOnClickListener {
-            navigateToAddShop()
+            navigateToShopCreation()
+        }
+
+        binding.btnCreateFirstShop.setOnClickListener {
+            navigateToShopCreation()
         }
 
         binding.swipeRefreshLayout.setOnRefreshListener {
@@ -297,31 +308,38 @@ class ShopsFragment : Fragment() {
         shopViewModel.loadShops()
     }
 
-    private fun navigateToAddShop() {
-        Toast.makeText(requireContext(), "Navigate to Add Shop", Toast.LENGTH_SHORT).show()
-        // TODO: Implement navigation to AddShopFragment
+    private fun navigateToShopCreation() {
+        // Navigate to ShopCreationActivity
+        val intent = android.content.Intent(requireContext(), com.devbrian.osebo.ui.ShopCreationActivity::class.java)
+        intent.putExtra("USER_ID", preferencesManager.getUserId())
+        intent.putExtra("EMAIL", preferencesManager.getUserEmail())
+        intent.putExtra("PHONE", preferencesManager.getUserPhone())
+        intent.putExtra("FIRST_NAME", preferencesManager.getFirstName())
+        intent.putExtra("LAST_NAME", preferencesManager.getLastName())
+        startActivity(intent)
     }
 
     private fun navigateToEditShop(shop: Shop) {
         Toast.makeText(requireContext(), "Navigate to Edit ${shop.name}", Toast.LENGTH_SHORT).show()
-        // TODO: Implement navigation to EditShopFragment
+        // TODO: Implement edit shop navigation
     }
 
     private fun navigateToShopDetail(shop: Shop) {
         debugShopData(shop)
         println("🔍 ===== SELECTING SHOP =====")
-        println("🔍 ===== SELECTING SHOP =====")
         println("🔍 Shop ID: ${shop.id}")
         println("🔍 Shop Name: ${shop.name}")
         println("🔍 Subscription object exists: ${shop.subscription != null}")
 
-        // Save basic shop data
+        // Save basic shop info
         preferencesManager.saveCurrentShopId(shop.id)
         preferencesManager.saveCurrentShopName(shop.name)
         preferencesManager.saveHasShop(true)
 
-        // Save subscription info if it exists
-        shop.subscription?.let { subscription ->
+        // Handle subscription
+        if (shop.subscription != null) {
+            // Has subscription - save it and go to dashboard
+            val subscription = shop.subscription
             println("🔍 Subscription found:")
             println("  - id: ${subscription.id}")
             println("  - status: ${subscription.status}")
@@ -339,48 +357,86 @@ class ShopsFragment : Fragment() {
                 packageId = subscription.subscriptionPackage?.id
             )
             println("✅ Subscription saved to preferences")
-        } ?: run {
+
+            // Update UI
+            activity?.let {
+                if (it is MainActivity) {
+                    it.updateHeaderShopInfo(shop.name)
+                    it.refreshNavigationMenu()
+                }
+            }
+
+            shopsAdapter.setActiveShopId(shop.id)
+
+            Toast.makeText(
+                requireContext(),
+                "${shop.name} selected as active shop",
+                Toast.LENGTH_SHORT
+            ).show()
+
+            // Navigate to dashboard
+            try {
+                findNavController().navigate(R.id.dashboardFragment)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        } else {
+            // No subscription - clear any old subscription data and prompt to subscribe
             println("⚠️ No subscription found for shop")
             preferencesManager.clearSubscriptionInfo()
-        }
 
-        // Verify what was saved
-        println("🔍 After save - hasActiveSubscription: ${preferencesManager.hasActiveSubscription()}")
-        println("🔍 After save - subscriptionStatus: ${preferencesManager.getSubscriptionStatus()}")
-        println("🔍 After save - subscriptionId: ${preferencesManager.getSubscriptionId()}")
-
-        // Update MainActivity header and refresh menu
-        activity?.let {
-            if (it is MainActivity) {
-                it.updateHeaderShopInfo(shop.name)
-                it.refreshNavigationMenu()
+            // Update UI with shop name but no subscription
+            activity?.let {
+                if (it is MainActivity) {
+                    it.updateHeaderShopInfo(shop.name)
+                    it.refreshNavigationMenu()
+                }
             }
-        }
 
-        shopsAdapter.setActiveShopId(shop.id)
+            shopsAdapter.setActiveShopId(shop.id)
 
-        Toast.makeText(
-            requireContext(),
-            "${shop.name} selected as active shop",
-            Toast.LENGTH_SHORT
-        ).show()
-
-        // Navigate to dashboard
-        try {
-            findNavController().navigate(R.id.dashboardFragment)
-        } catch (e: Exception) {
-            e.printStackTrace()
+            // Show dialog to choose subscription
+            showSubscriptionRequiredDialog(shop)
         }
     }
 
+    private fun navigateToSubscriptionPackages(shop: Shop) {
+        try {
+            // Use Safe Args to pass the shop object
+            val action = ShopsFragmentDirections.actionShopsFragmentToSubscriptionPackagesFragment(shop)
+            findNavController().navigate(action)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(requireContext(), "Error navigating to subscriptions", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun showSubscriptionRequiredDialog(shop: Shop) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Subscription Required")
+            .setMessage("${shop.name} doesn't have an active subscription. Would you like to subscribe now to start using the app?")
+            .setPositiveButton("Subscribe Now") { _, _ ->
+                navigateToSubscriptionPackages(shop)
+            }
+            .setNegativeButton("Later") { _, _ ->
+                // Just stay on shops fragment
+                Toast.makeText(
+                    requireContext(),
+                    "You can subscribe later from the shop menu",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+            .setCancelable(false)
+            .show()
+    }
     private fun setActiveShop(shop: Shop) {
-        // Save basic shop data
         preferencesManager.saveCurrentShopId(shop.id)
         preferencesManager.saveCurrentShopName(shop.name)
         preferencesManager.saveHasShop(true)
 
-        // ✅ Save subscription info if it exists
-        shop.subscription?.let { subscription ->
+        if (shop.subscription != null) {
+            // Has subscription
+            val subscription = shop.subscription
             preferencesManager.saveSubscriptionInfo(
                 subscriptionId = subscription.id,
                 status = if (subscription.isTrial) "TRIAL" else "ACTIVE",
@@ -389,29 +445,39 @@ class ShopsFragment : Fragment() {
                 packageId = subscription.subscriptionPackage?.id
             )
             println("✅ Saved subscription: ${subscription.status}")
-        } ?: run {
-            preferencesManager.clearSubscriptionInfo()
-            println("⚠️ No subscription found for shop")
-        }
 
-        // Update MainActivity header and refresh menu
-        activity?.let {
-            if (it is MainActivity) {
-                it.updateHeaderShopInfo(shop.name)
-                it.refreshNavigationMenu()
+            activity?.let {
+                if (it is MainActivity) {
+                    it.updateHeaderShopInfo(shop.name)
+                    it.refreshNavigationMenu()
+                }
             }
+
+            shopsAdapter.setActiveShopId(shop.id)
+
+            Toast.makeText(
+                requireContext(),
+                "${shop.name} is now your active shop",
+                Toast.LENGTH_SHORT
+            ).show()
+        } else {
+            // No subscription
+            println("⚠️ No subscription found for shop")
+            preferencesManager.clearSubscriptionInfo()
+
+            activity?.let {
+                if (it is MainActivity) {
+                    it.updateHeaderShopInfo(shop.name)
+                    it.refreshNavigationMenu()
+                }
+            }
+
+            shopsAdapter.setActiveShopId(shop.id)
+
+            // Show dialog
+            showSubscriptionRequiredDialog(shop)
         }
-
-        shopsAdapter.setActiveShopId(shop.id)
-
-        Toast.makeText(
-            requireContext(),
-            "${shop.name} is now your active shop",
-            Toast.LENGTH_SHORT
-        ).show()
     }
-
-
 
     private fun showDeleteConfirmationDialog(shop: Shop) {
         MaterialAlertDialogBuilder(requireContext())
@@ -424,8 +490,6 @@ class ShopsFragment : Fragment() {
             .show()
     }
 
-
-
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
@@ -437,7 +501,7 @@ class ShopsFragment : Fragment() {
         println("  name: ${shop.name}")
         println("  subscription present: ${shop.subscription != null}")
 
-        // Try to access subscription fields safely
+
         try {
             val subscription = shop.subscription
             if (subscription != null) {
@@ -451,7 +515,7 @@ class ShopsFragment : Fragment() {
             } else {
                 println("  ❌ subscription is NULL")
 
-                // Try reflection to see all fields
+
                 println("  All fields in shop object:")
                 shop::class.java.declaredFields.forEach { field ->
                     field.isAccessible = true
@@ -468,8 +532,4 @@ class ShopsFragment : Fragment() {
         }
         println("🔍 ===== END DEBUG =====\n")
     }
-
-
-
-
 }

@@ -1,4 +1,4 @@
-// SubscriptionPlanDto.kt
+
 package com.devbrian.osebo.data.remote.api
 
 data class SubscriptionPlanDto(
@@ -15,5 +15,6 @@ data class SubscriptionPlanDto(
     val maxStorage: String? = null,
     val billingCycle: String? = null,
     val duration: String? = null,
-    val maxItems: Int? = null  // Add this line
+    val maxItems: Int? = null  
 )
+

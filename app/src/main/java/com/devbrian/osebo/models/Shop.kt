@@ -25,14 +25,14 @@ data class Shop(
     @SerializedName("logo_url")
     val logoUrl: String? = null,
 
-    // Registration and tax info
+    
     @SerializedName("registration_number")
     val registrationNumber: String? = null,
 
     @SerializedName("tax_identification_number")
     val taxIdentificationNumber: String? = null,
 
-    // Financial stats
+    
     @SerializedName("total_revenue")
     val totalRevenue: Double = 0.0,
 
@@ -54,11 +54,11 @@ data class Shop(
     @SerializedName("is_active")
     val isActive: Boolean = false,
 
-    // ✅ FIXED: Add the subscription field to match API response
+    
     @SerializedName("subscription")
     val subscription: ShopSubscription? = null,
 
-    // Keep these for backward compatibility
+    
     @SerializedName("subscription_status")
     val subscriptionStatus: String = "inactive",
 
@@ -74,7 +74,7 @@ data class Shop(
     @SerializedName("status")
     val status: String? = null,
 
-    // Contact information
+    
     @SerializedName("phone")
     val phone: String? = null,
 
@@ -84,7 +84,7 @@ data class Shop(
     @SerializedName("website")
     val website: String? = null,
 
-    // Location details
+    
     @SerializedName("city")
     val city: String? = null,
 
@@ -94,7 +94,7 @@ data class Shop(
     @SerializedName("postal_code")
     val postalCode: String? = null,
 
-    // Timestamps
+    
     @SerializedName("created_at")
     val createdAt: String? = null,
 
@@ -102,25 +102,26 @@ data class Shop(
     val updatedAt: String? = null
 ) : Parcelable, Serializable {
 
-    // Helper computed properties
+
     val isSubscriptionActive: Boolean
-        get() = subscriptionStatus == "active" || subscriptionStatus == "trial"
+        get() = subscriptionStatus.equals("active", ignoreCase = true) ||
+                subscriptionStatus.equals("trial", ignoreCase = true)
 
     val needsSubscription: Boolean
-        get() = subscriptionStatus == "inactive" ||
-                subscriptionStatus == "expired" ||
-                subscriptionStatus == "pending"
+        get() = subscriptionStatus.equals("inactive", ignoreCase = true) ||
+                subscriptionStatus.equals("expired", ignoreCase = true) ||
+                subscriptionStatus.equals("pending", ignoreCase = true)
 
-    // For backward compatibility
+    
     val location: String? get() = address
     val category: String? get() = shopType
     val phoneNumber: String? get() = phone
 
-    // Helper method to check if registration info is available
+    
     val hasRegistrationInfo: Boolean
         get() = !registrationNumber.isNullOrEmpty() || !taxIdentificationNumber.isNullOrEmpty()
 
-    // Get display name for shop type
+    
     val shopTypeDisplay: String
         get() = when (shopType?.lowercase()) {
             "retail" -> "Retail Store"
@@ -138,7 +139,7 @@ data class Shop(
             else -> shopType ?: "Business"
         }
 
-    // Get full address
+    
     val fullAddress: String
         get() = buildString {
             address?.let { append(it) }
@@ -179,7 +180,7 @@ data class Shop(
     }
 }
 
-// ✅ Make sure ShopSubscription is defined
+
 @Parcelize
 data class ShopSubscription(
     @SerializedName("id")
@@ -212,3 +213,4 @@ data class ShopSubscription(
     @SerializedName("payment")
     val payment: Payment? = null
 ) : Parcelable, Serializable
+

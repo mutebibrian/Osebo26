@@ -37,18 +37,20 @@ class OtpVerificationActivity : AppCompatActivity() {
     private var email: String = ""
     private var phone: String = ""
     private var userId: String = ""
+    private var firstName: String = ""
+    private var lastName: String = ""
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_otp_verification)
 
-        // Get user data from signup
+
         email = intent.getStringExtra("EMAIL") ?: ""
         phone = intent.getStringExtra("PHONE") ?: ""
-        userId = intent.getStringExtra("USER_ID") ?: ""  // Get userId
-
-
+        userId = intent.getStringExtra("USER_ID") ?: ""
+        firstName = intent.getStringExtra("FIRST_NAME") ?: ""
+        lastName = intent.getStringExtra("LAST_NAME") ?: ""
 
         initViews()
         setupListeners()
@@ -67,11 +69,11 @@ class OtpVerificationActivity : AppCompatActivity() {
         tvTimer = findViewById(R.id.tvTimer)
         progressBar = findViewById(R.id.progressBar)
 
-        // Set phone number in UI
+
         val tvPhone = findViewById<TextView>(R.id.tvPhoneNumber)
         tvPhone.text = "Code sent to $phone"
 
-        // Auto-focus first OTP field
+
         etOtp1.requestFocus()
     }
 
@@ -93,6 +95,8 @@ class OtpVerificationActivity : AppCompatActivity() {
         println("DEBUG: Email: $email")
         println("DEBUG: Phone: $phone")
         println("DEBUG: Received userId: $userId")
+        println("DEBUG: First Name: $firstName")
+        println("DEBUG: Last Name: $lastName")
 
 
         if (otp.length != 6) {
@@ -109,7 +113,7 @@ class OtpVerificationActivity : AppCompatActivity() {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                // Call verify-otp endpoint
+
                 val result = authRepository.verifyOtp(userId, otp)
 
                 withContext(Dispatchers.Main) {
@@ -118,15 +122,15 @@ class OtpVerificationActivity : AppCompatActivity() {
                     if (result.isSuccess) {
                         val response = result.getOrNull()
                         if (response != null && response.success) {
-                            // OTP verified successfully
+
                             Toast.makeText(
                                 this@OtpVerificationActivity,
                                 "Account verified successfully!",
                                 Toast.LENGTH_LONG
                             ).show()
 
-                            // Navigate to main activity/dashboard
-                            navigateToMainActivity()
+
+                            navigateToShopCreation()
                         } else {
                             Toast.makeText(
                                 this@OtpVerificationActivity,
@@ -167,7 +171,7 @@ class OtpVerificationActivity : AppCompatActivity() {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                // Call generate-otp endpoint
+
                 val result = authRepository.resendOtp(email)
 
                 withContext(Dispatchers.Main) {
@@ -227,7 +231,7 @@ class OtpVerificationActivity : AppCompatActivity() {
                         otpFields[index - 1].requestFocus()
                     }
 
-                    // Auto-submit when all fields are filled
+
                     if (otpFields.all { it.text.isNotEmpty() }) {
                         btnVerifyOtp.performClick()
                     }
@@ -247,7 +251,7 @@ class OtpVerificationActivity : AppCompatActivity() {
     }
 
     private fun startOtpTimer() {
-        // Disable resend button for 60 seconds
+
         tvResendOtp.isEnabled = false
         tvTimer.visibility = View.VISIBLE
 
@@ -268,10 +272,16 @@ class OtpVerificationActivity : AppCompatActivity() {
         timer.start()
     }
 
-    private fun navigateToMainActivity() {
-        // Navigate to your main activity/dashboard
-        val intent = Intent(this, MainActivity::class.java)
-        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+    private fun navigateToShopCreation() {
+        // Navigate to ShopCreationActivity with user data
+        val intent = Intent(this, ShopCreationActivity::class.java).apply {
+            putExtra("USER_ID", userId)
+            putExtra("EMAIL", email)
+            putExtra("PHONE", phone)
+            putExtra("FIRST_NAME", firstName)
+            putExtra("LAST_NAME", lastName)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
         startActivity(intent)
         finish()
     }

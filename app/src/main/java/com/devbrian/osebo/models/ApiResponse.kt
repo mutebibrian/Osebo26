@@ -14,9 +14,9 @@ data class ApiResponse<T>(
 
 
 
-    //val success: Boolean,      // This should exist
-    //    val message: String?,      // This should exist
-    //    val data: T?              // This should exist
+    
+    
+    
 )
 
 
@@ -28,7 +28,7 @@ data class InventoryResponse(
     val totalPages: Int
 )
 
-// 3. Category.kt
+
 data class Category(
     val id: String,
     val name: String,
@@ -36,7 +36,7 @@ data class Category(
     val itemCount: Int
 )
 
-//  SalesResponse.kt
+
 data class SalesResponse(
     val sales: List<Sale>,
     val total: Int,
@@ -110,11 +110,7 @@ data class SalesReport(
     val data: List<SalesDataPoint>
 )
 
-data class SalesDataPoint(
-    val date: String,
-    val sales: Double,
-    val transactions: Int
-)
+
 
 data class InventoryReport(
     val totalItems: Int,
@@ -130,7 +126,7 @@ data class CategorySummary(
     val totalValue: Double
 )
 
-// 19. FinancialReport.kt
+
 data class FinancialReport(
     val period: String,
     val revenue: Double,
@@ -185,4 +181,5 @@ data class UserPreferences(
     val currency: String,
     val updatedAt: String
 )
+
 

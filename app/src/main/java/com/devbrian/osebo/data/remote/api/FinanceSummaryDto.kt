@@ -19,3 +19,4 @@ data class FinanceSummaryDto(
     @SerializedName("currency")
     val currency: String = "UGX"
 )
+

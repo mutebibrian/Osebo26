@@ -2,10 +2,10 @@ package com.devbrian.osebo.data.remote.dto.response
 
 import com.google.gson.annotations.SerializedName
 
-// Add this before ShopStatsResponse
+
 data class MonthlyRevenue(
     @SerializedName("month")
-    val month: String,  // e.g., "2024-01"
+    val month: String,  
 
     @SerializedName("year")
     val year: Int,
@@ -17,7 +17,7 @@ data class MonthlyRevenue(
     val orders: Int,
 
     @SerializedName("growth")
-    val growth: Double? = null  // Percentage growth from previous month
+    val growth: Double? = null  
 )
 
 data class ShopStatsResponse(
@@ -36,3 +36,4 @@ data class ShopStatsResponse(
     @SerializedName("monthlyRevenue")
     val monthlyRevenue: List<MonthlyRevenue>
 )
+

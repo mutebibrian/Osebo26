@@ -52,21 +52,59 @@
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintStart_toStartOf="parent" />
 
-            <!-- Empty State Message -->
-            <TextView
-                android:id="@+id/tvEmptyMessage"
+            <!-- Empty State with Create Shop Button -->
+            <LinearLayout
+                android:id="@+id/emptyStateLayout"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:orientation="vertical"
                 android:gravity="center"
                 android:padding="32dp"
-                android:text="You haven't created any shops yet"
-                android:textSize="16sp"
-                android:textColor="@color/text_secondary"
                 android:visibility="gone"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/tvShopCount"
-                app:layout_constraintBottom_toBottomOf="parent" />
+                app:layout_constraintBottom_toBottomOf="parent">
+
+                <ImageView
+                    android:layout_width="120dp"
+                    android:layout_height="120dp"
+                    android:src="@drawable/ic_shop_placeholder"
+                    android:tint="@color/text_secondary"
+                    android:alpha="0.5"
+                    android:layout_marginBottom="16dp"/>
+
+                <TextView
+                    android:id="@+id/tvEmptyMessage"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="You haven't created any shops yet"
+                    android:textSize="18sp"
+                    android:textColor="@color/text_secondary"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:layout_marginBottom="8dp"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Get started by creating your first shop"
+                    android:textSize="14sp"
+                    android:textColor="@color/text_secondary"
+                    android:gravity="center"
+                    android:layout_marginBottom="24dp"/>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnCreateFirstShop"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Create Your First Shop"
+                    app:icon="@drawable/ic_add"
+                    app:iconGravity="start"
+                    style="@style/Widget.MaterialComponents.Button"
+                    android:textColor="@android:color/white"/>
+
+            </LinearLayout>
 
             <!-- Shops List -->
             <androidx.recyclerview.widget.RecyclerView
@@ -74,6 +112,7 @@
                 android:layout_width="0dp"
                 android:layout_height="0dp"
                 android:layout_marginTop="8dp"
+                android:visibility="gone"
                 app:layout_constraintTop_toBottomOf="@id/tvShopCount"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
@@ -83,6 +122,7 @@
 
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
+    <!-- FAB for adding shops (visible only when user has shops) -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabAddShop"
         android:layout_width="wrap_content"
@@ -90,6 +130,7 @@
         android:layout_margin="16dp"
         android:contentDescription="Add Shop"
         android:src="@drawable/ic_add"
+        android:visibility="gone"
         app:backgroundTint="@color/primary"
         app:layout_anchor="@id/swipeRefreshLayout"
         app:layout_anchorGravity="bottom|end"

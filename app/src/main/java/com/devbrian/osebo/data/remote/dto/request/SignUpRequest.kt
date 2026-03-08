@@ -8,3 +8,4 @@ data class SignUpRequest(
     val phone: String,
     val title: String = "Shop Owner"
 )
+

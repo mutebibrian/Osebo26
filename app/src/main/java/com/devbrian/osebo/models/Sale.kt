@@ -32,16 +32,16 @@ data class Sale(
         }
     }
 
-    // Helper method to get formatted date for display
+    
     fun getFormattedDate(): String {
         return try {
-            // Try to parse as timestamp (milliseconds)
+            
             val timestamp = date.toLongOrNull()
             if (timestamp != null) {
                 val sdf = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
                 sdf.format(Date(timestamp))
             } else {
-                // Return as is if it's already formatted
+                
                 date
             }
         } catch (e: Exception) {
@@ -63,3 +63,4 @@ data class Sale(
         }
     }
 }
+

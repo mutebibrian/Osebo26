@@ -15,3 +15,4 @@ data class CreateSubscriptionRequest(
     @SerializedName("currency")
     val currency: String = "UGX"
 )
+

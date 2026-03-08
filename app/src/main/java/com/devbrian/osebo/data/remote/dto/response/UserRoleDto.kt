@@ -21,3 +21,4 @@ data class UserRoleDto(
     @SerializedName("created_at")
     val createdAt: String
 )
+

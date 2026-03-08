@@ -13,66 +13,50 @@ import com.google.gson.annotations.SerializedName
 
 object ApiClient {
 
-    // Base URL - Update this if your API URL changes
-    private const val BASE_URL = "https://dev-api.osebo.ai/"
+    
+    private const val BASE_URL = "https://dev-api.osebo.ai"
 
-    // SharedPreferences name
+    
     private const val PREFS_NAME = "OseboPrefs"
     private const val AUTH_TOKEN_KEY = "auth_token"
     private const val CURRENT_SHOP_ID_KEY = "current_shop_id"
     private const val CURRENT_SHOP_NAME_KEY = "current_shop_name"
 
-    // ---------------- PUBLIC CREATORS ----------------
+    
 
-    /**
-     * Create ApiService for public endpoints (signup, login, etc.)
-     * No authentication token required
-     */
+    
     fun create(): ApiService {
         return buildRetrofit().create(ApiService::class.java)
     }
 
-    /**
-     * Create ApiService with authentication token from parameter
-     * Use this when you have the token available
-     */
+    
     fun createWithAuth(token: String): ApiService {
         if (token.isBlank()) {
-            // Fallback to non-auth client if token is empty
+            
             return create()
         }
         return buildRetrofitWithAuth(token).create(ApiService::class.java)
     }
 
-    /**
-     * Create ApiService with authentication token from SharedPreferences
-     * Use this in Activities/Fragments where context is available
-     */
+    
     fun createWithAuth(context: Context): ApiService {
         val token = getAuthToken(context)
         return createWithAuth(token)
     }
 
-    /**
-     * Alias for createWithAuth for backward compatibility
-     */
+    
     fun createWithToken(token: String): ApiService {
         return createWithAuth(token)
     }
 
-    /**
-     * Create ApiService without automatic auth header
-     * Use this when you want to pass token manually in @Header annotation
-     */
+    
     fun createWithoutAuth(): ApiService {
         return buildRetrofit().create(ApiService::class.java)
     }
 
-    // ---------------- TOKEN & SHOP MANAGEMENT ----------------
+    
 
-    /**
-     * Save authentication token to SharedPreferences
-     */
+    
     fun saveAuthToken(context: Context, token: String) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit().putString(AUTH_TOKEN_KEY, token).apply()
@@ -83,9 +67,7 @@ object ApiClient {
         return prefs.getString(AUTH_TOKEN_KEY, "") ?: ""
     }
 
-    /**
-     * Save current shop ID
-     */
+    
     fun saveCurrentShopId(context: Context, shopId: String) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit().putString(CURRENT_SHOP_ID_KEY, shopId).apply()
@@ -96,9 +78,7 @@ object ApiClient {
         return prefs.getString(CURRENT_SHOP_ID_KEY, "") ?: ""
     }
 
-    /**
-     * Save current shop name
-     */
+    
     fun saveCurrentShopName(context: Context, shopName: String) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit().putString(CURRENT_SHOP_NAME_KEY, shopName).apply()
@@ -109,16 +89,12 @@ object ApiClient {
         return prefs.getString(CURRENT_SHOP_NAME_KEY, "") ?: ""
     }
 
-    /**
-     * Check if user has selected a shop
-     */
+    
     fun hasCurrentShop(context: Context): Boolean {
         return getCurrentShopId(context).isNotBlank()
     }
 
-    /**
-     * Clear current shop (when user switches shop or logs out)
-     */
+    
     fun clearCurrentShop(context: Context) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit()
@@ -127,16 +103,12 @@ object ApiClient {
             .apply()
     }
 
-    /**
-     * Check if user is logged in (has auth token)
-     */
+    
     fun isLoggedIn(context: Context): Boolean {
         return getAuthToken(context).isNotBlank()
     }
 
-    /**
-     * Clear authentication token (logout)
-     */
+    
     fun clearAuthToken(context: Context) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit().remove(AUTH_TOKEN_KEY).apply()
@@ -147,7 +119,7 @@ object ApiClient {
         prefs.edit().clear().apply()
     }
 
-    // ---------------- RETROFIT BUILDERS ----------------
+    
 
     private fun buildRetrofit(): Retrofit {
         return Retrofit.Builder()
@@ -165,14 +137,12 @@ object ApiClient {
             .build()
     }
 
-    // ---------------- OKHTTP CLIENTS ----------------
+    
 
-    /**
-     * Create OkHttpClient without authentication
-     */
+    
     private fun getOkHttpClient(): OkHttpClient {
         val loggingInterceptor = HttpLoggingInterceptor().apply {
-            // Set logging level based on build type
+            
             level = if (BuildConfig.DEBUG) {
                 HttpLoggingInterceptor.Level.BODY
             } else {
@@ -199,9 +169,7 @@ object ApiClient {
             .build()
     }
 
-    /**
-     * Create OkHttpClient with authentication header
-     */
+    
     private fun getOkHttpClientWithAuth(token: String): OkHttpClient {
         val loggingInterceptor = HttpLoggingInterceptor().apply {
             level = if (BuildConfig.DEBUG) {
@@ -231,35 +199,30 @@ object ApiClient {
             .build()
     }
 
-    // ---------------- UTILITY METHODS ----------------
+    
 
-    /**
-     * Generate a simple device ID (for demo purposes)
-     * In production, use a proper device ID method
-     */
+    
     private fun getDeviceId(): String {
         return try {
-            // You can replace this with a proper device ID implementation
-            // For example: Settings.Secure.ANDROID_ID
+            
+            
             "android_device_${System.currentTimeMillis()}"
         } catch (e: Exception) {
             "unknown_device"
         }
     }
 
-    /**
-     * Check if the base URL is valid
-     */
+    
     fun isBaseUrlValid(): Boolean {
         return BASE_URL.startsWith("http") && BASE_URL.isNotBlank()
     }
 }
 
-// ---------------- API SERVICE INTERFACE ----------------
 
 
 
-// ---------------- REQUEST/RESPONSE MODELS ----------------
+
+
 
 data class ShopRequest(
     @SerializedName("name")
@@ -404,6 +367,7 @@ data class UpdateProfileRequest(
     @SerializedName("profileImage")
     val profileImage: String? = null
 )
+
 
 
 

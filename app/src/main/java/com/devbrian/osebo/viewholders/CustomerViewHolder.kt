@@ -44,30 +44,30 @@ class CustomerViewHolder(
     fun bind(customer: Customer) {
         currentCustomer = customer
 
-        // Initials
+        
         tvCustomerInitial.text = getInitials(customer.name)
         tvCustomerInitial.setBackgroundColor(getAvatarColor(customer.name))
 
-        // Basic info
+        
         tvCustomerName.text = customer.name
         tvCustomerEmail.text = customer.email ?: "No email"
         tvCustomerPhone.text = customer.phone ?: "No phone"
 
-        // Money - FIXED: Use totalSpent instead of totalAmountSpent
+        
         tvTotalSpent.text = "UGX ${formatCurrency(customer.totalSpent)}"
 
-        // Dates - FIXED: Use proper fields
+        
         tvLastPurchase.text = "Last: ${formatDate(customer.lastPurchase)}"
         tvCustomerSince.text = "Since ${formatDate(customer.customerSince)}"
 
-        // Stats
+        
         tvLoyaltyPoints.text = "${customer.loyaltyPoints} pts"
 
         val purchaseCount = customer.totalPurchases
         tvPurchaseCount.text =
             "$purchaseCount ${if (purchaseCount == 1) "purchase" else "purchases"}"
 
-        // VIP highlight - FIXED: Use customerType or totalSpent logic
+        
         val isVip = customer.customerType.equals("vip", ignoreCase = true) || customer.totalSpent > 500000
         if (isVip) {
             itemView.setBackgroundColor(
@@ -106,13 +106,13 @@ class CustomerViewHolder(
                 }
 
                 is CustomerUpdatePayload.Status -> {
-                    // If you later add a status indicator, update it here
+                    
                 }
             }
         }
     }
 
-    // ---------- Helpers ----------
+    
 
     private fun getInitials(name: String): String {
         if (name.isBlank()) return "?"
@@ -151,7 +151,7 @@ class CustomerViewHolder(
         if (dateString.isNullOrEmpty()) return "Never"
 
         return try {
-            // Handle ISO date format
+            
             val input = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
             val output = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
             val date = input.parse(dateString)
@@ -161,3 +161,4 @@ class CustomerViewHolder(
         }
     }
 }
+

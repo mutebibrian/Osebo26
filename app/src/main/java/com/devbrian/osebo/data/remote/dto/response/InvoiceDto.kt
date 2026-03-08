@@ -5,10 +5,11 @@ data class InvoiceDto(
     val subscriptionId: String,
     val amount: Double,
     val currency: String,
-    val status: String, // "paid", "pending", "failed", "refunded"
+    val status: String, 
     val invoiceDate: String,
     val dueDate: String,
     val paidDate: String?,
     val downloadUrl: String?,
     val items: List<InvoiceItemDto>
 )
+

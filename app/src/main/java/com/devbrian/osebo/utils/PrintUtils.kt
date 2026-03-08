@@ -12,9 +12,7 @@ import java.util.*
 
 object PrintUtils {
 
-    /**
-     * Generate a PDF receipt
-     */
+    
     suspend fun generateReceiptPdf(
         context: Context,
         receiptNumber: String,
@@ -29,13 +27,13 @@ object PrintUtils {
         change: String,
         paymentMethod: String
     ): File {
-        // Create a new PDF document
+        
         val pdfDocument = PdfDocument()
         val pageInfo = PdfDocument.PageInfo.Builder(300, 600, 1).create()
         val page = pdfDocument.startPage(pageInfo)
         val canvas = page.canvas
 
-        // Create paints
+        
         val titlePaint = Paint().apply {
             textSize = 20f
             isFakeBoldText = true
@@ -71,17 +69,17 @@ object PrintUtils {
 
         var yPosition = 40f
 
-        // Store Name
+        
         canvas.drawText("OSEBO STORE", 150f, yPosition, titlePaint)
         yPosition += 25f
 
-        // Store Address
+        
         canvas.drawText("Kampala, Uganda", 150f, yPosition, headerPaint)
         yPosition += 20f
         canvas.drawText("Tel: +256 700 123456", 150f, yPosition, smallPaint)
         yPosition += 30f
 
-        // Receipt Info
+        
         canvas.drawText("Receipt No: $receiptNumber", 30f, yPosition, normalPaint)
         yPosition += 18f
         canvas.drawText("Date: $date", 30f, yPosition, normalPaint)
@@ -89,17 +87,17 @@ object PrintUtils {
         canvas.drawText("Customer: $customerName", 30f, yPosition, normalPaint)
         yPosition += 25f
 
-        // Divider
+        
         canvas.drawLine(30f, yPosition, 270f, yPosition, Paint().apply { strokeWidth = 2f })
         yPosition += 20f
 
-        // Items Header
+        
         canvas.drawText("Item", 30f, yPosition, boldPaint)
         canvas.drawText("Qty", 180f, yPosition, boldPaint)
         canvas.drawText("Price", 250f, yPosition, rightPaint)
         yPosition += 18f
 
-        // Items
+        
         if (items.isEmpty()) {
             canvas.drawText("No items", 150f, yPosition, normalPaint)
             yPosition += 20f
@@ -107,7 +105,7 @@ object PrintUtils {
             items.forEach { item ->
                 val itemTotal = item.unitPrice * item.quantity * (1 - item.discount / 100)
 
-                // Item name (truncate if too long)
+                
                 var itemName = item.product.name
                 if (itemName.length > 15) {
                     itemName = itemName.substring(0, 12) + "..."
@@ -118,7 +116,7 @@ object PrintUtils {
                 canvas.drawText(CurrencyFormatter.formatFull(itemTotal), 250f, yPosition, rightPaint)
                 yPosition += 18f
 
-                // Show discount if applicable
+                
                 if (item.discount > 0) {
                     canvas.drawText("  (${item.discount}% off)", 40f, yPosition, smallPaint)
                     yPosition += 15f
@@ -128,11 +126,11 @@ object PrintUtils {
 
         yPosition += 10f
 
-        // Divider
+        
         canvas.drawLine(30f, yPosition, 270f, yPosition, Paint().apply { strokeWidth = 2f })
         yPosition += 20f
 
-        // Totals
+        
         canvas.drawText("Subtotal:", 30f, yPosition, normalPaint)
         canvas.drawText(subtotal, 250f, yPosition, rightPaint)
         yPosition += 18f
@@ -145,7 +143,7 @@ object PrintUtils {
         canvas.drawText(tax, 250f, yPosition, rightPaint)
         yPosition += 18f
 
-        // Total (bold)
+        
         canvas.drawText("TOTAL:", 30f, yPosition, boldPaint)
         canvas.drawText(total, 250f, yPosition, boldPaint)
         yPosition += 25f
@@ -161,14 +159,14 @@ object PrintUtils {
         canvas.drawText("Payment: $paymentMethod", 30f, yPosition, normalPaint)
         yPosition += 25f
 
-        // Footer
+        
         canvas.drawText("Thank you for your purchase!", 150f, yPosition, smallPaint)
         yPosition += 15f
         canvas.drawText("Visit us again!", 150f, yPosition, smallPaint)
 
         pdfDocument.finishPage(page)
 
-        // Save PDF to external storage
+        
         val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
         val fileName = "receipt_${receiptNumber}_$timestamp.pdf"
 
@@ -188,9 +186,7 @@ object PrintUtils {
         return file
     }
 
-    /**
-     * Generate a simple text receipt for sharing
-     */
+    
     fun generateTextReceipt(
         receiptNumber: String,
         date: String,
@@ -252,9 +248,7 @@ object PrintUtils {
         return sb.toString()
     }
 
-    /**
-     * Share receipt via intent
-     */
+    
     fun shareReceipt(context: Context, file: File): Boolean {
         return try {
             val uri = androidx.core.content.FileProvider.getUriForFile(
@@ -279,3 +273,4 @@ object PrintUtils {
         }
     }
 }
+

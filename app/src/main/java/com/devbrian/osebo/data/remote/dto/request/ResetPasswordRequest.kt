@@ -10,3 +10,4 @@ data class ResetPasswordRequest(
     @SerializedName("new_password")
     val newPassword: String
 )
+

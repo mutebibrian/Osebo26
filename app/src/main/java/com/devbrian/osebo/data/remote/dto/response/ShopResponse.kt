@@ -11,3 +11,4 @@ data class ShopResponse(
     val createdAt: String,
     val updatedAt: String
 )
+

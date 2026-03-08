@@ -1,6 +1,5 @@
 package com.devbrian.osebo.adapters
 
-
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.viewpager2.adapter.FragmentStateAdapter
@@ -19,14 +18,6 @@ class SubscriptionPagerAdapter(
             0 -> SubscriptionOverviewFragment()
             1 -> SubscriptionHistoryFragment()
             else -> SubscriptionOverviewFragment()
-        }
-    }
-
-    fun getTabTitle(position: Int): String {
-        return if (position in tabTitles.indices) {
-            tabTitles[position]
-        } else {
-            ""
         }
     }
 }

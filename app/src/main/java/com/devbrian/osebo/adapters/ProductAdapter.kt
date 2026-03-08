@@ -45,7 +45,7 @@ class ProductAdapter(
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_product, parent, false)
 
-        // Simple debug without the isInitialized check
+        
         println("📱 Adapter - Creating ViewHolder")
 
         return ProductViewHolder(
@@ -96,10 +96,10 @@ class ProductAdapter(
         private var isExpanded: Boolean = false
 
         init {
-            // Add touch feedback to see if item is receiving touches
+            
             itemView.setOnTouchListener { v, event ->
                 println("📱 ProductViewHolder - Touch event: ${event.action}")
-                false // Return false to allow click to still happen
+                false 
             }
 
             itemView.setOnClickListener {
@@ -114,10 +114,10 @@ class ProductAdapter(
                 } ?: println("📱 ProductViewHolder - currentProduct is null!")
             }
 
-            // Also add click listener to each child to see if they're blocking
+            
             tvProductName.setOnClickListener {
                 println("📱 ProductViewHolder - tvProductName clicked")
-                // Don't consume, let it bubble
+                
                 false
             }
 
@@ -144,18 +144,18 @@ class ProductAdapter(
             println("   - Cost: ${product.cost}")
             println("   - Low Stock Threshold: ${product.lowStockThreshold}")
 
-            // Set product image background color based on category
+            
             setProductImageBackground(product.category)
 
-            // Set product icon based on category
+            
             setProductIcon(product.category)
 
-            // Set product details
+            
             tvProductName.text = product.name
             tvProductSku.text = "SKU: ${product.sku}"
             tvProductCategory.text = product.category
 
-            // Format prices
+            
             tvProductPrice.text = formatCurrency(product.price)
             tvCostPrice.text = if (product.cost != null && product.cost > 0) {
                 formatCurrency(product.cost)
@@ -163,10 +163,10 @@ class ProductAdapter(
                 "Cost: N/A"
             }
 
-            // Set stock information - FIX: Use 'stock' not 'stockQuantity'
+            
             tvStockQuantity.text = "${product.stock} ${if (product.stock == 1) "unit" else "units"}"
 
-            // Show low stock warning if applicable - FIX: Use correct field names
+            
             if (product.stock <= product.lowStockThreshold) {
                 llLowStockWarning.visibility = View.VISIBLE
 
@@ -178,7 +178,7 @@ class ProductAdapter(
 
                 tvLowStockWarning.text = warningText
 
-                // Set warning color based on severity
+                
                 val warningColor = when {
                     product.stock == 0 -> R.color.red_error
                     product.stock == 1 -> R.color.orange_warning
@@ -192,7 +192,7 @@ class ProductAdapter(
                 llLowStockWarning.visibility = View.GONE
             }
 
-            // Set stock progress bar - FIX: Use correct field names
+            
             val threshold = product.lowStockThreshold
             val maxStockForProgress = (threshold * 3).coerceAtLeast(30)
             val progress = if (maxStockForProgress > 0) {
@@ -203,7 +203,7 @@ class ProductAdapter(
 
             pbStockLevel.progress = progress
 
-            // Set progress bar color based on stock level
+            
             val progressColor = when {
                 product.stock == 0 -> R.color.red_error
                 product.stock <= threshold -> R.color.orange_warning
@@ -216,10 +216,10 @@ class ProductAdapter(
                 progressColor
             )
 
-            // Set barcode if available
+            
             tvBarcode.text = product.barcode ?: "No barcode"
 
-            // Highlight out of stock products
+            
             if (product.stock == 0) {
                 itemView.setBackgroundColor(
                     ContextCompat.getColor(itemView.context, R.color.stock_out_background)
@@ -228,14 +228,14 @@ class ProductAdapter(
                 itemView.setBackgroundColor(Color.TRANSPARENT)
             }
 
-            // Highlight high-value products
+            
             if (product.price > 1000000) {
                 tvProductName.setTextColor(
                     ContextCompat.getColor(itemView.context, R.color.high_value_product)
                 )
             }
 
-            // Show/hide quick actions
+            
             llQuickActions.visibility = if (showQuickActions && isExpanded) View.VISIBLE else View.GONE
         }
 
@@ -243,7 +243,7 @@ class ProductAdapter(
             isExpanded = !isExpanded
             llQuickActions.visibility = if (showQuickActions && isExpanded) View.VISIBLE else View.GONE
 
-            // Animate the expansion
+            
             if (isExpanded) {
                 llQuickActions.alpha = 0f
                 llQuickActions.animate().alpha(1f).setDuration(200).start()
@@ -293,7 +293,7 @@ class ProductAdapter(
 
                 tvLowStockWarning.text = warningText
 
-                // Set warning color based on severity
+                
                 val warningColor = when {
                     product.stock == 0 -> R.color.red_error
                     product.stock == 1 -> R.color.orange_warning
@@ -309,13 +309,13 @@ class ProductAdapter(
         }
 
         private fun updateStockProgressBar(product: Product) {
-            // Safe calculation with zero checks
+            
             val threshold = if (product.lowStockThreshold > 0) product.lowStockThreshold else 5
 
-            // Calculate a reasonable max for the progress bar (3x threshold or at least 30)
+            
             val maxStockForProgress = (threshold * 3).coerceAtLeast(30)
 
-            // Calculate progress percentage safely
+            
             val progress = if (maxStockForProgress > 0) {
                 ((product.stock.toFloat() * 100) / maxStockForProgress).toInt().coerceIn(0, 100)
             } else {
@@ -324,7 +324,7 @@ class ProductAdapter(
 
             pbStockLevel.progress = progress
 
-            // Set progress bar color based on stock level
+            
             val progressColor = when {
                 product.stock == 0 -> R.color.red_error
                 product.stock <= threshold -> R.color.orange_warning
@@ -367,7 +367,7 @@ class ProductAdapter(
         }
     }
 
-    // ========== PUBLIC HELPER METHODS ==========
+    
 
     fun getProductAtPosition(position: Int): Product? {
         return if (position in 0 until itemCount) {
@@ -462,8 +462,8 @@ class ProductAdapter(
     }
 
     fun getTopSellingProducts(limit: Int = 5): List<Product> {
-        // Note: This would typically come from sales data
-        // For now, return products with highest stock value
+        
+        
         return currentList.sortedByDescending { it.price * it.stock }
             .take(limit)
     }
@@ -482,3 +482,4 @@ class ProductAdapter(
         submitList(emptyList())
     }
 }
+

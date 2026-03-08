@@ -5,3 +5,4 @@ data class UpgradeSubscriptionRequest(
     val immediate: Boolean = true,
     val prorate: Boolean = true
 )
+

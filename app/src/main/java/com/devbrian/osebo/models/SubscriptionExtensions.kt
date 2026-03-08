@@ -1,7 +1,7 @@
 package com.devbrian.osebo.models
 
 
-// Extension functions for Shop model
+
 fun Shop.toSubscriptionStatusUi(): SubscriptionStatusUi {
     return SubscriptionStatusUi.fromStatus(
         status = this.subscriptionStatus,
@@ -20,7 +20,7 @@ fun Shop.getSubscriptionActionText(): String {
     }
 }
 
-// Extension functions for Subscription model
+
 fun Subscription.toPaymentStatusUi(): PaymentStatusUi {
     return PaymentStatusUi.fromStatus(this.status)
 }
@@ -29,14 +29,15 @@ fun Subscription.isWithinTrialPeriod(): Boolean {
     return isTrial && trialEndsAt != null && !trialEndsAt.isNullOrEmpty()
 }
 
-// Extension for date formatting
+
 fun String?.formatSubscriptionDate(): String {
     if (this.isNullOrEmpty()) return "N/A"
 
     return try {
-        // Simple formatting - you can use SimpleDateFormat or LocalDateTime for better formatting
-        this.substring(0, 10) // Get YYYY-MM-DD part
+        
+        this.substring(0, 10) 
     } catch (e: Exception) {
         this
     }
 }
+

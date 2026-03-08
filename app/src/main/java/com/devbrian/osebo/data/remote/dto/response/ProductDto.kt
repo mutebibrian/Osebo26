@@ -26,15 +26,15 @@ data class ProductDto(
             id = this.id,
             name = this.name,
             sku = this.sku,
-            category = this.stockCategory.name,  // extract category name
+            category = this.stockCategory.name,  
             price = this.sellingPrice,
-            cost = null,  // cost is not returned in GET response; you may need to handle separately
+            cost = null,  
             stock = this.quantity,
             lowStockThreshold = this.lowQuantityMark,
             imageUrl = this.photos?.firstOrNull(),
             description = this.description,
             barcode = this.barcode,
-            supplierId = null,  // not in response
+            supplierId = null,  
             supplierName = null,
             taxRate = null,
             weight = null,
@@ -46,6 +46,7 @@ data class ProductDto(
         )
     }
 }
+
 
 
 

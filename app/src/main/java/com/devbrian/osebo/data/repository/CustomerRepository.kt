@@ -25,7 +25,7 @@ class CustomerRepository @Inject constructor(
     private val gson: Gson
 ) {
 
-    // ==================== OBSERVABLE DATA (LIVE FROM LOCAL DB) ====================
+    
 
     fun getAllCustomers(): Flow<List<Customer>> {
         val shopId = preferenceManager.getCurrentShopId()
@@ -43,7 +43,7 @@ class CustomerRepository @Inject constructor(
         return database.customerDao().getCustomerById(customerId)?.toCustomer()
     }
 
-    // ==================== CREATE CUSTOMER (OFFLINE-FIRST) ====================
+    
 
     suspend fun createCustomer(
         name: String,
@@ -56,7 +56,7 @@ class CustomerRepository @Inject constructor(
             return Resource.Error("No shop selected")
         }
 
-        // Generate temp ID for offline use
+        
         val tempId = "temp_${System.currentTimeMillis()}"
         val now = System.currentTimeMillis().toString()
 
@@ -79,7 +79,7 @@ class CustomerRepository @Inject constructor(
             updatedAt = now
         )
 
-        // Save to local DB with pending sync flag
+        
         val entity = CustomerEntity(
             id = tempId,
             name = name,
@@ -103,7 +103,7 @@ class CustomerRepository @Inject constructor(
         database.customerDao().insertCustomer(entity)
         println("📦 CustomerRepository - Created customer locally with temp ID: $tempId")
 
-        // If online, sync immediately
+        
         if (NetworkUtils.isNetworkAvailable(preferenceManager.getContext())) {
             syncCreateCustomer(entity)
         } else {
@@ -114,7 +114,7 @@ class CustomerRepository @Inject constructor(
         return Resource.Success(customer)
     }
 
-    // ==================== UPDATE CUSTOMER (OFFLINE-FIRST) ====================
+    
 
     suspend fun updateCustomer(customer: Customer): Resource<Boolean> {
         val shopId = preferenceManager.getCurrentShopId()
@@ -122,13 +122,13 @@ class CustomerRepository @Inject constructor(
             return Resource.Error("No shop selected")
         }
 
-        // Check if customer exists locally
+        
         val existing = database.customerDao().getCustomerById(customer.id)
         if (existing == null) {
             return Resource.Error("Customer not found")
         }
 
-        // For temp customers (not yet synced), just update locally
+        
         if (customer.id.startsWith("temp_")) {
             val entity = CustomerEntity(
                 id = customer.id,
@@ -153,7 +153,7 @@ class CustomerRepository @Inject constructor(
             return Resource.Success(true)
         }
 
-        // Update local DB with pending sync flag
+        
         val entity = CustomerEntity(
             id = customer.id,
             name = customer.name,
@@ -187,7 +187,7 @@ class CustomerRepository @Inject constructor(
         return Resource.Success(true)
     }
 
-    // ==================== DELETE CUSTOMER (OFFLINE-FIRST) ====================
+    
 
     suspend fun deleteCustomer(customerId: String): Resource<Boolean> {
         val shopId = preferenceManager.getCurrentShopId()
@@ -200,14 +200,14 @@ class CustomerRepository @Inject constructor(
             return Resource.Error("Customer not found")
         }
 
-        // For temp products (not yet synced), just delete locally
+        
         if (customer.id.startsWith("temp_")) {
             database.customerDao().deleteCustomer(customer)
             println("📦 CustomerRepository - Deleted temp customer: $customerId")
             return Resource.Success(true)
         }
 
-        // Mark for deletion
+        
         val updatedCustomer = customer.copy(isPendingSync = true, syncAction = "DELETE")
         database.customerDao().updateCustomer(updatedCustomer)
         println("📦 CustomerRepository - Marked customer for deletion: $customerId")
@@ -222,7 +222,7 @@ class CustomerRepository @Inject constructor(
         return Resource.Success(true)
     }
 
-    // ==================== SYNC OPERATIONS ====================
+    
 
     suspend fun refreshCustomers(): Resource<Boolean> {
         val shopId = preferenceManager.getCurrentShopId()
@@ -244,7 +244,7 @@ class CustomerRepository @Inject constructor(
                     val customerDtos = apiResponse.data ?: emptyList()
                     println("📦 CustomerRepository - Received ${customerDtos.size} customers from API")
 
-                    // Convert to entities
+                    
                     val entities = customerDtos.map { dto ->
                         CustomerEntity(
                             id = dto.id,
@@ -266,7 +266,7 @@ class CustomerRepository @Inject constructor(
                         )
                     }
 
-                    // Save to local DB
+                    
                     database.customerDao().syncCustomers(entities, shopId)
                     println("📦 CustomerRepository - Saved ${entities.size} customers to local DB")
 
@@ -286,7 +286,7 @@ class CustomerRepository @Inject constructor(
         }
     }
 
-    // ==================== SYNC HELPERS ====================
+    
 
     private suspend fun syncCreateCustomer(entity: CustomerEntity) {
         try {
@@ -309,7 +309,7 @@ class CustomerRepository @Inject constructor(
                     if (createdCustomer != null) {
                         println("📦 CustomerRepository - Sync successful, real ID: ${createdCustomer.id}")
 
-                        // Update local entity with real ID from server
+                        
                         val updatedEntity = CustomerEntity(
                             id = createdCustomer.id,
                             name = entity.name,
@@ -331,12 +331,12 @@ class CustomerRepository @Inject constructor(
                         )
                         database.customerDao().insertCustomer(updatedEntity)
 
-                        // Delete old temp record
+                        
                         if (entity.id.startsWith("temp_")) {
                             database.customerDao().deleteCustomer(entity)
                         }
 
-                        // Remove from sync queue if exists
+                        
                         removeFromSyncQueue(entity.id)
                     }
                 } else {
@@ -383,7 +383,7 @@ class CustomerRepository @Inject constructor(
                     )
                     database.customerDao().updateCustomer(updatedEntity)
 
-                    // Remove from sync queue if exists
+                    
                     removeFromSyncQueue(entity.id)
                 } else {
                     println("📦 CustomerRepository - Update failed: ${apiResponse?.message}")
@@ -416,7 +416,7 @@ class CustomerRepository @Inject constructor(
 
                     database.customerDao().deleteCustomer(entity)
 
-                    // Remove from sync queue if exists
+                    
                     removeFromSyncQueue(entity.id)
                 } else {
                     println("📦 CustomerRepository - Delete failed: ${apiResponse?.message}")
@@ -449,30 +449,30 @@ class CustomerRepository @Inject constructor(
     }
 
     private suspend fun removeFromSyncQueue(entityId: String) {
-        // Since we don't have a direct method to delete by entityId,
-        // we'll need to handle this in a background worker
-        // For now, we'll just leave it - the sync worker will handle it
+        
+        
+        
         println("📦 CustomerRepository - Sync complete for: $entityId")
     }
 
-    // ==================== STATS METHODS ====================
+    
 
     suspend fun getCustomerStats(): CustomerStats {
         val shopId = preferenceManager.getCurrentShopId()
         val allCustomers = database.customerDao().getAllCustomers(shopId)
             .map { entities -> entities.map { it.toCustomer() } }
 
-        // This is a simplified version - you might want to create specific DAO methods
-        // for these stats in a real implementation
+        
+        
         var totalCustomers = 0
         var totalSales = 0.0
         var newThisMonth = 0
 
-        // Collect the flow once (in a real app, you'd have DAO methods for this)
+        
         try {
-            // This is just for illustration - implement proper DAO methods for stats
+            
             val customers = database.customerDao().getAllCustomers(shopId)
-            // You'll need to implement these counts in your DAO
+            
         } catch (e: Exception) {
             println("❌ Error getting customer stats: ${e.message}")
         }
@@ -490,3 +490,4 @@ class CustomerRepository @Inject constructor(
         val newThisMonth: Int
     )
 }
+

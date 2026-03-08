@@ -6,3 +6,4 @@ data class PollPaymentRequest(
     @SerializedName("transaction_id")
     val transactionId: String
 )
+

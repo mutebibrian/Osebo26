@@ -13,3 +13,4 @@ data class SalesReportDto(
     @SerializedName("total_orders")
     val totalOrders: Int
 )
+

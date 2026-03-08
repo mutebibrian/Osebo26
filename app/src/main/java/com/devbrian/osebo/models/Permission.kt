@@ -14,8 +14,9 @@ data class Permission(
     val description: String,
 
     @SerializedName("category")
-    val category: String, // sales, inventory, finance, hr, etc.
+    val category: String, 
 
     @SerializedName("module")
-    val module: String // Which ERP module this belongs to
+    val module: String 
 )
+

@@ -28,7 +28,7 @@ class FaqDetailDialogFragment : DialogFragment() {
         super.onCreate(savedInstanceState)
         faqId = arguments?.getInt(ARG_FAQ_ID) ?: 1
 
-        // Set dialog style
+        
         setStyle(STYLE_NORMAL, R.style.FullScreenDialog)
     }
 
@@ -49,7 +49,7 @@ class FaqDetailDialogFragment : DialogFragment() {
     }
 
     private fun setupUI() {
-        // Set title based on FAQ ID
+        
         when (faqId) {
             1 -> {
                 binding.titleTextView.text = "How do I reset my password?"
@@ -76,19 +76,20 @@ class FaqDetailDialogFragment : DialogFragment() {
         }
 
         binding.contactSupportButton.setOnClickListener {
-            // Navigate to support or open contact form
+            
             dismiss()
-            // You can add navigation to contact form here
+            
         }
     }
 
     override fun onStart() {
         super.onStart()
 
-        // Make dialog full screen
+        
         dialog?.window?.setLayout(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT
         )
     }
 }
+

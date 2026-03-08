@@ -10,3 +10,4 @@ data class InventoryReportDto(
     @SerializedName("total_value")
     val totalValue: Double
 )
+

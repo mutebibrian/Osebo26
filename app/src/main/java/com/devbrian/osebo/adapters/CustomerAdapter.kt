@@ -74,35 +74,35 @@ class CustomerAdapter(
         fun bind(customer: Customer) {
             currentCustomer = customer
 
-            // Initials
+            
             tvCustomerInitial.text = getInitials(customer.name)
             tvCustomerInitial.setBackgroundColor(getAvatarColor(customer.name))
 
-            // Basic info
+            
             tvCustomerName.text = customer.name
             tvCustomerEmail.text = customer.email ?: "No email"
             tvCustomerPhone.text = customer.phone ?: "No phone"
 
-            // Total spent - use totalSpent or totalPurchases
+            
             val totalAmount = if (customer.totalSpent > 0) customer.totalSpent else customer.totalPurchases
             tvTotalSpent.text = "UGX ${formatCurrency(totalAmount)}"
 
-            // Dates
+            
             val lastPurchaseFormatted = formatDate(customer.lastPurchase)
             val customerSinceFormatted = formatDate(customer.customerSince)
 
             tvLastPurchase.text = "Last: $lastPurchaseFormatted"
             tvCustomerSince.text = "Since $customerSinceFormatted"
 
-            // Stats - use loyalty points from model
+            
             tvLoyaltyPoints.text = "${customer.loyaltyPoints} pts"
 
             val purchaseCount = customer.totalPurchases.toInt()
             tvPurchaseCount.text =
                 "$purchaseCount ${if (purchaseCount == 1) "purchase" else "purchases"}"
 
-            // VIP highlight - check customer type or total spent
-            // FIXED: Convert totalAmount to Double for comparison
+            
+            
             val totalAmountDouble = totalAmount.toDouble()
             val isVip = customer.customerType.lowercase() == "vip" || totalAmountDouble > 500000.0
             if (isVip) {
@@ -133,8 +133,8 @@ class CustomerAdapter(
                         val formattedAmount = formatCurrency(payload.newTotalSpent)
                         tvTotalSpent.text = "UGX $formattedAmount"
 
-                        // Re-check if VIP status changed
-                        // FIXED: Use payload.newTotalSpent directly
+                        
+                        
                         val isVip = customer.customerType.lowercase() == "vip" || payload.newTotalSpent > 500000.0
                         if (isVip) {
                             itemView.setBackgroundColor(
@@ -152,22 +152,22 @@ class CustomerAdapter(
                         tvLoyaltyPoints.text = "${payload.newLoyaltyPoints} pts"
                     }
                     is CustomerUpdatePayload.Status -> {
-                        // Update status indicator if you have one
+                        
                     }
                 }
             }
         }
 
         private fun getAvatarColor(name: String): Int {
-            // Generate consistent color based on customer name
+            
             val colors = listOf(
-                Color.parseColor("#FF6B6B"), // Coral Red
-                Color.parseColor("#4ECDC4"), // Tiffany Blue
-                Color.parseColor("#FFD166"), // Sunglow
-                Color.parseColor("#06D6A0"), // Emerald
-                Color.parseColor("#118AB2"), // Blue NCS
-                Color.parseColor("#EF476F"), // Paradise Pink
-                Color.parseColor("#073B4C")  // Midnight Green
+                Color.parseColor("#FF6B6B"), 
+                Color.parseColor("#4ECDC4"), 
+                Color.parseColor("#FFD166"), 
+                Color.parseColor("#06D6A0"), 
+                Color.parseColor("#118AB2"), 
+                Color.parseColor("#EF476F"), 
+                Color.parseColor("#073B4C")  
             )
 
             val index = name.hashCode() % colors.size
@@ -176,7 +176,7 @@ class CustomerAdapter(
 
         private fun formatCurrency(amount: Any): String {
             return try {
-                // Convert amount to Double for comparison
+                
                 val amountDouble = when (amount) {
                     is Int -> amount.toDouble()
                     is Long -> amount.toDouble()
@@ -200,8 +200,8 @@ class CustomerAdapter(
             if (dateString.isNullOrEmpty()) return "Never"
 
             return try {
-                // Try to parse and format the date
-                // Handle multiple possible date formats
+                
+                
                 val dateFormats = listOf(
                     SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()),
                     SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()),
@@ -216,7 +216,7 @@ class CustomerAdapter(
                         parsedDate = format.parse(dateString)
                         if (parsedDate != null) break
                     } catch (e: Exception) {
-                        // Try next format
+                        
                     }
                 }
 
@@ -224,11 +224,11 @@ class CustomerAdapter(
                     val outputFormat = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
                     outputFormat.format(parsedDate)
                 } else {
-                    // Return original if parsing fails
+                    
                     if (dateString.length > 10) dateString.substring(0, 10) else dateString
                 }
             } catch (e: Exception) {
-                // Return original if parsing fails
+                
                 if (dateString.length > 10) dateString.substring(0, 10) else dateString
             }
         }
@@ -266,7 +266,7 @@ class CustomerAdapter(
         }
     }
 
-    // Extension function for easy submission
+    
     fun submitCustomerList(customers: List<Customer>) {
         submitList(customers)
     }
@@ -279,7 +279,7 @@ class CustomerAdapter(
         }
     }
 
-    // Filter customers by search query
+    
     fun filterCustomers(query: String, originalList: List<Customer>): List<Customer> {
         return if (query.isEmpty()) {
             originalList
@@ -292,7 +292,7 @@ class CustomerAdapter(
         }
     }
 
-    // Sort customers
+    
     fun sortCustomers(customers: List<Customer>, sortBy: String, ascending: Boolean = true): List<Customer> {
         return when (sortBy.lowercase()) {
             "name" -> {
@@ -302,18 +302,18 @@ class CustomerAdapter(
             "totalspent" -> {
                 if (ascending) {
                     customers.sortedBy { customer ->
-                        // Ensure we return a consistent comparable type (Double)
+                        
                         if (customer.totalSpent > 0) customer.totalSpent else customer.totalPurchases.toDouble()
                     }
                 } else {
                     customers.sortedByDescending { customer ->
-                        // Ensure we return a consistent comparable type (Double)
+                        
                         if (customer.totalSpent > 0) customer.totalSpent else customer.totalPurchases.toDouble()
                     }
                 }
             }
             "lastpurchase" -> {
-                // For date sorting, handle nulls by putting them at the end
+                
                 if (ascending) {
                     customers.sortedWith(compareBy(nullsLast()) { it.lastPurchase })
                 } else {
@@ -321,7 +321,7 @@ class CustomerAdapter(
                 }
             }
             "customersince" -> {
-                // For date sorting, handle nulls by putting them at the end
+                
                 if (ascending) {
                     customers.sortedWith(compareBy(nullsLast()) { it.customerSince })
                 } else {
@@ -334,10 +334,11 @@ class CustomerAdapter(
 }
 
 
-// Payload classes for partial updates
+
 sealed class CustomerUpdatePayload {
     data class TotalSpent(val newTotalSpent: Double) : CustomerUpdatePayload()
     data class LastPurchase(val newLastPurchase: String) : CustomerUpdatePayload()
     data class LoyaltyPoints(val newLoyaltyPoints: Int) : CustomerUpdatePayload()
     data class Status(val newStatus: String) : CustomerUpdatePayload()
 }
+

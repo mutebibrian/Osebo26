@@ -25,3 +25,4 @@ data class CustomerDto(
     @SerializedName("total_purchases")
     val totalPurchases: Double
 )
+

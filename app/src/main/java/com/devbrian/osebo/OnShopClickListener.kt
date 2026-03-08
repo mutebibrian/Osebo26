@@ -8,3 +8,4 @@ interface OnShopClickListener {
     fun onDeleteClick(shop: Shop)
     fun onSetActiveClick(shop: Shop)
 }
+

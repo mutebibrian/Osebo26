@@ -9,3 +9,4 @@ data class TransferItemRequest(
     @SerializedName("quantity")
     val quantity: Int
 )
+

@@ -15,7 +15,7 @@ data class ShopSubscriptionStatusResponse(
     val status: String,
 
     @SerializedName("type")
-    val type: String?, // BASIC, PRO, POPULAR
+    val type: String?, 
 
     @SerializedName("expiry_date")
     val expiryDate: String?,
@@ -41,3 +41,4 @@ data class ShopSubscriptionStatusResponse(
     @SerializedName("subscription")
     val subscription: Subscription?
 )
+

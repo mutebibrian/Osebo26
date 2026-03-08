@@ -23,3 +23,4 @@ data class InitiatePaymentData(
     @SerializedName("paymentId")
     val paymentId: String? = null
 )
+

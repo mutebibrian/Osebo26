@@ -44,7 +44,7 @@ class InventoryFragment : Fragment() {
         setupClickListeners()
         setupObservers()
 
-        // Load data
+        
         viewModel.refreshProducts()
         viewModel.loadStats()
     }
@@ -92,11 +92,11 @@ class InventoryFragment : Fragment() {
     }
 
     private fun setupObservers() {
-        // Observe products list
+        
         viewModel.products.observe(viewLifecycleOwner) { products ->
             productAdapter.submitList(products)
 
-            // Update empty state
+            
             if (products.isEmpty()) {
                 binding.tvEmptyState?.visibility = View.VISIBLE
                 binding.rvProducts.visibility = View.GONE
@@ -106,14 +106,14 @@ class InventoryFragment : Fragment() {
             }
         }
 
-        // Observe inventory stats
+        
         viewModel.stats.observe(viewLifecycleOwner) { stats ->
             binding.tvTotalItems.text = stats.totalItems.toString()
             binding.tvLowStock.text = stats.lowStock.toString()
             binding.tvInventoryValue.text = String.format("UGX %,d", stats.totalValue.toInt())
         }
 
-        // Observe network/offline status
+        
         viewModel.isOffline.observe(viewLifecycleOwner) { isOffline ->
             if (isOffline) {
                 binding.tvNetworkStatus?.text = "📴 Offline Mode"
@@ -130,24 +130,24 @@ class InventoryFragment : Fragment() {
             }
         }
 
-        // Observe connection type
+        
         viewModel.connectionType.observe(viewLifecycleOwner) { connectionType ->
             if (!(viewModel.isOffline.value == true)) {
                 binding.tvNetworkStatus?.text = "🌐 $connectionType"
             }
         }
 
-        // Observe loading state
+        
         viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
             binding.progressBar?.visibility = if (isLoading) View.VISIBLE else View.GONE
         }
 
-        // Observe refresh state
+        
         viewModel.isRefreshing.observe(viewLifecycleOwner) { isRefreshing ->
             binding.swipeRefreshLayout?.isRefreshing = isRefreshing
         }
 
-        // Observe sync pending state
+        
         viewModel.syncPending.observe(viewLifecycleOwner) { isPending ->
             if (isPending) {
                 binding.tvSyncStatus?.text = "⏳ Syncing..."
@@ -157,7 +157,7 @@ class InventoryFragment : Fragment() {
             }
         }
 
-        // Observe error messages
+        
         viewModel.errorMessage.observe(viewLifecycleOwner) { message ->
             message?.let {
                 Toast.makeText(requireContext(), it, Toast.LENGTH_LONG).show()
@@ -165,7 +165,7 @@ class InventoryFragment : Fragment() {
             }
         }
 
-        // Observe success messages
+        
         viewModel.successMessage.observe(viewLifecycleOwner) { message ->
             message?.let {
                 Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
@@ -173,7 +173,7 @@ class InventoryFragment : Fragment() {
             }
         }
 
-        // Network status click listener
+        
         binding.tvNetworkStatus?.setOnClickListener {
             Toast.makeText(
                 requireContext(),
@@ -184,29 +184,29 @@ class InventoryFragment : Fragment() {
     }
 
     private fun navigateToAddProduct() {
-        // Navigate to AddProductFragment with arguments
+        
         val action = InventoryFragmentDirections.actionInventoryToAddProduct()
         findNavController().navigate(action)
     }
 
     private fun navigateToProductDetails(product: Product) {
-        // Navigate to product details with product ID
+        
         val action = InventoryFragmentDirections.actionInventoryToProductDetails(product.id)
         findNavController().navigate(action)
     }
 
     private fun navigateToRestock() {
         Toast.makeText(requireContext(), "Navigate to Restock", Toast.LENGTH_SHORT).show()
-        // TODO: Implement restock navigation
+        
     }
 
     private fun navigateToCategories() {
         Toast.makeText(requireContext(), "Navigate to Categories", Toast.LENGTH_SHORT).show()
-        // TODO: Implement categories navigation
+        
     }
 
     private fun navigateToLowStock() {
-        // Filter to show only low stock products
+        
         val lowStockProducts = productAdapter.currentList.filter {
             it.stock <= it.lowStockThreshold
         }
@@ -214,7 +214,7 @@ class InventoryFragment : Fragment() {
         if (lowStockProducts.isEmpty()) {
             Toast.makeText(requireContext(), "No low stock items", Toast.LENGTH_SHORT).show()
         } else {
-            // Could navigate to filtered list or show dialog
+            
             Toast.makeText(
                 requireContext(),
                 "${lowStockProducts.size} low stock items",
@@ -224,7 +224,7 @@ class InventoryFragment : Fragment() {
     }
 
     private fun navigateToAllProducts() {
-        // Already showing all products, just scroll to top
+        
         binding.rvProducts.smoothScrollToPosition(0)
     }
 
@@ -258,7 +258,7 @@ class InventoryFragment : Fragment() {
     private fun scanBarcode() {
         if (!viewModel.isOffline.value!!) {
             Toast.makeText(requireContext(), "Scan Barcode", Toast.LENGTH_SHORT).show()
-            // TODO: Implement barcode scanning
+            
         } else {
             Toast.makeText(
                 requireContext(),
@@ -271,7 +271,7 @@ class InventoryFragment : Fragment() {
     private fun exportInventory() {
         if (!viewModel.isOffline.value!!) {
             Toast.makeText(requireContext(), "Export Inventory", Toast.LENGTH_SHORT).show()
-            // TODO: Implement export functionality
+            
         } else {
             Toast.makeText(
                 requireContext(),
@@ -283,7 +283,7 @@ class InventoryFragment : Fragment() {
 
     private fun startStockTake() {
         Toast.makeText(requireContext(), "Start Stock Take", Toast.LENGTH_SHORT).show()
-        // TODO: Implement stock take
+        
     }
 
     private fun syncNow() {
@@ -303,3 +303,4 @@ class InventoryFragment : Fragment() {
         _binding = null
     }
 }
+

@@ -24,3 +24,4 @@ data class ContactInfoDto(
     @SerializedName("social_media")
     val socialMedia: Map<String, String>
 )
+

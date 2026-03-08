@@ -9,8 +9,8 @@ data class CreateShopRequest(
     @SerializedName("address")
     val address: String,
 
-    @SerializedName("shop_type_id")  // Changed from "business_type" to "shop_type_id"
-    val shopTypeId: String,  // This should be a UUID from the shop types API
+    @SerializedName("shop_type_id")  
+    val shopTypeId: String,  
 
     @SerializedName("registration_number")
     val registrationNumber: String? = null,
@@ -21,10 +21,11 @@ data class CreateShopRequest(
     @SerializedName("description")
     val description: String?,
 
-    // Removed phone and email if not needed by backend
-    // @SerializedName("phone")
-    // val phone: String? = null,
-    //
-    // @SerializedName("email")
-    // val email: String? = null,
+    
+    
+    
+    
+    
+    
 )
+

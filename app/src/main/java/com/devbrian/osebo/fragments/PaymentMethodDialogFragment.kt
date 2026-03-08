@@ -28,14 +28,14 @@ class PaymentMethodDialogFragment : DialogFragment() {
     }
 
     private fun setupUI() {
-        // Setup payment method options
-        // You can add a RecyclerView or RadioGroup here
+        
+        
     }
 
     private fun setupClickListeners() {
         binding.saveButton.setOnClickListener {
             val selectedMethod = getSelectedPaymentMethod()
-            // Save the payment method
+            
             dismiss()
         }
 
@@ -45,8 +45,8 @@ class PaymentMethodDialogFragment : DialogFragment() {
     }
 
     private fun getSelectedPaymentMethod(): String {
-        // Implement logic to get selected payment method
-        return "Mobile Money" // Default
+        
+        return "Mobile Money" 
     }
 
     override fun onStart() {
@@ -57,3 +57,4 @@ class PaymentMethodDialogFragment : DialogFragment() {
         )
     }
 }
+

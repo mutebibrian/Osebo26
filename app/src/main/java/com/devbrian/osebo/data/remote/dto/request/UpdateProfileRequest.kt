@@ -16,3 +16,4 @@ data class UpdateProfileRequest(
     @SerializedName("phone_number")
     val phoneNumber: String? = null
 )
+

@@ -10,3 +10,4 @@ data class SubscriptionHistoryItem(
     val status: String,
     val date: String
 )
+

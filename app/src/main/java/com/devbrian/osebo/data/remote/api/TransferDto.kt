@@ -19,3 +19,4 @@ data class TransferDto(
     @SerializedName("created_at")
     val createdAt: String
 )
+

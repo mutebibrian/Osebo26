@@ -7,14 +7,12 @@ import android.os.Build
 
 object NetworkUtils {
 
-    /**
-     * Check if device has internet connection
-     */
+    
     fun isNetworkAvailable(context: Context): Boolean {
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            // For Android M (API 23) and above
+            
             val network = connectivityManager.activeNetwork ?: return false
             val networkCapabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
 
@@ -27,7 +25,7 @@ object NetworkUtils {
                 else -> false
             }
         } else {
-            // For older Android versions
+            
             @Suppress("DEPRECATION")
             val networkInfo = connectivityManager.activeNetworkInfo
             @Suppress("DEPRECATION")
@@ -35,9 +33,7 @@ object NetworkUtils {
         }
     }
 
-    /**
-     * Check if connected to WiFi
-     */
+    
     fun isWifiConnected(context: Context): Boolean {
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
@@ -53,9 +49,7 @@ object NetworkUtils {
         }
     }
 
-    /**
-     * Check if connected to mobile data
-     */
+    
     fun isMobileDataConnected(context: Context): Boolean {
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
@@ -71,9 +65,7 @@ object NetworkUtils {
         }
     }
 
-    /**
-     * Check connection with custom message
-     */
+    
     fun checkNetworkWithMessage(context: Context): Pair<Boolean, String> {
         return if (isNetworkAvailable(context)) {
             Pair(true, "Connected to internet (${getConnectionType(context)})")
@@ -82,9 +74,7 @@ object NetworkUtils {
         }
     }
 
-    /**
-     * Get connection type string
-     */
+    
     fun getConnectionType(context: Context): String {
         return when {
             isWifiConnected(context) -> "WiFi"
@@ -93,9 +83,7 @@ object NetworkUtils {
         }
     }
 
-    /**
-     * Check if connection is metered (mobile data)
-     */
+    
     fun isMeteredConnection(context: Context): Boolean {
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
@@ -111,9 +99,7 @@ object NetworkUtils {
         }
     }
 
-    /**
-     * Check network capabilities for API calls
-     */
+    
     fun isNetworkSuitableForApiCalls(context: Context): Boolean {
         if (!isNetworkAvailable(context)) return false
 
@@ -123,7 +109,7 @@ object NetworkUtils {
             val network = connectivityManager.activeNetwork ?: return false
             val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
 
-            // Check for required capabilities
+            
             return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
                     capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
         }
@@ -131,13 +117,7 @@ object NetworkUtils {
         return true
     }
 
-    /**
-     * Get network strength indicator (0-3)
-     * 0: No connection
-     * 1: Weak
-     * 2: Moderate
-     * 3: Strong
-     */
+    
     fun getNetworkStrength(context: Context): Int {
         if (!isNetworkAvailable(context)) return 0
 
@@ -151,13 +131,14 @@ object NetworkUtils {
                 capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> 3
                 capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> 3
                 capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> {
-                    // Could add signal strength logic here
+                    
                     2
                 }
                 else -> 1
             }
         } else {
-            2 // Default moderate for older APIs
+            2 
         }
     }
 }
+

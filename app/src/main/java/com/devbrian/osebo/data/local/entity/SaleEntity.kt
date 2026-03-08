@@ -26,7 +26,7 @@ data class SaleEntity(
     val syncAction: String? = null
 ) {
     fun toSale(): Sale {
-        // Parse items count from JSON if needed
+        
         val itemCount = try {
             val itemsJson = com.google.gson.JsonParser.parseString(this.items).asJsonArray
             itemsJson.size()
@@ -35,7 +35,7 @@ data class SaleEntity(
             0
         }
 
-        // Map the status correctly
+        
         val displayStatus = when (this.status.uppercase()) {
             "COMPLETED" -> "COMPLETED"
             "PENDING" -> "PENDING"
@@ -43,7 +43,7 @@ data class SaleEntity(
             "CANCELLED" -> "CANCELLED"
             "REFUNDED" -> "REFUNDED"
             else -> {
-                // If it's something else, check if it might be from API
+                
                 when (this.status.lowercase()) {
                     "completed" -> "COMPLETED"
                     "pending" -> "PENDING"
@@ -68,3 +68,4 @@ data class SaleEntity(
         )
     }
 }
+

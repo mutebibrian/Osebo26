@@ -1,4 +1,4 @@
-package com.devbrian.osebo.fragments.subscription
+package com.devbrian.osebo.fragments
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -10,6 +10,7 @@ import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import com.devbrian.osebo.R
 import com.devbrian.osebo.databinding.FragmentPaymentStatusBinding
+import com.devbrian.osebo.fragments.subscription.PaymentStatusFragmentArgs
 import com.devbrian.osebo.ui.viewmodels.SubscriptionViewModel
 import com.devbrian.osebo.utils.Resource
 import dagger.hilt.android.AndroidEntryPoint
@@ -46,7 +47,7 @@ class PaymentStatusFragment : Fragment() {
             findNavController().navigateUp()
         }
 
-        // Set transaction details
+
         binding.tvTransactionId.text = "Transaction ID: ${args.transactionId.take(12)}..."
         binding.tvAmount.text = "Amount: ${args.currency} ${args.amount}"
     }
@@ -128,7 +129,7 @@ class PaymentStatusFragment : Fragment() {
     }
 
     private fun startPolling() {
-        // Pass both transactionId and shopId
+
         viewModel.startPaymentPolling(args.transactionId, args.shopId)
     }
 
@@ -153,12 +154,14 @@ class PaymentStatusFragment : Fragment() {
     }
 
     private fun navigateToSubscriptionDetails() {
-        // Navigate to subscription details
-        // Note: You might need to add subscriptionId to your navigation args
-        // For now, navigate to a general subscription view or back to packages
-        findNavController().navigate(
-            R.id.action_paymentStatusFragment_to_subscriptionPackagesFragment
-        )
+        // Navigate to subscription details with the shopId
+        val action = PaymentStatusFragmentDirections
+            .actionPaymentStatusFragmentToSubscriptionDetailsFragment(
+                shopId = args.shopId,
+                subscriptionId = null,
+                subscription = null
+            )
+        findNavController().navigate(action)
     }
 
     override fun onDestroyView() {
@@ -167,3 +170,4 @@ class PaymentStatusFragment : Fragment() {
         _binding = null
     }
 }
+

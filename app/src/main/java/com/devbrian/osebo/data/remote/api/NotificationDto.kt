@@ -22,3 +22,4 @@ data class NotificationDto(
     @SerializedName("created_at")
     val createdAt: String
 )
+

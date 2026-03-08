@@ -14,28 +14,30 @@ import java.util.concurrent.TimeUnit
 
 class AuthRepository {
 
-    // Local interface with all authentication endpoints
+
     private interface LocalApiService {
-        @POST("auth/signup")
+        // FIXED: Added /api/ prefix to all endpoints
+        @POST("api/auth/signup")
         suspend fun signUp(@Body request: SignUpRequest): Response<SignUpResponse>
 
-        @POST("auth/signin")
+        @POST("api/auth/signin")
         suspend fun login(@Body request: Map<String, String>): Response<SignUpResponse>
 
-        @POST("auth/verify-otp")
+        @POST("api/auth/verify-otp")
         suspend fun verifyOtp(@Body request: Map<String, String>): Response<SignUpResponse>
 
-        @POST("auth/resend-otp")  // Changed from generate-otp to resend-otp
+        @POST("api/auth/resend-otp")
         suspend fun resendOtp(@Body request: Map<String, String>): Response<SignUpResponse>
 
-        // Keep generate-otp if it exists separately
-        @POST("auth/generate-otp")
+
+        @POST("api/auth/generate-otp")
         suspend fun generateOtp(@Body request: Map<String, String>): Response<SignUpResponse>
     }
 
-    // Create Retrofit instance directly
+
     private val apiService: LocalApiService by lazy {
-        val BASE_URL = "https://dev-api.osebo.ai/api/"
+        // FIXED: Added trailing slash to base URL
+        val BASE_URL = "https://dev-api.osebo.ai/"
 
         val loggingInterceptor = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
@@ -57,13 +59,14 @@ class AuthRepository {
             .build()
 
         Retrofit.Builder()
-            .baseUrl(BASE_URL)
+            .baseUrl(BASE_URL)  // Now ends with /
             .client(client)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(LocalApiService::class.java)
     }
 
+    // Rest of your code remains exactly the same...
     suspend fun signUp(signUpRequest: SignUpRequest): Result<SignUpResponse> {
         return try {
             val response: Response<SignUpResponse> = apiService.signUp(signUpRequest)
@@ -94,9 +97,9 @@ class AuthRepository {
 
             val response: Response<SignUpResponse> = apiService.verifyOtp(request)
 
-            println("DEBUG: Verify OTP response code: ${response.code()}") // For debugging
-            println("DEBUG: Verify OTP response body: ${response.body()}") // For debugging
-            println("DEBUG: Verify OTP error body: ${response.errorBody()?.string()}") // For debugging
+            println("DEBUG: Verify OTP response code: ${response.code()}")
+            println("DEBUG: Verify OTP response body: ${response.body()}")
+            println("DEBUG: Verify OTP error body: ${response.errorBody()?.string()}")
 
             if (response.isSuccessful) {
                 response.body()?.let { body ->
@@ -146,14 +149,14 @@ class AuthRepository {
         }
     }
 
-    // Helper method to parse error messages from response
+
     private fun parseErrorMessage(response: Response<SignUpResponse>): String {
         return try {
             val errorBody = response.errorBody()?.string()
             if (!errorBody.isNullOrEmpty()) {
-                println("DEBUG: Error body raw: $errorBody") // For debugging
+                println("DEBUG: Error body raw: $errorBody")
 
-                // Try to extract message from JSON error response
+
                 if (errorBody.contains("\"message\"")) {
                     val messagePattern = "\"message\"\\s*:\\s*\"([^\"]+)\"".toRegex()
                     val match = messagePattern.find(errorBody)
@@ -161,7 +164,7 @@ class AuthRepository {
                     println("DEBUG: Extracted message: $extractedMessage")
                     extractedMessage
                 } else if (errorBody.contains("message")) {
-                    // Try alternative pattern
+
                     val altPattern = "message\\s*[=:]\\s*\"?([^\",}]+)\"?".toRegex()
                     val altMatch = altPattern.find(errorBody)
                     altMatch?.groupValues?.get(1)?.trim() ?: errorBody
@@ -177,7 +180,7 @@ class AuthRepository {
         }
     }
 
-    // ... keep your existing login and other methods ...
+
     suspend fun login(email: String, password: String): Result<SignUpResponse> {
         return try {
             val loginRequest = mapOf(
