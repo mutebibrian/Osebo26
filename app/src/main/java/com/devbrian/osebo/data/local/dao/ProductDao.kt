@@ -34,7 +34,7 @@ interface ProductDao {
     """)
     fun searchProducts(shopId: String, query: String): Flow<List<ProductEntity>>
 
-    
+
     @Query("""
         SELECT * FROM products 
         WHERE shopId = :shopId 
@@ -50,6 +50,40 @@ interface ProductDao {
     """)
     suspend fun searchProductsSuspend(shopId: String, query: String): List<ProductEntity>
 
+    /**
+     * Find a product by its barcode
+     * @param barcode The barcode to search for
+     * @return The product entity if found, null otherwise
+     */
+    @Query("SELECT * FROM products WHERE barcode = :barcode LIMIT 1")
+    suspend fun getProductByBarcode(barcode: String): ProductEntity?
+
+    /**
+     * Find a product by its SKU
+     * @param sku The SKU to search for
+     * @return The product entity if found, null otherwise
+     */
+    @Query("SELECT * FROM products WHERE sku = :sku LIMIT 1")
+    suspend fun getProductBySku(sku: String): ProductEntity?
+
+    /**
+     * Find a product by its barcode for a specific shop
+     * @param shopId The shop ID
+     * @param barcode The barcode to search for
+     * @return The product entity if found, null otherwise
+     */
+    @Query("SELECT * FROM products WHERE shopId = :shopId AND barcode = :barcode LIMIT 1")
+    suspend fun getProductByBarcodeAndShop(shopId: String, barcode: String): ProductEntity?
+
+    /**
+     * Find a product by its SKU for a specific shop
+     * @param shopId The shop ID
+     * @param sku The SKU to search for
+     * @return The product entity if found, null otherwise
+     */
+    @Query("SELECT * FROM products WHERE shopId = :shopId AND sku = :sku LIMIT 1")
+    suspend fun getProductBySkuAndShop(shopId: String, sku: String): ProductEntity?
+
     @Query("SELECT * FROM products WHERE shopId = :shopId AND stock <= lowStockThreshold")
     fun getLowStockProducts(shopId: String): Flow<List<ProductEntity>>
 
@@ -58,6 +92,7 @@ interface ProductDao {
 
     @Query("SELECT COUNT(*) FROM products WHERE shopId = :shopId")
     suspend fun getProductCount(shopId: String): Int
+
     @Query("SELECT * FROM products WHERE shopId = :shopId ORDER BY name ASC")
     suspend fun getAllProductsSuspend(shopId: String): List<ProductEntity>
 
@@ -93,9 +128,72 @@ interface ProductDao {
 
     @Transaction
     suspend fun syncProducts(products: List<ProductEntity>, shopId: String) {
-        
         clearProducts(shopId)
         insertAllProducts(products)
     }
-}
 
+    /**
+     * Get products that are low on stock for a specific shop
+     * @param shopId The shop ID
+     * @return List of low stock products
+     */
+    @Query("SELECT * FROM products WHERE shopId = :shopId AND stock <= lowStockThreshold")
+    suspend fun getLowStockProductsSuspend(shopId: String): List<ProductEntity>
+
+    /**
+     * Get products that are out of stock for a specific shop
+     * @param shopId The shop ID
+     * @return List of out of stock products
+     */
+    @Query("SELECT * FROM products WHERE shopId = :shopId AND stock = 0")
+    suspend fun getOutOfStockProducts(shopId: String): List<ProductEntity>
+
+    /**
+     * Update product stock quantity
+     * @param productId The product ID
+     * @param newStock The new stock quantity
+     */
+    @Query("UPDATE products SET stock = :newStock WHERE id = :productId")
+    suspend fun updateProductStock(productId: String, newStock: Int)
+
+    /**
+     * Decrease product stock by a quantity
+     * @param productId The product ID
+     * @param quantity The quantity to decrease by
+     */
+    @Query("UPDATE products SET stock = stock - :quantity WHERE id = :productId AND stock >= :quantity")
+    suspend fun decreaseStock(productId: String, quantity: Int): Int
+
+    /**
+     * Increase product stock by a quantity
+     * @param productId The product ID
+     * @param quantity The quantity to increase by
+     */
+    @Query("UPDATE products SET stock = stock + :quantity WHERE id = :productId")
+    suspend fun increaseStock(productId: String, quantity: Int)
+
+    /**
+     * Get products that have barcodes (for quick scanning)
+     * @param shopId The shop ID
+     * @return List of products with barcodes
+     */
+    @Query("SELECT * FROM products WHERE shopId = :shopId AND barcode IS NOT NULL AND barcode != ''")
+    suspend fun getProductsWithBarcodes(shopId: String): List<ProductEntity>
+
+    /**
+     * Check if a barcode already exists in the database
+     * @param barcode The barcode to check
+     * @param excludeProductId Optional product ID to exclude from check (for updates)
+     * @return True if barcode exists
+     */
+    @Query("SELECT EXISTS(SELECT 1 FROM products WHERE barcode = :barcode AND id != :excludeProductId)")
+    suspend fun isBarcodeExists(barcode: String, excludeProductId: String = ""): Boolean
+
+    /**
+     * Get products that need to be synced (pending sync) for a specific shop
+     * @param shopId The shop ID
+     * @return List of products pending sync
+     */
+    @Query("SELECT * FROM products WHERE shopId = :shopId AND isPendingSync = 1")
+    suspend fun getPendingSyncProductsForShop(shopId: String): List<ProductEntity>
+}

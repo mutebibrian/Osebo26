@@ -35,11 +35,21 @@ class SalesRepository @Inject constructor(
     private val gson: Gson
 ) {
 
+    /**
+     * Get recent sales for the current shop
+     */
     fun getRecentSales(limit: Int = 20): Flow<List<Sale>> {
         val shopId = preferenceManager.getCurrentShopId()
         return flow {
             try {
                 println("📊 Repository - Fetching recent sales for shop: $shopId")
+
+                if (shopId.isEmpty()) {
+                    println("⚠️ Repository - Shop ID is empty, returning empty list")
+                    emit(emptyList())
+                    return@flow
+                }
+
                 val entities = database.saleDao().getRecentSales(shopId, limit).first()
                 println("📊 Repository - Raw entities count: ${entities.size}")
 
@@ -68,6 +78,9 @@ class SalesRepository @Inject constructor(
         }
     }
 
+    /**
+     * Get sale by ID
+     */
     suspend fun getSaleById(saleId: String): Sale? {
         return try {
             val entity = database.saleDao().getSaleById(saleId)
@@ -78,6 +91,9 @@ class SalesRepository @Inject constructor(
         }
     }
 
+    /**
+     * Create a new sale
+     */
     suspend fun createSale(
         customer: Customer?,
         cartItems: List<CartItem>,
@@ -87,8 +103,22 @@ class SalesRepository @Inject constructor(
         notes: String? = null
     ): Resource<SaleData> {
         val shopId = preferenceManager.getCurrentShopId()
+
+        // Debug shop ID
+        println("🔍 CREATE SALE - Shop ID from preferences: '$shopId'")
+        println("🔍 CREATE SALE - Shop ID length: ${shopId.length}")
+        println("🔍 CREATE SALE - Shop ID empty? ${shopId.isEmpty()}")
+
         if (shopId.isEmpty()) {
-            return Resource.Error("No shop selected")
+            println("❌ CREATE SALE - ERROR: No shop selected!")
+            return Resource.Error("No shop selected. Please select a shop first.")
+        }
+
+        // Check for temporary products
+        val hasTempProducts = cartItems.any { it.product.id.startsWith("temp_") }
+        if (hasTempProducts) {
+            println("⚠️ CREATE SALE - Cart contains temporary products")
+            return Resource.Error("Some products haven't been synced yet. Please wait.")
         }
 
         val subtotal = cartItems.sumOf { it.subtotal }
@@ -114,6 +144,12 @@ class SalesRepository @Inject constructor(
             stockItems = saleItems,
             notes = notes
         )
+
+        println("📝 CREATE SALE - Request prepared:")
+        println("   - Shop ID: $shopId")
+        println("   - Customer ID: ${customer?.id}")
+        println("   - Paid Amount: $paidAmount")
+        println("   - Items: ${saleItems.size}")
 
         val initialStatus = when {
             paidAmount >= totalAmount -> "COMPLETED"
@@ -146,6 +182,7 @@ class SalesRepository @Inject constructor(
         return if (NetworkUtils.isNetworkAvailable(preferenceManager.getContext())) {
             syncCreateSale(saleEntity, request, paymentMethod)
         } else {
+            println("📦 Repository - No network, queuing sale for later sync")
             queueForSync(saleEntity, "CREATE")
             Resource.Success(
                 SaleData(
@@ -162,6 +199,9 @@ class SalesRepository @Inject constructor(
         }
     }
 
+    /**
+     * Sync a created sale with the server
+     */
     private suspend fun syncCreateSale(
         entity: SaleEntity,
         request: SaleRequest,
@@ -169,9 +209,24 @@ class SalesRepository @Inject constructor(
     ): Resource<SaleData> {
         return try {
             val shopId = preferenceManager.getCurrentShopId()
+
+            // Double-check shop ID before sync
+            println("🔍 SYNC CREATE SALE - Shop ID check:")
+            println("   - From preferences: '$shopId'")
+            println("   - From entity: '${entity.shopId}'")
+            println("   - Match? ${shopId == entity.shopId}")
+
+            if (shopId.isEmpty()) {
+                println("❌ SYNC CREATE SALE - ERROR: Shop ID is empty! Cannot sync sale")
+                queueForSync(entity, "CREATE")
+                return Resource.Error("No shop selected. Please select a shop first.")
+            }
+
             println("📤 Syncing sale to server: ${entity.id}")
             println("📤 Request details - Customer: ${request.customerId}, Amount: ${request.paidAmount}, Type: ${request.saleType}")
+            println("📤 Shop ID being sent as header: $shopId")
 
+            // Make the API call - shopId is passed as header automatically by Retrofit
             val response = apiService.createSale(shopId, request)
 
             if (response.isSuccessful) {
@@ -243,6 +298,8 @@ class SalesRepository @Inject constructor(
                         val verifyInsert = database.saleDao().getSaleById(saleData.id)
                         if (verifyInsert != null) {
                             println("✅ Verified real record exists in DB: ${verifyInsert.id}")
+                        } else {
+                            println("⚠️ Warning: Real record not found after insert!")
                         }
 
                         println("✅ Replaced temp ID ${entity.id} with real ID ${saleData.id}")
@@ -254,13 +311,24 @@ class SalesRepository @Inject constructor(
                         Resource.Error("Failed to sync sale: No data returned")
                     }
                 } else {
-                    println("❌ Sync failed: ${apiResponse?.message ?: "Unknown error"}")
+                    val errorMsg = apiResponse?.message ?: "Unknown error"
+                    println("❌ Sync failed: $errorMsg")
                     queueForSync(entity, "CREATE")
-                    Resource.Error(apiResponse?.message ?: "Failed to create sale")
+                    Resource.Error(errorMsg)
                 }
             } else {
                 println("❌ Sync failed with code: ${response.code()}")
-                println("❌ Error body: ${response.errorBody()?.string()}")
+                val errorBody = response.errorBody()?.string()
+                println("❌ Error body: $errorBody")
+
+                // Check if it's the X-Shop header error
+                if (errorBody?.contains("X-Shop header is required") == true) {
+                    println("❌ CRITICAL: X-Shop header is missing or invalid!")
+                    println("🔍 Current shop ID in preferences: '${preferenceManager.getCurrentShopId()}'")
+                    println("🔍 Current shop UUID: '${preferenceManager.getCurrentShopUuid()}'")
+                    preferenceManager.debugSubscriptionInfo()
+                }
+
                 queueForSync(entity, "CREATE")
                 Resource.Error("Network error: ${response.code()}")
             }
@@ -272,6 +340,9 @@ class SalesRepository @Inject constructor(
         }
     }
 
+    /**
+     * Get sales for a specific customer
+     */
     suspend fun getCustomerSales(customerId: String): Resource<List<SaleData>> {
         val shopId = preferenceManager.getCurrentShopId()
         if (shopId.isEmpty()) {
@@ -344,6 +415,9 @@ class SalesRepository @Inject constructor(
         }
     }
 
+    /**
+     * Get detailed sale information
+     */
     suspend fun getSaleDetails(saleId: String): Resource<SaleData> {
         val shopId = preferenceManager.getCurrentShopId()
         if (shopId.isEmpty()) {
@@ -419,6 +493,9 @@ class SalesRepository @Inject constructor(
         }
     }
 
+    /**
+     * Get complete sale history for a customer
+     */
     suspend fun getCustomerSaleHistory(customerId: String): Resource<List<SaleData>> {
         val shopId = preferenceManager.getCurrentShopId()
         if (shopId.isEmpty()) {
@@ -491,6 +568,9 @@ class SalesRepository @Inject constructor(
         }
     }
 
+    /**
+     * Record a payment for an existing sale
+     */
     suspend fun recordPayment(
         saleId: String,
         customerId: String?,
@@ -546,6 +626,9 @@ class SalesRepository @Inject constructor(
         }
     }
 
+    /**
+     * Update local sale payment status after successful payment
+     */
     private suspend fun updateLocalSalePaymentStatus(saleId: String, paidAmount: Double, paymentMethod: String) {
         try {
             val sale = database.saleDao().getSaleById(saleId)
@@ -570,6 +653,9 @@ class SalesRepository @Inject constructor(
         }
     }
 
+    /**
+     * Queue a sale for later sync when offline
+     */
     private suspend fun queueForSync(entity: SaleEntity, action: String) {
         val syncItem = SyncQueueEntity(
             entityType = "SALE",
@@ -585,6 +671,9 @@ class SalesRepository @Inject constructor(
         println("📦 Queued for sync: $action - ${entity.id}")
     }
 
+    /**
+     * Generate a unique invoice number
+     */
     private fun generateInvoiceNumber(): String {
         val dateFormat = SimpleDateFormat("yyyyMMdd", Locale.getDefault())
         val date = dateFormat.format(Date())
@@ -592,14 +681,23 @@ class SalesRepository @Inject constructor(
         return "INV-$date-$random"
     }
 
+    /**
+     * Calculate change amount
+     */
     fun calculateChange(tendered: Double, total: Double): Double {
         return (tendered - total).coerceAtLeast(0.0)
     }
 
+    /**
+     * Calculate subtotal from cart items
+     */
     fun calculateSubtotal(items: List<CartItem>): Double {
         return items.sumOf { it.subtotal }
     }
 
+    /**
+     * Calculate total tax from cart items
+     */
     fun calculateTotalTax(items: List<CartItem>): Double {
         return items.sumOf { item ->
             val price = item.customPrice ?: item.product.price
@@ -608,6 +706,9 @@ class SalesRepository @Inject constructor(
         }
     }
 
+    /**
+     * Get complete sale summary
+     */
     data class SaleSummary(
         val subtotal: Double,
         val totalDiscount: Double,

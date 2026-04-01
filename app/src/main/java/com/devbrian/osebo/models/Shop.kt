@@ -4,11 +4,15 @@ import android.os.Parcelable
 import com.google.gson.annotations.SerializedName
 import kotlinx.parcelize.Parcelize
 import java.io.Serializable
+import java.util.UUID
 
 @Parcelize
 data class Shop(
     @SerializedName("id")
     val id: String = "",
+
+    @SerializedName("uuid")
+    val uuid: String? = null,
 
     @SerializedName("name")
     val name: String = "",
@@ -25,14 +29,12 @@ data class Shop(
     @SerializedName("logo_url")
     val logoUrl: String? = null,
 
-    
     @SerializedName("registration_number")
     val registrationNumber: String? = null,
 
     @SerializedName("tax_identification_number")
     val taxIdentificationNumber: String? = null,
 
-    
     @SerializedName("total_revenue")
     val totalRevenue: Double = 0.0,
 
@@ -54,11 +56,9 @@ data class Shop(
     @SerializedName("is_active")
     val isActive: Boolean = false,
 
-    
     @SerializedName("subscription")
     val subscription: ShopSubscription? = null,
 
-    
     @SerializedName("subscription_status")
     val subscriptionStatus: String = "inactive",
 
@@ -74,7 +74,6 @@ data class Shop(
     @SerializedName("status")
     val status: String? = null,
 
-    
     @SerializedName("phone")
     val phone: String? = null,
 
@@ -84,7 +83,6 @@ data class Shop(
     @SerializedName("website")
     val website: String? = null,
 
-    
     @SerializedName("city")
     val city: String? = null,
 
@@ -94,7 +92,6 @@ data class Shop(
     @SerializedName("postal_code")
     val postalCode: String? = null,
 
-    
     @SerializedName("created_at")
     val createdAt: String? = null,
 
@@ -102,6 +99,13 @@ data class Shop(
     val updatedAt: String? = null
 ) : Parcelable, Serializable {
 
+    // Helper function to check if the ID is a valid UUID
+    val isUuid: Boolean
+        get() = isValidUUID(id)
+
+    // Get the actual UUID to use for API requests
+    val effectiveUuid: String
+        get() = uuid ?: (if (isValidUUID(id)) id else "")
 
     val isSubscriptionActive: Boolean
         get() = subscriptionStatus.equals("active", ignoreCase = true) ||
@@ -112,16 +116,13 @@ data class Shop(
                 subscriptionStatus.equals("expired", ignoreCase = true) ||
                 subscriptionStatus.equals("pending", ignoreCase = true)
 
-    
     val location: String? get() = address
     val category: String? get() = shopType
     val phoneNumber: String? get() = phone
 
-    
     val hasRegistrationInfo: Boolean
         get() = !registrationNumber.isNullOrEmpty() || !taxIdentificationNumber.isNullOrEmpty()
 
-    
     val shopTypeDisplay: String
         get() = when (shopType?.lowercase()) {
             "retail" -> "Retail Store"
@@ -139,7 +140,6 @@ data class Shop(
             else -> shopType ?: "Business"
         }
 
-    
     val fullAddress: String
         get() = buildString {
             address?.let { append(it) }
@@ -177,17 +177,25 @@ data class Shop(
             subscriptionType = "pro",
             isActive = true
         )
+
+        fun isValidUUID(uuid: String): Boolean {
+            return try {
+                UUID.fromString(uuid)
+                true
+            } catch (e: IllegalArgumentException) {
+                false
+            }
+        }
     }
 }
-
 
 @Parcelize
 data class ShopSubscription(
     @SerializedName("id")
-    val id: String = "",
+    val id: String? = "",
 
     @SerializedName("status")
-    val status: String = "",
+    val status: String? = "",
 
     @SerializedName("package_type")
     val packageType: String? = null,
@@ -213,4 +221,3 @@ data class ShopSubscription(
     @SerializedName("payment")
     val payment: Payment? = null
 ) : Parcelable, Serializable
-

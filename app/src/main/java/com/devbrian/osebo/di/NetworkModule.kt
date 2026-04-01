@@ -21,6 +21,7 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
@@ -28,7 +29,7 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
-    private const val BASE_URL = "https://dev-api.osebo.ai"
+    private const val BASE_URL = "https://dev-api.osebo.ai/"
 
     @Provides
     @Singleton
@@ -60,66 +61,75 @@ object NetworkModule {
         return Interceptor { chain ->
             val originalRequest = chain.request()
             val token = preferenceManager.getAuthToken()
+            val method = originalRequest.method
+            val isGetRequest = method.equals("GET", ignoreCase = true)
+            val isDeleteRequest = method.equals("DELETE", ignoreCase = true)
 
             println("🔐 Token check: isEmpty=${token.isEmpty()}, length=${token.length}")
 
             val requestBuilder = originalRequest.newBuilder()
-                .addHeader("Content-Type", "application/json")
-                .addHeader("Accept", "application/json")
 
+            // ✅ Always accept JSON
+            requestBuilder.removeHeader("Accept")
+            requestBuilder.addHeader("Accept", "application/json")
+
+            // ✅ Only add Content-Type for body requests (POST, PUT, PATCH)
+            // Cloudflare WAF blocks GET/DELETE with Content-Type: application/json
+            if (!isGetRequest && !isDeleteRequest) {
+                requestBuilder.removeHeader("Content-Type")
+                requestBuilder.addHeader("Content-Type", "application/json")
+            }
+
+
+            requestBuilder.removeHeader("Authorization")
             if (token.isNotEmpty()) {
                 requestBuilder.addHeader("Authorization", "Bearer $token")
+            } else {
+                println("⚠️ AuthInterceptor - WARNING: No auth token found!")
             }
 
-            val shopId = preferenceManager.getCurrentShopId()
-            if (shopId.isNotEmpty()) {
-                // Remove any existing shop headers
-                requestBuilder.removeHeader("X-Shop")
-                requestBuilder.removeHeader("x-shop")
-                requestBuilder.removeHeader("x-shop-id")
+            // ✅ Add X-Shop UUID — remove first to prevent duplicates
+            val shopUuid = preferenceManager.getCurrentShopUuid()
+            requestBuilder.removeHeader("X-Shop")
+            requestBuilder.removeHeader("x-shop")
+            requestBuilder.removeHeader("x-shop-id")
 
-                // Convert shop ID to UUID format if needed
-                val formattedShopId = convertToUuidFormat(shopId)
-
-                // Add the formatted shop ID
-                requestBuilder.addHeader("X-Shop", formattedShopId)
-                println("🔐 AuthInterceptor - Original shopId: $shopId")
-                println("🔐 AuthInterceptor - Formatted shopId: $formattedShopId")
+            if (shopUuid.isNotEmpty()) {
+                requestBuilder.addHeader("X-Shop", shopUuid)
+                println("🔐 AuthInterceptor - Using shop UUID: $shopUuid")
+            } else {
+                println("⚠️ AuthInterceptor - WARNING: No shop UUID found!")
             }
 
+            // ✅ Platform identifier — remove first to prevent duplicates
+            requestBuilder.removeHeader("X-App-Platform")
             requestBuilder.addHeader("X-App-Platform", "Android")
 
-            val request = requestBuilder.build()
-            chain.proceed(request)
+            val newRequest = requestBuilder.build()
+
+            // Debug: log final headers (mask token value for security)
+            if (BuildConfig.DEBUG) {
+                println("📡 ${newRequest.method} ${newRequest.url}")
+                newRequest.headers.names().forEach { name ->
+                    val value = if (name.equals("Authorization", ignoreCase = true)) {
+                        "Bearer [MASKED]"
+                    } else {
+                        newRequest.header(name)
+                    }
+                    println("   $name: $value")
+                }
+            }
+
+            chain.proceed(newRequest)
         }
     }
 
-    // Add this helper function inside the NetworkModule object
-    private fun convertToUuidFormat(shopId: String): String {
-        // If it's already a UUID (contains hyphens), return as is
-        if (shopId.contains("-")) {
-            return shopId
-        }
-
-        // Handle "shop_1" format
-        if (shopId.startsWith("shop_")) {
-            val number = shopId.replace("shop_", "").toIntOrNull() ?: 0
-            // Convert to UUID format: 00000000-0000-0000-0000-000000000001
-            return String.format("00000000-0000-0000-0000-%012d", number)
-        }
-
-        // Handle numeric IDs
-        val number = shopId.toIntOrNull()
-        if (number != null) {
-            return String.format("00000000-0000-0000-0000-%012d", number)
-        }
-
-        // If it's a regular string, create a deterministic UUID
+    private fun isValidUUID(uuid: String): Boolean {
         return try {
-            java.util.UUID.nameUUIDFromBytes(shopId.toByteArray()).toString()
-        } catch (e: Exception) {
-            // Fallback
-            shopId
+            UUID.fromString(uuid)
+            true
+        } catch (e: IllegalArgumentException) {
+            false
         }
     }
 
@@ -130,11 +140,13 @@ object NetworkModule {
         authInterceptor: Interceptor
     ): OkHttpClient {
         return OkHttpClient.Builder()
-            .addInterceptor(loggingInterceptor)
+            // ✅ Auth FIRST — headers are fully set before logging captures the request
             .addInterceptor(authInterceptor)
+            .addInterceptor(loggingInterceptor)
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
+            .retryOnConnectionFailure(true)
             .build()
     }
 
@@ -192,4 +204,3 @@ object NetworkModule {
         return ProductRepository(apiService, preferenceManager, database)
     }
 }
-

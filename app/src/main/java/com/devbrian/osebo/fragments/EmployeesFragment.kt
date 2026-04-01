@@ -10,20 +10,41 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.devbrian.osebo.R
 import com.devbrian.osebo.adapters.EmployeeAdapter
+import com.devbrian.osebo.data.ApiService
 import com.devbrian.osebo.data.PreferenceManager
+import com.devbrian.osebo.data.remote.dto.request.EmployeeData
 import com.devbrian.osebo.databinding.FragmentEmployeesBinding
 import com.devbrian.osebo.models.Employee
+import com.devbrian.osebo.models.EmployeeResponse
 import com.devbrian.osebo.models.PermissionType
 import com.devbrian.osebo.utils.PermissionManager
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.net.ConnectException
+import java.net.SocketTimeoutException
+import java.util.UUID
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class EmployeesFragment : Fragment() {
+
     private var _binding: FragmentEmployeesBinding? = null
-    private val binding get() = _binding!!
+
+    @Inject
+    lateinit var preferenceManager: PreferenceManager
+
+    @Inject
+    lateinit var apiService: ApiService
+
     private lateinit var employeeAdapter: EmployeeAdapter
-    private lateinit var preferenceManager: PreferenceManager
     private lateinit var permissionManager: PermissionManager
 
     override fun onCreateView(
@@ -33,33 +54,42 @@ class EmployeesFragment : Fragment() {
     ): View {
         _binding = FragmentEmployeesBinding.inflate(inflater, container, false)
         setHasOptionsMenu(true)
-        return binding.root
+        return _binding!!.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        preferenceManager = PreferenceManager.getInstance(requireContext())
+        val binding = _binding ?: return
+
         permissionManager = PermissionManager(requireContext())
 
         setupRecyclerView()
         setupClickListeners()
         checkAccessAndLoadData()
+
+        // Debug logging
+        val shopUuid = preferenceManager.getCurrentShopUuid()
+        val shopId = preferenceManager.getCurrentShopId()
+        println("🏪 EmployeesFragment - Shop UUID: $shopUuid")
+        println("🏪 EmployeesFragment - Shop ID: $shopId")
+        println("🏪 EmployeesFragment - Is valid UUID: ${isValidUUID(shopUuid)}")
+        println("🔐 EmployeesFragment - Token exists: ${preferenceManager.getAuthToken().isNotEmpty()}")
     }
 
     private fun checkAccessAndLoadData() {
-        // Check if user has permission to view employees
         if (permissionManager.hasPermission(PermissionType.VIEW_EMPLOYEES)) {
             loadEmployeeData()
         } else {
-            // Show access denied message
             showAccessDenied()
+            showNoEmployeesState()
         }
     }
 
     private fun setupRecyclerView() {
-        employeeAdapter = EmployeeAdapter() { employee ->
-            // Check if user can view employee details
+        val binding = _binding ?: return
+
+        employeeAdapter = EmployeeAdapter { employee ->
             if (permissionManager.hasPermission(PermissionType.VIEW_EMPLOYEES)) {
                 showEmployeeDetails(employee)
             } else {
@@ -75,86 +105,68 @@ class EmployeesFragment : Fragment() {
     }
 
     private fun setupClickListeners() {
+        val binding = _binding ?: return
+
         binding.cardAddEmployee.setOnClickListener {
-            if (permissionManager.hasPermission(PermissionType.MANAGE_EMPLOYEES)) {
-                navigateToAddEmployee()
-            } else {
-                showAccessDenied()
-            }
+            if (permissionManager.hasPermission(PermissionType.MANAGE_EMPLOYEES)) navigateToAddEmployee()
+            else showAccessDenied()
         }
 
         binding.cardAttendance.setOnClickListener {
-            if (permissionManager.hasPermission(PermissionType.VIEW_EMPLOYEES)) {
-                navigateToAttendance()
-            } else {
-                showAccessDenied()
-            }
+            if (permissionManager.hasPermission(PermissionType.VIEW_EMPLOYEES)) navigateToAttendance()
+            else showAccessDenied()
         }
 
         binding.cardSchedule.setOnClickListener {
-            if (permissionManager.hasPermission(PermissionType.VIEW_EMPLOYEES)) {
-                navigateToSchedule()
-            } else {
-                showAccessDenied()
-            }
+            if (permissionManager.hasPermission(PermissionType.VIEW_EMPLOYEES)) navigateToSchedule()
+            else showAccessDenied()
         }
 
         binding.cardPayroll.setOnClickListener {
-            if (permissionManager.hasPermission(PermissionType.MANAGE_FINANCE)) {
-                navigateToPayroll()
-            } else {
-                showAccessDenied()
-            }
+            if (permissionManager.hasPermission(PermissionType.MANAGE_FINANCE)) navigateToPayroll()
+            else showAccessDenied()
         }
 
         binding.cardPerformance.setOnClickListener {
-            if (permissionManager.hasPermission(PermissionType.VIEW_REPORTS)) {
-                navigateToPerformance()
-            } else {
-                showAccessDenied()
-            }
+            if (permissionManager.hasPermission(PermissionType.VIEW_REPORTS)) navigateToPerformance()
+            else showAccessDenied()
         }
 
         binding.tvViewAllEmployees.setOnClickListener {
-            if (permissionManager.hasPermission(PermissionType.VIEW_EMPLOYEES)) {
-                navigateToAllEmployees()
-            } else {
-                showAccessDenied()
-            }
+            if (permissionManager.hasPermission(PermissionType.VIEW_EMPLOYEES)) navigateToAllEmployees()
+            else showAccessDenied()
         }
 
         binding.fabAddEmployee.setOnClickListener {
-            if (permissionManager.hasPermission(PermissionType.MANAGE_EMPLOYEES)) {
-                navigateToAddEmployee()
-            } else {
-                showAccessDenied()
-            }
+            if (permissionManager.hasPermission(PermissionType.MANAGE_EMPLOYEES)) navigateToAddEmployee()
+            else showAccessDenied()
+        }
+
+        binding.btnAddFirstEmployee.setOnClickListener {
+            if (permissionManager.hasPermission(PermissionType.MANAGE_EMPLOYEES)) navigateToAddEmployee()
+            else showAccessDenied()
         }
     }
 
     private fun showAccessDenied() {
-        Toast.makeText(requireContext(), "You don't have permission to access this feature", Toast.LENGTH_SHORT).show()
+        Toast.makeText(
+            requireContext(),
+            "You don't have permission to access this feature",
+            Toast.LENGTH_SHORT
+        ).show()
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
         inflater.inflate(R.menu.menu_employee_item, menu)
 
-        // Safely check if menu items exist before using them
         try {
             val shopCount = preferenceManager.getShopCount()
             val canCreateRoles = permissionManager.canCreateRoles(shopCount)
 
-            // Find the menu item safely
             val rolesMenuItem = menu.findItem(R.id.action_roles_permissions)
-            if (rolesMenuItem != null) {
-                rolesMenuItem.isVisible = canCreateRoles
-                println("🔍 Roles menu item visibility set to: $canCreateRoles")
-            } else {
-                println("⚠️ Roles menu item not found in menu")
-            }
+            rolesMenuItem?.isVisible = canCreateRoles
         } catch (e: Exception) {
             e.printStackTrace()
-            println("❌ Error setting up menu: ${e.message}")
         }
 
         super.onCreateOptionsMenu(menu, inflater)
@@ -163,31 +175,24 @@ class EmployeesFragment : Fragment() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.action_import_employees -> {
-                if (permissionManager.hasPermission(PermissionType.MANAGE_EMPLOYEES)) {
-                    importEmployees()
-                } else {
-                    showAccessDenied()
-                }
+                if (permissionManager.hasPermission(PermissionType.MANAGE_EMPLOYEES)) importEmployees()
+                else showAccessDenied()
                 true
             }
+
             R.id.action_export_employees -> {
-                if (permissionManager.hasPermission(PermissionType.VIEW_EMPLOYEES)) {
-                    exportEmployees()
-                } else {
-                    showAccessDenied()
-                }
+                if (permissionManager.hasPermission(PermissionType.VIEW_EMPLOYEES)) exportEmployees()
+                else showAccessDenied()
                 true
             }
+
             R.id.action_roles_permissions -> {
-                // Only multi-shop owners can manage roles
                 val shopCount = preferenceManager.getShopCount()
-                if (shopCount > 1 && permissionManager.isShopOwner()) {
-                    manageRoles()
-                } else {
-                    showCannotCreateRolesDialog(shopCount)
-                }
+                if (shopCount > 1 && permissionManager.isShopOwner()) manageRoles()
+                else showCannotCreateRolesDialog(shopCount)
                 true
             }
+
             else -> super.onOptionsItemSelected(item)
         }
     }
@@ -208,60 +213,360 @@ class EmployeesFragment : Fragment() {
     }
 
     private fun loadEmployeeData() {
-        // Your existing loadEmployeeData code
-        val hasEmployees = false
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                try {
+                    _binding?.progressBar?.visibility = View.VISIBLE
 
-        if (hasEmployees) {
-            showEmployeesList()
-            binding.tvTotalEmployees.text = "8"
-            binding.tvActiveToday.text = "3"
+                    val token = preferenceManager.getAuthToken()
+                    val shopUuid = preferenceManager.getCurrentShopUuid()
 
-            val employees = listOf(
-                Employee(
-                    id = "EMP001",
-                    name = "John Manager",
-                    email = "john@powerlipay.com",
-                    phone = "+256 712 345 678",
-                    role = "Manager",
-                    roleId = "role_001",
-                    permissions = listOf(PermissionType.MANAGE_EMPLOYEES, PermissionType.VIEW_FINANCE),
-                    department = "Management",
-                    status = "Active",
-                    imageUrl = null
-                ),
-                Employee(
-                    id = "EMP002",
-                    name = "Jane Staff",
-                    email = "jane@powerlipay.com",
-                    phone = "+256 712 345 679",
-                    role = "Sales Staff",
-                    roleId = "role_002",
-                    permissions = listOf(PermissionType.VIEW_INVENTORY, PermissionType.PROCESS_SALES),
-                    department = "Sales",
-                    status = "Active",
-                    imageUrl = null
-                )
-            )
-            employeeAdapter.submitList(employees)
+                    // Validate token
+                    if (token.isEmpty()) {
+                        showNoEmployeesState()
+                        _binding?.progressBar?.visibility = View.GONE
+                        Toast.makeText(requireContext(), "Please login again", Toast.LENGTH_SHORT).show()
+                        return@repeatOnLifecycle
+                    }
+
+                    // Validate shop UUID
+                    if (shopUuid.isEmpty()) {
+                        showNoEmployeesState()
+                        _binding?.progressBar?.visibility = View.GONE
+                        Toast.makeText(requireContext(), "No shop selected", Toast.LENGTH_SHORT).show()
+                        return@repeatOnLifecycle
+                    }
+
+                    if (!isValidUUID(shopUuid)) {
+                        showNoEmployeesState()
+                        _binding?.progressBar?.visibility = View.GONE
+                        Toast.makeText(requireContext(), "Invalid shop configuration. Please login again.", Toast.LENGTH_SHORT).show()
+                        return@repeatOnLifecycle
+                    }
+
+                    println("📡 EmployeesFragment - Loading employees for shop: $shopUuid")
+
+                    // Use injected apiService - X-Shop header will be added automatically by AuthInterceptor
+                    val response = withContext(Dispatchers.IO) {
+                        apiService.getEmployees("Bearer $token")
+                    }
+
+                    if (response.isSuccessful) {
+                        val body: EmployeeResponse? = response.body()
+
+                        if (body != null && body.success) {
+                            val employeesData: List<EmployeeData> = body.data.orEmpty()
+
+                            if (employeesData.isNotEmpty()) {
+                                val binding = _binding ?: return@repeatOnLifecycle
+                                binding.llNoEmployees.visibility = View.GONE
+                                binding.rvEmployees.visibility = View.VISIBLE
+
+                                val employees = convertToEmployees(employeesData)
+                                updateEmployeeStats(employees)
+                                employeeAdapter.submitList(employees)
+                                println("✅ EmployeesFragment - Displaying ${employees.size} employees")
+                            } else {
+                                showNoEmployeesState()
+                                updateEmptyStats()
+                                println("ℹ️ EmployeesFragment - No employees found")
+                            }
+                        } else {
+                            showNoEmployeesState()
+                            updateEmptyStats()
+                            val errorMsg = body?.message ?: "Failed to load employees"
+                            Toast.makeText(requireContext(), errorMsg, Toast.LENGTH_SHORT).show()
+                            println("❌ EmployeesFragment - API error: $errorMsg")
+                        }
+                    } else {
+                        handleErrorResponse(response.code(), response.message(), response.errorBody()?.string())
+                    }
+                } catch (e: ConnectException) {
+                    println("❌ EmployeesFragment - Network error: ${e.message}")
+                    showNoEmployeesState()
+                    updateEmptyStats()
+                    Toast.makeText(
+                        requireContext(),
+                        "Network error. Please check your connection.",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                } catch (e: SocketTimeoutException) {
+                    println("❌ EmployeesFragment - Timeout error: ${e.message}")
+                    showNoEmployeesState()
+                    updateEmptyStats()
+                    Toast.makeText(
+                        requireContext(),
+                        "Connection timeout. Please try again.",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                } catch (e: Exception) {
+                    println("❌ EmployeesFragment - Unexpected error: ${e.message}")
+                    e.printStackTrace()
+                    showNoEmployeesState()
+                    updateEmptyStats()
+                    Toast.makeText(
+                        requireContext(),
+                        "Error: ${e.message}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                } finally {
+                    _binding?.progressBar?.visibility = View.GONE
+                }
+            }
+        }
+    }
+
+    private fun handleErrorResponse(code: Int, message: String, errorBody: String?) {
+        showNoEmployeesState()
+        updateEmptyStats()
+
+        val errorMessage = when (code) {
+            400 -> {
+                val specificError = extractErrorMessage(errorBody)
+                "Bad request: $specificError"
+            }
+            401 -> "Session expired. Please login again."
+            403 -> "You don't have permission to view employees."
+            404 -> "Employees endpoint not found. Please contact support."
+            422 -> "Validation error. Please check your data."
+            500 -> "Server error. Please try again later."
+            else -> "Error $code: $message"
+        }
+
+        Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_SHORT).show()
+        println("❌ EmployeesFragment - API Error $code: $message")
+        if (errorBody != null) {
+            println("❌ EmployeesFragment - Error body: $errorBody")
+        }
+    }
+
+    private fun extractErrorMessage(errorBody: String?): String {
+        return if (!errorBody.isNullOrEmpty()) {
+            try {
+                val json = org.json.JSONObject(errorBody)
+                json.optString("message", "Unknown error")
+            } catch (e: Exception) {
+                errorBody
+            }
         } else {
-            showNoEmployeesState()
-            binding.tvTotalEmployees.text = "0"
-            binding.tvActiveToday.text = "0"
+            "Unknown error"
+        }
+    }
+
+    private fun convertToEmployees(employeesData: List<EmployeeData>): List<Employee> {
+        return employeesData.map { empData: EmployeeData ->
+            Employee(
+                id = empData.id,
+                name = "${empData.firstName} ${empData.lastName}",
+                email = empData.email ?: "",
+                phone = empData.phone,
+                role = empData.role,
+                roleId = empData.role,
+                permissions = getPermissionsForRole(empData.role),
+                department = getDepartmentForRole(empData.role),
+                status = Employee.STATUS_ACTIVE,
+                hireDate = null,
+                salary = null,
+                imageUrl = null,
+                address = null,
+                emergencyContact = null,
+                bankAccount = null,
+                taxId = null,
+                notes = null,
+                createdAt = null,
+                updatedAt = null,
+                userId = empData.id
+            )
+        }
+    }
+
+    private fun isValidUUID(uuid: String): Boolean {
+        return try {
+            UUID.fromString(uuid)
+            true
+        } catch (e: IllegalArgumentException) {
+            false
+        }
+    }
+
+    // Keep this for debugging purposes
+    private suspend fun discoverEmployeeEndpoint(token: String): String? {
+        val endpoints = listOf(
+            "api/users",
+            "api/employees",
+            "api/staff",
+            "api/team",
+            "api/shop/employees",
+            "users",
+            "employees"
+        )
+
+        for (endpoint in endpoints) {
+            try {
+                val request = okhttp3.Request.Builder()
+                    .url("https://dev-api.osebo.ai/$endpoint")
+                    .addHeader("Authorization", "Bearer $token")
+                    .addHeader("X-Shop", preferenceManager.getCurrentShopUuid())
+                    .addHeader("Content-Type", "application/json")
+                    .get()
+                    .build()
+
+                val client = okhttp3.OkHttpClient.Builder()
+                    .connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+                    .build()
+
+                val response = client.newCall(request).execute()
+                println("🔍 Testing endpoint: /$endpoint -> HTTP ${response.code}")
+
+                if (response.isSuccessful) {
+                    val body = response.body?.string()
+                    println("✅ Found working endpoint: /$endpoint")
+                    println("   Response preview: ${body?.take(200)}...")
+                    response.body?.close()
+                    return endpoint
+                } else {
+                    val errorBody = response.body?.string()
+                    println("❌ Endpoint /$endpoint failed: ${response.code}")
+                    if (!errorBody.isNullOrEmpty()) {
+                        println("   Error: $errorBody")
+                    }
+                    response.body?.close()
+                }
+            } catch (e: Exception) {
+                println("❌ Endpoint /$endpoint exception: ${e.message}")
+            }
+        }
+        return null
+    }
+
+    private fun updateEmployeeStats(employees: List<Employee>) {
+        val binding = _binding ?: return
+
+        binding.tvTotalEmployees.text = employees.size.toString()
+
+        val managerCount = employees.count { employee ->
+            employee.role.equals("manager", ignoreCase = true) ||
+                    employee.role.equals("supervisor", ignoreCase = true) ||
+                    employee.role.equals("admin", ignoreCase = true)
+        }
+        val staffCount = employees.size - managerCount
+
+        try {
+            binding.tvTotalEmployeesStats.text = "$managerCount managers, $staffCount staff"
+        } catch (_: Exception) {
+            // View might not exist in some layout variants
+        }
+
+        val activeCount = employees.count { it.status == Employee.STATUS_ACTIVE }
+        binding.tvActiveToday.text = activeCount.toString()
+
+        try {
+            binding.tvActiveTodayStats.text =
+                if (activeCount > 0) "$activeCount clocked in" else "No clocked in"
+        } catch (_: Exception) {
+            // View might not exist in some layout variants
+        }
+    }
+
+    private fun updateEmptyStats() {
+        val binding = _binding ?: return
+
+        binding.tvTotalEmployees.text = "0"
+        binding.tvActiveToday.text = "0"
+        try {
+            binding.tvTotalEmployeesStats.text = "0 managers, 0 staff"
+            binding.tvActiveTodayStats.text = "No clocked in"
+        } catch (_: Exception) {
+            // View might not exist in some layout variants
+        }
+    }
+
+    private fun getPermissionsForRole(role: String): List<PermissionType> {
+        return when (role.lowercase()) {
+            "manager" -> listOf(
+                PermissionType.VIEW_INVENTORY,
+                PermissionType.MANAGE_INVENTORY,
+                PermissionType.VIEW_SALES,
+                PermissionType.PROCESS_SALES,
+                PermissionType.VIEW_EMPLOYEES,
+                PermissionType.MANAGE_EMPLOYEES,
+                PermissionType.VIEW_CUSTOMERS,
+                PermissionType.MANAGE_CUSTOMERS,
+                PermissionType.VIEW_FINANCE,
+                PermissionType.VIEW_REPORTS
+            )
+
+            "supervisor" -> listOf(
+                PermissionType.VIEW_INVENTORY,
+                PermissionType.VIEW_SALES,
+                PermissionType.PROCESS_SALES,
+                PermissionType.VIEW_EMPLOYEES,
+                PermissionType.VIEW_CUSTOMERS,
+                PermissionType.VIEW_REPORTS
+            )
+
+            "cashier" -> listOf(
+                PermissionType.VIEW_INVENTORY,
+                PermissionType.VIEW_SALES,
+                PermissionType.PROCESS_SALES,
+                PermissionType.VIEW_CUSTOMERS
+            )
+
+            "staff", "sales" -> listOf(
+                PermissionType.VIEW_INVENTORY,
+                PermissionType.VIEW_SALES,
+                PermissionType.PROCESS_SALES,
+                PermissionType.VIEW_CUSTOMERS
+            )
+
+            "inventory" -> listOf(
+                PermissionType.VIEW_INVENTORY,
+                PermissionType.MANAGE_INVENTORY
+            )
+
+            else -> listOf(
+                PermissionType.VIEW_INVENTORY,
+                PermissionType.VIEW_SALES,
+                PermissionType.PROCESS_SALES
+            )
+        }
+    }
+
+    private fun getDepartmentForRole(role: String): String {
+        return when (role.lowercase()) {
+            "manager", "supervisor" -> Employee.DEPARTMENT_MANAGEMENT
+            "cashier" -> Employee.DEPARTMENT_SALES
+            "staff", "sales" -> Employee.DEPARTMENT_SALES
+            "inventory" -> Employee.DEPARTMENT_INVENTORY
+            else -> Employee.DEPARTMENT_SALES
         }
     }
 
     private fun showEmployeesList() {
+        val binding = _binding ?: return
         binding.llNoEmployees.visibility = View.GONE
         binding.rvEmployees.visibility = View.VISIBLE
     }
 
     private fun showNoEmployeesState() {
+        val binding = _binding ?: return
         binding.llNoEmployees.visibility = View.VISIBLE
         binding.rvEmployees.visibility = View.GONE
     }
 
     private fun navigateToAddEmployee() {
-        Toast.makeText(requireContext(), "Navigate to Add Employee", Toast.LENGTH_SHORT).show()
+        val dialog = AddEmployeeDialogFragment()
+        dialog.setOnEmployeeAddedListener(object : AddEmployeeDialogFragment.OnEmployeeAddedListener {
+            override fun onEmployeeAdded(employeeData: EmployeeData) {
+                loadEmployeeData()
+                Toast.makeText(
+                    requireContext(),
+                    "${employeeData.firstName} ${employeeData.lastName} added successfully",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        })
+        dialog.show(parentFragmentManager, AddEmployeeDialogFragment.TAG)
     }
 
     private fun navigateToAttendance() {
@@ -297,7 +602,6 @@ class EmployeesFragment : Fragment() {
     }
 
     private fun manageRoles() {
-        // Navigate to UserRolesFragment
         parentFragmentManager.beginTransaction()
             .replace(R.id.fragment_container, UserRolesFragment())
             .addToBackStack(null)

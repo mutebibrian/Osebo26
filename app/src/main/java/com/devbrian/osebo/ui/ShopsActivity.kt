@@ -6,13 +6,11 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.lifecycleScope
 import com.devbrian.osebo.data.PreferenceManager
 import com.devbrian.osebo.databinding.ActivityShopsBinding
 import com.devbrian.osebo.models.Shop
 import com.devbrian.osebo.utils.Resource
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint

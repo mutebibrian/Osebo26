@@ -5,7 +5,7 @@ import com.devbrian.osebo.data.ApiService
 import com.devbrian.osebo.data.PreferenceManager
 import com.devbrian.osebo.data.local.AppDatabase
 import com.devbrian.osebo.data.local.entity.*
-import com.devbrian.osebo.data.remote.dto.response.TopStockItemDto  // Add this import
+import com.devbrian.osebo.models.TimeSeriesData
 import com.google.gson.Gson
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -67,7 +67,7 @@ class DashboardRepository @Inject constructor(
             // Fetch all data
             fetchAndSaveShopSummary(shopId)
             fetchAndSaveTimeSeries(shopId)
-            fetchAndSaveTopStockItems(shopId)  // This will now work
+            fetchAndSaveTopStockItems(shopId)
             fetchAndSaveFinancialStatement(shopId)
 
             Log.d(TAG, "Dashboard data refreshed successfully")
@@ -119,14 +119,22 @@ class DashboardRepository @Inject constructor(
         try {
             val response = apiService.getTimeSeries(shopId, "monthly")
             if (response.isSuccessful && response.body()?.success == true) {
-                response.body()?.data?.let { timeSeries ->
+                val timeSeriesList = response.body()?.data ?: emptyList()
+                if (timeSeriesList.isNotEmpty()) {
+                    // Extract labels, sales, and expenses from the list
+                    val labels = timeSeriesList.map { it.label }
+                    val sales = timeSeriesList.map { it.sales }
+                    val expenses = timeSeriesList.map { it.expenses }
+
                     val entity = TimeSeriesEntity(
-                        xAxis = gson.toJson(timeSeries.xAxis),
-                        sales = gson.toJson(timeSeries.sales),
-                        expenses = gson.toJson(timeSeries.expenses)
+                        xAxis = gson.toJson(labels),
+                        sales = gson.toJson(sales),
+                        expenses = gson.toJson(expenses)
                     )
                     dao.insertTimeSeries(entity)
-                    Log.d(TAG, "Time series saved with ${timeSeries.xAxis.size} points")
+                    Log.d(TAG, "Time series saved with ${labels.size} points")
+                } else {
+                    Log.d(TAG, "No time series data available")
                 }
             }
         } catch (e: Exception) {
@@ -134,37 +142,35 @@ class DashboardRepository @Inject constructor(
         }
     }
 
-    // FIXED VERSION - This will work with your DTO
     private suspend fun fetchAndSaveTopStockItems(shopId: String) {
         try {
             val response = apiService.getTopStockItems(shopId)
             if (response.isSuccessful && response.body()?.success == true) {
-                response.body()?.data?.items?.let { items ->
-                    Log.d(TAG, "📦 API returned ${items.size} top stock items")
+                val items = response.body()?.data?.items ?: emptyList()
+                Log.d(TAG, "📦 API returned ${items.size} top stock items")
 
-                    // Log each item
-                    items.forEachIndexed { index, item ->
-                        Log.d(TAG, "   API Item[$index]: ${item.name}, quantity: ${item.totalQuantitySold}, sales: ${item.totalSalesAmount}")
+                // Log each item
+                items.forEachIndexed { index, item ->
+                    Log.d(TAG, "   API Item[$index]: ${item.name}, quantity: ${item.totalQuantitySold}, sales: ${item.totalSalesAmount}")
+                }
+
+                dao.clearTopStockItems()
+                if (items.isNotEmpty()) {
+                    val entities = items.map { item ->
+                        TopStockItemEntity(
+                            id = item.id,
+                            name = item.name,
+                            quantity = item.totalQuantitySold,
+                            sales = item.totalSalesAmount
+                        )
                     }
+                    dao.insertTopStockItems(entities)
+                    Log.d(TAG, "✅ Saved ${entities.size} top stock items to DB")
 
-                    dao.clearTopStockItems()
-                    if (items.isNotEmpty()) {
-                        val entities = items.map { item ->
-                            TopStockItemEntity(
-                                id = item.id,
-                                name = item.name,
-                                quantity = item.totalQuantitySold,  // This should work now
-                                sales = item.totalSalesAmount       // This should work now
-                            )
-                        }
-                        dao.insertTopStockItems(entities)
-                        Log.d(TAG, "✅ Saved ${entities.size} top stock items to DB")
-
-                        // Verify what was saved
-                        val savedItems = dao.getTopStockItemsSync()
-                        savedItems.forEachIndexed { index, entity ->
-                            Log.d(TAG, "   Saved Entity[$index]: ${entity.name}, qty: ${entity.quantity}, sales: ${entity.sales}")
-                        }
+                    // Verify what was saved
+                    val savedItems = dao.getTopStockItemsSync()
+                    savedItems.forEachIndexed { index, entity ->
+                        Log.d(TAG, "   Saved Entity[$index]: ${entity.name}, qty: ${entity.quantity}, sales: ${entity.sales}")
                     }
                 }
             }

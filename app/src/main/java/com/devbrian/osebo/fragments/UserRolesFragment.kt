@@ -1,32 +1,51 @@
 package com.devbrian.osebo.fragments
 
-import android.content.Context
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.devbrian.osebo.adapters.UserRolesAdapter
-import com.devbrian.osebo.data.ApiClient
+import androidx.recyclerview.widget.RecyclerView
+import com.devbrian.osebo.R
+import com.devbrian.osebo.adapters.PermissionCategoryAdapter
+import com.devbrian.osebo.data.ApiService
+import com.devbrian.osebo.data.PreferenceManager
+import com.devbrian.osebo.databinding.DialogEditPermissionsBinding
 import com.devbrian.osebo.databinding.FragmentUserRolesBinding
-import com.devbrian.osebo.models.ApiResponse
-import com.devbrian.osebo.models.UserRole
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
+import com.devbrian.osebo.databinding.ItemRoleBinding
+import com.devbrian.osebo.models.*
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.util.UUID
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class UserRolesFragment : Fragment() {
-
-    private lateinit var adapter: UserRolesAdapter
-    private val userRoles = mutableListOf<UserRole>()
 
     private var _binding: FragmentUserRolesBinding? = null
     private val binding get() = _binding!!
 
+    @Inject
+    lateinit var preferenceManager: PreferenceManager
+
+    @Inject
+    lateinit var apiService: ApiService
+
+    private lateinit var rolesAdapter: RolesAdapter
+    private var rolesList = mutableListOf<UserRole>()
+
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
+        inflater: LayoutInflater,
+        container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentUserRolesBinding.inflate(inflater, container, false)
@@ -35,10 +54,273 @@ class UserRolesFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
+        setupToolbar()
         setupRecyclerView()
-        setupClickListeners()
-        loadUserRoles()
+        loadRoles()
+    }
+
+    private fun setupToolbar() {
+        binding.toolbar.setNavigationOnClickListener {
+            parentFragmentManager.popBackStack()
+        }
+
+        val shopName = preferenceManager.getCurrentShopName()
+        binding.tvShopName.text = if (shopName.isNotEmpty()) {
+            "$shopName · User Roles"
+        } else {
+            "Shops · User Roles"
+        }
+    }
+
+    private fun setupRecyclerView() {
+        rolesAdapter = RolesAdapter(
+            onEditClick = { role -> showEditPermissionsDialog(role) }
+        )
+        binding.rvRoles.apply {
+            layoutManager = LinearLayoutManager(requireContext())
+            adapter = rolesAdapter
+            setHasFixedSize(true)
+        }
+    }
+
+    private fun loadRoles() {
+        showLoading(true)
+
+        lifecycleScope.launch {
+            try {
+                val token = preferenceManager.getAuthToken()
+                val shopUuid = preferenceManager.getCurrentShopUuid()
+
+                if (token.isEmpty() || !isValidUUID(shopUuid)) {
+                    showError("Please login again")
+                    showLoading(false)
+                    return@launch
+                }
+
+                // TODO: Replace with actual API call
+                // For now, create sample roles
+                val sampleRoles = createSampleRoles()
+                handleRolesResponse(sampleRoles)
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+                showError("Failed to load roles")
+                showEmptyState("Failed to load roles")
+            } finally {
+                showLoading(false)
+            }
+        }
+    }
+
+    private fun createSampleRoles(): List<UserRole> {
+        return listOf(
+            UserRole(
+                id = "1",
+                name = "Manager",
+                description = "Manager with operational privileges",
+                permissions = listOf("customers_view", "sales_view", "stock_view"),
+                shopId = preferenceManager.getCurrentShopUuid()
+            ),
+            UserRole(
+                id = "2",
+                name = "Staff",
+                description = "Staff member with basic privileges",
+                permissions = listOf("sales_view", "stock_view"),
+                shopId = preferenceManager.getCurrentShopUuid()
+            )
+        )
+    }
+
+    private fun handleRolesResponse(roles: List<UserRole>) {
+        if (roles.isNotEmpty()) {
+            rolesList.clear()
+            rolesList.addAll(roles)
+            rolesAdapter.submitList(rolesList.toList())
+            binding.rvRoles.visibility = View.VISIBLE
+            binding.emptyState.visibility = View.GONE
+        } else {
+            showEmptyState("No roles found")
+        }
+    }
+
+    private fun showEditPermissionsDialog(role: UserRole) {
+        val dialogBinding = DialogEditPermissionsBinding.inflate(LayoutInflater.from(requireContext()))
+
+        // Set dialog title
+        dialogBinding.tvDialogTitle.text = "Edit Permissions - ${role.name}"
+
+        // Setup RecyclerView for permissions
+        val permissionAdapter = PermissionCategoryAdapter { permission, isChecked ->
+            // Handle permission check/uncheck
+            println("${permission.displayName} is now $isChecked")
+        }
+
+        dialogBinding.rvPermissions.apply {
+            layoutManager = LinearLayoutManager(requireContext())
+            adapter = permissionAdapter
+        }
+
+        // Load permissions
+        loadPermissions(role, permissionAdapter)
+
+        // Setup search
+        dialogBinding.etSearchPermissions.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                permissionAdapter.filter(s?.toString() ?: "")
+            }
+        })
+
+        // Create dialog
+        val dialog = AlertDialog.Builder(requireContext())
+            .setView(dialogBinding.root)
+            .create()
+
+        // Setup buttons
+        dialogBinding.btnClose.setOnClickListener { dialog.dismiss() }
+        dialogBinding.btnCloseDialog.setOnClickListener { dialog.dismiss() }
+
+        dialogBinding.btnSaveChanges.setOnClickListener {
+            savePermissions(role, permissionAdapter.getSelectedPermissions(), dialog)
+        }
+
+        dialog.show()
+        dialog.window?.setLayout(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT
+        )
+    }
+
+    private fun loadPermissions(role: UserRole, adapter: PermissionCategoryAdapter) {
+        // Create sample permission categories based on your image
+        val permissionCategories = listOf(
+            PermissionCategory(
+                name = "Customers",
+                permissions = listOf(
+                    PermissionItem("cust_create", "customers_create", "Customers Create", "Customers", role.permissions.contains("customers_create")),
+                    PermissionItem("cust_delete", "customers_delete", "Customers Delete", "Customers", role.permissions.contains("customers_delete")),
+                    PermissionItem("cust_edit", "customers_edit", "Customers Edit", "Customers", role.permissions.contains("customers_edit")),
+                    PermissionItem("cust_view", "customers_view", "Customers View", "Customers", role.permissions.contains("customers_view"))
+                )
+            ),
+            PermissionCategory(
+                name = "Financial Statement",
+                permissions = listOf(
+                    PermissionItem("fs_create", "financial_statement_create", "Financial Statement Create", "Financial Statement", role.permissions.contains("financial_statement_create")),
+                    PermissionItem("fs_delete", "financial_statement_delete", "Financial Statement Delete", "Financial Statement", role.permissions.contains("financial_statement_delete")),
+                    PermissionItem("fs_edit", "financial_statement_edit", "Financial Statement Edit", "Financial Statement", role.permissions.contains("financial_statement_edit")),
+                    PermissionItem("fs_view", "financial_statement_view", "Financial Statement View", "Financial Statement", role.permissions.contains("financial_statement_view"))
+                )
+            ),
+            PermissionCategory(
+                name = "Stock",
+                permissions = listOf(
+                    PermissionItem("stock_create", "stock_create", "Stock Create", "Stock", role.permissions.contains("stock_create")),
+                    PermissionItem("stock_delete", "stock_delete", "Stock Delete", "Stock", role.permissions.contains("stock_delete")),
+                    PermissionItem("stock_edit", "stock_edit", "Stock Edit", "Stock", role.permissions.contains("stock_edit")),
+                    PermissionItem("stock_view", "stock_view", "Stock View", "Stock", role.permissions.contains("stock_view"))
+                )
+            ),
+            PermissionCategory(
+                name = "Expense Categories",
+                permissions = listOf(
+                    PermissionItem("exp_cat_create", "expense_categories_create", "Expense Categories Create", "Expense Categories", role.permissions.contains("expense_categories_create")),
+                    PermissionItem("exp_cat_delete", "expense_categories_delete", "Expense Categories Delete", "Expense Categories", role.permissions.contains("expense_categories_delete")),
+                    PermissionItem("exp_cat_edit", "expense_categories_edit", "Expense Categories Edit", "Expense Categories", role.permissions.contains("expense_categories_edit")),
+                    PermissionItem("exp_cat_view", "expense_categories_view", "Expense Categories View", "Expense Categories", role.permissions.contains("expense_categories_view"))
+                )
+            ),
+            PermissionCategory(
+                name = "Procurement",
+                permissions = listOf(
+                    PermissionItem("proc_create", "procurement_create", "Procurement Create", "Procurement", role.permissions.contains("procurement_create")),
+                    PermissionItem("proc_delete", "procurement_delete", "Procurement Delete", "Procurement", role.permissions.contains("procurement_delete")),
+                    PermissionItem("proc_edit", "procurement_edit", "Procurement Edit", "Procurement", role.permissions.contains("procurement_edit")),
+                    PermissionItem("proc_view", "procurement_view", "Procurement View", "Procurement", role.permissions.contains("procurement_view"))
+                )
+            ),
+            PermissionCategory(
+                name = "Sales",
+                permissions = listOf(
+                    PermissionItem("sales_create", "sales_create", "Sales Create", "Sales", role.permissions.contains("sales_create")),
+                    PermissionItem("sales_delete", "sales_delete", "Sales Delete", "Sales", role.permissions.contains("sales_delete")),
+                    PermissionItem("sales_edit", "sales_edit", "Sales Edit", "Sales", role.permissions.contains("sales_edit")),
+                    PermissionItem("sales_view", "sales_view", "Sales View", "Sales", role.permissions.contains("sales_view"))
+                )
+            ),
+            PermissionCategory(
+                name = "Stock Categories",
+                permissions = listOf(
+                    PermissionItem("stock_cat_create", "stock_categories_create", "Stock Categories Create", "Stock Categories", role.permissions.contains("stock_categories_create")),
+                    PermissionItem("stock_cat_delete", "stock_categories_delete", "Stock Categories Delete", "Stock Categories", role.permissions.contains("stock_categories_delete")),
+                    PermissionItem("stock_cat_edit", "stock_categories_edit", "Stock Categories Edit", "Stock Categories", role.permissions.contains("stock_categories_edit")),
+                    PermissionItem("stock_cat_view", "stock_categories_view", "Stock Categories View", "Stock Categories", role.permissions.contains("stock_categories_view"))
+                )
+            ),
+            PermissionCategory(
+                name = "Suppliers",
+                permissions = listOf(
+                    PermissionItem("supp_create", "suppliers_create", "Suppliers Create", "Suppliers", role.permissions.contains("suppliers_create")),
+                    PermissionItem("supp_delete", "suppliers_delete", "Suppliers Delete", "Suppliers", role.permissions.contains("suppliers_delete")),
+                    PermissionItem("supp_edit", "suppliers_edit", "Suppliers Edit", "Suppliers", role.permissions.contains("suppliers_edit")),
+                    PermissionItem("supp_view", "suppliers_view", "Suppliers View", "Suppliers", role.permissions.contains("suppliers_view"))
+                )
+            )
+        )
+
+        adapter.submitList(permissionCategories)
+    }
+
+    private fun savePermissions(role: UserRole, selectedPermissions: List<PermissionItem>, dialog: AlertDialog) {
+        lifecycleScope.launch {
+            try {
+                dialog.findViewById<View>(R.id.progressBar)?.visibility = View.VISIBLE
+                dialog.findViewById<View>(R.id.btnSaveChanges)?.isEnabled = false
+
+                // TODO: Replace with actual API call
+                delay(1000)
+
+                val permissionNames = selectedPermissions.map { it.name }
+                Toast.makeText(requireContext(), "Permissions updated successfully", Toast.LENGTH_SHORT).show()
+                dialog.dismiss()
+
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), "Failed to save permissions", Toast.LENGTH_SHORT).show()
+            } finally {
+                dialog.findViewById<View>(R.id.progressBar)?.visibility = View.GONE
+                dialog.findViewById<View>(R.id.btnSaveChanges)?.isEnabled = true
+            }
+        }
+    }
+
+    private fun showEmptyState(message: String) {
+        binding.tvEmpty.text = message
+        binding.emptyState.visibility = View.VISIBLE
+        binding.rvRoles.visibility = View.GONE
+    }
+
+    private fun showLoading(show: Boolean) {
+        binding.progressBar.visibility = if (show) View.VISIBLE else View.GONE
+        if (show) {
+            binding.rvRoles.visibility = View.GONE
+            binding.emptyState.visibility = View.GONE
+        }
+    }
+
+    private fun showError(message: String) {
+        if (isAdded) {
+            Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun isValidUUID(uuid: String): Boolean {
+        return try {
+            UUID.fromString(uuid)
+            true
+        } catch (e: IllegalArgumentException) {
+            false
+        }
     }
 
     override fun onDestroyView() {
@@ -46,264 +328,36 @@ class UserRolesFragment : Fragment() {
         _binding = null
     }
 
-    private fun setupRecyclerView() {
-        adapter = UserRolesAdapter(userRoles) { role ->
-            navigateToEditPermissions(role)
+    inner class RolesAdapter(
+        private val onEditClick: (UserRole) -> Unit
+    ) : RecyclerView.Adapter<RolesAdapter.RoleViewHolder>() {
+
+        private var roles = listOf<UserRole>()
+
+        fun submitList(newList: List<UserRole>) {
+            roles = newList
+            notifyDataSetChanged()
         }
 
-        binding.userRolesRecyclerView.layoutManager = LinearLayoutManager(requireContext())
-        binding.userRolesRecyclerView.adapter = adapter
-        binding.userRolesRecyclerView.setHasFixedSize(true)
-    }
-
-    private fun setupClickListeners() {
-        binding.addRoleButton.setOnClickListener {
-            showAddRoleDialog()
-        }
-    }
-
-    fun loadUserRoles() {
-        showLoading(true)
-
-        val prefs = requireContext().getSharedPreferences("OseboPrefs", Context.MODE_PRIVATE)
-        val shopId = prefs.getString("current_shop_id", "") ?: ""
-        val token = prefs.getString("auth_token", "") ?: ""
-
-        if (token.isEmpty()) {
-            showLoading(false)
-            showError("Please login to view user roles")
-            return
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RoleViewHolder {
+            val binding = ItemRoleBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+            return RoleViewHolder(binding)
         }
 
-        
-        val apiService = ApiClient.create()
+        override fun onBindViewHolder(holder: RoleViewHolder, position: Int) {
+            holder.bind(roles[position])
+        }
 
-        
-        apiService.getRoles("Bearer $token", shopId).enqueue(object : Callback<ApiResponse<List<UserRole>>> {
-            override fun onResponse(call: Call<ApiResponse<List<UserRole>>>, response: Response<ApiResponse<List<UserRole>>>) {
-                handleRolesResponse(response)
+        override fun getItemCount(): Int = roles.size
+
+        inner class RoleViewHolder(
+            private val binding: ItemRoleBinding
+        ) : RecyclerView.ViewHolder(binding.root) {
+            fun bind(role: UserRole) {
+                binding.tvRoleName.text = role.name
+                binding.tvRoleDescription.text = role.description ?: "No description"
+                binding.btnEditPermissions.setOnClickListener { onEditClick(role) }
             }
-
-            override fun onFailure(call: Call<ApiResponse<List<UserRole>>>, t: Throwable) {
-                showLoading(false)
-                showError("Network error. Please check your connection")
-                showMockDataForAfricanBusinesses()
-            }
-        })
-    }
-
-    private fun handleRolesResponse(response: Response<ApiResponse<List<UserRole>>>) {
-        showLoading(false)
-
-        if (response.isSuccessful) {
-            val apiResponse = response.body()
-            if (apiResponse != null && apiResponse.success) {
-                apiResponse.data?.let { roles ->
-                    updateUserRolesList(roles)
-                } ?: run {
-                    showError("No user roles found")
-                    showMockDataForAfricanBusinesses()
-                }
-            } else {
-                val errorMessage = apiResponse?.message ?: "Failed to load user roles"
-                showError(errorMessage)
-                showMockDataForAfricanBusinesses()
-            }
-        } else {
-            when (response.code()) {
-                401 -> showError("Session expired. Please login again")
-                403 -> showError("You don't have permission to view user roles")
-                404 -> {
-                    showError("No user roles configured yet")
-                    showMockDataForAfricanBusinesses()
-                }
-                else -> {
-                    showError("Server error: ${response.code()}")
-                    showMockDataForAfricanBusinesses()
-                }
-            }
-        }
-    }
-
-    private fun updateUserRolesList(roles: List<UserRole>) {
-        userRoles.clear()
-
-        
-        val filteredRoles = roles.filter { role ->
-            role.name.lowercase() !in listOf("owner", "admin", "superadmin")
-        }.sortedBy { role ->
-            when (role.name.lowercase()) {
-                "manager" -> 1
-                "supervisor" -> 2
-                "cashier" -> 3
-                "staff" -> 4
-                "accountant" -> 5
-                "inventory_manager" -> 6
-                else -> 7
-            }
-        }
-
-        userRoles.addAll(filteredRoles)
-        adapter.notifyDataSetChanged()
-
-        if (userRoles.isEmpty()) {
-            showEmptyState(true)
-            binding.emptyStateTextView.text = "No user roles found. Add your first role to manage permissions."
-        } else {
-            showEmptyState(false)
-            binding.descriptionTextView.text = "${userRoles.size} role(s) configured for your business"
-        }
-    }
-
-    private fun showMockDataForAfricanBusinesses() {
-        userRoles.clear()
-        userRoles.addAll(getAfricanBusinessRoles())
-        adapter.notifyDataSetChanged()
-        showEmptyState(false)
-
-        
-        binding.titleTextView.text = "User Roles (Sample Data)"
-        binding.descriptionTextView.text = "Sample roles for African businesses. Connect to your Osebo account to see real data."
-        binding.emptyStateTextView.visibility = View.GONE
-
-        Toast.makeText(
-            requireContext(),
-            "Showing sample roles for African businesses",
-            Toast.LENGTH_LONG
-        ).show()
-    }
-
-    private fun getAfricanBusinessRoles(): List<UserRole> {
-        return listOf(
-            UserRole(
-                id = "1",
-                name = "Shop Manager",
-                description = "Manages daily operations, staff, and inventory",
-                permissions = listOf("manage_inventory", "view_reports", "manage_sales", "manage_staff", "view_finance"),
-                shopId = "africa_shop_001",
-                createdAt = "2024-01-01",
-                updatedAt = "2024-01-01"
-            ),
-            UserRole(
-                id = "2",
-                name = "Cashier",
-                description = "Handles customer transactions and payments",
-                permissions = listOf("process_sales", "view_inventory", "handle_cash"),
-                shopId = "africa_shop_001",
-                createdAt = "2024-01-01",
-                updatedAt = "2024-01-01"
-            ),
-            UserRole(
-                id = "3",
-                name = "Inventory Officer",
-                description = "Manages stock levels and suppliers",
-                permissions = listOf("manage_inventory", "order_stock", "manage_suppliers"),
-                shopId = "africa_shop_001",
-                createdAt = "2024-01-01",
-                updatedAt = "2024-01-01"
-            ),
-            UserRole(
-                id = "4",
-                name = "Accountant",
-                description = "Handles finances, expenses, and reporting",
-                permissions = listOf("manage_finance", "view_reports", "manage_expenses"),
-                shopId = "africa_shop_001",
-                createdAt = "2024-01-01",
-                updatedAt = "2024-01-01"
-            ),
-            UserRole(
-                id = "5",
-                name = "Sales Agent",
-                description = "Handles customer sales and support",
-                permissions = listOf("process_sales", "view_customers", "create_orders"),
-                shopId = "africa_shop_001",
-                createdAt = "2024-01-01",
-                updatedAt = "2024-01-01"
-            )
-        )
-    }
-
-    private fun navigateToEditPermissions(role: UserRole) {
-        
-        if (role.id.startsWith("demo_") || role.id.toIntOrNull() != null) {
-            Toast.makeText(
-                requireContext(),
-                "This is a sample role. Create your own role to customize permissions.",
-                Toast.LENGTH_LONG
-            ).show()
-            return
-        }
-
-        if (role.name.lowercase() == "owner") {
-            Toast.makeText(requireContext(), "Owner permissions cannot be modified", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        val dialog = EditPermissionsDialogFragment.newInstance(role)
-        dialog.setOnPermissionsUpdatedListener { updatedRole ->
-            
-            val index = userRoles.indexOfFirst { it.id == updatedRole.id }
-            if (index != -1) {
-                userRoles[index] = updatedRole
-                adapter.notifyItemChanged(index)
-                Toast.makeText(requireContext(), "Permissions updated for '${updatedRole.name}'", Toast.LENGTH_SHORT).show()
-            }
-        }
-        dialog.show(childFragmentManager, "EditPermissionsDialog")
-    }
-
-    private fun showAddRoleDialog() {
-        val prefs = requireContext().getSharedPreferences("OseboPrefs", Context.MODE_PRIVATE)
-        val token = prefs.getString("auth_token", "") ?: ""
-
-        if (token.isEmpty()) {
-            Toast.makeText(
-                requireContext(),
-                "Please login to create user roles",
-                Toast.LENGTH_LONG
-            ).show()
-            return
-        }
-
-        val dialog = AddRoleDialogFragment()
-        dialog.setOnRoleAddedListener { newRole ->
-            userRoles.add(newRole)
-            adapter.notifyItemInserted(userRoles.size - 1)
-            showEmptyState(false)
-            Toast.makeText(requireContext(), "New role '${newRole.name}' created successfully", Toast.LENGTH_SHORT).show()
-        }
-        dialog.show(childFragmentManager, "AddRoleDialog")
-    }
-
-    private fun showLoading(show: Boolean) {
-        if (show) {
-            binding.loadingProgressBar.visibility = View.VISIBLE
-            binding.userRolesCard.visibility = View.INVISIBLE
-            binding.addRoleButton.isEnabled = false
-            binding.descriptionTextView.visibility = View.INVISIBLE
-        } else {
-            binding.loadingProgressBar.visibility = View.GONE
-            binding.userRolesCard.visibility = View.VISIBLE
-            binding.addRoleButton.isEnabled = true
-            binding.descriptionTextView.visibility = View.VISIBLE
-        }
-    }
-
-    private fun showEmptyState(show: Boolean) {
-        binding.emptyStateTextView.visibility = if (show) View.VISIBLE else View.GONE
-        binding.userRolesRecyclerView.visibility = if (show) View.GONE else View.VISIBLE
-    }
-
-    private fun showError(message: String) {
-        Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
-        showEmptyState(true)
-        binding.emptyStateTextView.text = message
-    }
-
-    companion object {
-        fun newInstance(): UserRolesFragment {
-            return UserRolesFragment()
         }
     }
 }
-

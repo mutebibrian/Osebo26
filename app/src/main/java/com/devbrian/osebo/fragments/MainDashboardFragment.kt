@@ -14,16 +14,21 @@ import com.devbrian.osebo.R
 import com.devbrian.osebo.adapters.MainShopAdapter
 import com.devbrian.osebo.adapters.ShopPerformanceAdapter
 import com.devbrian.osebo.data.PreferenceManager
+import com.devbrian.osebo.data.repository.ShopRepositoryImpl
 import com.devbrian.osebo.databinding.FragmentMainDashboardBinding
 import com.devbrian.osebo.models.Shop
 import com.devbrian.osebo.models.ShopPerformance
 import com.devbrian.osebo.utils.PermissionManager
+import com.devbrian.osebo.utils.Resource
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.util.Calendar
 import java.util.Currency
 import java.util.Locale
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class MainDashboardFragment : Fragment() {
 
     private var _binding: FragmentMainDashboardBinding? = null
@@ -33,6 +38,9 @@ class MainDashboardFragment : Fragment() {
     private lateinit var permissionManager: PermissionManager
     private lateinit var shopPerformanceAdapter: ShopPerformanceAdapter
     private lateinit var mainShopAdapter: MainShopAdapter
+
+    @Inject
+    lateinit var shopRepository: ShopRepositoryImpl
 
     private val currencyFormatter: NumberFormat = NumberFormat.getCurrencyInstance().apply {
         maximumFractionDigits = 0
@@ -62,7 +70,7 @@ class MainDashboardFragment : Fragment() {
 
     private fun setupToolbar() {
         val userName = preferenceManager.getUserName()
-        binding.tvUserName.text = if (userName.isNotEmpty()) userName else "Tom!"
+        binding.tvUserName.text = if (userName.isNotEmpty()) userName else "User!"
 
         val calendar = Calendar.getInstance()
         val dateFormat = java.text.SimpleDateFormat("EEEE, dd MMM yyyy", Locale.getDefault())
@@ -82,7 +90,8 @@ class MainDashboardFragment : Fragment() {
         // Shop Performance RecyclerView (the table at the top)
         shopPerformanceAdapter = ShopPerformanceAdapter { shopId ->
             // Navigate to individual shop dashboard
-            navigateToShopDashboard(shopId)
+            val shop = mainShopAdapter.currentList.find { it.id == shopId }
+            shop?.let { checkShopSubscriptionAndNavigate(it) }
         }
         binding.rvShopPerformance.apply {
             layoutManager = LinearLayoutManager(requireContext())
@@ -93,16 +102,111 @@ class MainDashboardFragment : Fragment() {
         // Main Shops RecyclerView (the card list)
         mainShopAdapter = MainShopAdapter(
             onShopClick = { shop ->
-                navigateToShopDashboard(shop.id)
+                checkShopSubscriptionAndNavigate(shop)
             },
             onViewDetailsClick = { shop ->
-                navigateToShopDashboard(shop.id)
+                checkShopSubscriptionAndNavigate(shop)
             }
         )
         binding.rvShops.apply {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = mainShopAdapter
             isNestedScrollingEnabled = false
+        }
+    }
+
+    /**
+     * Check shop subscription status and handle navigation appropriately
+     */
+    private fun checkShopSubscriptionAndNavigate(shop: Shop) {
+        val isActive = shop.subscriptionStatus.equals("active", ignoreCase = true)
+        val isTrial = shop.subscriptionStatus.equals("trial", ignoreCase = true)
+        val isExpired = shop.subscriptionStatus.equals("expired", ignoreCase = true)
+        val hasActiveSubscription = isActive || isTrial
+
+        when {
+            hasActiveSubscription -> {
+                // Save current shop info
+                saveCurrentShop(shop)
+                // Navigate to shop dashboard
+                navigateToShopDashboard(shop.id)
+            }
+            isExpired -> {
+                // Show expired dialog with renewal option
+                showSubscriptionExpiredDialog(shop)
+            }
+            else -> {
+                // Show subscription required dialog
+                showSubscriptionRequiredDialog(shop)
+            }
+        }
+    }
+
+    /**
+     * Save current shop information to preferences
+     */
+    private fun saveCurrentShop(shop: Shop) {
+        preferenceManager.saveCurrentShopId(shop.id)
+        preferenceManager.saveCurrentShopName(shop.name)
+        preferenceManager.saveCurrentShopUuid(shop.id)
+        preferenceManager.saveHasShop(true)
+
+        // Save subscription info if active
+        if (shop.subscriptionStatus.equals("active", ignoreCase = true) ||
+            shop.subscriptionStatus.equals("trial", ignoreCase = true)) {
+            preferenceManager.saveSubscriptionStatus(shop.subscriptionStatus.uppercase())
+            shop.subscriptionType?.let { preferenceManager.saveSubscriptionType(it) }
+            shop.subscriptionExpiry?.let { preferenceManager.saveSubscriptionExpiry(it) }
+
+            println("✅ Saved active shop: ${shop.name} with status: ${shop.subscriptionStatus}")
+            preferenceManager.debugSubscriptionInfo()
+        }
+    }
+
+    /**
+     * Show dialog for expired subscription
+     */
+    private fun showSubscriptionExpiredDialog(shop: Shop) {
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle("Subscription Expired")
+            .setMessage("${shop.name}'s subscription has expired. Please renew your subscription to continue using this shop.")
+            .setPositiveButton("Renew Now") { _, _ ->
+                navigateToSubscriptionPackages(shop)
+            }
+            .setNegativeButton("Later") { _, _ ->
+                // Dismiss dialog
+            }
+            .setCancelable(true)
+            .show()
+    }
+
+    /**
+     * Show dialog for shops without active subscription
+     */
+    private fun showSubscriptionRequiredDialog(shop: Shop) {
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle("Subscription Required")
+            .setMessage("${shop.name} doesn't have an active subscription. Would you like to subscribe now to start using this shop?")
+            .setPositiveButton("Subscribe Now") { _, _ ->
+                navigateToSubscriptionPackages(shop)
+            }
+            .setNegativeButton("Later") { _, _ ->
+                // Dismiss dialog
+            }
+            .setCancelable(true)
+            .show()
+    }
+
+    /**
+     * Navigate to subscription packages
+     */
+    private fun navigateToSubscriptionPackages(shop: Shop) {
+        try {
+            val action = MainDashboardFragmentDirections.actionMainDashboardToSubscriptionPackages(shop)
+            findNavController().navigate(action)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(requireContext(), "Error navigating to subscriptions", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -117,18 +221,27 @@ class MainDashboardFragment : Fragment() {
         }
 
         binding.llAddProduct.setOnClickListener {
-            if (hasActiveShopWithSubscription()) findNavController().navigate(R.id.addProductFragment)
-            else showNoActiveShopDialog()
+            if (hasActiveShopWithSubscription()) {
+                findNavController().navigate(R.id.addProductFragment)
+            } else {
+                showNoActiveShopDialog()
+            }
         }
 
         binding.llNewSale.setOnClickListener {
-            if (hasActiveShopWithSubscription()) findNavController().navigate(R.id.newSaleFragment)
-            else showNoActiveShopDialog()
+            if (hasActiveShopWithSubscription()) {
+                findNavController().navigate(R.id.newSaleFragment)
+            } else {
+                showNoActiveShopDialog()
+            }
         }
 
         binding.llAddEmployee.setOnClickListener {
-            if (hasActiveShopWithSubscription()) findNavController().navigate(R.id.employeesFragment)
-            else showNoActiveShopDialog()
+            if (hasActiveShopWithSubscription()) {
+                findNavController().navigate(R.id.employeesFragment)
+            } else {
+                showNoActiveShopDialog()
+            }
         }
 
         binding.llReports.setOnClickListener {
@@ -145,95 +258,82 @@ class MainDashboardFragment : Fragment() {
 
         lifecycleScope.launch {
             try {
-                val shops = fetchUserShops()
-                updateDashboardWithShops(shops)
+                // First refresh shops from API to get latest data
+                val refreshResult = shopRepository.refreshShops()
+
+                when (refreshResult) {
+                    is Resource.Success -> {
+                        println("✅ Shops refreshed successfully")
+                        // Now get shops from database
+                        val shopsResult = shopRepository.getShops()
+
+                        when (shopsResult) {
+                            is Resource.Success -> {
+                                val shops = shopsResult.data ?: emptyList()
+                                println("📊 Loaded ${shops.size} shops from database")
+
+                                if (shops.isNotEmpty()) {
+                                    updateDashboardWithShops(shops)
+                                } else {
+                                    showEmptyState()
+                                    Toast.makeText(requireContext(), "No shops found. Please create a shop.", Toast.LENGTH_LONG).show()
+                                }
+                            }
+                            is Resource.Error -> {
+                                println("❌ Error getting shops: ${shopsResult.message}")
+                                showErrorState(shopsResult.message ?: "Failed to load shops")
+                            }
+                            is Resource.Loading -> {
+                                println("⏳ Loading shops...")
+                            }
+                        }
+                    }
+                    is Resource.Error -> {
+                        println("❌ Error refreshing shops: ${refreshResult.message}")
+                        // Try to load from database anyway
+                        val shopsResult = shopRepository.getShops()
+                        when (shopsResult) {
+                            is Resource.Success -> {
+                                val shops = shopsResult.data ?: emptyList()
+                                if (shops.isNotEmpty()) {
+                                    updateDashboardWithShops(shops)
+                                    Toast.makeText(requireContext(), "Using cached shop data", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    showErrorState(refreshResult.message ?: "Failed to load shops")
+                                }
+                            }
+                            else -> {
+                                showErrorState(refreshResult.message ?: "Failed to load shops")
+                            }
+                        }
+                    }
+                    is Resource.Loading -> {
+                        println("⏳ Refreshing shops...")
+                    }
+                }
+
                 showLoading(false)
             } catch (e: Exception) {
                 showLoading(false)
-                Toast.makeText(requireContext(), "Error loading data: ${e.message}", Toast.LENGTH_SHORT).show()
+                println("❌ Error loading dashboard data: ${e.message}")
+                e.printStackTrace()
+                showErrorState(e.message ?: "Error loading data")
             }
         }
     }
 
-    private fun fetchUserShops(): List<Shop> = getMockShops()
-
-    private fun getMockShops(): List<Shop> {
-        return listOf(
-            Shop(
-                id = "shop_1",
-                name = "BK Enterprise",
-                address = "Kampala Road",
-                description = "Electronics and gadgets",
-                shopType = "Retail",
-                phone = "+256700123456",
-                totalRevenue = 1000000.0,
-                totalExpenses = 0.0,
-                profit = 1000000.0,
-                totalProducts = 120,
-                totalEmployees = 5,
-                subscriptionStatus = "active",
-                subscriptionType = "premium",
-                subscriptionExpiry = "2024-12-31",
-                isActive = true,
-                ownerId = preferenceManager.getUserId(),
-                createdAt = "2024-01-01",
-                updatedAt = "2024-01-01"
-            ),
-            Shop(
-                id = "shop_2",
-                name = "ABK Electronics",
-                address = "Kabalagala",
-                description = "Mobile phones and accessories",
-                shopType = "Retail",
-                phone = "+256700123457",
-                totalRevenue = 850000.0,
-                totalExpenses = 150000.0,
-                profit = 700000.0,
-                totalProducts = 85,
-                totalEmployees = 3,
-                subscriptionStatus = "trial",
-                subscriptionType = "basic",
-                subscriptionExpiry = "2024-04-15",
-                isActive = true,
-                ownerId = preferenceManager.getUserId(),
-                createdAt = "2024-01-15",
-                updatedAt = "2024-01-15"
-            ),
-            Shop(
-                id = "shop_3",
-                name = "City Mall",
-                address = "City Square",
-                description = "Department store",
-                shopType = "Retail",
-                phone = "+256700123458",
-                totalRevenue = 0.0,
-                totalExpenses = 0.0,
-                profit = 0.0,
-                totalProducts = 0,
-                totalEmployees = 0,
-                subscriptionStatus = "inactive",
-                subscriptionType = null,
-                subscriptionExpiry = null,
-                isActive = false,
-                ownerId = preferenceManager.getUserId(),
-                createdAt = "2024-02-01",
-                updatedAt = "2024-02-01"
-            )
-        )
-    }
-
     private fun updateDashboardWithShops(shops: List<Shop>) {
+        // Find the first active or trial shop to set as current
         val activeShop = shops.find {
             it.subscriptionStatus.equals("active", ignoreCase = true) ||
                     it.subscriptionStatus.equals("trial", ignoreCase = true)
         }
 
         if (activeShop != null) {
-            preferenceManager.saveCurrentShopId(activeShop.id)
-            preferenceManager.saveCurrentShopName(activeShop.name)
-            preferenceManager.saveHasShop(true)
+            saveCurrentShop(activeShop)
         }
 
+        // Create shop performance data
         val performances = shops.map { shop ->
             ShopPerformance(
                 shopId = shop.id,
@@ -246,9 +346,37 @@ class MainDashboardFragment : Fragment() {
         }
         shopPerformanceAdapter.submitList(performances)
 
+        // Submit shops to main adapter
         mainShopAdapter.submitList(shops)
 
+        // Update totals
         updateTotals(shops)
+
+        // Update subscription summary
+        updateSubscriptionSummary(shops)
+    }
+
+    private fun updateSubscriptionSummary(shops: List<Shop>) {
+        val activeCount = shops.count {
+            it.subscriptionStatus.equals("active", ignoreCase = true)
+        }
+        val trialCount = shops.count {
+            it.subscriptionStatus.equals("trial", ignoreCase = true)
+        }
+        val expiredCount = shops.count {
+            it.subscriptionStatus.equals("expired", ignoreCase = true)
+        }
+        val inactiveCount = shops.count {
+            !it.subscriptionStatus.equals("active", ignoreCase = true) &&
+                    !it.subscriptionStatus.equals("trial", ignoreCase = true) &&
+                    !it.subscriptionStatus.equals("expired", ignoreCase = true)
+        }
+
+        println("📊 Subscription Summary:")
+        println("   - Active: $activeCount")
+        println("   - Trial: $trialCount")
+        println("   - Expired: $expiredCount")
+        println("   - Inactive: $inactiveCount")
     }
 
     private fun calculateSalesPercentage(shop: Shop): Int =
@@ -263,7 +391,7 @@ class MainDashboardFragment : Fragment() {
     }
 
     private fun hasActiveShopWithSubscription(): Boolean {
-        val shops = getMockShops()
+        val shops = mainShopAdapter.currentList
         return shops.any {
             it.subscriptionStatus.equals("active", ignoreCase = true) ||
                     it.subscriptionStatus.equals("trial", ignoreCase = true)
@@ -278,7 +406,12 @@ class MainDashboardFragment : Fragment() {
                 binding.tvToday.setTextColor(ContextCompat.getColor(requireContext(), R.color.white))
                 binding.tvAllShops.background = null
                 binding.tvAllShops.setTextColor(ContextCompat.getColor(requireContext(), R.color.primary))
-                Toast.makeText(requireContext(), "Showing today's data", Toast.LENGTH_SHORT).show()
+
+                // Filter shops for today's data
+                val filteredShops = mainShopAdapter.currentList.filter {
+                    it.totalRevenue > 0 || it.totalExpenses > 0
+                }
+                Toast.makeText(requireContext(), "Showing ${filteredShops.size} shops with activity today", Toast.LENGTH_SHORT).show()
             }
 
             "all" -> {
@@ -287,7 +420,8 @@ class MainDashboardFragment : Fragment() {
                 binding.tvAllShops.setTextColor(ContextCompat.getColor(requireContext(), R.color.white))
                 binding.tvToday.background = null
                 binding.tvToday.setTextColor(ContextCompat.getColor(requireContext(), R.color.primary))
-                Toast.makeText(requireContext(), "Showing all shops", Toast.LENGTH_SHORT).show()
+
+                Toast.makeText(requireContext(), "Showing all ${mainShopAdapter.currentList.size} shops", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -302,7 +436,6 @@ class MainDashboardFragment : Fragment() {
         }
     }
 
-
     private fun showNoActiveShopDialog() {
         androidx.appcompat.app.AlertDialog.Builder(requireContext())
             .setTitle("No Active Shop")
@@ -312,6 +445,18 @@ class MainDashboardFragment : Fragment() {
             }
             .setNegativeButton("Cancel", null)
             .show()
+    }
+
+    private fun showEmptyState() {
+        // Show empty state UI
+        binding.rvShops.visibility = View.GONE
+        // You might want to add an empty state TextView in your layout
+        Toast.makeText(requireContext(), "No shops found. Please create a shop.", Toast.LENGTH_LONG).show()
+    }
+
+    private fun showErrorState(message: String) {
+        Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
+        showLoading(false)
     }
 
     private fun showLoading(show: Boolean) {

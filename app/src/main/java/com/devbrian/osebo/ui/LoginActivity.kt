@@ -15,10 +15,12 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.devbrian.osebo.R
 import com.devbrian.osebo.data.PreferenceManager
+import com.devbrian.osebo.data.repository.ShopRepositoryImpl
 import com.devbrian.osebo.models.PermissionType
 import com.devbrian.osebo.ui.viewmodels.LoginViewModel
 import com.devbrian.osebo.utils.NetworkUtils
 import com.devbrian.osebo.utils.PermissionManager
+import com.devbrian.osebo.utils.Resource
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -28,6 +30,9 @@ class LoginActivity : AppCompatActivity() {
 
     @Inject
     lateinit var preferenceManager: PreferenceManager
+
+    @Inject
+    lateinit var shopRepository: ShopRepositoryImpl
 
     private lateinit var permissionManager: PermissionManager
 
@@ -49,6 +54,7 @@ class LoginActivity : AppCompatActivity() {
 
     private val viewModel: LoginViewModel by viewModels()
     private var errorRunnable: Runnable? = null
+    private var isShopsLoading = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,7 +64,8 @@ class LoginActivity : AppCompatActivity() {
 
         // Check if already logged in
         if (preferenceManager.isLoggedIn()) {
-            navigateToMainActivity()
+            // If already logged in, check if we need to refresh shops
+            checkAndRefreshShopsBeforeMain()
             return
         }
 
@@ -263,6 +270,7 @@ class LoginActivity : AppCompatActivity() {
         try {
             trackLoginAttempt("success", if (rbEmail.isChecked) "email" else "phone")
             saveUserData(authData)
+            clearOldShopData()
 
 
             preferenceManager.saveShopCount(1)
@@ -272,7 +280,6 @@ class LoginActivity : AppCompatActivity() {
                     authData.user.role.equals("admin", ignoreCase = true)
 
             if (!isOwner) {
-
                 permissionManager.saveUserPermissions(
                     listOf(
                         PermissionType.VIEW_INVENTORY,
@@ -284,20 +291,184 @@ class LoginActivity : AppCompatActivity() {
             }
 
             showWelcomeMessage(authData.user.name)
-            navigateToShopsActivity()
+
+            // CRITICAL FIX: Load shops immediately after login
+            loadShopsAfterLogin()
 
         } catch (e: Exception) {
-            println("❌ Error: ${e.message}")
+            println("❌ Error in onLoginSuccess: ${e.message}")
             e.printStackTrace()
             showError("Error: ${e.message}")
         }
     }
 
-    private fun navigateToShopsActivity() {
-        val intent = Intent(this, com.devbrian.osebo.ui.ShopsActivity::class.java)
-        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-        startActivity(intent)
-        finish()
+    /**
+     * Load shops from API and save subscription info before navigating to MainActivity
+     * This fixes the issue where subscription status was showing as expired initially
+     */
+    private fun loadShopsAfterLogin() {
+        if (isShopsLoading) return
+        isShopsLoading = true
+
+        showLoading(true)
+
+        lifecycleScope.launch {
+            try {
+                println("🔄 Loading shops after successful login...")
+
+                val result = shopRepository.refreshShops()
+
+                when (result) {
+                    is Resource.Success -> {
+                        println("✅ Shops loaded successfully")
+
+                        val shopsResult = shopRepository.getShops()
+                        when (shopsResult) {
+                            is Resource.Success -> {
+                                val shopList = shopsResult.data ?: emptyList()
+                                println("📊 Found ${shopList.size} shops for user")
+
+                                // Log all shops for debugging
+                                shopList.forEachIndexed { index, shop ->
+                                    println("   Shop[$index] - ID: ${shop.id}, Name: ${shop.name}, Status: ${shop.subscriptionStatus}")
+                                    println("        Is Valid UUID: ${isValidUUID(shop.id)}")
+                                }
+
+                                // Find active shop (with ACTIVE or TRIAL subscription)
+                                val activeShop = shopList.find { shop ->
+                                    shop.subscriptionStatus.equals("ACTIVE", ignoreCase = true) ||
+                                            shop.subscriptionStatus.equals("TRIAL", ignoreCase = true)
+                                }
+
+                                if (activeShop != null) {
+                                    // CRITICAL: Save the actual shop UUID, not "shop_1"
+                                    preferenceManager.saveCurrentShopId(activeShop.id)  // This should be the UUID
+                                    preferenceManager.saveCurrentShopName(activeShop.name)
+                                    preferenceManager.saveCurrentShopUuid(activeShop.id)  // This should also be the UUID
+                                    preferenceManager.saveHasShop(true)
+
+                                    // Save subscription info
+                                    preferenceManager.saveSubscriptionStatus(activeShop.subscriptionStatus.uppercase())
+                                    preferenceManager.saveSubscriptionExpiry(activeShop.subscriptionExpiry ?: "")
+                                    preferenceManager.saveSubscriptionType(activeShop.subscriptionType ?: "")
+
+                                    println("✅ Active shop found: ${activeShop.name}")
+                                    println("✅ Shop UUID saved: ${activeShop.id}")
+                                    println("✅ Is Valid UUID: ${isValidUUID(activeShop.id)}")
+                                    println("✅ Subscription status saved: ${activeShop.subscriptionStatus}")
+                                } else if (shopList.isNotEmpty()) {
+                                    // No active shop, select the first one
+                                    val firstShop = shopList.first()
+                                    preferenceManager.saveCurrentShopId(firstShop.id)
+                                    preferenceManager.saveCurrentShopName(firstShop.name)
+                                    preferenceManager.saveCurrentShopUuid(firstShop.id)
+                                    preferenceManager.saveHasShop(true)
+                                    preferenceManager.saveSubscriptionStatus("INACTIVE")
+
+                                    println("⚠️ No active shop found, selected first shop: ${firstShop.name}")
+                                    println("⚠️ Shop UUID: ${firstShop.id}")
+                                } else {
+                                    println("⚠️ No shops found for user")
+                                    preferenceManager.saveHasShop(false)
+                                    preferenceManager.saveSubscriptionStatus("INACTIVE")
+                                }
+
+                                preferenceManager.debugSubscriptionInfo()
+                            }
+                            is Resource.Error -> {
+                                println("⚠️ Failed to get shops from database: ${shopsResult.message}")
+                            }
+                            is Resource.Loading -> {
+                                println("⏳ Loading shops from database...")
+                            }
+                        }
+
+                        navigateToMainActivity()
+                    }
+
+                    is Resource.Error -> {
+                        println("❌ Failed to load shops: ${result.message}")
+                        preferenceManager.saveSubscriptionStatus("INACTIVE")
+                        navigateToMainActivity()
+                    }
+
+                    is Resource.Loading -> {
+                        println("⏳ Loading shops from API...")
+                    }
+                }
+
+            } catch (e: Exception) {
+                println("❌ Error loading shops: ${e.message}")
+                e.printStackTrace()
+                preferenceManager.saveSubscriptionStatus("INACTIVE")
+                navigateToMainActivity()
+            } finally {
+                isShopsLoading = false
+                showLoading(false)
+            }
+        }
+    }
+
+    private fun isValidUUID(uuid: String): Boolean {
+        return try {
+            java.util.UUID.fromString(uuid)
+            true
+        } catch (e: IllegalArgumentException) {
+            false
+        }
+    }
+
+    /**
+     * Check and refresh shops when app is reopened and user is already logged in
+     */
+    private fun checkAndRefreshShopsBeforeMain() {
+        lifecycleScope.launch {
+            try {
+                println("🔄 Checking shops for already logged in user...")
+
+                // Refresh shops to get latest subscription status
+                val result = shopRepository.refreshShops()
+
+                when (result) {
+                    is Resource.Success -> {
+                        val shopsResult = shopRepository.getShops()
+                        when (shopsResult) {
+                            is Resource.Success -> {
+                                val shopList = shopsResult.data ?: emptyList()
+                                val activeShop = shopList.find { shop ->
+                                    shop.subscriptionStatus.equals("ACTIVE", ignoreCase = true) ||
+                                            shop.subscriptionStatus.equals("TRIAL", ignoreCase = true)
+                                }
+
+                                if (activeShop != null) {
+                                    preferenceManager.saveSubscriptionStatus(activeShop.subscriptionStatus.uppercase())
+                                    preferenceManager.saveSubscriptionExpiry(activeShop.subscriptionExpiry ?: "")
+                                    println("✅ Subscription refreshed: ${activeShop.subscriptionStatus}")
+                                }
+                            }
+                            is Resource.Error -> {
+                                println("⚠️ Failed to get shops: ${shopsResult.message}")
+                            }
+                            is Resource.Loading -> {
+                                // Handle loading state if needed
+                                println("⏳ Loading shops...")
+                            }
+                        }
+                    }
+                    is Resource.Error -> {
+                        println("❌ Error refreshing shops: ${result.message}")
+                    }
+                    is Resource.Loading -> {
+                        println("⏳ Refreshing shops...")
+                    }
+                }
+            } catch (e: Exception) {
+                println("❌ Error refreshing shops: ${e.message}")
+            }
+
+            // Navigate to MainActivity
+            navigateToMainActivity()
+        }
     }
 
     private fun saveUserData(authData: LoginViewModel.DomainAuthData) {
@@ -306,23 +477,25 @@ class LoginActivity : AppCompatActivity() {
         val userName = authData.user.name
         val displayName = if (userName.isNotEmpty()) userName else authData.user.email
 
+        // Split name into first and last for full data saving
+        val parts = displayName.split(" ", limit = 2)
+        val firstName = parts.getOrNull(0) ?: displayName
+        val lastName = parts.getOrNull(1) ?: ""
+
+        // Use existing PreferenceManager methods
         preferenceManager.saveAuthToken(authData.token)
         println("✅ Token saved: ${authData.token.take(20)}...")
 
-        preferenceManager.saveUserId(authData.user.id)
-        preferenceManager.saveUserEmail(authData.user.email)
-        preferenceManager.saveUserName(displayName)
+        // Save user full data using existing method
+        preferenceManager.saveUserFullData(
+            userId = authData.user.id,
+            email = authData.user.email,
+            firstName = firstName,
+            lastName = lastName,
+            phone = authData.user.phone
+        )
 
-        if (authData.user.phone.isNotEmpty()) {
-            preferenceManager.saveUserPhone(authData.user.phone)
-            println("✅ Phone saved: ${authData.user.phone}")
-        }
-
-        if (authData.user.role.isNotEmpty()) {
-            preferenceManager.saveUserRole(authData.user.role)
-            println("✅ Role saved: ${authData.user.role}")
-        }
-
+        preferenceManager.saveUserRole(authData.user.role)
         preferenceManager.setLastLoginTimestamp(System.currentTimeMillis())
         preferenceManager.setUserLoggedIn(true)
 
@@ -347,6 +520,17 @@ class LoginActivity : AppCompatActivity() {
 
     private fun trackLoginAttempt(status: String, method: String) {
         println("📊 Login attempt: $status, method: $method")
+    }
+
+    private fun clearOldShopData() {
+        val currentShopId = preferenceManager.getCurrentShopId()
+        val currentShopUuid = preferenceManager.getCurrentShopUuid()
+
+        if (currentShopId == "shop_1" || currentShopUuid == "shop_1") {
+            println("⚠️ Clearing old shop data with invalid ID: $currentShopId")
+            preferenceManager.clearCurrentShop()
+            preferenceManager.saveHasShop(false)
+        }
     }
 
     private fun showLoading(show: Boolean) {
@@ -403,7 +587,7 @@ class LoginActivity : AppCompatActivity() {
     }
 
     override fun onBackPressed() {
-        if (viewModel.loginState.value is LoginViewModel.LoginState.Loading) {
+        if (viewModel.loginState.value is LoginViewModel.LoginState.Loading || isShopsLoading) {
             return
         }
 

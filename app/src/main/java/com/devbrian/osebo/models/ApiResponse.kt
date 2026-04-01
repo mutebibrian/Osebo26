@@ -87,15 +87,6 @@ data class FinancialSummary(
     val accountsPayable: Double
 )
 
-data class Expense(
-    val id: String,
-    val category: String,
-    val amount: Double,
-    val description: String,
-    val date: String,
-    val receiptUrl: String?,
-    val createdAt: String
-)
 
 
 
@@ -135,11 +126,7 @@ data class FinancialReport(
     val expenseByCategory: List<ExpenseCategory>
 )
 
-data class ExpenseCategory(
-    val category: String,
-    val amount: Double,
-    val percentage: Double
-)
+
 
 data class CustomersResponse(
     val customers: List<Customer>,

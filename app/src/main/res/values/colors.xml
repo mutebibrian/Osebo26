@@ -32,6 +32,9 @@
     <color name="transparent">#00FFFFFF</color>
     <color name="light_gray">#F5F5F5</color>
 
+    <color name="gray_600">#6C757D</color>
+    <color name="gray_100">#F8F9FA</color>
+
     <!-- Backgrounds -->
     <color name="background">#F8FAFC</color>
     <color name="background_white">#FFFFFF</color>

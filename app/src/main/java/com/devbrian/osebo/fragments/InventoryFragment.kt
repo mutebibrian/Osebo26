@@ -19,6 +19,7 @@ import com.devbrian.osebo.databinding.FragmentInventoryBinding
 import com.devbrian.osebo.models.Product
 import com.devbrian.osebo.ui.viewmodels.InventoryViewModel
 import dagger.hilt.android.AndroidEntryPoint
+import kotlin.collections.filter
 
 @AndroidEntryPoint
 class InventoryFragment : Fragment() {
@@ -206,15 +207,13 @@ class InventoryFragment : Fragment() {
     }
 
     private fun navigateToLowStock() {
-        
         val lowStockProducts = productAdapter.currentList.filter {
-            it.stock <= it.lowStockThreshold
+            it.stock <= (it.lowStockThreshold ?: 5)
         }
 
         if (lowStockProducts.isEmpty()) {
             Toast.makeText(requireContext(), "No low stock items", Toast.LENGTH_SHORT).show()
         } else {
-            
             Toast.makeText(
                 requireContext(),
                 "${lowStockProducts.size} low stock items",

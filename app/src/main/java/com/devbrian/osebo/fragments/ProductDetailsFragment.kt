@@ -21,6 +21,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import java.text.NumberFormat
 import java.util.Locale
+import kotlin.apply
 
 @AndroidEntryPoint
 class ProductDetailsFragment : Fragment() {
@@ -116,7 +117,7 @@ class ProductDetailsFragment : Fragment() {
             tvSupplier.text = product.supplierName ?: "No supplier"
             tvDescription.text = product.description ?: "No description available"
 
-            
+            // Currency formatting
             val currencyFormat = NumberFormat.getCurrencyInstance(Locale.US).apply {
                 currency = java.util.Currency.getInstance("UGX")
             }
@@ -124,7 +125,7 @@ class ProductDetailsFragment : Fragment() {
             tvSellingPrice.text = currencyFormat.format(product.price)
             tvCostPrice.text = product.cost?.let { currencyFormat.format(it) } ?: "N/A"
 
-            
+            // Profit margin
             val profitMargin = if (product.cost != null && product.cost > 0) {
                 ((product.price - product.cost) / product.price * 100).toInt()
             } else {
@@ -132,29 +133,30 @@ class ProductDetailsFragment : Fragment() {
             }
             tvProfitMargin.text = "$profitMargin%"
 
-            
+            // Stock information
             tvCurrentStock.text = "${product.stock} units"
-            tvLowStockThreshold.text = "${product.lowStockThreshold} units"
+
+            val lowStockThreshold = product.lowStockThreshold ?: 5
+            tvLowStockThreshold.text = "$lowStockThreshold units"
 
             val stockStatus = when {
                 product.stock <= 0 -> "Out of Stock"
-                product.stock <= product.lowStockThreshold -> "Low Stock"
+                product.stock <= lowStockThreshold -> "Low Stock"
                 else -> "Healthy Stock"
             }
             tvStockStatus.text = stockStatus
 
-            
-            val maxStock = product.lowStockThreshold * 3 
+            val maxStock = lowStockThreshold * 3
             val progress = ((product.stock.toFloat() / maxStock) * 100).toInt().coerceIn(0, 100)
             progressStock.progress = progress
 
             when {
                 product.stock <= 0 -> progressStock.progressTintList = ContextCompat.getColorStateList(requireContext(), R.color.red_error)
-                product.stock <= product.lowStockThreshold -> progressStock.progressTintList = ContextCompat.getColorStateList(requireContext(), R.color.orange_500)
+                product.stock <= lowStockThreshold -> progressStock.progressTintList = ContextCompat.getColorStateList(requireContext(), R.color.orange_500)
                 else -> progressStock.progressTintList = ContextCompat.getColorStateList(requireContext(), R.color.green_success)
             }
 
-            
+
             tvBarcode.text = product.barcode ?: "N/A"
             tvLocation.text = product.location ?: "N/A"
             tvTaxRate.text = product.taxRate?.let { "$it%" } ?: "N/A"

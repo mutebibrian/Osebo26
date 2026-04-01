@@ -20,7 +20,6 @@ class MainShopAdapter(
 
     private val currencyFormatter: NumberFormat = NumberFormat.getCurrencyInstance().apply {
         maximumFractionDigits = 0
-        // Set currency to UGX (Ugandan Shilling)
         currency = Currency.getInstance("UGX")
     }
 
@@ -67,17 +66,50 @@ class MainShopAdapter(
                 tvProductsCount.text = shop.totalProducts.toString()
                 tvEmployeesCount.text = shop.totalEmployees.toString()
 
-                // Set shop status based on subscription
-                val (statusText, statusColor) = when (shop.subscriptionStatus.lowercase(Locale.getDefault())) {
-                    "active" -> Pair("Active", R.color.success_green)
-                    "trial" -> Pair("Trial", R.color.warning_orange)
-                    else -> Pair("Inactive", R.color.error_red)
-                }
-                tvShopStatus.text = statusText
-                tvShopStatus.setTextColor(ContextCompat.getColor(root.context, statusColor))
+                // Determine subscription status and colors
+                val isActive = shop.subscriptionStatus.equals("active", ignoreCase = true) ||
+                        shop.subscriptionStatus.equals("trial", ignoreCase = true)
 
-                // Set background color for status
-                tvShopStatus.setBackgroundColor(Color.TRANSPARENT) // Remove this if using bg_status drawable
+                val statusInfo = when {
+                    isActive && shop.subscriptionStatus.equals("trial", ignoreCase = true) -> {
+                        Triple("TRIAL", R.color.blue_500, R.drawable.bg_status_trial)
+                    }
+                    isActive -> {
+                        Triple("ACTIVE", R.color.green_500, R.drawable.bg_status_active)
+                    }
+                    shop.subscriptionStatus.equals("expired", ignoreCase = true) -> {
+                        Triple("EXPIRED", R.color.red_500, R.drawable.bg_status_expired)
+                    }
+                    else -> {
+                        Triple("INACTIVE", R.color.gray_500, R.drawable.bg_status_inactive)
+                    }
+                }
+
+                // Set status text and colors
+                tvShopStatus.text = statusInfo.first
+                tvShopStatus.setTextColor(ContextCompat.getColor(root.context, statusInfo.second))
+
+                // Apply background drawable if exists, otherwise just use text color
+                try {
+                    tvShopStatus.setBackgroundResource(statusInfo.third)
+                } catch (e: Exception) {
+                    tvShopStatus.setBackgroundColor(Color.TRANSPARENT)
+                }
+
+                // Disable click interactions if shop is not active
+                val isClickable = isActive
+                root.isEnabled = isClickable
+                btnViewDetails.isEnabled = isClickable
+
+                // Set alpha to indicate disabled state
+                root.alpha = if (isClickable) 1.0f else 0.6f
+
+                // Change button text/appearance based on status
+                btnViewDetails.text = when {
+                    isActive -> "VIEW SHOP"
+                    shop.subscriptionStatus.equals("expired", ignoreCase = true) -> "RENEW"
+                    else -> "SUBSCRIBE"
+                }
 
                 // Set shop initial
                 val initials = getInitials(shop.name)

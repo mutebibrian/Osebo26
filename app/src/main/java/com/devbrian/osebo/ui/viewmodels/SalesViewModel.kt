@@ -4,6 +4,9 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.devbrian.osebo.data.ApiService
+import com.devbrian.osebo.data.PreferenceManager
+import com.devbrian.osebo.data.local.AppDatabase
 import com.devbrian.osebo.data.repository.CustomerRepository
 import com.devbrian.osebo.data.repository.ProductRepository
 import com.devbrian.osebo.data.repository.SalesRepository
@@ -16,6 +19,8 @@ import com.devbrian.osebo.utils.CurrencyFormatter
 import com.devbrian.osebo.utils.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
@@ -24,11 +29,14 @@ import javax.inject.Inject
 class SalesViewModel @Inject constructor(
     private val salesRepository: SalesRepository,
     private val productRepository: ProductRepository,
-    private val customerRepository: CustomerRepository
-
+    private val customerRepository: CustomerRepository,
+    private val apiService: ApiService,
+    private val preferences: PreferenceManager,
+    private val database: AppDatabase
 ) : ViewModel() {
 
-    
+    // ==================== LIVEDATA ====================
+
     private val _recentSales = MutableLiveData<List<Sale>>(emptyList())
     val recentSales: LiveData<List<Sale>> = _recentSales
 
@@ -53,37 +61,53 @@ class SalesViewModel @Inject constructor(
     private val _saleResult = MutableLiveData<Resource<SaleData>>()
     val saleResult: LiveData<Resource<SaleData>> = _saleResult
 
-    
     private val _products = MutableLiveData<List<Product>>(emptyList())
     val products: LiveData<List<Product>> = _products
 
-    
     private val _cartItems = MutableLiveData<List<CartItem>>(emptyList())
     val cartItems: LiveData<List<CartItem>> = _cartItems
 
-    
     private val _successMessage = MutableLiveData<String?>()
     val successMessage: LiveData<String?> = _successMessage
 
-    
     private val _isOffline = MutableLiveData(false)
     val isOffline: LiveData<Boolean> = _isOffline
 
-    
     private val _selectedCustomer = MutableLiveData<Customer?>()
     val selectedCustomer: LiveData<Customer?> = _selectedCustomer
 
+    // ==================== INIT ====================
+
     init {
+        // FIX: loadProducts() intentionally removed from here.
+        //
+        // Previously calling loadProducts() in init caused it to fire BEFORE
+        // the fragment's RecyclerView adapter was attached. This meant:
+        //   1. Observer fired with 0 products → RecyclerView set to GONE
+        //   2. API returned 6 products → submitList called, but RecyclerView
+        //      had already been hidden and "No adapter attached" error occurred
+        //
+        // Now loadProducts() is only called from NewSaleFragment.onViewCreated()
+        // AFTER setupAdapters() and setupRecyclerViews() have run.
+        // This guarantees the adapter is attached before any data arrives.
         loadRecentSales()
-        loadProducts()
     }
 
-    
+    // ==================== PRODUCT FUNCTIONS ====================
 
     fun loadProducts() {
         viewModelScope.launch {
             _isLoading.value = true
             println("📱 SalesViewModel - Loading products...")
+
+            val shopUuid = preferences.getCurrentShopUuid()
+            if (shopUuid.isEmpty()) {
+                println("❌ SalesViewModel - No shop UUID! Cannot load products.")
+                _errorMessage.value = "Please select a shop first"
+                _products.value = emptyList()
+                _isLoading.value = false
+                return@launch
+            }
 
             try {
                 val result = productRepository.getProducts()
@@ -95,22 +119,18 @@ class SalesViewModel @Inject constructor(
                         _isOffline.value = false
                         println("📱 SalesViewModel - Products loaded: ${products.size}")
 
-                        
-                        if (products.isNotEmpty()) {
-                            println("📱 First 3 products:")
-                            products.take(3).forEachIndexed { index, product ->
-                                println("   Product[$index]: ID=${product.id}, Name=${product.name}, Price=${product.price}, SKU=${product.sku}")
-                            }
+                        if (products.isEmpty()) {
+                            _errorMessage.value = "No products found. Please add products first."
                         } else {
-                            println("📱 No products found - check if API returned empty list")
+                            products.take(3).forEachIndexed { index, product ->
+                                println("📱 Product[$index]: ID=${product.id}, Name=${product.name}, Price=${product.price}")
+                            }
                         }
                     }
                     is Resource.Error -> {
                         _errorMessage.value = result.message
                         _isOffline.value = true
                         println("📱 SalesViewModel - Error loading products: ${result.message}")
-
-                        
                         loadProductsFromCache()
                     }
                     is Resource.Loading -> {
@@ -122,8 +142,6 @@ class SalesViewModel @Inject constructor(
                 _isOffline.value = true
                 println("📱 SalesViewModel - Exception: ${e.message}")
                 e.printStackTrace()
-
-                
                 loadProductsFromCache()
             } finally {
                 _isLoading.value = false
@@ -131,11 +149,9 @@ class SalesViewModel @Inject constructor(
         }
     }
 
-    
     private fun loadProductsFromCache() {
         viewModelScope.launch {
             try {
-                
                 productRepository.observeProducts().collect { cachedProducts ->
                     if (cachedProducts.isNotEmpty()) {
                         _products.value = cachedProducts
@@ -188,6 +204,75 @@ class SalesViewModel @Inject constructor(
         }
     }
 
+    fun searchProductByBarcode(barcode: String, callback: (Product?) -> Unit) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            println("📱 SalesViewModel - Searching for barcode: $barcode")
+
+            try {
+                val localProductEntity = withContext(Dispatchers.IO) {
+                    try {
+                        database.productDao().getProductByBarcode(barcode)
+                    } catch (e: Exception) {
+                        println("📱 SalesViewModel - Error searching local DB: ${e.message}")
+                        null
+                    }
+                }
+
+                if (localProductEntity != null) {
+                    val localProduct = localProductEntity.toProduct()
+                    println("📱 SalesViewModel - Product found in local database: ${localProduct.name}")
+                    callback(localProduct)
+                    _isLoading.value = false
+                    return@launch
+                }
+
+                val token = preferences.getAuthToken()
+                val shopUuid = preferences.getCurrentShopUuid()
+
+                if (token.isEmpty() || shopUuid.isEmpty()) {
+                    println("📱 SalesViewModel - Missing token or shop UUID")
+                    callback(null)
+                    _isLoading.value = false
+                    return@launch
+                }
+
+                val response = apiService.searchProductByBarcode(
+                    "Bearer $token",
+                    shopUuid,
+                    barcode
+                )
+
+                if (response.isSuccessful) {
+                    val apiResponse = response.body()
+                    if (apiResponse?.success == true) {
+                        val product = apiResponse.data
+                        if (product != null) {
+                            println("📱 SalesViewModel - Product found on server: ${product.name}")
+                            callback(product)
+                        } else {
+                            println("📱 SalesViewModel - Product not found on server")
+                            callback(null)
+                        }
+                    } else {
+                        println("📱 SalesViewModel - API returned error: ${apiResponse?.message}")
+                        callback(null)
+                    }
+                } else {
+                    println("📱 SalesViewModel - API request failed: ${response.code()} - ${response.message()}")
+                    callback(null)
+                }
+            } catch (e: Exception) {
+                println("📱 SalesViewModel - Error searching barcode: ${e.message}")
+                e.printStackTrace()
+                _errorMessage.value = "Error searching barcode: ${e.message}"
+                callback(null)
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
     fun loadCustomers() {
         viewModelScope.launch {
             customerRepository.getAllCustomers().collect { customers ->
@@ -196,7 +281,7 @@ class SalesViewModel @Inject constructor(
         }
     }
 
-    
+    // ==================== CART FUNCTIONS ====================
 
     fun addToCart(product: Product) {
         println("📱 VIEWMODEL - addToCart called with: ${product.name}")
@@ -287,7 +372,7 @@ class SalesViewModel @Inject constructor(
         _successMessage.value = "Sale held successfully"
     }
 
-    
+    // ==================== CART SUMMARY ====================
 
     fun getCartSummary(): CartSummary {
         val items = _cartItems.value ?: emptyList()
@@ -314,7 +399,7 @@ class SalesViewModel @Inject constructor(
         }
     }
 
-    
+    // ==================== CUSTOMER FUNCTIONS ====================
 
     fun selectCustomer(customer: Customer) {
         _selectedCustomer.value = customer
@@ -327,7 +412,7 @@ class SalesViewModel @Inject constructor(
         println("📱 VIEWMODEL - Customer cleared")
     }
 
-    
+    // ==================== SALE FUNCTIONS ====================
 
     fun loadRecentSales() {
         viewModelScope.launch {
@@ -338,24 +423,19 @@ class SalesViewModel @Inject constructor(
                 salesRepository.getRecentSales().collect { sales ->
                     println("📊 SalesViewModel - Received ${sales.size} sales")
 
-                    
                     sales.forEachIndexed { index, sale ->
                         println("📊 Sale[$index]: ID=${sale.id}, Amount=${sale.amount}, Date=${sale.date}, Status=${sale.status}")
                     }
 
                     _recentSales.value = sales
 
-                    
                     val todayTotal = calculateTodayTotal(sales)
                     _todaySalesTotal.value = todayTotal
-
                     println("📊 Today's sales total calculated: $todayTotal")
 
-                    
                     val monthStats = calculateMonthStats(sales)
                     _monthSalesTotal.value = monthStats.first
                     _monthSalesCount.value = monthStats.second
-
                     println("📊 Month's sales total: ${monthStats.first}, Count: ${monthStats.second}")
                 }
             } catch (e: Exception) {
@@ -368,7 +448,6 @@ class SalesViewModel @Inject constructor(
         }
     }
 
-    
     private fun calculateTodayTotal(sales: List<Sale>): Double {
         val calendar = Calendar.getInstance()
         val today = calendar.get(Calendar.DAY_OF_YEAR)
@@ -376,7 +455,6 @@ class SalesViewModel @Inject constructor(
 
         return sales.filter { sale ->
             try {
-                
                 if (sale.amount <= 0) return@filter false
 
                 val saleDate = parseSaleDate(sale.date)
@@ -400,7 +478,6 @@ class SalesViewModel @Inject constructor(
         }.sumOf { it.amount }
     }
 
-    
     private fun calculateMonthStats(sales: List<Sale>): Pair<Double, Int> {
         val calendar = Calendar.getInstance()
         val currentMonth = calendar.get(Calendar.MONTH)
@@ -408,7 +485,6 @@ class SalesViewModel @Inject constructor(
 
         val monthSales = sales.filter { sale ->
             try {
-                
                 if (sale.amount <= 0) return@filter false
 
                 val saleDate = parseSaleDate(sale.date)
@@ -437,26 +513,22 @@ class SalesViewModel @Inject constructor(
         return Pair(total, count)
     }
 
-    
     private fun parseSaleDate(dateString: String): Calendar? {
         return try {
             val calendar = Calendar.getInstance()
 
-            
             val timestamp = dateString.toLongOrNull()
             if (timestamp != null) {
                 calendar.timeInMillis = timestamp
                 return calendar
             }
 
-            
             val timestampSeconds = dateString.toLongOrNull()
             if (timestampSeconds != null && timestampSeconds < 10000000000L) {
                 calendar.timeInMillis = timestampSeconds * 1000
                 return calendar
             }
 
-            
             val dateFormats = listOf(
                 SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()),
                 SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()),
@@ -473,15 +545,14 @@ class SalesViewModel @Inject constructor(
                     calendar.time = date
                     return calendar
                 } catch (e: Exception) {
-                    
+                    // Try next format
                 }
             }
 
-            
             val patterns = listOf(
-                Regex("""(\d{4})-(\d{2})-(\d{2})"""), 
-                Regex("""(\d{2})/(\d{2})/(\d{4})"""), 
-                Regex("""(\d{2})-(\d{2})-(\d{4})""")  
+                Regex("""(\d{4})-(\d{2})-(\d{2})"""),
+                Regex("""(\d{2})/(\d{2})/(\d{4})"""),
+                Regex("""(\d{2})-(\d{2})-(\d{4})""")
             )
 
             for (pattern in patterns) {
@@ -489,7 +560,6 @@ class SalesViewModel @Inject constructor(
                 if (matchResult != null) {
                     val (first, second, third) = matchResult.destructured
 
-                    
                     val year = when {
                         first.length == 4 -> first.toInt()
                         third.length == 4 -> third.toInt()
@@ -508,7 +578,6 @@ class SalesViewModel @Inject constructor(
                         else -> continue
                     }
 
-                    
                     if (month in 1..12 && day in 1..31) {
                         calendar.set(year, month - 1, day)
                         return calendar
@@ -543,7 +612,6 @@ class SalesViewModel @Inject constructor(
 
             try {
                 val customer = if (customerId != null) {
-                    
                     Customer(id = customerId, name = "", phone = "", email = "", address = "")
                 } else {
                     null
@@ -555,7 +623,6 @@ class SalesViewModel @Inject constructor(
                         if (isNotEmpty()) append(", ")
                         append("Phone: $phoneNumber")
                     }
-                    
                     val change = paidAmount - totalAmount
                     if (change > 0) {
                         if (isNotEmpty()) append(", ")
@@ -566,7 +633,7 @@ class SalesViewModel @Inject constructor(
                 val result = salesRepository.createSale(
                     customer = customer,
                     cartItems = _cartItems.value ?: emptyList(),
-                    paidAmount = paidAmount, 
+                    paidAmount = paidAmount,
                     saleType = saleType,
                     paymentMethod = paymentMethod,
                     notes = notes
@@ -587,9 +654,7 @@ class SalesViewModel @Inject constructor(
                         _saleResult.value = Resource.Error(result.message)
                         _errorMessage.value = result.message
                     }
-                    is Resource.Loading -> {
-                        
-                    }
+                    is Resource.Loading -> { }
                 }
             } catch (e: Exception) {
                 _saleResult.value = Resource.Error(e.message ?: "An error occurred while processing payment")
@@ -615,17 +680,15 @@ class SalesViewModel @Inject constructor(
 
     fun refreshSales() {
         viewModelScope.launch {
-            loadRecentSales() 
+            loadRecentSales()
         }
     }
 
-    
     fun refreshSalesData() {
         println("🔄 Refreshing sales data...")
         loadRecentSales()
     }
 
-    
     fun getSalesInDateRange(startDate: Long, endDate: Long): List<Sale> {
         return _recentSales.value?.filter { sale ->
             try {
@@ -642,13 +705,10 @@ class SalesViewModel @Inject constructor(
         } ?: emptyList()
     }
 
-    
     fun getTotalInDateRange(startDate: Long, endDate: Long): Double {
         return getSalesInDateRange(startDate, endDate).sumOf { it.amount }
     }
 }
-
-
 
 data class CartSummary(
     val subtotal: Double,
@@ -657,4 +717,3 @@ data class CartSummary(
     val total: Double,
     val itemCount: Int
 )
-

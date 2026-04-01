@@ -10,13 +10,16 @@ import android.widget.Toast
 import androidx.core.net.toUri
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.devbrian.osebo.R
+import com.devbrian.osebo.data.PreferenceManager
 import com.devbrian.osebo.databinding.FragmentPaymentDialogBinding
 import com.devbrian.osebo.ui.viewmodels.SubscriptionViewModel
 import com.devbrian.osebo.utils.Resource
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class PaymentDialogFragment : BottomSheetDialogFragment() {
@@ -151,6 +154,97 @@ class PaymentDialogFragment : BottomSheetDialogFragment() {
         binding.tvTotalAmount.text = "UGX ${String.format("%,.0f", amount)}"
         binding.tvSavingsBadge.visibility = View.GONE
         selectedMonths = 1
+    }
+
+    // In PaymentDialogFragment.kt, update the createSubscription call:
+
+    // In PaymentDialogFragment.kt, update the createSubscription function:
+
+    private fun createSubscription(
+        shopId: String,
+        packageId: String,
+        phoneNumber: String,
+        months: Int
+    ) {
+        if (!isAdded) return
+
+        // CRITICAL: Ensure shop UUID is saved before creating subscription
+        val prefs = PreferenceManager.getInstance(requireContext())
+        prefs.saveCurrentShopId(shopId)
+        prefs.saveCurrentShopUuid(shopId)  // Save UUID format if needed
+
+        println("✅ Creating subscription with shop ID: $shopId")
+        println("✅ Package ID: $packageId")
+        println("✅ Months: $months")
+        println("✅ Phone: $phoneNumber")
+
+        viewModel.createSubscription(shopId, packageId, phoneNumber, months)
+
+        try {
+            viewLifecycleOwner.lifecycleScope.launch {
+                viewModel.subscriptionResult.observe(viewLifecycleOwner) { resource ->
+                    if (!isAdded) return@observe
+
+                    when (resource) {
+                        is Resource.Success -> {
+                            resource.data?.let { response ->
+                                if (response.success) {
+                                    val paymentId = response.data?.paymentId
+                                    if (!paymentId.isNullOrBlank()) {
+                                        try {
+                                            // Use the amount from arguments instead of selectedPackage
+                                            val totalAmount = amount * months
+
+                                            if (isAdded) {
+                                                val action = PaymentDialogFragmentDirections
+                                                    .actionPaymentDialogFragmentToPaymentStatusFragment(
+                                                        transactionId = paymentId,
+                                                        shopId = shopId,
+                                                        amount = totalAmount.toFloat(),
+                                                        currency = "UGX",
+                                                        phoneNumber = phoneNumber
+                                                    )
+                                                findNavController().navigate(action)
+                                            }
+                                        } catch (e: Exception) {
+                                            if (isAdded) {
+                                                Toast.makeText(requireContext(),
+                                                    "Navigation error: ${e.message}", Toast.LENGTH_SHORT).show()
+                                            }
+                                        }
+                                    } else {
+                                        if (isAdded) {
+                                            Toast.makeText(requireContext(),
+                                                "Subscription created successfully!",
+                                                Toast.LENGTH_SHORT).show()
+                                            findNavController().popBackStack()
+                                        }
+                                    }
+                                } else {
+                                    if (isAdded) {
+                                        Toast.makeText(requireContext(),
+                                            response.message ?: "Failed to create subscription",
+                                            Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            }
+                        }
+                        is Resource.Error -> {
+                            if (isAdded) {
+                                Toast.makeText(requireContext(),
+                                    resource.message ?: "Error creating subscription",
+                                    Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                        is Resource.Loading -> {
+                            // Show loading if needed
+                        }
+                    }
+                }
+            }
+        } catch (e: IllegalStateException) {
+            println("⚠️ ViewLifecycleOwner not available: ${e.message}")
+        }
     }
 
     private fun setupListeners() {

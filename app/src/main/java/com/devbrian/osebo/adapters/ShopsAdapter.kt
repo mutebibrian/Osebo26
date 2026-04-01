@@ -87,12 +87,7 @@ class ShopsAdapter(
                 tvShopCategory.text = shop.category
 
                 
-                tvRevenue.text = String.format("KES %.2f", shop.totalRevenue)
-                tvExpenses.text = String.format("KES %.2f", shop.totalExpenses)
-                tvProfit.text = String.format("KES %.2f", shop.profit)
 
-                tvProductsCount.text = shop.totalProducts.toString()
-                tvEmployeesCount.text = shop.totalEmployees.toString()
 
                 
                 if (!shop.logoUrl.isNullOrEmpty()) {

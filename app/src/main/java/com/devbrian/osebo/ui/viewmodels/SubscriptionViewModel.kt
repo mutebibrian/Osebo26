@@ -1,11 +1,12 @@
 package com.devbrian.osebo.ui.viewmodels
 
+import android.app.Application
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.devbrian.osebo.R
-import com.devbrian.osebo.data.remote.dto.request.CheckPaymentStatusRequest
+import com.devbrian.osebo.data.PreferenceManager
 import com.devbrian.osebo.data.remote.dto.request.CreateSubscriptionRequest
 import com.devbrian.osebo.data.remote.dto.request.InitiatePaymentRequest
 import com.devbrian.osebo.data.remote.dto.response.InitiatePaymentResponse
@@ -28,9 +29,9 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SubscriptionViewModel @Inject constructor(
-    private val repository: SubscriptionRepository
+    private val repository: SubscriptionRepository,
+    private val application: Application  // Add Application parameter
 ) : ViewModel() {
-
 
     private val _subscriptionPackages = MutableLiveData<Resource<List<SubscriptionPackage>>>()
     val subscriptionPackages: LiveData<Resource<List<SubscriptionPackage>>> = _subscriptionPackages
@@ -67,7 +68,6 @@ class SubscriptionViewModel @Inject constructor(
 
     private val _initiatePaymentResult = MutableLiveData<Resource<InitiatePaymentResponse>>()
     val initiatePaymentResult: LiveData<Resource<InitiatePaymentResponse>> = _initiatePaymentResult
-
 
     private val _isLoading = MutableLiveData(false)
     val isLoading: LiveData<Boolean> get() = _isLoading
@@ -109,7 +109,6 @@ class SubscriptionViewModel @Inject constructor(
         }
     }
 
-
     fun loadSubscriptionPackages() {
         viewModelScope.launch {
             _subscriptionPackages.value = Resource.Loading
@@ -138,7 +137,6 @@ class SubscriptionViewModel @Inject constructor(
         }
     }
 
-
     fun createSubscription(
         shopId: String,
         packageId: String,
@@ -163,11 +161,9 @@ class SubscriptionViewModel @Inject constructor(
 
                 when (result) {
                     is Resource.Success -> {
-
                         val response = result.data as? SubscriptionResponse
 
                         if (response != null) {
-
                             _subscriptionResult.value = Resource.success(response)
                             _createSubscriptionResult.value = Resource.success(response)
 
@@ -203,6 +199,36 @@ class SubscriptionViewModel @Inject constructor(
                 _errorMessage.value = e.message ?: "Failed to create subscription"
             } finally {
                 _isLoading.value = false
+            }
+        }
+    }
+
+    fun updateLocalSubscriptionStatus(shopId: String, isActive: Boolean, subscription: Subscription?) {
+        viewModelScope.launch {
+            try {
+                val prefs = PreferenceManager.getInstance(application.applicationContext)
+
+                if (isActive && subscription != null) {
+                    prefs.saveSubscriptionStatus("ACTIVE")
+                    prefs.saveSubscriptionId(subscription.id)
+                    prefs.saveCurrentShopUuid(subscription.id)
+                    prefs.saveSubscriptionType(subscription.packageType)
+                    prefs.saveSubscriptionExpiry(subscription.endDate ?: "")
+                    prefs.savePackageId(subscription.actualPackageId)
+
+                    println("✅ Updated local subscription status: ACTIVE")
+                    println("✅ Subscription ID: ${subscription.id}")
+                    println("✅ Package: ${subscription.packageType}")
+                    println("✅ Expiry: ${subscription.endDate}")
+                } else {
+                    prefs.saveSubscriptionStatus("INACTIVE")
+                    println("⚠️ Subscription is not active")
+                }
+
+                _successMessage.value = "Subscription status updated"
+
+            } catch (e: Exception) {
+                println("❌ Error updating local subscription: ${e.message}")
             }
         }
     }
@@ -253,13 +279,10 @@ class SubscriptionViewModel @Inject constructor(
 
                 when (result) {
                     is Resource.Success -> {
-
                         val response = result.data as? InitiatePaymentResponse
 
                         if (response != null) {
-
                             _initiatePaymentResult.value = Resource.success(response)
-
 
                             val paymentId = response.data?.paymentId
                             if (!paymentId.isNullOrBlank()) {
@@ -289,10 +312,6 @@ class SubscriptionViewModel @Inject constructor(
         }
     }
 
-
-
-
-    // Update startPaymentPolling to use payment endpoints
     fun startPaymentPolling(paymentId: String, shopId: String) {
         pollingJob?.cancel()
         currentShopId = shopId
@@ -300,14 +319,13 @@ class SubscriptionViewModel @Inject constructor(
         pollingJob = viewModelScope.launch {
             _isPolling.value = true
             var pollCount = 0
-            val maxAttempts = 60 // 60 * 5 seconds = 5 minutes
+            val maxAttempts = 60
 
             while (pollCount < maxAttempts) {
-                delay(5000) // Poll every 5 seconds
+                delay(5000)
                 pollCount++
 
                 try {
-                    // Use the payment endpoint to check status
                     val result = repository.getPaymentStatus(shopId, paymentId)
 
                     when (result) {
@@ -359,12 +377,10 @@ class SubscriptionViewModel @Inject constructor(
                                         break
                                     }
                                     "pending" -> {
-                                        // Still pending, continue polling
                                         if (pollCount % 3 == 0) {
                                             _successMessage.value = "Waiting for payment confirmation..."
                                         }
 
-                                        // Update polling status with pending state
                                         val pollResponse = PaymentPollResponse(
                                             success = true,
                                             message = "Payment pending",
@@ -433,7 +449,6 @@ class SubscriptionViewModel @Inject constructor(
         _isPolling.value = false
     }
 
-
     fun checkShopSubscription(shopId: String) {
         viewModelScope.launch {
             _shopSubscriptionStatus.value = Resource.Loading
@@ -443,7 +458,32 @@ class SubscriptionViewModel @Inject constructor(
 
                 when (result) {
                     is Resource.Success -> {
-                        _shopSubscriptionStatus.value = Resource.Success(result.data)
+                        val data = result.data
+                        _shopSubscriptionStatus.value = Resource.Success(data)
+
+                        data?.let { statusResponse ->
+                            val prefs = PreferenceManager.getInstance(application.applicationContext)
+
+                            val isActive = statusResponse.isActive
+
+                            if (isActive) {
+                                prefs.saveSubscriptionStatus(
+                                    if (statusResponse.type == "trial") "TRIAL" else "ACTIVE"
+                                )
+                                statusResponse.subscriptionId?.let {
+                                    prefs.saveSubscriptionId(it)
+                                    prefs.saveCurrentShopUuid(it)
+                                }
+                                statusResponse.type?.let { prefs.saveSubscriptionType(it) }
+                                statusResponse.expiryDate?.let { prefs.saveSubscriptionExpiry(it) }
+
+                                println("✅ Shop subscription status saved: $isActive")
+                                prefs.debugSubscriptionInfo()
+                            } else {
+                                prefs.saveSubscriptionStatus(statusResponse.status.uppercase())
+                                println("⚠️ Subscription status: ${statusResponse.status}")
+                            }
+                        }
                     }
                     is Resource.Error -> {
                         _shopSubscriptionStatus.value = Resource.Error(result.message)
@@ -468,7 +508,6 @@ class SubscriptionViewModel @Inject constructor(
                 when (result) {
                     is Resource.Success -> {
                         result.data?.let { subscription ->
-                            // Log the subscription data to verify
                             println("✅ Active subscription loaded: ${subscription.id}")
                             println("✅ Status: ${subscription.status}")
                             println("✅ Package: ${subscription.packageType}")
@@ -476,6 +515,16 @@ class SubscriptionViewModel @Inject constructor(
                             println("✅ Is trial: ${subscription.isTrial}")
 
                             _currentSubscription.value = Resource.Success(subscription)
+
+                            val prefs = PreferenceManager.getInstance(application.applicationContext)
+                            prefs.saveSubscriptionStatus(
+                                if (subscription.isTrial) "TRIAL" else subscription.effectiveStatus
+                            )
+                            prefs.saveSubscriptionId(subscription.id)
+                            prefs.saveCurrentShopUuid(subscription.id)
+                            prefs.saveSubscriptionType(subscription.packageType)
+                            subscription.endDate?.let { prefs.saveSubscriptionExpiry(it) }
+
                         } ?: run {
                             println("⚠️ No active subscription found")
                             _currentSubscription.value = Resource.Error("No active subscription found")
@@ -494,7 +543,6 @@ class SubscriptionViewModel @Inject constructor(
         }
     }
 
-
     fun getSubscriptionDetails(shopId: String, subscriptionId: String) {
         viewModelScope.launch {
             _subscriptionDetails.value = Resource.Loading
@@ -504,7 +552,20 @@ class SubscriptionViewModel @Inject constructor(
 
                 when (result) {
                     is Resource.Success -> {
-                        _subscriptionDetails.value = Resource.Success(result.data)
+                        result.data?.let { subscription ->
+                            _subscriptionDetails.value = Resource.Success(subscription)
+
+                            val prefs = PreferenceManager.getInstance(application.applicationContext)
+                            prefs.saveSubscriptionStatus(
+                                if (subscription.isActiveStatus) "ACTIVE" else subscription.effectiveStatus
+                            )
+                            prefs.saveSubscriptionId(subscription.id)
+                            prefs.saveCurrentShopUuid(subscription.id)
+                            prefs.saveSubscriptionType(subscription.packageType)
+                            prefs.saveSubscriptionExpiry(subscription.endDate ?: "")
+
+                            println("✅ Subscription details saved: ${subscription.id}")
+                        }
                     }
                     is Resource.Error -> {
                         _subscriptionDetails.value = Resource.Error(result.message)
@@ -516,7 +577,6 @@ class SubscriptionViewModel @Inject constructor(
             }
         }
     }
-
 
     fun renewSubscription(
         shopId: String,
@@ -546,7 +606,6 @@ class SubscriptionViewModel @Inject constructor(
                         if (response.success) {
                             _successMessage.value = "Subscription renewed successfully"
 
-
                             val paymentId = response.data?.paymentId
                             if (!paymentId.isNullOrBlank()) {
                                 startPaymentPolling(paymentId, shopId)
@@ -569,7 +628,6 @@ class SubscriptionViewModel @Inject constructor(
             }
         }
     }
-
 
     fun cancelSubscription(shopId: String, subscriptionId: String) {
         viewModelScope.launch {
@@ -599,10 +657,6 @@ class SubscriptionViewModel @Inject constructor(
             }
         }
     }
-
-
-
-
 
     fun activateFreeTrial(shopId: String, packageId: String) {
         viewModelScope.launch {
@@ -639,7 +693,6 @@ class SubscriptionViewModel @Inject constructor(
         }
     }
 
-
     fun refreshAllData(shopId: String? = null) {
         loadSubscriptionPackages()
         shopId?.let { getShopActiveSubscription(it) }
@@ -669,7 +722,6 @@ class SubscriptionViewModel @Inject constructor(
             null
         }
     }
-
 
     data class SubscriptionStatusUi(
         val status: String,
@@ -724,4 +776,3 @@ class SubscriptionViewModel @Inject constructor(
         stopPaymentPolling()
     }
 }
-

@@ -23,19 +23,20 @@
                 android:layout_width="match_parent"
                 android:layout_height="?attr/actionBarSize"
                 app:navigationIcon="@drawable/ic_arrow_back"
-                app:title="New Sale" />
+                app:title="New Sale"
+                app:titleTextColor="@android:color/white" />
 
         </com.google.android.material.appbar.AppBarLayout>
 
         <!-- Offline Indicator -->
         <TextView
-            android:id="@+id/tv_offline_indicator"
+            android:id="@+id/offlineIndicatorTextView"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@color/orange_500"
             android:gravity="center"
             android:padding="8dp"
-            android:text="📴 You're offline. Sales will be saved locally."
+            android:text="@string/you_re_offline_sales_will_be_saved_locally"
             android:textColor="@android:color/white"
             android:textSize="14sp"
             android:visibility="gone"
@@ -49,17 +50,19 @@
             app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
             <LinearLayout
+                android:id="@+id/mainContainer"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:minHeight="800dp"
                 android:orientation="vertical">
 
                 <!-- Progress Bar -->
                 <ProgressBar
-                    android:id="@+id/progress_bar"
+                    android:id="@+id/loadingProgressBar"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
-                    android:layout_marginVertical="20dp"
+                    android:layout_marginVertical="8dp"
                     android:visibility="gone" />
 
                 <!-- Customer Section -->
@@ -67,6 +70,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
+                    app:cardBackgroundColor="@android:color/white"
                     app:cardCornerRadius="12dp"
                     app:cardElevation="2dp">
 
@@ -80,7 +84,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginBottom="12dp"
-                            android:text="Customer"
+                            android:text="@string/customer"
                             android:textSize="16sp"
                             android:textStyle="bold" />
 
@@ -106,7 +110,7 @@
                                 android:orientation="vertical">
 
                                 <TextView
-                                    android:id="@+id/tv_selected_customer"
+                                    android:id="@+id/selectedCustomerTextView"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:text="Walk-in Customer"
@@ -114,12 +118,13 @@
                                     android:textStyle="bold" />
 
                                 <TextView
-                                    android:id="@+id/tv_customer_phone"
+                                    android:id="@+id/customerPhoneTextView"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:text="Default customer"
                                     android:textColor="@color/text_secondary"
                                     android:textSize="14sp" />
+
                             </LinearLayout>
 
                             <LinearLayout
@@ -128,19 +133,21 @@
                                 android:orientation="horizontal">
 
                                 <com.google.android.material.button.MaterialButton
-                                    android:id="@+id/btn_select_customer"
+                                    android:id="@+id/changeCustomerButton"
+                                    style="@style/Widget.Material3.Button.TextButton"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="Change"
-                                    style="@style/Widget.Material3.Button.TextButton" />
+                                    android:text="Change" />
 
                                 <com.google.android.material.button.MaterialButton
-                                    android:id="@+id/btn_add_customer"
+                                    android:id="@+id/addCustomerButton"
+                                    style="@style/Widget.Material3.Button.TextButton"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="New"
-                                    style="@style/Widget.Material3.Button.TextButton" />
+                                    android:text="New" />
+
                             </LinearLayout>
+
                         </LinearLayout>
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
@@ -150,6 +157,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
+                    app:cardBackgroundColor="@android:color/white"
                     app:cardCornerRadius="12dp"
                     app:cardElevation="2dp">
 
@@ -163,50 +171,51 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginBottom="12dp"
-                            android:text="Add Products"
+                            android:text="Search Products"
                             android:textSize="16sp"
                             android:textStyle="bold" />
 
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
                             android:orientation="horizontal">
 
                             <com.google.android.material.textfield.TextInputLayout
+                                android:id="@+id/searchTextInputLayout"
+                                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_marginEnd="8dp"
                                 android:layout_weight="1"
-                                app:endIconMode="clear_text"
-                                style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+                                app:endIconMode="clear_text">
 
                                 <com.google.android.material.textfield.TextInputEditText
-                                    android:id="@+id/et_search_products"
+                                    android:id="@+id/searchEditText"
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
-                                    android:hint="Search products by name or SKU" />
+                                    android:hint="Search by name or SKU"
+                                    android:imeOptions="actionSearch"
+                                    android:inputType="text"
+                                    android:maxLines="1" />
+
                             </com.google.android.material.textfield.TextInputLayout>
 
                             <com.google.android.material.button.MaterialButton
-                                android:id="@+id/btn_search_products"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Search"
-                                style="@style/Widget.Material3.Button" />
-                        </LinearLayout>
+                                android:id="@+id/scanBarcodeButton"
+                                style="@style/Widget.Material3.Button"
+                                android:layout_width="56dp"
+                                android:layout_height="56dp"
+                                android:padding="0dp"
+                                app:icon="@drawable/ic_barcode"
+                                app:iconGravity="textStart"
+                                app:iconPadding="0dp" />
 
-                        <TextView
-                            android:id="@+id/tv_view_all_products"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="end"
-                            android:layout_marginTop="8dp"
-                            android:text="View All Products →"
-                            android:textColor="@color/colorPrimary" />
+                        </LinearLayout>
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
 
-                <!-- Products Grid Title -->
+                <!-- Products Section Title -->
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -215,20 +224,64 @@
                     android:textSize="16sp"
                     android:textStyle="bold" />
 
-                <!-- Products Grid -->
+                <!-- DEBUG TEXTVIEW -->
+                <TextView
+                    android:id="@+id/debugTextView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="#FFFF00"
+                    android:padding="8dp"
+                    android:text="Debug: Loading products..."
+                    android:textColor="#000000"
+                    android:textSize="12sp"
+                    android:visibility="visible"
+                    android:layout_marginBottom="8dp" />
+
+                <!-- TEST TEXTVIEW - ADDED HERE TO VERIFY LAYOUT IS LOADING -->
+                <TextView
+                    android:id="@+id/testTextView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="#FF0000"
+                    android:text="IF YOU SEE THIS TEXT, THE LAYOUT IS LOADING"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:padding="16dp"
+                    android:gravity="center"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginBottom="8dp"
+                    android:visibility="visible" />
+
+                <!-- No Products Message -->
+                <TextView
+                    android:id="@+id/noProductsTextView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="32dp"
+                    android:text="No products available"
+                    android:textAlignment="center"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="16sp"
+                    android:visibility="gone" />
+
+                <!-- Products RecyclerView -->
                 <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/rv_products"
+                    android:id="@+id/productsRecyclerView"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="24dp"
                     android:nestedScrollingEnabled="false"
-                    android:visibility="visible" />
+                    android:visibility="visible"
+                    app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                    tools:itemCount="6"
+                    tools:listitem="@layout/item_product" />
 
                 <!-- Cart Section -->
                 <androidx.cardview.widget.CardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
+                    app:cardBackgroundColor="@android:color/white"
                     app:cardCornerRadius="12dp"
                     app:cardElevation="4dp">
 
@@ -242,8 +295,8 @@
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:gravity="center_vertical"
                             android:layout_marginBottom="16dp"
+                            android:gravity="center_vertical"
                             android:orientation="horizontal">
 
                             <TextView
@@ -255,7 +308,7 @@
                                 android:textStyle="bold" />
 
                             <TextView
-                                android:id="@+id/tv_item_count"
+                                android:id="@+id/cartItemCountTextView"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginEnd="12dp"
@@ -263,18 +316,19 @@
                                 android:textColor="@color/text_secondary" />
 
                             <com.google.android.material.button.MaterialButton
-                                android:id="@+id/btn_clear_cart"
+                                android:id="@+id/clearCartButton"
+                                style="@style/Widget.Material3.Button.TextButton"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="Clear"
                                 app:icon="@drawable/ic_delete"
-                                app:iconGravity="textStart"
-                                style="@style/Widget.Material3.Button.TextButton" />
+                                app:iconGravity="textStart" />
+
                         </LinearLayout>
 
-                        <!-- Empty Cart -->
+                        <!-- Empty Cart State -->
                         <LinearLayout
-                            android:id="@+id/layout_empty_cart"
+                            android:id="@+id/emptyCartLayout"
                             android:layout_width="match_parent"
                             android:layout_height="200dp"
                             android:gravity="center"
@@ -301,19 +355,22 @@
                                 android:layout_marginTop="4dp"
                                 android:text="Add products to get started"
                                 android:textColor="@color/text_secondary" />
+
                         </LinearLayout>
 
-                        <!-- Cart Items -->
+                        <!-- Cart Items RecyclerView -->
                         <androidx.recyclerview.widget.RecyclerView
-                            android:id="@+id/rv_cart"
+                            android:id="@+id/cartRecyclerView"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:nestedScrollingEnabled="false"
-                            android:visibility="gone" />
+                            android:visibility="gone"
+                            tools:itemCount="3"
+                            tools:listitem="@layout/item_cart" />
 
                         <!-- Cart Summary -->
                         <LinearLayout
-                            android:id="@+id/layout_cart_summary"
+                            android:id="@+id/cartSummaryLayout"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="16dp"
@@ -326,12 +383,11 @@
                                 android:layout_marginVertical="12dp"
                                 android:background="@color/divider" />
 
-                            <!-- Subtotal -->
                             <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:gravity="center_vertical"
                                 android:layout_marginBottom="8dp"
+                                android:gravity="center_vertical"
                                 android:orientation="horizontal">
 
                                 <TextView
@@ -342,20 +398,20 @@
                                     android:textSize="16sp" />
 
                                 <TextView
-                                    android:id="@+id/tv_subtotal"
+                                    android:id="@+id/subtotalTextView"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:text="UGX 0"
                                     android:textSize="16sp"
                                     android:textStyle="bold" />
+
                             </LinearLayout>
 
-                            <!-- Discount -->
                             <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:gravity="center_vertical"
                                 android:layout_marginBottom="8dp"
+                                android:gravity="center_vertical"
                                 android:orientation="horizontal">
 
                                 <TextView
@@ -366,19 +422,19 @@
                                     android:textSize="16sp" />
 
                                 <TextView
-                                    android:id="@+id/tv_discount"
+                                    android:id="@+id/discountTextView"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:text="-UGX 0"
                                     android:textColor="@color/green_success" />
+
                             </LinearLayout>
 
-                            <!-- Tax -->
                             <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:gravity="center_vertical"
                                 android:layout_marginBottom="8dp"
+                                android:gravity="center_vertical"
                                 android:orientation="horizontal">
 
                                 <TextView
@@ -389,10 +445,11 @@
                                     android:textSize="16sp" />
 
                                 <TextView
-                                    android:id="@+id/tv_tax"
+                                    android:id="@+id/taxTextView"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:text="UGX 0" />
+
                             </LinearLayout>
 
                             <View
@@ -401,12 +458,11 @@
                                 android:layout_marginVertical="12dp"
                                 android:background="@color/divider" />
 
-                            <!-- Total -->
                             <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:gravity="center_vertical"
                                 android:layout_marginBottom="16dp"
+                                android:gravity="center_vertical"
                                 android:orientation="horizontal">
 
                                 <TextView
@@ -418,16 +474,16 @@
                                     android:textStyle="bold" />
 
                                 <TextView
-                                    android:id="@+id/tv_total"
+                                    android:id="@+id/totalTextView"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:text="UGX 0"
                                     android:textColor="@color/colorPrimary"
                                     android:textSize="24sp"
                                     android:textStyle="bold" />
+
                             </LinearLayout>
 
-                            <!-- Action Buttons -->
                             <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
@@ -435,28 +491,32 @@
                                 android:orientation="horizontal">
 
                                 <com.google.android.material.button.MaterialButton
-                                    android:id="@+id/btn_hold"
+                                    android:id="@+id/holdButton"
+                                    style="@style/Widget.Material3.Button.OutlinedButton"
                                     android:layout_width="0dp"
                                     android:layout_height="56dp"
                                     android:layout_marginEnd="8dp"
                                     android:layout_weight="1"
                                     android:text="Hold"
-                                    app:icon="@drawable/ic_hold"
-                                    style="@style/Widget.Material3.Button.OutlinedButton" />
+                                    app:icon="@drawable/ic_hold" />
 
                                 <com.google.android.material.button.MaterialButton
-                                    android:id="@+id/btn_checkout"
+                                    android:id="@+id/checkoutButton"
+                                    style="@style/Widget.Material3.Button"
                                     android:layout_width="0dp"
                                     android:layout_height="56dp"
                                     android:layout_weight="1"
                                     android:text="Checkout"
                                     app:icon="@drawable/ic_checkout" />
+
                             </LinearLayout>
                         </LinearLayout>
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
+
             </LinearLayout>
         </androidx.core.widget.NestedScrollView>
+
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
     <!-- Navigation Drawer for Categories -->

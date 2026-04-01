@@ -51,16 +51,17 @@ class ShopDashboardFragment : Fragment() {
         val shopId = args.shopId
         Log.d("ShopDashboard", "Loading dashboard for shop: $shopId")
 
-        // Save the current shop ID to PreferenceManager so ViewModel can access it
+        // Save the current shop ID to PreferenceManager
         val prefs = PreferenceManager.getInstance(requireContext())
         prefs.saveCurrentShopId(shopId)
+
+
 
         setupRecyclerView()
         setupSwipeRefresh()
         setupClickListeners()
         observeViewModel()
 
-        // Call without parameters - the ViewModel will get shopId from PreferenceManager
         viewModel.loadDashboardData()
     }
 

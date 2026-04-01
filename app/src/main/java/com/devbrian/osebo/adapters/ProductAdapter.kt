@@ -17,7 +17,6 @@ import com.devbrian.osebo.models.Product
 
 class ProductAdapter(
     private val onItemClick: (Product) -> Unit = { _ -> },
-
     private val onMoreOptionsClick: (Product, View) -> Unit = { _, _ -> },
     private val onViewDetailsClick: (Product) -> Unit = { _ -> },
     private val onRestockClick: (Product) -> Unit = { _ -> }
@@ -45,7 +44,6 @@ class ProductAdapter(
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_product, parent, false)
 
-        
         println("📱 Adapter - Creating ViewHolder")
 
         return ProductViewHolder(
@@ -61,7 +59,17 @@ class ProductAdapter(
     }
 
     override fun onBindViewHolder(holder: ProductViewHolder, position: Int) {
-        holder.bind(getItem(position))
+        val product = getItem(position)
+        println("📱 ProductAdapter - Binding product at position $position: ${product.name}")
+        holder.bind(product)
+    }
+
+    override fun getItemCount(): Int {
+        val count = super.getItemCount()
+        if (count > 0) {
+            println("📱 ProductAdapter - ItemCount: $count")
+        }
+        return count
     }
 
     class ProductViewHolder(
@@ -75,6 +83,7 @@ class ProductAdapter(
         private val currencySymbol: String
     ) : RecyclerView.ViewHolder(itemView) {
 
+        // Main UI Elements
         private val llProductImage: LinearLayout = itemView.findViewById(R.id.ll_product_image)
         private val ivProduct: ImageView = itemView.findViewById(R.id.iv_product)
         private val tvProductName: TextView = itemView.findViewById(R.id.tv_product_name)
@@ -82,7 +91,6 @@ class ProductAdapter(
         private val tvProductCategory: TextView = itemView.findViewById(R.id.tv_product_category)
         private val tvProductPrice: TextView = itemView.findViewById(R.id.tv_product_price)
         private val tvStockQuantity: TextView = itemView.findViewById(R.id.tv_stock_quantity)
-        private val llLowStockWarning: LinearLayout = itemView.findViewById(R.id.ll_low_stock_warning)
         private val tvLowStockWarning: TextView = itemView.findViewById(R.id.tv_low_stock_warning)
         private val tvCostPrice: TextView = itemView.findViewById(R.id.tv_cost_price)
         private val pbStockLevel: ProgressBar = itemView.findViewById(R.id.pb_stock_level)
@@ -96,39 +104,33 @@ class ProductAdapter(
         private var isExpanded: Boolean = false
 
         init {
-            
-            itemView.setOnTouchListener { v, event ->
-                println("📱 ProductViewHolder - Touch event: ${event.action}")
-                false 
-            }
-
             itemView.setOnClickListener {
                 currentProduct?.let { product ->
                     println("📱 ProductViewHolder - Main item clicked: ${product.name}")
-                    println("📱 ProductViewHolder - Calling onItemClick")
                     if (showQuickActions) {
                         toggleExpansion()
                     }
                     onItemClick(product)
-                    println("📱 ProductViewHolder - onItemClick completed")
-                } ?: println("📱 ProductViewHolder - currentProduct is null!")
+                }
             }
 
-            
-            tvProductName.setOnClickListener {
-                println("📱 ProductViewHolder - tvProductName clicked")
-                
-                false
+            // Set up quick action click listeners
+            tvViewDetails.setOnClickListener {
+                currentProduct?.let { product ->
+                    onViewDetailsClick(product)
+                }
             }
 
-            tvProductPrice.setOnClickListener {
-                println("📱 ProductViewHolder - tvProductPrice clicked")
-                false
+            tvRestock.setOnClickListener {
+                currentProduct?.let { product ->
+                    onRestockClick(product)
+                }
             }
 
-            llProductImage.setOnClickListener {
-                println("📱 ProductViewHolder - llProductImage clicked")
-                false
+            ivMoreOptions.setOnClickListener {
+                currentProduct?.let { product ->
+                    onMoreOptionsClick(product, it)
+                }
             }
         }
 
@@ -140,86 +142,75 @@ class ProductAdapter(
             println("   - SKU: ${product.sku}")
             println("   - Price: ${product.price}")
             println("   - Stock: ${product.stock}")
-            println("   - Category: ${product.category}")
-            println("   - Cost: ${product.cost}")
-            println("   - Low Stock Threshold: ${product.lowStockThreshold}")
 
-            
-            setProductImageBackground(product.category)
+            // Set product details
+            tvProductName.text = product.name ?: "Unknown Product"
+            tvProductSku.text = "SKU: ${product.sku ?: "N/A"}"
+            tvProductCategory.text = product.category ?: "Uncategorized"
 
-            
-            setProductIcon(product.category)
-
-            
-            tvProductName.text = product.name
-            tvProductSku.text = "SKU: ${product.sku}"
-            tvProductCategory.text = product.category
-
-            
+            // Format prices
             tvProductPrice.text = formatCurrency(product.price)
             tvCostPrice.text = if (product.cost != null && product.cost > 0) {
-                formatCurrency(product.cost)
+                "Cost: ${formatCurrency(product.cost)}"
             } else {
                 "Cost: N/A"
             }
 
-            
+            // Set stock information
             tvStockQuantity.text = "${product.stock} ${if (product.stock == 1) "unit" else "units"}"
 
-            
-            if (product.stock <= product.lowStockThreshold) {
-                llLowStockWarning.visibility = View.VISIBLE
-
+            // Show low stock warning if applicable
+            val threshold = product.lowStockThreshold ?: lowStockThreshold
+            if (product.stock <= threshold) {
+                tvLowStockWarning.visibility = View.VISIBLE
                 val warningText = when {
                     product.stock == 0 -> "Out of stock"
                     product.stock == 1 -> "Only 1 left"
                     else -> "Low stock"
                 }
-
                 tvLowStockWarning.text = warningText
 
-                
                 val warningColor = when {
                     product.stock == 0 -> R.color.red_error
                     product.stock == 1 -> R.color.orange_warning
                     else -> R.color.yellow_warning
                 }
-
                 tvLowStockWarning.setTextColor(
                     ContextCompat.getColor(itemView.context, warningColor)
                 )
             } else {
-                llLowStockWarning.visibility = View.GONE
+                tvLowStockWarning.visibility = View.GONE
             }
 
-            
-            val threshold = product.lowStockThreshold
+            // Set stock progress bar
             val maxStockForProgress = (threshold * 3).coerceAtLeast(30)
             val progress = if (maxStockForProgress > 0) {
                 ((product.stock.toFloat() * 100) / maxStockForProgress).toInt().coerceIn(0, 100)
             } else {
                 0
             }
-
             pbStockLevel.progress = progress
 
-            
+            // Set progress bar color
             val progressColor = when {
                 product.stock == 0 -> R.color.red_error
                 product.stock <= threshold -> R.color.orange_warning
                 product.stock <= threshold * 2 -> R.color.yellow_warning
                 else -> R.color.green_success
             }
-
             pbStockLevel.progressTintList = ContextCompat.getColorStateList(
                 itemView.context,
                 progressColor
             )
 
-            
-            tvBarcode.text = product.barcode ?: "No barcode"
+            // Set barcode if available
+            tvBarcode.text = product.barcode?.takeIf { it.isNotEmpty() } ?: "No barcode"
 
-            
+            // Set product image background and icon based on category
+            setProductImageBackground(product.category ?: "OTHER")
+            setProductIcon(product.category ?: "OTHER")
+
+            // Highlight out of stock products
             if (product.stock == 0) {
                 itemView.setBackgroundColor(
                     ContextCompat.getColor(itemView.context, R.color.stock_out_background)
@@ -228,22 +219,16 @@ class ProductAdapter(
                 itemView.setBackgroundColor(Color.TRANSPARENT)
             }
 
-            
-            if (product.price > 1000000) {
-                tvProductName.setTextColor(
-                    ContextCompat.getColor(itemView.context, R.color.high_value_product)
-                )
-            }
-
-            
+            // Show/hide quick actions
             llQuickActions.visibility = if (showQuickActions && isExpanded) View.VISIBLE else View.GONE
+            ivMoreOptions.visibility = if (showQuickActions) View.VISIBLE else View.GONE
         }
 
         private fun toggleExpansion() {
             isExpanded = !isExpanded
             llQuickActions.visibility = if (showQuickActions && isExpanded) View.VISIBLE else View.GONE
 
-            
+            // Animate the expansion
             if (isExpanded) {
                 llQuickActions.alpha = 0f
                 llQuickActions.animate().alpha(1f).setDuration(200).start()
@@ -280,64 +265,6 @@ class ProductAdapter(
             ivProduct.setImageResource(iconRes)
         }
 
-        private fun showLowStockWarning(product: Product) {
-            if (product.stock <= lowStockThreshold) {
-                llLowStockWarning.visibility = View.VISIBLE
-
-                val warningText = when {
-                    product.stock == 0 -> "Out of stock"
-                    product.stock == 1 -> "Only 1 left"
-                    product.stock <= product.lowStockThreshold -> "Low stock"
-                    else -> "Below threshold"
-                }
-
-                tvLowStockWarning.text = warningText
-
-                
-                val warningColor = when {
-                    product.stock == 0 -> R.color.red_error
-                    product.stock == 1 -> R.color.orange_warning
-                    else -> R.color.yellow_warning
-                }
-
-                tvLowStockWarning.setTextColor(
-                    ContextCompat.getColor(itemView.context, warningColor)
-                )
-            } else {
-                llLowStockWarning.visibility = View.GONE
-            }
-        }
-
-        private fun updateStockProgressBar(product: Product) {
-            
-            val threshold = if (product.lowStockThreshold > 0) product.lowStockThreshold else 5
-
-            
-            val maxStockForProgress = (threshold * 3).coerceAtLeast(30)
-
-            
-            val progress = if (maxStockForProgress > 0) {
-                ((product.stock.toFloat() * 100) / maxStockForProgress).toInt().coerceIn(0, 100)
-            } else {
-                0
-            }
-
-            pbStockLevel.progress = progress
-
-            
-            val progressColor = when {
-                product.stock == 0 -> R.color.red_error
-                product.stock <= threshold -> R.color.orange_warning
-                product.stock <= threshold * 2 -> R.color.yellow_warning
-                else -> R.color.green_success
-            }
-
-            pbStockLevel.progressTintList = ContextCompat.getColorStateList(
-                itemView.context,
-                progressColor
-            )
-        }
-
         private fun formatCurrency(amount: Double): String {
             return when {
                 amount >= 1000000 -> String.format("%s %.1fM", currencySymbol, amount / 1000000)
@@ -367,7 +294,7 @@ class ProductAdapter(
         }
     }
 
-    
+    // ========== PUBLIC HELPER METHODS ==========
 
     fun getProductAtPosition(position: Int): Product? {
         return if (position in 0 until itemCount) {
@@ -383,8 +310,8 @@ class ProductAdapter(
         } else {
             currentList.filter { product ->
                 product.name.contains(query, ignoreCase = true) ||
-                        product.sku.contains(query, ignoreCase = true) ||
-                        product.category.contains(query, ignoreCase = true) ||
+                        (product.sku?.contains(query, ignoreCase = true) == true) ||
+                        product.category?.contains(query, ignoreCase = true) == true ||
                         product.barcode?.contains(query, ignoreCase = true) == true
             }
         }
@@ -395,7 +322,7 @@ class ProductAdapter(
     }
 
     fun getLowStockProducts(): List<Product> {
-        return currentList.filter { it.stock <= lowStockThreshold }
+        return currentList.filter { it.stock <= (it.lowStockThreshold ?: lowStockThreshold) }
     }
 
     fun getOutOfStockProducts(): List<Product> {
@@ -403,7 +330,7 @@ class ProductAdapter(
     }
 
     fun getHighStockProducts(): List<Product> {
-        return currentList.filter { it.stock > lowStockThreshold * 3 }
+        return currentList.filter { it.stock > (it.lowStockThreshold ?: lowStockThreshold) * 3 }
     }
 
     fun sortByName(ascending: Boolean = true): List<Product> {
@@ -447,23 +374,21 @@ class ProductAdapter(
     }
 
     fun getCategoryCount(): Map<String, Int> {
-        return currentList.groupingBy { it.category }.eachCount()
+        return currentList.groupingBy { it.category }.eachCount() as Map<String, Int>
     }
 
     fun getStockValueByCategory(): Map<String, Double> {
         return currentList.groupBy { it.category }
-            .mapValues { (_, products) ->
-                products.sumOf { it.price * it.stock }
-            }
+            .mapValues { entry ->
+                entry.value.sumOf { it.price * it.stock }
+            } as Map<String, Double>
     }
 
     fun getProductsNeedingRestock(): List<Product> {
-        return currentList.filter { it.stock <= it.lowStockThreshold }
+        return currentList.filter { it.stock <= (it.lowStockThreshold ?: lowStockThreshold) }
     }
 
     fun getTopSellingProducts(limit: Int = 5): List<Product> {
-        
-        
         return currentList.sortedByDescending { it.price * it.stock }
             .take(limit)
     }
@@ -482,4 +407,3 @@ class ProductAdapter(
         submitList(emptyList())
     }
 }
-

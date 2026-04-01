@@ -13,8 +13,9 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.devbrian.osebo.R
 import com.devbrian.osebo.models.Transaction
-import java.text.NumberFormat
 import java.util.*
+
+// Remove any import of ItemTransactionBinding - DO NOT import it
 
 class TransactionAdapter(
     private val onItemClick: (Transaction) -> Unit = { _ -> },
@@ -22,26 +23,12 @@ class TransactionAdapter(
 ) : ListAdapter<Transaction, TransactionAdapter.TransactionViewHolder>(TransactionDiffCallback()) {
 
     var showAttachments: Boolean = false
-        set(value) {
-            field = value
-            notifyDataSetChanged()
-        }
-
     var showNotes: Boolean = false
-        set(value) {
-            field = value
-            notifyDataSetChanged()
-        }
-
     var currencySymbol: String = "UGX"
-        set(value) {
-            field = value
-            notifyDataSetChanged()
-        }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TransactionViewHolder {
         val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.item_transaction, parent, false)
+            .inflate(R.layout.item_transactions, parent, false)
         return TransactionViewHolder(view, onItemClick, onMoreOptionsClick, showAttachments, showNotes, currencySymbol)
     }
 
@@ -58,6 +45,7 @@ class TransactionAdapter(
         private val currencySymbol: String
     ) : RecyclerView.ViewHolder(itemView) {
 
+        // Find views by ID
         private val llTransactionIcon: LinearLayout = itemView.findViewById(R.id.ll_transaction_icon)
         private val ivTransactionType: ImageView = itemView.findViewById(R.id.iv_transaction_type)
         private val tvTransactionDescription: TextView = itemView.findViewById(R.id.tv_transaction_description)
@@ -87,89 +75,74 @@ class TransactionAdapter(
                 }
             }
 
-            
             llAttachments.visibility = if (showAttachments) View.VISIBLE else View.GONE
             tvTransactionNotes.visibility = if (showNotes) View.VISIBLE else View.GONE
         }
 
         fun bind(transaction: Transaction) {
             currentTransaction = transaction
-
-            
             setTransactionType(transaction.type)
 
-            
             tvTransactionDescription.text = transaction.description
             tvTransactionCategory.text = transaction.category
             tvTransactionDate.text = transaction.date
             tvPaymentMethod.text = transaction.paymentMethod ?: "Not specified"
             tvTransactionId.text = "#${transaction.id}"
-
-            
             tvTransactionAmount.text = formatCurrency(transaction.amount, transaction.type)
-
-            
             setTransactionStatus(transaction.status)
 
-            
             if (showAttachments && transaction.attachmentsCount ?: 0 > 0) {
                 llAttachments.visibility = View.VISIBLE
                 tvAttachmentCount.text = "${transaction.attachmentsCount} attachment${if ((transaction.attachmentsCount ?: 0) > 1) "s" else ""}"
+            } else {
+                llAttachments.visibility = View.GONE
             }
 
-            
             if (showNotes && !transaction.notes.isNullOrEmpty()) {
                 tvTransactionNotes.visibility = View.VISIBLE
                 tvTransactionNotes.text = transaction.notes
+            } else {
+                tvTransactionNotes.visibility = View.GONE
             }
 
-            
             if (transaction.amount > 1000000) {
-                itemView.setBackgroundColor(
-                    ContextCompat.getColor(itemView.context, R.color.high_value_transaction)
-                )
+                itemView.setBackgroundColor(ContextCompat.getColor(itemView.context, R.color.high_value_transaction))
             } else {
                 itemView.setBackgroundColor(Color.TRANSPARENT)
             }
 
-            
             if (transaction.category.equals("tax", ignoreCase = true)) {
-                tvTransactionCategory.setTextColor(
-                    ContextCompat.getColor(itemView.context, R.color.red_error)
-                )
+                tvTransactionCategory.setTextColor(ContextCompat.getColor(itemView.context, R.color.red_error))
+            } else {
+                tvTransactionCategory.setTextColor(ContextCompat.getColor(itemView.context, R.color.text_secondary))
             }
 
-            
             if (transaction.isRecurring == true) {
-                itemView.findViewById<View>(R.id.ll_transaction_icon).background =
-                    ContextCompat.getDrawable(itemView.context, R.drawable.bg_transaction_recurring)
+                llTransactionIcon.background = ContextCompat.getDrawable(itemView.context, R.drawable.bg_transaction_recurring)
+            } else {
+                llTransactionIcon.background = null
             }
         }
 
         private fun setTransactionType(type: String) {
             val context = itemView.context
-
             when (type.uppercase()) {
                 Transaction.TYPE_INCOME -> {
-                    
                     llTransactionIcon.setBackgroundResource(R.drawable.bg_transaction_income)
                     ivTransactionType.setImageResource(R.drawable.ic_income)
                     ivTransactionType.setColorFilter(ContextCompat.getColor(context, R.color.white))
                 }
                 Transaction.TYPE_EXPENSE -> {
-                    
                     llTransactionIcon.setBackgroundResource(R.drawable.bg_transaction_expense)
                     ivTransactionType.setImageResource(R.drawable.ic_expense)
                     ivTransactionType.setColorFilter(ContextCompat.getColor(context, R.color.white))
                 }
                 Transaction.TYPE_TRANSFER -> {
-                    
                     llTransactionIcon.setBackgroundResource(R.drawable.bg_transaction_transfer)
                     ivTransactionType.setImageResource(R.drawable.ic_transfer)
                     ivTransactionType.setColorFilter(ContextCompat.getColor(context, R.color.white))
                 }
                 else -> {
-                    
                     llTransactionIcon.setBackgroundResource(R.drawable.bg_transaction_default)
                     ivTransactionType.setImageResource(R.drawable.ic_transaction)
                     ivTransactionType.setColorFilter(ContextCompat.getColor(context, R.color.white))
@@ -182,17 +155,17 @@ class TransactionAdapter(
             val statusText = status ?: "Completed"
             tvTransactionStatus.text = statusText
 
-            val (backgroundRes, textColorRes) = when (status?.uppercase()) {
-                Transaction.STATUS_COMPLETED -> Pair(R.drawable.bg_status_completed, R.color.white)
-                Transaction.STATUS_PENDING -> Pair(R.drawable.bg_status_pending, R.color.white)
-                Transaction.STATUS_FAILED -> Pair(R.drawable.bg_status_failed, R.color.white)
-                Transaction.STATUS_REFUNDED -> Pair(R.drawable.bg_status_refunded, R.color.white)
-                Transaction.STATUS_CANCELLED -> Pair(R.drawable.bg_status_cancelled, R.color.white)
-                else -> Pair(R.drawable.bg_status_completed, R.color.white)
+            val backgroundRes = when (status?.uppercase()) {
+                Transaction.STATUS_COMPLETED -> R.drawable.bg_status_completed
+                Transaction.STATUS_PENDING -> R.drawable.bg_status_pending
+                Transaction.STATUS_FAILED -> R.drawable.bg_status_failed
+                Transaction.STATUS_REFUNDED -> R.drawable.bg_status_refunded
+                Transaction.STATUS_CANCELLED -> R.drawable.bg_status_cancelled
+                else -> R.drawable.bg_status_completed
             }
 
             tvTransactionStatus.setBackgroundResource(backgroundRes)
-            tvTransactionStatus.setTextColor(ContextCompat.getColor(context, textColorRes))
+            tvTransactionStatus.setTextColor(ContextCompat.getColor(context, R.color.white))
         }
 
         private fun formatCurrency(amount: Double, type: String): String {
@@ -202,7 +175,6 @@ class TransactionAdapter(
                 else -> String.format("%s %,.0f", currencySymbol, amount)
             }
 
-            
             val colorRes = when (type.uppercase()) {
                 Transaction.TYPE_INCOME -> R.color.green_success
                 Transaction.TYPE_EXPENSE -> R.color.red_error
@@ -212,7 +184,6 @@ class TransactionAdapter(
 
             tvTransactionAmount.setTextColor(ContextCompat.getColor(itemView.context, colorRes))
 
-            
             return when (type.uppercase()) {
                 Transaction.TYPE_INCOME -> "+$formattedAmount"
                 Transaction.TYPE_EXPENSE -> "-$formattedAmount"
@@ -223,129 +194,22 @@ class TransactionAdapter(
     }
 
     private class TransactionDiffCallback : DiffUtil.ItemCallback<Transaction>() {
-        override fun areItemsTheSame(oldItem: Transaction, newItem: Transaction): Boolean {
-            return oldItem.id == newItem.id
-        }
+        override fun areItemsTheSame(oldItem: Transaction, newItem: Transaction): Boolean =
+            oldItem.id == newItem.id
 
-        override fun areContentsTheSame(oldItem: Transaction, newItem: Transaction): Boolean {
-            return oldItem == newItem
-        }
-    }
-
-    
-
-    fun getTransactionAtPosition(position: Int): Transaction? {
-        return if (position in 0 until itemCount) {
-            getItem(position)
-        } else {
-            null
-        }
-    }
-
-    fun filterTransactions(query: String): List<Transaction> {
-        return if (query.isEmpty()) {
-            currentList
-        } else {
-            currentList.filter { transaction ->
-                transaction.description.contains(query, ignoreCase = true) ||
-                        transaction.category.contains(query, ignoreCase = true) ||
-                        transaction.paymentMethod?.contains(query, ignoreCase = true) == true ||
-                        transaction.id.contains(query, ignoreCase = true)
-            }
-        }
-    }
-
-    fun filterByType(type: String): List<Transaction> {
-        return currentList.filter { it.type.equals(type, ignoreCase = true) }
-    }
-
-    fun filterByCategory(category: String): List<Transaction> {
-        return currentList.filter { it.category.equals(category, ignoreCase = true) }
-    }
-
-    fun filterByStatus(status: String): List<Transaction> {
-        return currentList.filter { it.status.equals(status, ignoreCase = true) }
-    }
-
-    fun getIncomeTransactions(): List<Transaction> {
-        return currentList.filter { it.type.equals(Transaction.TYPE_INCOME, ignoreCase = true) }
-    }
-
-    fun getExpenseTransactions(): List<Transaction> {
-        return currentList.filter { it.type.equals(Transaction.TYPE_EXPENSE, ignoreCase = true) }
-    }
-
-    fun getTransferTransactions(): List<Transaction> {
-        return currentList.filter { it.type.equals(Transaction.TYPE_TRANSFER, ignoreCase = true) }
-    }
-
-    fun getTotalIncome(): Double {
-        return getIncomeTransactions().sumOf { it.amount }
-    }
-
-    fun getTotalExpenses(): Double {
-        return getExpenseTransactions().sumOf { it.amount }
-    }
-
-    fun getNetBalance(): Double {
-        return getTotalIncome() - getTotalExpenses()
-    }
-
-    fun sortByDate(ascending: Boolean = true): List<Transaction> {
-        return if (ascending) {
-            currentList.sortedBy { it.date }
-        } else {
-            currentList.sortedByDescending { it.date }
-        }
-    }
-
-    fun sortByAmount(ascending: Boolean = true): List<Transaction> {
-        return if (ascending) {
-            currentList.sortedBy { it.amount }
-        } else {
-            currentList.sortedByDescending { it.amount }
-        }
-    }
-
-    fun sortByType(): List<Transaction> {
-        return currentList.sortedBy { it.type }
-    }
-
-    fun getTransactionsByCategory(): Map<String, List<Transaction>> {
-        return currentList.groupBy { it.category }
-    }
-
-    fun getCategoryTotals(): Map<String, Double> {
-        return getTransactionsByCategory().mapValues { (_, transactions) ->
-            transactions.sumOf {
-                when (it.type) {
-                    Transaction.TYPE_INCOME -> it.amount
-                    Transaction.TYPE_EXPENSE -> -it.amount
-                    else -> 0.0
-                }
-            }
-        }
-    }
-
-    fun getMonthlySummary(): Map<String, Double> {
-        return currentList.groupBy { it.date.substring(0, 7) } 
-            .mapValues { (_, transactions) ->
-                transactions.sumOf {
-                    when (it.type) {
-                        Transaction.TYPE_INCOME -> it.amount
-                        Transaction.TYPE_EXPENSE -> -it.amount
-                        else -> 0.0
-                    }
-                }
-            }
+        override fun areContentsTheSame(oldItem: Transaction, newItem: Transaction): Boolean =
+            oldItem == newItem
     }
 
     fun submitTransactionList(transactions: List<Transaction>) {
         submitList(transactions)
     }
 
-    fun clearAll() {
-        submitList(emptyList())
-    }
-}
+    fun getTotalIncome(): Double =
+        currentList.filter { it.type == Transaction.TYPE_INCOME }.sumOf { it.amount }
 
+    fun getTotalExpenses(): Double =
+        currentList.filter { it.type == Transaction.TYPE_EXPENSE }.sumOf { it.amount }
+
+    fun getNetBalance(): Double = getTotalIncome() - getTotalExpenses()
+}

@@ -3,22 +3,31 @@ package com.devbrian.osebo.fragments
 import android.os.Bundle
 import android.view.*
 import android.widget.ArrayAdapter
+import android.widget.PopupMenu
 import android.widget.Toast
-import androidx.appcompat.widget.PopupMenu
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.devbrian.osebo.R
 import com.devbrian.osebo.adapters.TransactionAdapter
 import com.devbrian.osebo.databinding.FragmentFinanceBinding
 import com.devbrian.osebo.models.Transaction
+import com.devbrian.osebo.ui.viewmodels.FinanceViewModel
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
 
+@AndroidEntryPoint
 class FinanceFragment : Fragment() {
     private var _binding: FragmentFinanceBinding? = null
     private val binding get() = _binding!!
     private lateinit var transactionAdapter: TransactionAdapter
+
+    private val viewModel: FinanceViewModel by viewModels()
 
     private val periods = arrayOf(
         "Today",
@@ -26,8 +35,7 @@ class FinanceFragment : Fragment() {
         "This Month",
         "Last Month",
         "This Quarter",
-        "This Year",
-        "Custom Range"
+        "This Year"
     )
 
     private var selectedPeriod = "This Month"
@@ -45,11 +53,84 @@ class FinanceFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // Check if shop is selected
+        if (!viewModel.hasShopSelected()) {
+            showNoShopSelectedDialog()
+            return
+        }
+
         setupToolbar()
         setupPeriodSpinner()
         setupRecyclerView()
         setupClickListeners()
+        observeViewModel()
+
+        // Load initial data
         loadFinancialData()
+    }
+
+    private fun showNoShopSelectedDialog() {
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle("No Shop Selected")
+            .setMessage("Please select a shop to view financial information.")
+            .setPositiveButton("Select Shop") { _, _ ->
+                findNavController().navigate(R.id.action_financeFragment_to_shopsFragment)
+            }
+            .setNegativeButton("Cancel") { _, _ ->
+                findNavController().popBackStack()
+            }
+            .setCancelable(false)
+            .show()
+    }
+
+    private fun observeViewModel() {
+        // Observe transactions
+        viewModel.transactions.observe(viewLifecycleOwner) { transactions ->
+            if (transactions.isEmpty()) {
+                showNoTransactionsState()
+            } else {
+                showTransactionsState()
+                transactionAdapter.submitTransactionList(transactions)
+                updateFinancialSummary(transactions)
+            }
+        }
+
+        // Observe loading state
+        viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
+            binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
+        }
+
+        // Observe errors
+        viewModel.error.observe(viewLifecycleOwner) { error ->
+            error?.let {
+                Toast.makeText(requireContext(), it, Toast.LENGTH_LONG).show()
+                viewModel.clearError()
+            }
+        }
+
+        // Observe financial statement
+        viewModel.financialStatement.observe(viewLifecycleOwner) { statement ->
+            updateFinancialStatementUI(statement)
+        }
+
+        // Observe shop name
+        viewModel.currentShopName.observe(viewLifecycleOwner) { shopName ->
+            binding.toolbar.subtitle = shopName
+        }
+    }
+
+    private fun updateFinancialStatementUI(statement: com.devbrian.osebo.models.FinancialStatement) {
+        val formatter = NumberFormat.getNumberInstance(Locale.US)
+
+        binding.tvTotalIncome.text = "UGX ${formatter.format(statement.sales.toInt())}"
+        binding.tvTotalExpenses.text = "UGX ${formatter.format(statement.expenses.toInt())}"
+        binding.tvNetProfit.text = "UGX ${formatter.format(statement.netProfit.toInt())}"
+
+        val profitMargin = if (statement.sales > 0) {
+            (statement.netProfit / statement.sales * 100)
+        } else 0.0
+
+        binding.tvProfitPeriod.text = "$selectedPeriod • ${String.format("%.1f", profitMargin)}% profit margin"
     }
 
     private fun setupToolbar() {
@@ -85,7 +166,6 @@ class FinanceFragment : Fragment() {
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         binding.spinnerPeriod.adapter = adapter
 
-        
         val defaultPosition = periods.indexOf(selectedPeriod)
         if (defaultPosition != -1) {
             binding.spinnerPeriod.setSelection(defaultPosition)
@@ -123,11 +203,6 @@ class FinanceFragment : Fragment() {
     }
 
     private fun setupClickListeners() {
-        
-        binding.cardAddIncome.setOnClickListener {
-            navigateToAddIncome()
-        }
-
         binding.cardAddExpense.setOnClickListener {
             navigateToAddExpense()
         }
@@ -136,141 +211,109 @@ class FinanceFragment : Fragment() {
             navigateToReports()
         }
 
-        binding.cardInvoices.setOnClickListener {
-            navigateToInvoices()
+        binding.cardCategories.setOnClickListener {
+            navigateToExpenseCategories()
         }
 
-        binding.cardTax.setOnClickListener {
-            navigateToTaxSummary()
+        binding.cardStatement.setOnClickListener {
+            navigateToFinancialStatement()
         }
 
-        binding.cardBudget.setOnClickListener {
-            navigateToBudgetPlanning()
+        binding.cardExport.setOnClickListener {
+            exportFinancialData()
         }
 
-        
+        binding.cardSettings.setOnClickListener {
+            navigateToFinanceSettings()
+        }
+
         binding.tvViewAllTransactions.setOnClickListener {
             navigateToAllTransactions()
         }
 
-        
         binding.btnAddFirstTransaction.setOnClickListener {
-            navigateToAddIncome()
+            navigateToAddExpense()
         }
 
-        
         binding.fabAddTransaction.setOnClickListener {
             showAddTransactionMenu()
         }
     }
 
     private fun loadFinancialData() {
-        binding.progressBar.visibility = View.VISIBLE
-
-        
-        binding.root.postDelayed({
-            val transactions = generateSampleTransactions()
-
-            if (transactions.isEmpty()) {
-                showNoTransactionsState()
-            } else {
-                showTransactionsState()
-                transactionAdapter.submitTransactionList(transactions)
-                updateFinancialSummary(transactions)
-            }
-
-            binding.progressBar.visibility = View.GONE
-        }, 1000)
+        // Load based on selected period
+        val (startDate, endDate) = getDateRangeForPeriod(selectedPeriod)
+        viewModel.loadTransactions(startDate, endDate)
+        viewModel.loadFinancialStatement(getPeriodForApi(selectedPeriod))
     }
 
-    private fun generateSampleTransactions(): List<Transaction> {
-        return listOf(
-            Transaction(
-                id = "TRX001",
-                description = "Sale - iPhone 15 Pro",
-                amount = 45000.0,
-                date = getFormattedDate(-1), 
-                type = Transaction.TYPE_INCOME,
-                category = Transaction.CATEGORY_SALES,
-                paymentMethod = Transaction.PAYMENT_CASH,
-                status = Transaction.STATUS_COMPLETED,
-                notes = "Payment received from John Doe"
-            ),
-            Transaction(
-                id = "TRX002",
-                description = "Office Rent",
-                amount = 15000.0,
-                date = getFormattedDate(-2),
-                type = Transaction.TYPE_EXPENSE,
-                category = Transaction.CATEGORY_RENT,
-                paymentMethod = Transaction.PAYMENT_BANK_TRANSFER,
-                status = Transaction.STATUS_COMPLETED
-            ),
-            Transaction(
-                id = "TRX003",
-                description = "Utility Bills",
-                amount = 8000.0,
-                date = getFormattedDate(-3),
-                type = Transaction.TYPE_EXPENSE,
-                category = Transaction.CATEGORY_UTILITIES,
-                paymentMethod = Transaction.PAYMENT_MOBILE_MONEY,
-                status = Transaction.STATUS_PENDING
-            ),
-            Transaction(
-                id = "TRX004",
-                description = "Consulting Services",
-                amount = 75000.0,
-                date = getFormattedDate(-4),
-                type = Transaction.TYPE_INCOME,
-                category = Transaction.CATEGORY_SALES,
-                paymentMethod = Transaction.PAYMENT_CARD,
-                status = Transaction.STATUS_COMPLETED
-            ),
-            Transaction(
-                id = "TRX005",
-                description = "Internet Subscription",
-                amount = 5000.0,
-                date = getFormattedDate(-5),
-                type = Transaction.TYPE_EXPENSE,
-                category = Transaction.CATEGORY_UTILITIES,
-                paymentMethod = Transaction.PAYMENT_MOBILE_MONEY,
-                status = Transaction.STATUS_COMPLETED
-            ),
-            Transaction(
-                id = "TRX006",
-                description = "Inventory Purchase",
-                amount = 25000.0,
-                date = getFormattedDate(-6),
-                type = Transaction.TYPE_EXPENSE,
-                category = Transaction.CATEGORY_PURCHASE,
-                paymentMethod = Transaction.PAYMENT_BANK_TRANSFER,
-                status = Transaction.STATUS_COMPLETED,
-                attachmentsCount = 2
-            ),
-            Transaction(
-                id = "TRX007",
-                description = "Client Refund",
-                amount = 12000.0,
-                date = getFormattedDate(-7),
-                type = Transaction.TYPE_EXPENSE,
-                category = Transaction.CATEGORY_OTHER,
-                paymentMethod = Transaction.PAYMENT_CASH,
-                status = Transaction.STATUS_REFUNDED,
-                notes = "Refund for damaged goods"
-            )
-        )
-    }
-
-    private fun getFormattedDate(daysOffset: Int): String {
+    private fun getDateRangeForPeriod(period: String): Pair<String?, String?> {
         val calendar = Calendar.getInstance()
-        calendar.add(Calendar.DAY_OF_YEAR, daysOffset)
         val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-        return dateFormat.format(calendar.time)
+
+        return when (period) {
+            "Today" -> {
+                val today = dateFormat.format(calendar.time)
+                Pair(today, today)
+            }
+            "This Week" -> {
+                calendar.set(Calendar.DAY_OF_WEEK, calendar.firstDayOfWeek)
+                val start = dateFormat.format(calendar.time)
+                calendar.add(Calendar.DAY_OF_WEEK, 6)
+                val end = dateFormat.format(calendar.time)
+                Pair(start, end)
+            }
+            "This Month" -> {
+                calendar.set(Calendar.DAY_OF_MONTH, 1)
+                val start = dateFormat.format(calendar.time)
+                calendar.set(Calendar.DAY_OF_MONTH, calendar.getActualMaximum(Calendar.DAY_OF_MONTH))
+                val end = dateFormat.format(calendar.time)
+                Pair(start, end)
+            }
+            "Last Month" -> {
+                calendar.add(Calendar.MONTH, -1)
+                calendar.set(Calendar.DAY_OF_MONTH, 1)
+                val start = dateFormat.format(calendar.time)
+                calendar.set(Calendar.DAY_OF_MONTH, calendar.getActualMaximum(Calendar.DAY_OF_MONTH))
+                val end = dateFormat.format(calendar.time)
+                Pair(start, end)
+            }
+            "This Quarter" -> {
+                val quarter = calendar.get(Calendar.MONTH) / 3
+                calendar.set(Calendar.MONTH, quarter * 3)
+                calendar.set(Calendar.DAY_OF_MONTH, 1)
+                val start = dateFormat.format(calendar.time)
+                calendar.set(Calendar.MONTH, quarter * 3 + 2)
+                calendar.set(Calendar.DAY_OF_MONTH, calendar.getActualMaximum(Calendar.DAY_OF_MONTH))
+                val end = dateFormat.format(calendar.time)
+                Pair(start, end)
+            }
+            "This Year" -> {
+                calendar.set(Calendar.DAY_OF_YEAR, 1)
+                val start = dateFormat.format(calendar.time)
+                calendar.set(Calendar.DAY_OF_YEAR, calendar.getActualMaximum(Calendar.DAY_OF_YEAR))
+                val end = dateFormat.format(calendar.time)
+                Pair(start, end)
+            }
+            else -> Pair(null, null)
+        }
+    }
+
+    private fun getPeriodForApi(period: String): String {
+        return when (period) {
+            "Today" -> "daily"
+            "This Week" -> "weekly"
+            "This Month" -> "monthly"
+            "Last Month" -> "monthly"
+            "This Quarter" -> "quarterly"
+            "This Year" -> "yearly"
+            else -> "monthly"
+        }
     }
 
     private fun updateFinancialSummary(transactions: List<Transaction>) {
-        val totalIncome = transactionAdapter.getTotalIncome()
-        val totalExpenses = transactionAdapter.getTotalExpenses()
+        val totalIncome = transactions.filter { it.type == Transaction.TYPE_INCOME }.sumOf { it.amount }
+        val totalExpenses = transactions.filter { it.type == Transaction.TYPE_EXPENSE }.sumOf { it.amount }
         val netProfit = totalIncome - totalExpenses
         val profitMargin = if (totalIncome > 0) (netProfit / totalIncome * 100) else 0.0
 
@@ -280,10 +323,6 @@ class FinanceFragment : Fragment() {
         binding.tvTotalExpenses.text = "UGX ${formatter.format(totalExpenses.toInt())}"
         binding.tvNetProfit.text = "UGX ${formatter.format(netProfit.toInt())}"
         binding.tvProfitPeriod.text = "$selectedPeriod • ${String.format("%.1f", profitMargin)}% profit margin"
-
-        
-        binding.tvIncomeChange.text = "↑ 15% from last month"
-        binding.tvExpenseChange.text = "↓ 8% from last month"
     }
 
     private fun showNoTransactionsState() {
@@ -302,7 +341,6 @@ class FinanceFragment : Fragment() {
             "Transaction: ${transaction.description}",
             Toast.LENGTH_SHORT
         ).show()
-        
     }
 
     private fun showTransactionOptionsMenu(transaction: Transaction, anchorView: View) {
@@ -348,16 +386,8 @@ class FinanceFragment : Fragment() {
 
         popup.setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
-                R.id.action_add_income -> {
-                    navigateToAddIncome()
-                    true
-                }
                 R.id.action_add_expense -> {
                     navigateToAddExpense()
-                    true
-                }
-                R.id.action_add_transfer -> {
-                    navigateToAddTransfer()
                     true
                 }
                 R.id.action_quick_sale -> {
@@ -371,48 +401,35 @@ class FinanceFragment : Fragment() {
         popup.show()
     }
 
-    
-    private fun navigateToAddIncome() {
-        Toast.makeText(requireContext(), "Navigate to Add Income", Toast.LENGTH_SHORT).show()
-    }
-
+    // Navigation methods
     private fun navigateToAddExpense() {
-        Toast.makeText(requireContext(), "Navigate to Add Expense", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun navigateToAddTransfer() {
-        Toast.makeText(requireContext(), "Navigate to Add Transfer", Toast.LENGTH_SHORT).show()
+        findNavController().navigate(R.id.action_financeFragment_to_addExpenseFragment)
     }
 
     private fun navigateToQuickSale() {
-        Toast.makeText(requireContext(), "Navigate to Quick Sale", Toast.LENGTH_SHORT).show()
+        findNavController().navigate(R.id.action_financeFragment_to_newSaleFragment)
     }
 
     private fun navigateToReports() {
-        Toast.makeText(requireContext(), "Navigate to Reports", Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireContext(), "Reports coming soon", Toast.LENGTH_SHORT).show()
     }
 
-    private fun navigateToInvoices() {
-        Toast.makeText(requireContext(), "Navigate to Invoices", Toast.LENGTH_SHORT).show()
+    private fun navigateToExpenseCategories() {
+        findNavController().navigate(R.id.action_financeFragment_to_expenseCategoriesFragment)
     }
 
-    private fun navigateToTaxSummary() {
-        Toast.makeText(requireContext(), "Navigate to Tax Summary", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun navigateToBudgetPlanning() {
-        Toast.makeText(requireContext(), "Navigate to Budget Planning", Toast.LENGTH_SHORT).show()
+    private fun navigateToFinancialStatement() {
+        findNavController().navigate(R.id.action_financeFragment_to_financialStatementFragment)
     }
 
     private fun navigateToAllTransactions() {
-        Toast.makeText(requireContext(), "Navigate to All Transactions", Toast.LENGTH_SHORT).show()
+        findNavController().navigate(R.id.action_financeFragment_to_transactionsFragment)
     }
 
     private fun navigateToFinanceSettings() {
-        Toast.makeText(requireContext(), "Navigate to Finance Settings", Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireContext(), "Finance Settings coming soon", Toast.LENGTH_SHORT).show()
     }
 
-    
     private fun editTransaction(transaction: Transaction) {
         Toast.makeText(requireContext(), "Edit Transaction: ${transaction.id}", Toast.LENGTH_SHORT).show()
     }
@@ -440,13 +457,12 @@ class FinanceFragment : Fragment() {
             .show()
     }
 
-    
     private fun showFilterDialog() {
-        Toast.makeText(requireContext(), "Show Filter Dialog", Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireContext(), "Filter coming soon", Toast.LENGTH_SHORT).show()
     }
 
     private fun exportFinancialData() {
-        Toast.makeText(requireContext(), "Export Financial Data", Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireContext(), "Export coming soon", Toast.LENGTH_SHORT).show()
     }
 
     private fun refreshData() {
@@ -486,4 +502,3 @@ class FinanceFragment : Fragment() {
         _binding = null
     }
 }
-

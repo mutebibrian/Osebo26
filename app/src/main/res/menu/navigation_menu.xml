@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- HOME Section -->
-    <group android:id="@+id/group_home">
+    <!-- HOME SECTION -->
+    <group
+        android:id="@+id/group_home"
+        android:checkableBehavior="none">
         <item
             android:id="@+id/nav_dashboard"
             android:icon="@drawable/ic_dashboard"
@@ -14,28 +16,20 @@
             android:title="Shops" />
     </group>
 
-    <!-- SHOP Section Header -->
-    <item
-        android:id="@+id/nav_section_shop"
-        android:title="SHOP"
-        android:enabled="false" />
-
-    <!-- Shop items -->
-    <group android:id="@+id/group_shop">
+    <!-- SHOP SECTION -->
+    <group
+        android:id="@+id/group_shop"
+        android:checkableBehavior="none">
         <item
             android:id="@+id/nav_shop_home"
             android:icon="@drawable/ic_home"
             android:title="Home" />
     </group>
 
-    <!-- BUSINESS OPERATIONS Section Header -->
-    <item
-        android:id="@+id/nav_section_business_operations"
-        android:title="BUSINESS OPERATIONS"
-        android:enabled="false" />
-
-    <!-- Business Operations items -->
-    <group android:id="@+id/group_business_operations">
+    <!-- BUSINESS OPERATIONS SECTION -->
+    <group
+        android:id="@+id/group_business_operations"
+        android:checkableBehavior="none">
         <item
             android:id="@+id/nav_sales"
             android:icon="@drawable/ic_sales"
@@ -57,14 +51,10 @@
             android:title="Transfers" />
     </group>
 
-    <!-- MANAGEMENT Section Header -->
-    <item
-        android:id="@+id/nav_section_management"
-        android:title="MANAGEMENT"
-        android:enabled="false" />
-
-    <!-- Management items -->
-    <group android:id="@+id/group_management">
+    <!-- MANAGEMENT SECTION -->
+    <group
+        android:id="@+id/group_management"
+        android:checkableBehavior="none">
         <item
             android:id="@+id/nav_employees"
             android:icon="@drawable/ic_employees"
@@ -81,26 +71,10 @@
             android:title="Customers" />
     </group>
 
-    <!-- Divider - Using a different approach for better compatibility -->
-    <item
-        android:id="@+id/nav_divider"
-        android:title="SETTINGS"
-        android:enabled="false">
-        <menu>
-            <item android:title="">
-                <view
-                    class="android.view.View"
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="@android:color/darker_gray"
-                    android:layout_marginTop="8dp"
-                    android:layout_marginBottom="8dp" />
-            </item>
-        </menu>
-    </item>
-
-    <!-- SETTINGS Section -->
-    <group android:id="@+id/group_settings">
+    <!-- SETTINGS SECTION -->
+    <group
+        android:id="@+id/group_settings"
+        android:checkableBehavior="none">
         <item
             android:id="@+id/nav_subscription"
             android:icon="@drawable/ic_subscription"
