@@ -1,3 +1,3 @@
 package com.devbrian.osebo.data.remote.dto.request
 
-data class `Add RefreshTokenRequest`()
+data class UpdateProductRequest()
