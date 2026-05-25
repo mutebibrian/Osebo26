@@ -18,3 +18,4 @@ data class StockItemDto(
     @SerializedName("updated_at") val updatedAt: String
 )
 
+

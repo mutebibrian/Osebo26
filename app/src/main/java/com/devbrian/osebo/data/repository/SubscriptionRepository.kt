@@ -13,12 +13,8 @@ import com.devbrian.osebo.utils.Resource
 
 interface SubscriptionRepository {
 
-    
-    
     suspend fun getSubscriptionPackages(): Resource<List<SubscriptionPackage>>
 
-    
-    
     suspend fun getSubscriptionDetails(
         shopId: String,
         subscriptionId: String
@@ -26,74 +22,50 @@ interface SubscriptionRepository {
 
     suspend fun getShops(): Resource<List<Shop>>
 
-
     suspend fun checkPaymentStatus(
         paymentId: String,
         request: CheckPaymentStatusRequest
     ): Resource<PaymentStatusResponse>
 
-
-
     suspend fun getShopActiveSubscription(shopId: String): Resource<Subscription>
 
-    
-    
     suspend fun createSubscription(
         shopId: String,
         request: CreateSubscriptionRequest
-    ): Resource<Any>
+    ): Resource<SubscriptionResponse>
 
-    
-
-    
     suspend fun initiatePayment(
         shopId: String,
         request: InitiatePaymentRequest
-    ): Resource<Any>
+    ): Resource<InitiatePaymentResponse>
 
     suspend fun getPaymentStatus(shopId: String, paymentId: String): Resource<PaymentStatusResponse>
 
-
-
-
-
-    
     suspend fun pollPaymentStatus(
         shopId: String,
         request: PollPaymentStatusRequest
     ): Resource<PaymentPollResponse>
 
-    
-    
     suspend fun getPaymentHistory(
         shopId: String,
         subscriptionId: String
     ): Resource<List<Payment>>
 
-    
-    
     suspend fun checkShopSubscription(shopId: String): Resource<ShopSubscriptionStatusResponse>
 
-    
-    
     suspend fun cancelSubscription(
         shopId: String,
         subscriptionId: String
     ): Resource<Unit>
 
-    
-    
     suspend fun renewSubscription(
         shopId: String,
         subscriptionId: String,
         request: RenewSubscriptionRequest
     ): Resource<SubscriptionResponse>
 
-    
-    
     suspend fun activateFreeTrial(
         shopId: String,
         packageId: String
     ): Resource<SubscriptionResponse>
 }
-

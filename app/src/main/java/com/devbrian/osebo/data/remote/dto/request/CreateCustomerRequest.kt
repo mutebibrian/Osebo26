@@ -18,3 +18,4 @@ data class UpdateCustomerRequest(
     @SerializedName("isDefault") val isDefault: Boolean? = null
 )
 
+

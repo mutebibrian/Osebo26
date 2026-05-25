@@ -14,7 +14,7 @@ data class ProductDto(
     @SerializedName("max_discount") val maxDiscount: Double,
     @SerializedName("barcode") val barcode: String?,
     @SerializedName("photos") val photos: List<String>?,
-    @SerializedName("quantity") val quantity: Int,
+    @SerializedName("quantity") val quantity: Double,  // Changed from Int to Double
     @SerializedName("stock_category") val stockCategory: StockCategoryDto,
     @SerializedName("shop") val shop: ShopDto,
     @SerializedName("allowsFloatQuantity") val allowsFloatQuantity: Boolean,
@@ -26,15 +26,16 @@ data class ProductDto(
             id = this.id,
             name = this.name,
             sku = this.sku,
-            category = this.stockCategory.name,  
+            category = this.stockCategory.name,
+            categoryId = this.stockCategory.id,
             price = this.sellingPrice,
-            cost = null,  
-            stock = this.quantity,
+            cost = null,
+            stock = this.quantity,  // Now works with Double
             lowStockThreshold = this.lowQuantityMark,
             imageUrl = this.photos?.firstOrNull(),
             description = this.description,
             barcode = this.barcode,
-            supplierId = null,  
+            supplierId = null,
             supplierName = null,
             taxRate = null,
             weight = null,
@@ -42,11 +43,13 @@ data class ProductDto(
             location = null,
             isActive = true,
             createdAt = this.createdAt,
-            updatedAt = this.updatedAt
+            updatedAt = this.updatedAt,
+            maxDiscount = this.maxDiscount,
+            unit = this.unitMeasure,
+            allowsFloatQuantity = this.allowsFloatQuantity,
+            shopId = this.shop.id,
+            shopName = this.shop.name,
+            photos = this.photos
         )
     }
 }
-
-
-
-

@@ -1,3 +1,8 @@
 package com.devbrian.osebo.data.remote.dto.request
 
-data class `Add RefreshTokenRequest`()
+
+import com.google.gson.annotations.SerializedName
+
+data class RefreshTokenRequest(
+    val refreshToken: String
+)

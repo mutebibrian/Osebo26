@@ -9,3 +9,4 @@ data class EmployeesSummaryDto(
     @SerializedName("staff") val staff: Int
 )
 
+

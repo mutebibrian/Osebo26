@@ -13,7 +13,7 @@
 
     <!-- For navigation header dark theme -->
     <style name="ThemeOverlay.Osebo.Dark" parent="ThemeOverlay.MaterialComponents.Dark">
-        <item name="android:textColorPrimary">@color/white</item>
+        <item name="android:textColorPrimary">@color/africa_black</item>
         <item name="android:textColorSecondary">@color/white_alpha_70</item>
     </style>
 </resources>

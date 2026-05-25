@@ -7,3 +7,4 @@ data class SubscribeRequest(
     val autoRenew: Boolean = true
 )
 
+

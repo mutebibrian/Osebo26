@@ -8,7 +8,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.devbrian.osebo.R
 import com.google.android.material.card.MaterialCardView
 
-// Adapter for top stock items
+
 class TopStockAdapter(
     private val onItemClick: (TopStockItem) -> Unit
 ) : RecyclerView.Adapter<TopStockAdapter.ViewHolder>() {
@@ -81,7 +81,7 @@ data class TopStockItem(
     val sales: Double
 )
 
-// Extension function for alpha stays the same
+
 fun Int.withAlpha(alpha: Float): Int {
     return (this and 0x00FFFFFF) or ((alpha * 255).toInt() shl 24)
 }

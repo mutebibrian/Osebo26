@@ -1,6 +1,5 @@
 package com.devbrian.osebo.data.local.entity
 
-
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.devbrian.osebo.data.remote.dto.response.ShopDto
@@ -77,10 +76,17 @@ data class ShopEntity(
                 null
             }
 
-            // Use the helper properties from ShopDto
+            // Extract subscription information using the DTO's helper properties
             val subscriptionStatus = dto.subscriptionStatusString
             val subscriptionExpiry = dto.subscriptionExpiryString
             val subscriptionType = dto.subscriptionTypeString
+            val planId = dto.subscription?.packageDetails?.id
+
+            // Get shop type name - use shopTypeObject if available, otherwise shopType string
+            val shopTypeName = dto.shopTypeObject?.name ?: dto.shopType
+
+            // Calculate total employees
+            val totalEmployees = (dto.employees?.managers ?: 0) + (dto.employees?.staff ?: 0)
 
             return ShopEntity(
                 id = dto.id,
@@ -88,8 +94,8 @@ data class ShopEntity(
                 name = dto.name,
                 address = dto.address,
                 description = dto.description,
-                shopType = dto.shopType ?: dto.shopTypeObject?.name,
-                phone = dto.phone,
+                shopType = shopTypeName,
+                phone = dto.phone,  // Fixed: changed from phoneNumber to phone
                 email = dto.email,
                 registrationNumber = dto.registrationNumber,
                 taxIdentificationNumber = dto.taxIdentificationNumber,
@@ -98,16 +104,17 @@ data class ShopEntity(
                 totalExpenses = 0.0,
                 profit = 0.0,
                 totalProducts = 0,
-                totalEmployees = (dto.employees?.managers ?: 0) + (dto.employees?.staff ?: 0),
+                totalEmployees = totalEmployees,
                 subscriptionStatus = subscriptionStatus,
                 subscriptionType = subscriptionType,
                 subscriptionExpiry = subscriptionExpiry,
-                planId = dto.subscription?.packageDetails?.id,
+                planId = planId,
                 isActive = dto.isActive,
                 status = dto.status ?: "active",
                 ownerId = dto.ownerId ?: userId,
                 createdAt = dto.createdAt,
-                updatedAt = dto.updatedAt
+                updatedAt = dto.updatedAt,
+                lastSyncedAt = System.currentTimeMillis()
             )
         }
     }

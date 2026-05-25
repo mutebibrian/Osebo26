@@ -2,7 +2,7 @@ package com.devbrian.osebo.data.remote.dto.request
 
 import com.google.gson.annotations.SerializedName
 
-// ✅ Sent to API when creating an employee (role is a String)
+
 data class EmployeeRequest(
     @SerializedName("firstName")
     val firstName: String,
@@ -22,6 +22,9 @@ data class EmployeeRequest(
     @SerializedName("role")
     val role: String,
 
+    @SerializedName("shopId")  // Add this field to associate employee with a shop
+    val shopId: String,
+
     @SerializedName("kin_name")
     val kinName: String? = null,
 
@@ -35,7 +38,7 @@ data class EmployeeRequest(
     val email: String? = null
 )
 
-// ✅ Role object returned by API in responses
+
 data class RoleDto(
     @SerializedName("id")
     val id: String,
@@ -47,7 +50,7 @@ data class RoleDto(
     val description: String?
 )
 
-// ✅ Employee data returned by API — role is an OBJECT not a String
+
 data class EmployeeData(
     @SerializedName("id")
     val id: String,
@@ -79,13 +82,11 @@ data class EmployeeData(
     @SerializedName("kin_phone")
     val kinPhone: String?,
 
-    // ✅ role is an object in API responses: {"id":"...","name":"staff","description":"..."}
     @SerializedName("role")
     val roleDto: RoleDto?,
 
     @SerializedName("shopId")
     val shopId: String? = null
 ) {
-    // ✅ Convenience property to get role name as String (used throughout the app)
     val role: String get() = roleDto?.name ?: "staff"
 }

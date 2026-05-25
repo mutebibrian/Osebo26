@@ -52,7 +52,7 @@ class SubscriptionFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Get shop ID from arguments or preferences
+        
         shopId = arguments?.getString("shopId") ?: getCurrentShopId()
 
         if (shopId.isEmpty()) {
@@ -65,7 +65,7 @@ class SubscriptionFragment : Fragment() {
         setupClickListeners()
         setupViewPager()
 
-        // Load data
+        
         loadSubscriptionData()
     }
 
@@ -75,7 +75,7 @@ class SubscriptionFragment : Fragment() {
     }
 
     private fun setupObservers() {
-        // Observe current subscription
+        
         viewModel.currentSubscription.observe(viewLifecycleOwner) { resource ->
             when (resource) {
                 is Resource.Success -> {
@@ -102,7 +102,7 @@ class SubscriptionFragment : Fragment() {
             }
         }
 
-        // Observe subscription packages
+        
         viewModel.subscriptionPackages.observe(viewLifecycleOwner) { resource ->
             when (resource) {
                 is Resource.Success -> {
@@ -134,33 +134,39 @@ class SubscriptionFragment : Fragment() {
             }
         }
 
-        // Observe create subscription result
-        viewModel.createSubscriptionResult.observe(viewLifecycleOwner) { resource ->
-            when (resource) {
-                is Resource.Success -> {
-                    resource.data?.let { response ->
-                        if (response.success) {
-                            Toast.makeText(requireContext(),
-                                "Subscription initiated. Check your phone for payment prompt.",
-                                Toast.LENGTH_LONG
-                            ).show()
 
-                            // Refresh subscription data after payment
-                            loadSubscriptionData()
-                        }
+        // In SubscriptionFragment.kt, find the subscriptionResult observer and update it:
+
+        viewModel.subscriptionResult.observe(viewLifecycleOwner) { resource ->
+            when (resource) {
+                is Resource.Loading -> {
+                    // Show loading if needed
+                }
+                is Resource.Success -> {
+                    val response = resource.data
+                    // FIXED: SubscriptionResponse now has paymentId directly
+                    if (response?.paymentId != null) {
+                        // Success - payment initiated
+                        Toast.makeText(requireContext(),
+                            "Payment initiated! Please check your phone.",
+                            Toast.LENGTH_LONG).show()
+                        loadSubscriptionData()
+                    } else {
+                        Toast.makeText(requireContext(),
+                            response?.message ?: "Subscription created!",
+                            Toast.LENGTH_SHORT).show()
+                        loadSubscriptionData()
                     }
                 }
                 is Resource.Error -> {
                     Toast.makeText(requireContext(),
                         resource.message ?: "Failed to create subscription",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                        Toast.LENGTH_SHORT).show()
                 }
-                else -> {}
             }
         }
 
-        // Observe payment polling status
+        
         viewModel.paymentPollingStatus.observe(viewLifecycleOwner) { resource ->
             when (resource) {
                 is Resource.Success -> {
@@ -186,21 +192,21 @@ class SubscriptionFragment : Fragment() {
             }
         }
 
-        // Observe error messages
+        
         viewModel.errorMessage.observe(viewLifecycleOwner) { message ->
             message?.let {
                 Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
             }
         }
 
-        // Observe success messages
+        
         viewModel.successMessage.observe(viewLifecycleOwner) { message ->
             message?.let {
                 Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
             }
         }
 
-        // Observe loading state
+        
         viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
             if (isLoading) {
                 binding.progressBar.visibility = View.VISIBLE
@@ -211,18 +217,18 @@ class SubscriptionFragment : Fragment() {
     }
 
     private fun displaySubscriptionData(subscription: Subscription) {
-        // Update UI with real subscription data
+        
         binding.packageValue.text = subscription.displayPackage
         binding.maxValue.text = subscription.durationText
 
-        // Format end date nicely
+        
         val endDate = subscription.formattedEndDate
         binding.expiresValue.text = endDate
 
         val daysLeft = subscription.daysRemaining
         binding.daysLeftValue.text = daysLeft.toString()
 
-        // Set color based on days remaining
+        
         binding.daysLeftValue.setTextColor(
             resources.getColor(
                 if (daysLeft < 3) R.color.error_red
@@ -234,7 +240,7 @@ class SubscriptionFragment : Fragment() {
 
         binding.statusChip.text = subscription.displayStatus
 
-        // Set chip color based on status
+        
         when {
             subscription.isTrial && daysLeft > 0 ->
                 binding.statusChip.setChipBackgroundColorResource(R.color.blue_info)
@@ -248,11 +254,11 @@ class SubscriptionFragment : Fragment() {
                 binding.statusChip.setChipBackgroundColorResource(R.color.gray_500)
         }
 
-        // Show/hide remove button based on subscription status
+        
         binding.removeSubscriptionButton.visibility =
             if (subscription.isActiveStatus || subscription.isTrial) View.VISIBLE else View.GONE
 
-        // Show subscription details card
+        
         binding.subscriptionDetails.visibility = View.VISIBLE
     }
 
@@ -324,6 +330,7 @@ class SubscriptionFragment : Fragment() {
             .setTitle("Cancel Subscription")
             .setMessage("Are you sure you want to cancel your ${subscription.displayPackage}? This action cannot be undone.")
             .setPositiveButton("Cancel Subscription") { _, _ ->
+                // FIXED: Call viewModel.cancelSubscription instead
                 viewModel.cancelSubscription(shopId, subscription.id)
             }
             .setNegativeButton("Keep Subscription", null)
@@ -336,36 +343,35 @@ class SubscriptionFragment : Fragment() {
             return
         }
 
-        // Check if custom plan
+        
         if (plan.isCustom) {
             openContactSales()
             return
         }
 
-        // Show payment dialog
+        
         showPaymentDialog(shopId, plan)
     }
 
     private fun showPaymentDialog(shopId: String, plan: SubscriptionPackage) {
-        val dialog = PaymentDialogFragment().apply {
-            arguments = Bundle().apply {
-                putString("shopId", shopId)
-                putString("packageId", plan.id)
-                putString("packageName", plan.displayName)
-                putDouble("amount", plan.price)
-            }
-        }
+        val dialog = PaymentDialogFragment.newInstance(
+            shopId = shopId,
+            packageId = plan.id,
+            packageName = plan.displayName,
+            amount = plan.price
+        )
 
-        dialog.setPaymentListener { phoneNumber, packageId, months ->
+        dialog.setPaymentListener { phoneNumber, packageId, months, amount ->
             viewModel.createSubscription(
                 shopId = shopId,
                 packageId = packageId,
                 phoneNumber = phoneNumber,
-                months = months
+                months = months,
+                amount = amount
             )
         }
 
-        dialog.show(parentFragmentManager, "PaymentDialog")
+        dialog.show(parentFragmentManager, PaymentDialogFragment.TAG)
     }
 
     private fun openContactSales() {

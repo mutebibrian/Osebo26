@@ -19,3 +19,4 @@ data class SyncQueueEntity(
     val status: String = "PENDING"  
 )
 
+

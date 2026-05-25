@@ -17,4 +17,5 @@ data class SaleApiListResponse(
 
 
 
-// For list sale responses
+
+

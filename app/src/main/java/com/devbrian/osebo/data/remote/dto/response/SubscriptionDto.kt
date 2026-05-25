@@ -26,3 +26,4 @@ data class SubscriptionDto(
     @SerializedName("price") val price: Double? = null
 )
 
+

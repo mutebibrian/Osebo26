@@ -20,3 +20,4 @@ data class RegisterRequest(
     val businessType: String
 )
 
+

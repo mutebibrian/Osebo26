@@ -37,3 +37,4 @@ data class ShopStatsResponse(
     val monthlyRevenue: List<MonthlyRevenue>
 )
 
+

@@ -3,7 +3,7 @@ agp = "8.2.2"
 kotlin = "1.9.22"  # Consistent version
 hilt = "2.48"
 navigation = "2.7.7"
-room = "2.7.0"  # Updated to support Kotlin 1.9.22
+room = "2.6.1"
 lifecycle = "2.6.2"
 coroutines = "1.7.3"
 retrofit = "2.9.0"
@@ -92,6 +92,8 @@ androidx-navigation-ui-ktx = { group = "androidx.navigation", name = "navigation
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
+android-library = { id = "com.android.library", version.ref = "agp" }        # ADD THIS
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }  # ADD THIS
 hilt-android = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 navigation-safe-args = { id = "androidx.navigation.safeargs.kotlin", version.ref = "navigation" }

@@ -11,3 +11,4 @@ data class InventoryReportDto(
     val totalValue: Double
 )
 
+

@@ -16,3 +16,4 @@ data class CategoryEntity(
     val syncAction: String? = null
 )
 
+

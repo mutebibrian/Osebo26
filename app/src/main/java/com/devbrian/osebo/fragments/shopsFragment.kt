@@ -119,7 +119,7 @@ class ShopsFragment : Fragment() {
                         ivShopLogo.setImageResource(R.drawable.ic_shop_placeholder)
                     }
 
-                    // Check if this shop is the active one
+                    
                     val currentShopId = preferenceManager.getCurrentShopId()
                     val isActive = shop.id == currentShopId
 
@@ -173,7 +173,7 @@ class ShopsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Initialize PreferenceManager
+        
         preferenceManager = PreferenceManager.getInstance(requireContext())
         shopViewModel = ViewModelProvider(this).get(ShopViewModel::class.java)
 
@@ -182,7 +182,7 @@ class ShopsFragment : Fragment() {
         setupObservers()
         loadUserShops()
 
-        // Debug current shop info
+        
         preferenceManager.debugCurrentShop()
     }
 
@@ -284,7 +284,7 @@ class ShopsFragment : Fragment() {
     private fun navigateToShopDetail(shop: Shop) {
         debugShopData(shop)
 
-        // Defensive check for valid UUID
+        
         if (shop.id.isBlank() || !Shop.isValidUUID(shop.id)) {
             Toast.makeText(requireContext(), "Error: Selected shop has an invalid ID.", Toast.LENGTH_LONG).show()
             println("❌ CRITICAL: Attempted to select a shop with an invalid ID: ${shop.name} (${shop.id})")
@@ -293,15 +293,15 @@ class ShopsFragment : Fragment() {
 
         println("✅ Selecting shop '${shop.name}' with valid ID: ${shop.id}")
 
-        // CRITICAL FIX: Save BOTH the shop ID and UUID using the correct method
-        // The shop.id is the UUID (same value for both)
+        
+        
         preferenceManager.saveCurrentShop(
-            shopId = shop.id,      // For local database
-            shopUuid = shop.id,    // For API calls
+            shopId = shop.id,      
+            shopUuid = shop.id,    
             shopName = shop.name
         )
 
-        // Handle subscription
+        
         if (shop.subscription != null && shop.subscription.isActive) {
             val subscription = shop.subscription
             val status = if (subscription.isTrial) "TRIAL" else "ACTIVE"
@@ -320,14 +320,14 @@ class ShopsFragment : Fragment() {
 
             Toast.makeText(requireContext(), "${shop.name} selected", Toast.LENGTH_SHORT).show()
 
-            // Navigate to dashboard
+            
             try {
                 findNavController().navigate(ShopsFragmentDirections.actionShopsFragmentToShopDashboardFragment(shop.id))
             } catch (e: Exception) {
                 println("❌ Navigation Error: ${e.message}")
             }
         } else {
-            // Clear old subscription and show dialog
+            
             preferenceManager.clearSubscriptionInfo()
             showSubscriptionRequiredDialog(shop)
         }
@@ -355,7 +355,7 @@ class ShopsFragment : Fragment() {
     }
 
     private fun setActiveShop(shop: Shop) {
-        // Defensive check
+        
         if (shop.id.isBlank() || !Shop.isValidUUID(shop.id)) {
             Toast.makeText(requireContext(), "Error: Cannot set active shop due to invalid ID.", Toast.LENGTH_LONG).show()
             return
@@ -363,10 +363,10 @@ class ShopsFragment : Fragment() {
 
         println("✅ Setting '${shop.name}' as active shop with ID: ${shop.id}")
 
-        // CRITICAL FIX: Save BOTH the shop ID and UUID using the correct method
+        
         preferenceManager.saveCurrentShop(
-            shopId = shop.id,      // For local database
-            shopUuid = shop.id,    // For API calls
+            shopId = shop.id,      
+            shopUuid = shop.id,    
             shopName = shop.name
         )
 

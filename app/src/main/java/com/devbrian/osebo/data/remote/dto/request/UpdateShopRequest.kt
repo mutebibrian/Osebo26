@@ -20,3 +20,4 @@ data class UpdateShopRequest(
     val status: String? = null
 )
 
+

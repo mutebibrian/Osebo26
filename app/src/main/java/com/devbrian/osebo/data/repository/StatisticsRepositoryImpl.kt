@@ -12,17 +12,17 @@ import javax.inject.Singleton
 class StatisticsRepositoryImpl @Inject constructor() : StatisticsRepository {
 
     override suspend fun getStatisticsSummary(shopId: String, period: String): Resource<StatisticsViewModel.StatisticsSummary> {
-        // TODO: Implement API call
+        
         return Resource.Error("Not implemented")
     }
 
     override suspend fun getSalesChartData(shopId: String, period: String): Resource<List<SalesDataPoint>> {
-        // TODO: Implement API call
+        
         return Resource.Error("Not implemented")
     }
 
     override suspend fun getTopProducts(shopId: String, period: String): Resource<List<TopProduct>> {
-        // TODO: Implement API call
+        
         return Resource.Error("Not implemented")
     }
 }

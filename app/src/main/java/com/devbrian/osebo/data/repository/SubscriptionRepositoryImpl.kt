@@ -14,7 +14,9 @@ import com.devbrian.osebo.data.remote.dto.response.PaymentStatusResponse
 import com.devbrian.osebo.data.remote.dto.response.ShopDto
 import com.devbrian.osebo.data.remote.dto.response.ShopSubscriptionDto
 import com.devbrian.osebo.data.remote.dto.response.ShopSubscriptionStatusResponse
+import com.devbrian.osebo.data.remote.dto.response.SubscriptionDataResponse
 import com.devbrian.osebo.data.remote.dto.response.SubscriptionResponse
+import com.devbrian.osebo.data.remote.dto.response.SubscriptionResult
 import com.devbrian.osebo.models.*
 import com.devbrian.osebo.utils.Resource
 import java.io.IOException
@@ -26,7 +28,6 @@ class SubscriptionRepositoryImpl @Inject constructor(
     private val apiService: ApiService
 ) : SubscriptionRepository {
 
-    
     override suspend fun getShops(): Resource<List<Shop>> {
         return try {
             println("🔍 ========== GET SHOPS START ==========")
@@ -42,13 +43,11 @@ class SubscriptionRepositoryImpl @Inject constructor(
                     val shopDtos = apiResponse.data ?: emptyList()
                     println("🔍 Number of shops from API: ${shopDtos.size}")
 
-                    
                     shopDtos.forEachIndexed { index, dto ->
                         println("🔍 Shop DTO $index - ID: ${dto.id}, Name: ${dto.name}")
                         println("🔍 Shop DTO $index - Subscription present: ${dto.subscription != null}")
                     }
 
-                    
                     val shops = shopDtos.map { dto ->
                         dto.toShop()
                     }
@@ -75,7 +74,7 @@ class SubscriptionRepositoryImpl @Inject constructor(
             Resource.Error(e.message ?: "Unknown error")
         }
     }
-    
+
     private fun ShopDto.toShop(): Shop {
         println("🔍 toShop() called for: ${this.name}")
         println("🔍 toShop() - subscription DTO present: ${this.subscription != null}")
@@ -160,7 +159,6 @@ class SubscriptionRepositoryImpl @Inject constructor(
         )
     }
 
-    
     override suspend fun getSubscriptionPackages(): Resource<List<SubscriptionPackage>> {
         return try {
             val response = apiService.getSubscriptionPackages()
@@ -182,7 +180,6 @@ class SubscriptionRepositoryImpl @Inject constructor(
         }
     }
 
-    
     override suspend fun checkPaymentStatus(
         paymentId: String,
         request: CheckPaymentStatusRequest
@@ -206,7 +203,6 @@ class SubscriptionRepositoryImpl @Inject constructor(
         }
     }
 
-    
     override suspend fun getSubscriptionDetails(
         shopId: String,
         subscriptionId: String
@@ -232,7 +228,6 @@ class SubscriptionRepositoryImpl @Inject constructor(
         }
     }
 
-
     override suspend fun getShopActiveSubscription(shopId: String): Resource<Subscription> {
         return try {
             println("🔍 Fetching subscriptions for shop: $shopId")
@@ -247,7 +242,6 @@ class SubscriptionRepositoryImpl @Inject constructor(
                     val subscriptions = apiResponse.data ?: emptyList()
                     println("🔍 Found ${subscriptions.size} subscriptions")
 
-                    // Log each subscription for debugging
                     subscriptions.forEachIndexed { index, sub ->
                         println("🔍 Subscription $index:")
                         println("   - id: ${sub.id}")
@@ -259,7 +253,6 @@ class SubscriptionRepositoryImpl @Inject constructor(
                         println("   - isActive: ${sub.isActive}")
                     }
 
-                    // Find active subscription (ACTIVE or TRIAL)
                     val activeSubscription = subscriptions.firstOrNull {
                         it.status.equals("ACTIVE", ignoreCase = true) ||
                                 it.isTrial == true ||
@@ -271,7 +264,6 @@ class SubscriptionRepositoryImpl @Inject constructor(
                         Resource.Success(activeSubscription)
                     } else {
                         println("⚠️ No active subscription found")
-                        // Return the most recent subscription if any
                         if (subscriptions.isNotEmpty()) {
                             println("⚠️ Returning most recent subscription instead")
                             Resource.Success(subscriptions.first())
@@ -295,31 +287,34 @@ class SubscriptionRepositoryImpl @Inject constructor(
         }
     }
 
-    
     override suspend fun createSubscription(
         shopId: String,
         request: CreateSubscriptionRequest
     ): Resource<SubscriptionResponse> {
         return try {
             val response = apiService.createSubscription(shopId, request)
+
             if (response.isSuccessful) {
                 val apiResponse = response.body()
-                if (apiResponse?.success == true && apiResponse.data != null) {
-                    Resource.Success(apiResponse.data)
+                if (apiResponse?.success == true) {
+                    val subscriptionResponse = apiResponse.data  // This is now SubscriptionResponse directly
+                    println("🔵 PaymentId: ${subscriptionResponse?.paymentId}")
+                    if (subscriptionResponse != null) {
+                        Resource.Success(subscriptionResponse)
+                    } else {
+                        Resource.Error("No data in response")
+                    }
                 } else {
                     Resource.Error(apiResponse?.message ?: "Failed to create subscription")
                 }
             } else {
-                Resource.Error("Network error: ${response.code()}")
+                Resource.Error("Error ${response.code()}: ${response.message()}")
             }
-        } catch (e: IOException) {
-            Resource.Error("Network error: ${e.message ?: "Check your internet connection"}")
         } catch (e: Exception) {
-            Resource.Error("Failed to create subscription: ${e.message ?: "Unknown error"}")
+            Resource.Error(e.message ?: "Network error")
         }
     }
 
-    
     override suspend fun initiatePayment(
         shopId: String,
         request: InitiatePaymentRequest
@@ -342,7 +337,6 @@ class SubscriptionRepositoryImpl @Inject constructor(
             Resource.Error("Failed to initiate payment: ${e.message ?: "Unknown error"}")
         }
     }
-
 
     override suspend fun getPaymentStatus(
         shopId: String,
@@ -369,7 +363,6 @@ class SubscriptionRepositoryImpl @Inject constructor(
         }
     }
 
-    
     override suspend fun pollPaymentStatus(
         shopId: String,
         request: PollPaymentStatusRequest
@@ -404,35 +397,27 @@ class SubscriptionRepositoryImpl @Inject constructor(
         }
     }
 
-
     override suspend fun getPaymentHistory(
         shopId: String,
         subscriptionId: String
     ): Resource<List<Payment>> {
         return try {
-            // Don't make API call if subscriptionId is empty
             if (subscriptionId.isEmpty()) {
                 println("⚠️ Cannot fetch payment history - subscriptionId is empty")
                 return Resource.Success(emptyList())
             }
 
             println("🔍 Fetching payment history for subscription: $subscriptionId")
-
-            // First, get the subscription details which contain payment info
             val response = apiService.getSubscriptionDetails(shopId, subscriptionId)
 
             if (response.isSuccessful) {
                 val apiResponse = response.body()
                 if (apiResponse?.success == true) {
                     val subscription = apiResponse.data
-
-                    // Extract payment from subscription if it exists
                     val payments = mutableListOf<Payment>()
-
                     subscription?.payment?.let { payment ->
                         payments.add(payment)
                     }
-
                     println("✅ Found ${payments.size} payments from subscription")
                     Resource.Success(payments)
                 } else {
@@ -464,7 +449,6 @@ class SubscriptionRepositoryImpl @Inject constructor(
         )
     }
 
-    
     override suspend fun checkShopSubscription(shopId: String): Resource<ShopSubscriptionStatusResponse> {
         return try {
             val response = apiService.checkShopSubscription(shopId)
@@ -498,7 +482,6 @@ class SubscriptionRepositoryImpl @Inject constructor(
         }
     }
 
-    
     override suspend fun cancelSubscription(
         shopId: String,
         subscriptionId: String
@@ -522,7 +505,6 @@ class SubscriptionRepositoryImpl @Inject constructor(
         }
     }
 
-    
     override suspend fun renewSubscription(
         shopId: String,
         subscriptionId: String,
@@ -547,7 +529,6 @@ class SubscriptionRepositoryImpl @Inject constructor(
         }
     }
 
-    
     override suspend fun activateFreeTrial(
         shopId: String,
         packageId: String
@@ -598,4 +579,3 @@ class SubscriptionRepositoryImpl @Inject constructor(
         }
     }
 }
-

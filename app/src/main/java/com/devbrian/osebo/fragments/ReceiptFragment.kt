@@ -50,6 +50,8 @@ class ReceiptFragment : Fragment() {
     @Inject
     lateinit var preferenceManager: PreferenceManager
 
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setHasOptionsMenu(true)
@@ -118,17 +120,18 @@ class ReceiptFragment : Fragment() {
     }
 
     private fun displayReceiptData() {
-        // Get values from navigation args with fallbacks
+
         val invoiceNumber = args.invoiceNumber
         val customerName = args.customerName
         val customerPhone = args.customerPhone
         val cartItems = args.cartItems?.toList() ?: emptyList()
-        val totalAmount = args.totalAmount      // This is Float
-        val paidAmount = args.paidAmount        // This is Float
-        val changeAmount = args.change          // This is Float
+        val totalAmount = args.totalAmount
+        val paidAmount = args.paidAmount
+        val changeAmount = args.change
         val paymentMethod = args.paymentMethod
+        val servedBy = args.servedBy ?: ""  // GET SERVED BY NAME
 
-        // NEW SHOP PARAMETERS from API
+
         val saleId = args.saleId
         val shopNameArg = args.shopName
         val shopAddressArg = args.shopAddress
@@ -136,10 +139,10 @@ class ReceiptFragment : Fragment() {
         val shopDescriptionArg = args.shopDescription
         val receiptDateArg = args.receiptDate
 
-        // Receipt number and date
+
         binding.tvReceiptNumber.text = invoiceNumber
 
-        // Format date
+
         binding.tvReceiptDate.text = if (!receiptDateArg.isNullOrEmpty()) {
             try {
                 val date = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
@@ -152,7 +155,7 @@ class ReceiptFragment : Fragment() {
             SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault()).format(Date())
         }
 
-        // SHOP INFO - Get from API response first, then fallback to preferences
+
         val shopName = if (!shopNameArg.isNullOrEmpty()) {
             shopNameArg.uppercase(Locale.getDefault())
         } else {
@@ -177,45 +180,68 @@ class ReceiptFragment : Fragment() {
             preferenceManager.getBusinessType().ifEmpty { "Retail Store" }
         }
 
-        // Set shop info in UI - MAKE SHOP NAME BIGGER AND BOLDER
+
         binding.tvShopName.text = shopName
-        binding.tvShopName.textSize = 34f
+        binding.tvShopName.textSize = 14f
         binding.tvShopName.setTypeface(null, android.graphics.Typeface.BOLD)
         binding.tvShopName.setTextColor(ContextCompat.getColor(requireContext(), R.color.colorPrimary))
 
         binding.tvShopAddress.text = shopAddress
+        binding.tvShopAddress.textSize = 9f
         binding.tvShopContact.text = "Tel: $shopContact"
+        binding.tvShopContact.textSize = 9f
         binding.tvShopContact.visibility = View.VISIBLE
 
         if (businessType.isNotEmpty()) {
             binding.tvBusinessType.visibility = View.VISIBLE
             binding.tvBusinessType.text = businessType
+            binding.tvBusinessType.textSize = 9f
         } else {
             binding.tvBusinessType.visibility = View.GONE
         }
 
-        // Customer info
-        binding.tvCustomerName.text = customerName.ifEmpty { "Walk-in Customer" }
-        binding.tvCustomerPhone.text = customerPhone.ifEmpty { "N/A" }
 
-        // Cart items
+        binding.tvCustomerName.text = customerName.ifEmpty { "Walk-in Customer" }
+        binding.tvCustomerName.textSize = 10f
+        binding.tvCustomerPhone.text = customerPhone.ifEmpty { "N/A" }
+        binding.tvCustomerPhone.textSize = 8f
+
+        // DISPLAY SERVED BY
+        if (servedBy.isNotEmpty()) {
+            binding.tvServedBy.visibility = View.VISIBLE
+            binding.tvServedBy.text = "Served by: $servedBy"
+            binding.tvServedBy.textSize = 8f
+        } else {
+            binding.tvServedBy.visibility = View.GONE
+        }
+
+
         receiptItemAdapter.submitList(cartItems)
 
-        // Calculations
+
         val subtotal = cartItems.sumOf { it.unitPrice * it.quantity }
         val totalDiscount = cartItems.sumOf {
             (it.unitPrice * it.quantity * it.discount / 100)
         }
         val tax = 0.0
 
-        // Format and set values - CONVERT FLOAT TO DOUBLE
-        binding.tvSubtotal.text = CurrencyFormatter.formatFull(subtotal)
-        binding.tvDiscount.text = if (totalDiscount > 0) "-${CurrencyFormatter.formatFull(totalDiscount)}" else "UGX 0"
-        binding.tvTax.text = CurrencyFormatter.formatFull(tax)
-        binding.tvTotal.text = CurrencyFormatter.formatFull(totalAmount.toDouble())
-        binding.tvPaid.text = CurrencyFormatter.formatFull(paidAmount.toDouble())
-        binding.tvChange.text = CurrencyFormatter.formatFull(changeAmount.toDouble())
+
+        binding.tvSubtotal.text = formatCompactCurrency(subtotal)
+        binding.tvDiscount.text = if (totalDiscount > 0) "-${formatCompactCurrency(totalDiscount)}" else "UGX 0"
+        binding.tvTax.text = formatCompactCurrency(tax)
+        binding.tvTotal.text = formatCompactCurrency(totalAmount.toDouble())
+        binding.tvPaid.text = formatCompactCurrency(paidAmount.toDouble())
+        binding.tvChange.text = formatCompactCurrency(changeAmount.toDouble())
         binding.tvPaymentMethod.text = paymentMethod.replaceFirstChar { it.uppercase() }
+        binding.tvPaymentMethod.textSize = 9f
+    }
+
+    private fun formatCompactCurrency(amount: Double): String {
+        return when {
+            amount >= 1000000 -> String.format("UGX %.1fM", amount / 1000000)
+            amount >= 1000 -> String.format("UGX %.1fK", amount / 1000)
+            else -> String.format("UGX %,.0f", amount)
+        }
     }
 
     private fun printReceipt() {
@@ -226,7 +252,7 @@ class ReceiptFragment : Fragment() {
 
                 val cartItems = args.cartItems?.toList() ?: emptyList()
 
-                // Check if printer is connected
+
                 val isConnected = printerManager.isPrinterConnected()
 
                 if (!isConnected) {
@@ -257,23 +283,22 @@ class ReceiptFragment : Fragment() {
     }
 
     private fun buildReceiptText(items: List<CartItem>): String {
-        // Get values from navigation args with fallbacks
+
         val invoiceNumber = args.invoiceNumber
         val customerName = args.customerName
         val customerPhone = args.customerPhone
-        val totalAmount = args.totalAmount.toDouble()  // Convert to Double
-        val paidAmount = args.paidAmount.toDouble()    // Convert to Double
-        val changeAmount = args.change.toDouble()      // Convert to Double
+        val totalAmount = args.totalAmount.toDouble()
+        val paidAmount = args.paidAmount.toDouble()
+        val changeAmount = args.change.toDouble()
         val paymentMethod = args.paymentMethod
+        val servedBy = args.servedBy ?: ""
 
-        // NEW SHOP PARAMETERS
         val shopNameArg = args.shopName
         val shopAddressArg = args.shopAddress
         val shopPhoneArg = args.shopPhone
         val shopDescriptionArg = args.shopDescription
         val receiptDateArg = args.receiptDate
 
-        // Shop info
         val shopName = if (!shopNameArg.isNullOrEmpty()) {
             shopNameArg.uppercase()
         } else {
@@ -298,85 +323,149 @@ class ReceiptFragment : Fragment() {
             preferenceManager.getBusinessType().ifEmpty { "Retail Store" }
         }
 
-        // Date
         val date = binding.tvReceiptDate.text.toString()
 
-        // Customer info
         val customerNameDisplay = customerName.ifEmpty { "Walk-in Customer" }
         val customerPhoneDisplay = customerPhone.ifEmpty { "N/A" }
 
-        // Payment info
         val subtotal = items.sumOf { it.unitPrice * it.quantity }
         val totalDiscount = items.sumOf { it.unitPrice * it.quantity * it.discount / 100 }
 
+        // REDUCED WIDTH for 58mm printer (32 chars is good, but let's optimize)
+        val width = 32
+
         return buildString {
-            // Shop Header
+            // Header
             appendLine()
-            appendLine(centerText(shopName, 32))
+            appendLine(centerText(shopName, width))
             if (businessType.isNotEmpty()) {
-                appendLine(centerText(businessType, 32))
+                appendLine(centerText(businessType, width))
             }
-            appendLine(centerText(shopAddress, 32))
-            appendLine(centerText("Tel: $shopContact", 32))
-            appendLine(repeatChar('=', 32))
+            appendLine(centerText(shopAddress, width))
+            appendLine(centerText("Tel: $shopContact", width))
+            appendLine(repeatChar('=', width))
 
             // Receipt Info
-            appendLine(formatTwoColumns("Receipt No:", invoiceNumber, 32))
-            appendLine(formatTwoColumns("Date:", date, 32))
-            appendLine(formatTwoColumns("Cashier:", "Admin", 32))
-            appendLine(repeatChar('-', 32))
+            appendLine(formatTwoColumns("Receipt:", invoiceNumber, width))
+            appendLine(formatTwoColumns("Date:", date, width))
+            appendLine(repeatChar('-', width))
 
             // Customer Info
-            appendLine(formatTwoColumns("Customer:", customerNameDisplay, 32))
+            appendLine(formatTwoColumns("Customer:", customerNameDisplay, width))
             if (customerPhoneDisplay != "N/A") {
-                appendLine(formatTwoColumns("Phone:", customerPhoneDisplay, 32))
+                appendLine(formatTwoColumns("Phone:", customerPhoneDisplay, width))
             }
-            appendLine(repeatChar('-', 32))
 
-            // Item Header
-            appendLine(formatItemHeader(32))
-            appendLine(repeatChar('-', 32))
+            // Served By
+            if (servedBy.isNotEmpty()) {
+                appendLine(formatTwoColumns("Served by:", servedBy, width))
+            }
+            appendLine(repeatChar('-', width))
 
-            // Items with proper alignment
+            // Items Header - IMPROVED ALIGNMENT
+            val itemName = "ITEM"
+            val qty = "QTY"
+            val price = "PRICE"
+            val total = "TOTAL"
+
+            // Adjust column widths for better fit
+            val nameWidth = 14
+            val qtyWidth = 4
+            val priceWidth = 6
+            val totalWidth = 6
+
+            val header = itemName.padEnd(nameWidth) +
+                    qty.padStart(qtyWidth) +
+                    price.padStart(priceWidth) +
+                    total.padStart(totalWidth)
+            appendLine(header)
+            appendLine(repeatChar('-', width))
+
+            // Items
             items.forEach { item ->
-                val name = item.product.name
-                val qty = item.quantity.toString()
-                val unitPrice = CurrencyFormatter.formatShort(item.unitPrice)
-                val itemTotal = CurrencyFormatter.formatShort(item.unitPrice * item.quantity * (1 - item.discount / 100))
+                val productName = item.product.name
+                val quantity = item.quantity.toString()
+                val unitPrice = formatCompactCurrencyShort(item.unitPrice)
+                val itemTotal = formatCompactCurrencyShort(item.unitPrice * item.quantity * (1 - item.discount / 100))
 
-                appendLine(formatItemLine(name, qty, unitPrice, itemTotal, 32))
+                // Format item line
+                val nameDisplay = if (productName.length > nameWidth) {
+                    productName.substring(0, nameWidth - 1)
+                } else {
+                    productName
+                }
 
-                // Show discount line if applicable
+                val itemLine = nameDisplay.padEnd(nameWidth) +
+                        quantity.padStart(qtyWidth) +
+                        unitPrice.padStart(priceWidth) +
+                        itemTotal.padStart(totalWidth)
+                appendLine(itemLine)
+
+                // Show discount if applicable
                 if (item.discount > 0) {
-                    val discountAmount = CurrencyFormatter.formatShort(item.unitPrice * item.quantity * item.discount / 100)
-                    appendLine(formatTwoColumns("  Discount (${item.discount}%)", "-$discountAmount", 32))
+                    val discountAmount = formatCompactCurrencyShort(item.unitPrice * item.quantity * item.discount / 100)
+                    val discountText = "  (${item.discount}% off)"
+                    appendLine(discountText.padEnd(nameWidth) + "-$discountAmount".padStart(qtyWidth + priceWidth + totalWidth))
                 }
             }
 
-            appendLine(repeatChar('-', 32))
+            appendLine(repeatChar('-', width))
 
-            // Summary - use the converted Double values
-            appendLine(formatTwoColumns("Subtotal:", CurrencyFormatter.formatFull(subtotal), 32))
+            // Totals - IMPROVED ALIGNMENT
+            appendLine(formatTwoColumns("Subtotal:", formatCompactCurrencyShort(subtotal), width))
             if (totalDiscount > 0) {
-                appendLine(formatTwoColumns("Discount:", "-${CurrencyFormatter.formatFull(totalDiscount)}", 32))
+                appendLine(formatTwoColumns("Discount:", "-${formatCompactCurrencyShort(totalDiscount)}", width))
             }
-            appendLine(formatTwoColumns("Tax:", "UGX 0", 32))
-            appendLine(repeatChar('=', 32))
-            appendLine(formatTwoColumns("TOTAL:", CurrencyFormatter.formatFull(totalAmount), 32))  // Now Double
-            appendLine(repeatChar('=', 32))
-            appendLine(formatTwoColumns("Paid:", CurrencyFormatter.formatFull(paidAmount), 32))    // Now Double
-            appendLine(formatTwoColumns("Change:", CurrencyFormatter.formatFull(changeAmount), 32)) // Now Double
-            appendLine(formatTwoColumns("Payment:", paymentMethod.replaceFirstChar { it.uppercase() }, 32))
+            appendLine(formatTwoColumns("Tax (0%):", "0", width))
+            appendLine(repeatChar('=', width))
+            appendLine(formatTwoColumns("TOTAL:", formatCompactCurrencyShort(totalAmount), width))
+            appendLine(repeatChar('=', width))
+            appendLine(formatTwoColumns("Paid:", formatCompactCurrencyShort(paidAmount), width))
+            appendLine(formatTwoColumns("Change:", formatCompactCurrencyShort(changeAmount), width))
+            appendLine(formatTwoColumns("Payment:", paymentMethod.replaceFirstChar { it.uppercase() }, width))
 
-            appendLine(repeatChar('=', 32))
+            appendLine(repeatChar('=', width))
             appendLine()
-            appendLine(centerText("THANK YOU FOR SHOPPING!", 32))
-            appendLine(centerText("Visit us again!", 32))
-            appendLine(centerText(shopName, 32))
-            appendLine(centerText("Tel: $shopContact", 32))
+            appendLine(centerText("THANK YOU!", width))
+            appendLine()
+            appendLine(centerText("Powered by Oseo", width))
+            appendLine(centerText("www.osebo.ai", width))
             appendLine()
             appendLine()
             appendLine()
+        }
+    }
+
+
+
+    // SIMPLIFIED item header formatter
+    private fun formatItemHeader(width: Int): String {
+        return "ITEM".padEnd(14) + "QTY".padStart(4) + "PRICE".padStart(6) + "TOTAL".padStart(6)
+    }
+
+    // SIMPLIFIED item line formatter
+    private fun formatItemLine(itemName: String, qty: String, price: String, total: String, width: Int): String {
+        val nameMax = 14
+        val qtyMax = 4
+        val priceMax = 6
+        val totalMax = 6
+
+        val namePart = if (itemName.length > nameMax) itemName.substring(0, nameMax - 2) + ".." else itemName
+        val qtyPart = if (qty.length > qtyMax) qty.substring(0, qtyMax) else qty
+        val pricePart = if (price.length > priceMax) price.substring(0, priceMax) else price
+        val totalPart = if (total.length > totalMax) total.substring(0, totalMax) else total
+
+        return namePart.padEnd(nameMax) +
+                qtyPart.padStart(qtyMax) +
+                pricePart.padStart(priceMax) +
+                totalPart.padStart(totalMax)
+    }
+
+    private fun formatCompactCurrencyShort(amount: Double): String {
+        return when {
+            amount >= 1000000 -> String.format("%.1fM", amount / 1000000)
+            amount >= 1000 -> String.format("%.1fK", amount / 1000)
+            else -> String.format("%.0f", amount)
         }
     }
 
@@ -393,7 +482,7 @@ class ReceiptFragment : Fragment() {
         return left + " ".repeat(availableWidth - right.length) + right
     }
 
-    private fun formatItemHeader(width: Int): String {
+    private fun formatItemHeaderCompact(width: Int): String {
         val itemLabel = "ITEM"
         val qtyLabel = "QTY"
         val priceLabel = "PRICE"
@@ -401,8 +490,8 @@ class ReceiptFragment : Fragment() {
 
         val itemWidth = 12
         val qtyWidth = 4
-        val priceWidth = 8
-        val totalWidth = 8
+        val priceWidth = 7
+        val totalWidth = 7
 
         return itemLabel.padEnd(itemWidth, ' ') +
                 qtyLabel.padStart(qtyWidth, ' ') +
@@ -410,11 +499,11 @@ class ReceiptFragment : Fragment() {
                 totalLabel.padStart(totalWidth, ' ')
     }
 
-    private fun formatItemLine(item: String, qty: String, price: String, total: String, width: Int): String {
+    private fun formatItemLineCompact(item: String, qty: String, price: String, total: String, width: Int): String {
         val itemMax = 12
         val qtyMax = 4
-        val priceMax = 8
-        val totalMax = 8
+        val priceMax = 7
+        val totalMax = 7
 
         val itemTrimmed = if (item.length > itemMax) item.substring(0, itemMax - 3) + "..." else item
         val qtyTrimmed = if (qty.length > qtyMax) qty.substring(0, qtyMax) else qty
@@ -462,7 +551,7 @@ class ReceiptFragment : Fragment() {
                     devicesList.add(device)
                 }
 
-                // Filter for printer devices
+
                 val printerDevices = devicesList.filter { device ->
                     val deviceName = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                         device.name ?: ""
@@ -572,13 +661,13 @@ class ReceiptFragment : Fragment() {
                     Date: ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())}
                     
                     If you can read this,
-                    your printer is working correctly!
+                    your printer is working!
                     
                     ---------------------------------
                     Normal Text Line 1
                     Normal Text Line 2
                     
-                    Thank you for testing!
+                    Thank you!
                     ================================
                     
                     
@@ -720,7 +809,7 @@ class ReceiptFragment : Fragment() {
             appendLine("-------------------")
             cartItems.forEach { item ->
                 val itemTotal = item.unitPrice * item.quantity * (1 - item.discount / 100)
-                appendLine("${item.product.name} x${item.quantity} - ${CurrencyFormatter.formatFull(itemTotal)}")
+                appendLine("${item.product.name} x${item.quantity} - ${formatCompactCurrency(itemTotal)}")
             }
             appendLine("-------------------")
             appendLine("Subtotal: ${binding.tvSubtotal.text}")

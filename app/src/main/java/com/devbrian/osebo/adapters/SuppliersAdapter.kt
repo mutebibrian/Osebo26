@@ -31,7 +31,7 @@ class SuppliersAdapter(
 
     inner class SupplierViewHolder(
         private val binding: ItemSupplierBinding
-    ) : RecyclerView.ViewHolder(binding.getRoot()) {  // Change binding.root to binding.getRoot()
+    ) : RecyclerView.ViewHolder(binding.getRoot()) {  
 
         fun bind(supplier: SuppliersFragment.Supplier) {
             binding.tvSupplierName.text = supplier.name
@@ -44,7 +44,7 @@ class SuppliersAdapter(
 
             binding.tvInitial.text = supplier.name.first().toString().uppercase()
 
-            // Set random background color for avatar
+            
             val colors = arrayOf(
                 R.color.avatar_blue,
                 R.color.avatar_green,
@@ -55,7 +55,7 @@ class SuppliersAdapter(
             val colorRes = colors[adapterPosition % colors.size]
             binding.avatarLayout.setBackgroundResource(colorRes)
 
-            binding.root.setOnClickListener {  // This binding.root is for the click listener
+            binding.root.setOnClickListener {  
                 onItemClick(supplier)
             }
         }

@@ -84,13 +84,16 @@
 
     </FrameLayout>
 
-    <!-- NAVIGATION VIEW - Direct Child of DrawerLayout -->
+    <!-- NAVIGATION VIEW - FIXED with text and icon colors -->
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/navigationView"
         android:layout_width="280dp"
         android:layout_height="match_parent"
         android:layout_gravity="start"
         android:fitsSystemWindows="true"
+        app:itemTextColor="@color/black"
+        app:itemIconTint="@color/black"
+        app:itemBackground="@android:color/transparent"
         app:headerLayout="@layout/nav_header"
         app:menu="@menu/navigation_menu" />
 

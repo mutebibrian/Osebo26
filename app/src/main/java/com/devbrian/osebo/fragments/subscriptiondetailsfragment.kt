@@ -163,7 +163,7 @@ class SubscriptionDetailsFragment : Fragment() {
         }
 
         lifecycleScope.launch {
-            // Get shopId safely
+            
             val shopId = args.shopId
             if (shopId.isNullOrEmpty()) {
                 showErrorState("Missing shop id")
@@ -270,7 +270,7 @@ class SubscriptionDetailsFragment : Fragment() {
     private fun navigateToUpgrade() {
         val currentPackage: String = currentSubscription?.packageType ?: ""
 
-        // Create a shop placeholder with the shopId
+        
         val shopPlaceholder = com.devbrian.osebo.models.Shop(
             id = args.shopId ?: "",
             name = "",

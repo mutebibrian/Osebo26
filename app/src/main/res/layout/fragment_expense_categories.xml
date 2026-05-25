@@ -51,7 +51,7 @@
                         android:text="Expense Categories"
                         android:textSize="20sp"
                         android:textStyle="bold"
-                        android:textColor="@color/text_primary" />
+                        android:textColor="@android:color/black" />
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -82,13 +82,8 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        app:boxBackgroundMode="outline"
-                        app:boxCornerRadiusBottomEnd="8dp"
-                        app:boxCornerRadiusBottomStart="8dp"
-                        app:boxCornerRadiusTopEnd="8dp"
-                        app:boxCornerRadiusTopStart="8dp"
-                        app:endIconMode="clear_text"
-                        app:endIconDrawable="@drawable/ic_search">
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                        app:endIconMode="clear_text">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/et_search"
@@ -125,7 +120,7 @@
                 <ImageView
                     android:layout_width="120dp"
                     android:layout_height="120dp"
-                    android:src="@drawable/ic_category_empty"
+                    android:src="@drawable/ic_empty_category"
                     android:tint="@color/text_secondary" />
 
                 <TextView
@@ -134,7 +129,7 @@
                     android:text="No Categories Yet"
                     android:textSize="20sp"
                     android:textStyle="bold"
-                    android:textColor="@color/text_primary"
+                    android:textColor="@android:color/black"
                     android:layout_marginTop="24dp" />
 
                 <TextView
@@ -179,6 +174,6 @@
         android:layout_margin="16dp"
         android:src="@drawable/ic_add"
         app:backgroundTint="@color/colorPrimary"
-        app:tint="@color/white" />
+        app:tint="@android:color/white" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

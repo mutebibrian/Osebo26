@@ -10,3 +10,4 @@ data class SaleRequest(
     @SerializedName("notes") val notes: String? = null
 )
 
+

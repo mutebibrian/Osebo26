@@ -22,3 +22,4 @@ data class ShopType(
     val updatedAt: String? = null
 )
 
+

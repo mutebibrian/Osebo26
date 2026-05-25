@@ -19,3 +19,4 @@ data class CreateSaleRequest(
     val notes: String? = null
 )
 
+

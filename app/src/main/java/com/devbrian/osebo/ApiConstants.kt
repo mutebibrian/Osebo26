@@ -1,9 +1,9 @@
-package com.devbrian.osebo.utils
+package com.devbrian.osebo
 
 object ApiConstants {
 
     
-    const val BASE_URL = "https://dev-api.osebo.ai"
+    const val BASE_URL = "https://prod-api.osebo.ai"
 
     
     object Endpoints {
@@ -23,4 +23,5 @@ object ApiConstants {
     const val HEADER_SHOP_ID = "x-shop"
     const val BEARER_PREFIX = "Bearer "
 }
+
 

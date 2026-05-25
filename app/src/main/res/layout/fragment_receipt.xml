@@ -26,12 +26,15 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         app:layout_behavior="@string/appbar_scrolling_view_behavior"
-        android:padding="16dp">
+        android:padding="4dp"
+        android:background="#FFFFFF">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:maxWidth="200dp"
+            android:layout_gravity="center_horizontal">
 
             <!-- Success Animation -->
             <LinearLayout
@@ -39,137 +42,112 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:gravity="center"
-                android:layout_marginBottom="24dp">
+                android:layout_marginBottom="8dp">
 
                 <ImageView
-                    android:layout_width="80dp"
-                    android:layout_height="80dp"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
                     android:src="@drawable/ic_success"
                     android:background="@drawable/circle_background_green"
-                    android:padding="20dp" />
+                    android:padding="4dp" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Payment Successful!"
-                    android:textSize="20sp"
+                    android:text="Success!"
+                    android:textSize="10sp"
                     android:textStyle="bold"
                     android:textColor="@color/green_success"
-                    android:layout_marginTop="12dp" />
+                    android:layout_marginTop="2dp" />
             </LinearLayout>
 
             <!-- Receipt Card -->
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="4dp"
-                android:layout_marginBottom="24dp"
+                app:cardCornerRadius="2dp"
+                app:cardElevation="1dp"
+                android:layout_marginBottom="8dp"
                 android:backgroundTint="@color/white">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="20dp">
+                    android:padding="4dp">
 
-                    <!-- Store Header with Shop Details - ENHANCED -->
+                    <!-- Store Header -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
                         android:gravity="center"
-                        android:layout_marginBottom="16dp"
-                        android:background="@drawable/shop_header_background"
-                        android:padding="16dp">
+                        android:layout_marginBottom="4dp"
+                        android:padding="4dp">
 
-                        <ImageView
-                            android:layout_width="56dp"
-                            android:layout_height="56dp"
-                            android:src="@drawable/ic_store"
-                            android:tint="@color/colorPrimary"
-                            android:layout_marginBottom="8dp" />
-
-                        <!-- Shop Name - MUCH BIGGER AND BOLDER (40sp) -->
                         <TextView
                             android:id="@+id/tv_shop_name"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="AK SHOPPERS"
-                            android:textSize="40sp"
+                            android:textSize="12sp"
                             android:textStyle="bold"
                             android:textColor="@color/colorPrimary"
                             android:textAlignment="center"
                             android:letterSpacing="0.05"
-                            android:shadowColor="#33000000"
-                            android:shadowDx="2"
-                            android:shadowDy="2"
-                            android:shadowRadius="4"
-                            android:paddingVertical="4dp"
-                            android:layout_marginBottom="4dp" />
+                            android:paddingVertical="1dp" />
 
-                        <!-- Business Type - Now visible with styling -->
                         <TextView
                             android:id="@+id/tv_business_type"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="RETAIL STORE"
-                            android:textSize="16sp"
+                            android:text="Retail"
+                            android:textSize="7sp"
                             android:textStyle="bold"
                             android:textColor="@color/colorPrimaryDark"
                             android:textAlignment="center"
                             android:background="@color/light_gray"
-                            android:paddingHorizontal="12dp"
-                            android:paddingVertical="4dp"
-                            android:layout_marginVertical="8dp"
+                            android:paddingHorizontal="4dp"
+                            android:paddingVertical="1dp"
+                            android:layout_marginTop="2dp"
                             android:visibility="gone" />
 
-                        <!-- Shop Address - Enhanced -->
                         <TextView
                             android:id="@+id/tv_shop_address"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Kiwatule, Kampala"
-                            android:textSize="14sp"
+                            android:text="Kiwatule"
+                            android:textSize="7sp"
                             android:textColor="@color/text_primary"
-                            android:textStyle="normal"
-                            android:layout_marginTop="4dp"
                             android:textAlignment="center"
-                            android:paddingHorizontal="8dp" />
+                            android:paddingHorizontal="2dp" />
 
-                        <!-- Shop Phone - Enhanced -->
                         <TextView
                             android:id="@+id/tv_shop_contact"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Tel: +256 700 000000"
-                            android:textSize="14sp"
+                            android:text="+256 700 000000"
+                            android:textSize="7sp"
                             android:textStyle="bold"
                             android:textColor="@color/colorPrimary"
-                            android:layout_marginTop="8dp"
-                            android:textAlignment="center"
-                            android:background="@drawable/phone_background"
-                            android:paddingHorizontal="16dp"
-                            android:paddingVertical="6dp"
-                            android:visibility="visible" />
+                            android:layout_marginTop="1dp"
+                            android:paddingHorizontal="4dp"
+                            android:paddingVertical="1dp" />
                     </LinearLayout>
 
-                    <!-- Divider with style -->
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
-                        android:background="@drawable/dashed_line"
-                        android:layout_marginBottom="16dp" />
+                        android:background="@color/divider"
+                        android:layout_marginVertical="2dp" />
 
-                    <!-- Receipt Info in a nice card -->
+                    <!-- Receipt Info -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:background="@color/light_gray"
-                        android:padding="12dp"
-                        android:layout_marginBottom="16dp"
-                        android:elevation="2dp">
+                        android:padding="2dp"
+                        android:layout_marginBottom="2dp">
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -180,19 +158,18 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Receipt No:"
-                                android:textSize="12sp"
+                                android:text="Receipt:"
+                                android:textSize="7sp"
                                 android:textColor="@color/text_secondary" />
 
                             <TextView
                                 android:id="@+id/tv_receipt_number"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="INV-20250215-001"
-                                android:textSize="14sp"
+                                android:text="INV-001"
+                                android:textSize="7sp"
                                 android:textStyle="bold"
-                                android:textColor="@color/colorPrimary"
-                                android:layout_marginTop="2dp" />
+                                android:textColor="@color/colorPrimary" />
                         </LinearLayout>
 
                         <LinearLayout
@@ -200,56 +177,46 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:orientation="vertical"
-                            android:layout_marginStart="16dp">
+                            android:layout_marginStart="4dp">
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="Date:"
-                                android:textSize="12sp"
+                                android:textSize="7sp"
                                 android:textColor="@color/text_secondary" />
 
                             <TextView
                                 android:id="@+id/tv_receipt_date"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Feb 15, 2026"
-                                android:textSize="14sp"
+                                android:text="Feb 15"
+                                android:textSize="7sp"
                                 android:textStyle="bold"
-                                android:textColor="@color/colorPrimary"
-                                android:layout_marginTop="2dp" />
+                                android:textColor="@color/colorPrimary" />
                         </LinearLayout>
                     </LinearLayout>
 
-                    <!-- Customer Info with icon -->
+                    <!-- Customer Info -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
+                        android:padding="2dp"
                         android:background="@color/colorPrimaryLight"
-                        android:padding="12dp"
-                        android:layout_marginBottom="16dp"
-                        android:elevation="2dp">
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:src="@drawable/ic_customer"
-                            android:tint="@color/colorPrimary"
-                            android:layout_marginEnd="12dp" />
+                        android:layout_marginBottom="2dp">
 
                         <LinearLayout
-                            android:layout_width="0dp"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
                             android:orientation="vertical">
 
                             <TextView
                                 android:id="@+id/tv_customer_name"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Walk-in Customer"
-                                android:textSize="14sp"
+                                android:text="Walk-in"
+                                android:textSize="8sp"
                                 android:textStyle="bold"
                                 android:textColor="@color/colorPrimary" />
 
@@ -258,20 +225,32 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="N/A"
-                                android:textSize="12sp"
-                                android:textColor="@color/text_secondary"
-                                android:layout_marginTop="2dp" />
+                                android:textSize="6sp"
+                                android:textColor="@color/text_secondary" />
                         </LinearLayout>
                     </LinearLayout>
 
-                    <!-- Items Header with better styling and alignment -->
+                    <!-- Served By (NEW) -->
+                    <TextView
+                        android:id="@+id/tv_served_by"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Served by: "
+                        android:textSize="8sp"
+                        android:textColor="@color/text_secondary"
+                        android:padding="2dp"
+                        android:background="@color/light_gray"
+                        android:layout_marginBottom="2dp"
+                        android:visibility="gone" />
+
+                    <!-- Items Header -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:paddingVertical="8dp"
+                        android:paddingVertical="2dp"
                         android:background="@color/colorPrimary"
-                        android:elevation="2dp">
+                        android:layout_marginTop="2dp">
 
                         <TextView
                             android:layout_width="0dp"
@@ -279,9 +258,9 @@
                             android:layout_weight="3"
                             android:text="ITEM"
                             android:textStyle="bold"
-                            android:textSize="12sp"
+                            android:textSize="7sp"
                             android:textColor="@color/white"
-                            android:paddingStart="8dp" />
+                            android:paddingStart="2dp" />
 
                         <TextView
                             android:layout_width="0dp"
@@ -289,7 +268,7 @@
                             android:layout_weight="1"
                             android:text="QTY"
                             android:textStyle="bold"
-                            android:textSize="12sp"
+                            android:textSize="7sp"
                             android:textColor="@color/white"
                             android:gravity="center" />
 
@@ -297,23 +276,12 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="PRICE"
-                            android:textStyle="bold"
-                            android:textSize="12sp"
-                            android:textColor="@color/white"
-                            android:gravity="end"
-                            android:paddingEnd="8dp" />
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
                             android:text="TOTAL"
                             android:textStyle="bold"
-                            android:textSize="12sp"
+                            android:textSize="7sp"
                             android:textColor="@color/white"
                             android:gravity="end"
-                            android:paddingEnd="8dp" />
+                            android:paddingEnd="2dp" />
                     </LinearLayout>
 
                     <!-- Items List -->
@@ -322,49 +290,46 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:nestedScrollingEnabled="false"
-                        android:layout_marginVertical="8dp" />
+                        android:layout_marginVertical="2dp" />
 
-                    <!-- Divider -->
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
-                        android:background="@drawable/dashed_line"
-                        android:layout_marginVertical="16dp" />
+                        android:background="@color/divider"
+                        android:layout_marginVertical="2dp" />
 
-                    <!-- Summary with better spacing and alignment -->
+                    <!-- Summary Section -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:padding="12dp"
-                        android:background="@color/light_gray"
-                        android:elevation="2dp">
+                        android:padding="2dp"
+                        android:background="@color/light_gray">
 
                         <!-- Subtotal -->
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:orientation="horizontal"
-                            android:gravity="center_vertical"
-                            android:layout_marginBottom="8dp">
+                            android:layout_marginBottom="2dp">
 
                             <TextView
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
                                 android:text="Subtotal"
-                                android:textSize="14sp"
+                                android:textSize="7sp"
                                 android:textColor="@color/text_primary" />
 
                             <TextView
                                 android:id="@+id/tv_subtotal"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="UGX 0"
-                                android:textSize="14sp"
+                                android:text="0"
+                                android:textSize="7sp"
                                 android:textStyle="bold"
                                 android:textColor="@color/colorPrimary"
-                                android:gravity="end" />
+                                android:textAlignment="textEnd" />
                         </LinearLayout>
 
                         <!-- Discount -->
@@ -372,214 +337,149 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:orientation="horizontal"
-                            android:gravity="center_vertical"
-                            android:layout_marginBottom="8dp">
+                            android:layout_marginBottom="2dp">
 
                             <TextView
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
                                 android:text="Discount"
-                                android:textSize="14sp"
+                                android:textSize="7sp"
                                 android:textColor="@color/text_primary" />
 
                             <TextView
                                 android:id="@+id/tv_discount"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="-UGX 0"
+                                android:text="0"
                                 android:textColor="@color/green_success"
-                                android:textSize="14sp"
+                                android:textSize="7sp"
                                 android:textStyle="bold"
-                                android:gravity="end" />
-                        </LinearLayout>
-
-                        <!-- Tax -->
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical"
-                            android:layout_marginBottom="8dp">
-
-                            <TextView
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:text="Tax"
-                                android:textSize="14sp"
-                                android:textColor="@color/text_primary" />
-
-                            <TextView
-                                android:id="@+id/tv_tax"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="UGX 0"
-                                android:textSize="14sp"
-                                android:textColor="@color/text_secondary"
-                                android:gravity="end" />
+                                android:textAlignment="textEnd" />
                         </LinearLayout>
 
                         <View
                             android:layout_width="match_parent"
                             android:layout_height="1dp"
                             android:background="@color/divider"
-                            android:layout_marginVertical="8dp" />
+                            android:layout_marginVertical="1dp" />
 
-                        <!-- Total -->
+                        <!-- TOTAL + TAX + PAID + CHANGE + PAYMENT on ONE LINE -->
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:orientation="horizontal"
                             android:gravity="center_vertical"
-                            android:layout_marginBottom="8dp">
+                            android:paddingVertical="2dp"
+                            android:weightSum="1">
 
                             <TextView
-                                android:layout_width="0dp"
+                                android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_weight="1"
                                 android:text="TOTAL"
-                                android:textSize="18sp"
+                                android:textSize="9sp"
                                 android:textStyle="bold"
-                                android:textColor="@color/text_primary" />
+                                android:textColor="@color/text_primary"
+                                android:layout_marginEnd="2dp" />
+
+                            <TextView
+                                android:id="@+id/tv_tax"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="+0"
+                                android:textSize="6sp"
+                                android:textColor="@color/text_secondary"
+                                android:layout_marginEnd="2dp" />
 
                             <TextView
                                 android:id="@+id/tv_total"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="UGX 0"
-                                android:textSize="24sp"
+                                android:text="0"
+                                android:textSize="9sp"
                                 android:textColor="@color/colorPrimary"
                                 android:textStyle="bold"
-                                android:gravity="end" />
-                        </LinearLayout>
-
-                        <!-- Paid -->
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical"
-                            android:layout_marginBottom="8dp">
+                                android:layout_marginEnd="4dp" />
 
                             <TextView
-                                android:layout_width="0dp"
+                                android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:text="Paid"
-                                android:textSize="14sp"
-                                android:textColor="@color/text_primary" />
+                                android:text="PAID"
+                                android:textSize="7sp"
+                                android:textColor="@color/text_secondary"
+                                android:layout_marginEnd="2dp" />
 
                             <TextView
                                 android:id="@+id/tv_paid"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="UGX 0"
-                                android:textSize="14sp"
+                                android:text="0"
+                                android:textSize="7sp"
                                 android:textStyle="bold"
                                 android:textColor="@color/colorPrimary"
-                                android:gravity="end" />
-                        </LinearLayout>
-
-                        <!-- Change -->
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical"
-                            android:layout_marginBottom="8dp">
-
-                            <TextView
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:text="Change"
-                                android:textSize="14sp"
-                                android:textColor="@color/text_primary" />
+                                android:layout_marginEnd="4dp" />
 
                             <TextView
                                 android:id="@+id/tv_change"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="UGX 0"
-                                android:textSize="14sp"
+                                android:text="0"
+                                android:textSize="7sp"
                                 android:textColor="@color/green_success"
                                 android:textStyle="bold"
-                                android:gravity="end" />
+                                android:layout_marginEnd="4dp"
+                                android:visibility="visible" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="|"
+                                android:textSize="6sp"
+                                android:textColor="@color/text_secondary"
+                                android:layout_marginEnd="2dp" />
+
+                            <TextView
+                                android:id="@+id/tv_payment_method"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Cash"
+                                android:textSize="7sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/colorPrimary" />
                         </LinearLayout>
                     </LinearLayout>
 
-                    <!-- Payment Method with icon -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical"
-                        android:layout_marginTop="16dp"
-                        android:padding="12dp"
-                        android:background="@color/colorPrimaryLight"
-                        android:elevation="2dp">
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:src="@drawable/ic_payment"
-                            android:tint="@color/colorPrimary"
-                            android:layout_marginEnd="8dp" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Payment Method:"
-                            android:textSize="14sp"
-                            android:textColor="@color/text_secondary"
-                            android:layout_marginEnd="8dp" />
-
-                        <TextView
-                            android:id="@+id/tv_payment_method"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Cash"
-                            android:textSize="14sp"
-                            android:textStyle="bold"
-                            android:textColor="@color/colorPrimary" />
-                    </LinearLayout>
-
-                    <!-- Footer with thank you message -->
+                    <!-- Footer Section (UPDATED) -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
                         android:gravity="center"
-                        android:layout_marginTop="24dp">
+                        android:layout_marginTop="6dp">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Thank you for your purchase!"
-                            android:textSize="16sp"
+                            android:text="Thank You!"
+                            android:textSize="8sp"
                             android:textStyle="bold"
                             android:textColor="@color/colorPrimary" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Visit us again!"
-                            android:textSize="14sp"
+                            android:text="Powered by Oseo"
+                            android:textSize="6sp"
                             android:textColor="@color/text_secondary"
-                            android:layout_marginTop="4dp" />
+                            android:layout_marginTop="2dp" />
 
-                        <!-- Shop Name in footer for branding -->
                         <TextView
-                            android:id="@+id/tv_footer_shop"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="AK SHOPPERS"
-                            android:textSize="12sp"
-                            android:textStyle="bold"
-                            android:textColor="@color/colorPrimary"
-                            android:layout_marginTop="8dp"
-                            android:visibility="gone" />
+                            android:text="www.osebo.ai"
+                            android:textSize="6sp"
+                            android:textColor="@color/text_secondary"
+                            android:layout_marginTop="1dp" />
                     </LinearLayout>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
@@ -589,17 +489,19 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layout_marginBottom="24dp">
+                android:layout_marginBottom="8dp">
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_print"
                     android:layout_width="0dp"
-                    android:layout_height="56dp"
+                    android:layout_height="32dp"
                     android:layout_weight="1"
-                    android:layout_marginEnd="8dp"
+                    android:layout_marginEnd="2dp"
                     android:text="Print"
+                    android:textSize="9sp"
                     style="@style/Widget.Material3.Button.OutlinedButton"
                     app:icon="@drawable/ic_print"
+                    app:iconSize="14dp"
                     app:iconGravity="textStart"
                     android:textColor="@color/colorPrimary"
                     app:strokeColor="@color/colorPrimary" />
@@ -607,12 +509,14 @@
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_share"
                     android:layout_width="0dp"
-                    android:layout_height="56dp"
+                    android:layout_height="32dp"
                     android:layout_weight="1"
-                    android:layout_marginStart="8dp"
+                    android:layout_marginStart="2dp"
                     android:text="Share"
+                    android:textSize="9sp"
                     style="@style/Widget.Material3.Button.OutlinedButton"
                     app:icon="@drawable/ic_share"
+                    app:iconSize="14dp"
                     app:iconGravity="textStart"
                     android:textColor="@color/colorPrimary"
                     app:strokeColor="@color/colorPrimary" />
@@ -622,14 +526,14 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_new_sale"
                 android:layout_width="match_parent"
-                android:layout_height="56dp"
+                android:layout_height="32dp"
                 android:text="New Sale"
+                android:textSize="10sp"
                 android:backgroundTint="@color/colorPrimary"
                 app:icon="@drawable/ic_add"
+                app:iconSize="14dp"
                 app:iconGravity="textStart"
-                android:textColor="@color/white"
-                android:textAllCaps="false"
-                android:textSize="16sp" />
+                android:textColor="@color/white" />
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

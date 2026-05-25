@@ -41,12 +41,12 @@ class SubscriptionHistoryAdapter(
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(item: Subscription) {
-            // DataBinding variable in your XML is named "subscription"
+            
             binding.subscription = item
 
             binding.root.setOnClickListener { onItemClick(item) }
 
-            // Optional: status color based on status string (because your XML uses a generic badge background)
+            
             val statusColorRes = when (item.status?.uppercase()) {
                 "ACTIVE" -> R.color.success_green
                 "TRIAL" -> R.color.blue_500
@@ -57,8 +57,8 @@ class SubscriptionHistoryAdapter(
             }
             binding.tvStatus.setTextColor(ContextCompat.getColor(binding.root.context, statusColorRes))
 
-            // If you want amount color dynamic too (your XML already makes it green):
-            // binding.tvAmount.setTextColor(ContextCompat.getColor(binding.root.context, R.color.success_green))
+            
+            
 
             binding.executePendingBindings()
         }

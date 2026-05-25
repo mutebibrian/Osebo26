@@ -14,3 +14,4 @@ data class SalesReportDto(
     val totalOrders: Int
 )
 
+

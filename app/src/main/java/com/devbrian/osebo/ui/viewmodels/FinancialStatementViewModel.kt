@@ -17,7 +17,7 @@ import javax.inject.Inject
 @HiltViewModel
 class FinancialStatementViewModel @Inject constructor(
     private val repository: FinanceRepository,
-    private val preferenceManager: PreferenceManager  // Add this
+    private val preferenceManager: PreferenceManager  
 ) : ViewModel() {
 
     private val _financialStatement = MutableLiveData<FinancialStatement>()
@@ -57,18 +57,18 @@ class FinancialStatementViewModel @Inject constructor(
                     return@launch
                 }
 
-                // TODO: Uncomment when API is ready
-                // val response = repository.getTimeSeriesData(shopId, period)
-                // response.onSuccess { data ->
-                //     _timeSeriesData.value = data
-                //     _error.value = null
-                // }.onFailure { exception ->
-                //     _error.value = exception.message ?: "Failed to load time series data"
-                //     // Use mock data as fallback
-                //     _timeSeriesData.value = generateMockTimeSeriesData(period)
-                // }
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
 
-                // For now, use mock data
+                
                 _timeSeriesData.value = generateMockTimeSeriesData(period)
                 _error.value = null
 
@@ -81,7 +81,7 @@ class FinancialStatementViewModel @Inject constructor(
         }
     }
 
-    // Add this method to generate mock data
+    
     private fun generateMockTimeSeriesData(period: String): List<TimeSeriesData> {
         return when (period) {
             "daily" -> listOf(
@@ -182,7 +182,7 @@ class FinancialStatementViewModel @Inject constructor(
     }
 
     fun exportToExcel() {
-        // TODO: Implement Excel export
+        
         _error.value = "Export feature coming soon"
     }
 

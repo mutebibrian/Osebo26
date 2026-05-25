@@ -44,17 +44,17 @@ class ShopsActivity : AppCompatActivity() {
                     val shops = resource.data ?: emptyList()
 
                     if (shops.isEmpty()) {
-                        // No shops, navigate to shop creation
+                        
                         navigateToShopCreation()
                     } else {
-                        // Try to find and select a shop with active subscription
+                        
                         selectBestShop(shops)
                     }
                 }
                 is Resource.Error -> {
                     binding.progressBar.visibility = android.view.View.GONE
                     Toast.makeText(this, "Error loading shops: ${resource.message}", Toast.LENGTH_SHORT).show()
-                    // If error, still try to navigate to shops fragment
+                    
                     navigateToMainActivity()
                 }
             }
@@ -62,7 +62,7 @@ class ShopsActivity : AppCompatActivity() {
     }
 
     private fun selectBestShop(shops: List<Shop>) {
-        // First, try to find a shop with active subscription
+        
         val shopWithSubscription = shops.find { shop ->
             shop.subscription?.isActive == true ||
                     shop.subscriptionStatus.equals("active", ignoreCase = true) ||
@@ -70,27 +70,27 @@ class ShopsActivity : AppCompatActivity() {
         }
 
         if (shopWithSubscription != null) {
-            // Found a shop with active subscription, select it automatically
+            
             selectShopAndNavigate(shopWithSubscription)
         } else {
-            // No shop with active subscription, check if any shops exist
+            
             if (shops.isNotEmpty()) {
-                // Navigate to ShopsFragment to let user choose
+                
                 navigateToShopsFragment()
             } else {
-                // No shops at all, navigate to shop creation
+                
                 navigateToShopCreation()
             }
         }
     }
 
     private fun selectShopAndNavigate(shop: Shop) {
-        // Save the selected shop
+        
         preferenceManager.saveCurrentShopId(shop.id)
         preferenceManager.saveCurrentShopName(shop.name)
         preferenceManager.saveHasShop(true)
 
-        // Save subscription info if available
+        
         shop.subscription?.let { subscription ->
             preferenceManager.saveSubscriptionInfo(
                 subscriptionId = subscription.id,
@@ -107,7 +107,7 @@ class ShopsActivity : AppCompatActivity() {
             Toast.LENGTH_LONG
         ).show()
 
-        // Navigate to MainActivity
+        
         navigateToMainActivity()
     }
 

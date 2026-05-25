@@ -76,8 +76,8 @@ class SuppliersFragment : Fragment() {
     private fun loadSuppliers() {
         binding.swipeRefresh.isRefreshing = true
 
-        // TODO: Load from API
-        // For now, show sample data
+        
+        
         val sampleSuppliers = listOf(
             Supplier(
                 id = "1",
@@ -114,7 +114,7 @@ class SuppliersFragment : Fragment() {
         binding.swipeRefresh.isRefreshing = false
         suppliersAdapter.submitList(sampleSuppliers)
 
-        // Show empty state if no suppliers
+        
         if (sampleSuppliers.isEmpty()) {
             binding.rvSuppliers.visibility = View.GONE
             binding.emptyState.visibility = View.VISIBLE
@@ -202,12 +202,12 @@ class SuppliersFragment : Fragment() {
 
     private fun viewSupplierProducts(supplier: Supplier) {
         Toast.makeText(requireContext(), "Viewing products from ${supplier.name}", Toast.LENGTH_SHORT).show()
-        // Navigate to products filtered by supplier
+        
     }
 
     private fun viewPurchaseHistory(supplier: Supplier) {
         Toast.makeText(requireContext(), "Purchase history for ${supplier.name}", Toast.LENGTH_SHORT).show()
-        // Navigate to purchase history
+        
     }
 
     private fun confirmDeleteSupplier(supplier: Supplier) {
@@ -266,7 +266,7 @@ class SuppliersAdapter(
 
     inner class SupplierViewHolder(
         private val binding: ItemSupplierBinding
-    ) : RecyclerView.ViewHolder(binding.getRoot()) {  // FIXED: Changed binding.root to binding.getRoot()
+    ) : RecyclerView.ViewHolder(binding.getRoot()) {  
 
         fun bind(supplier: SuppliersFragment.Supplier) {
             binding.tvSupplierName.text = supplier.name
@@ -279,7 +279,7 @@ class SuppliersAdapter(
 
             binding.tvInitial.text = supplier.name.first().toString().uppercase()
 
-            // Set random background color for avatar
+            
             val colors = arrayOf(
                 R.color.avatar_blue,
                 R.color.avatar_green,

@@ -23,3 +23,4 @@ data class RenewSubscriptionRequest(
     val currency: String = "UGX"
 )
 
+

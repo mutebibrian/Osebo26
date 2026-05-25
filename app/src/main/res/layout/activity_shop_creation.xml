@@ -10,18 +10,6 @@
     tools:context=".ui.ShopCreationActivity">
 
     <!-- Back Button -->
-    <TextView
-        android:id="@+id/textView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="git pull origin main --allow-unrelated-histories" />
-
-    <TextView
-        android:id="@+id/textView2"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="git remote -v&#xA;" />
-
     <ImageView
         android:id="@+id/iv_back"
         android:layout_width="48dp"
@@ -33,7 +21,7 @@
         android:focusable="true"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="8dp"
         app:tint="@color/colorPrimary" />
 
     <!-- Title -->
@@ -48,7 +36,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toEndOf="@id/iv_back"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="24dp"
+        android:layout_marginTop="20dp"
         android:layout_marginStart="16dp"/>
 
     <TextView
@@ -72,7 +60,7 @@
         app:layout_constraintBottom_toTopOf="@id/btn_create_shop"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="24dp"
         android:layout_marginBottom="16dp"
         android:fillViewport="true">
 
@@ -81,7 +69,7 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- Shop Name -->
+            <!-- Shop Name (Required) -->
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/shop_name_input_layout"
                 style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
@@ -95,7 +83,7 @@
                 app:boxStrokeColor="@color/colorPrimary"
                 app:hintTextColor="@color/colorPrimary"
                 app:startIconTint="@color/colorPrimary"
-                android:layout_marginBottom="16dp">
+                android:layout_marginBottom="20dp">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_shop_name"
@@ -110,7 +98,7 @@
                     android:textSize="16sp"/>
             </com.google.android.material.textfield.TextInputLayout>
 
-            <!-- Address -->
+            <!-- Address (Required) -->
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/address_input_layout"
                 style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
@@ -124,7 +112,7 @@
                 app:boxStrokeColor="@color/colorPrimary"
                 app:hintTextColor="@color/colorPrimary"
                 app:startIconTint="@color/colorPrimary"
-                android:layout_marginBottom="16dp">
+                android:layout_marginBottom="20dp">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_address"
@@ -139,7 +127,7 @@
                     android:textSize="16sp"/>
             </com.google.android.material.textfield.TextInputLayout>
 
-            <!-- Shop Type -->
+            <!-- Shop Type (Required) -->
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/shop_type_input_layout"
                 style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
@@ -153,7 +141,7 @@
                 app:boxStrokeColor="@color/colorPrimary"
                 app:hintTextColor="@color/colorPrimary"
                 app:startIconTint="@color/colorPrimary"
-                android:layout_marginBottom="16dp">
+                android:layout_marginBottom="20dp">
 
                 <AutoCompleteTextView
                     android:id="@+id/actv_shop_type"
@@ -177,7 +165,7 @@
                 style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Registration Number"
+                android:hint="Registration Number (Optional)"
                 app:startIconDrawable="@drawable/ic_document"
                 app:startIconContentDescription="Registration Number"
                 app:boxStrokeWidth="1dp"
@@ -185,7 +173,7 @@
                 app:boxStrokeColor="@color/colorPrimary"
                 app:hintTextColor="@color/colorPrimary"
                 app:startIconTint="@color/colorPrimary"
-                android:layout_marginBottom="16dp">
+                android:layout_marginBottom="20dp">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_registration_number"
@@ -206,7 +194,7 @@
                 style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Tax Identification Number"
+                android:hint="Tax Identification Number (Optional)"
                 app:startIconDrawable="@drawable/ic_receipt"
                 app:startIconContentDescription="Tax ID"
                 app:boxStrokeWidth="1dp"
@@ -214,7 +202,7 @@
                 app:boxStrokeColor="@color/colorPrimary"
                 app:hintTextColor="@color/colorPrimary"
                 app:startIconTint="@color/colorPrimary"
-                android:layout_marginBottom="16dp">
+                android:layout_marginBottom="20dp">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_tin"
@@ -235,7 +223,7 @@
                 style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Description"
+                android:hint="Description (Optional)"
                 app:startIconDrawable="@drawable/ic_description"
                 app:startIconContentDescription="Description"
                 app:boxStrokeWidth="1dp"
@@ -259,6 +247,7 @@
                     android:textSize="16sp"
                     android:gravity="top"/>
             </com.google.android.material.textfield.TextInputLayout>
+
         </LinearLayout>
     </ScrollView>
 

@@ -58,18 +58,21 @@ class SubscriptionPackagesFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Get args - shop can now be null
-        shop = args.shop
-        currentPackage = args.currentPackage
+        try {
+            shop = args.shop
+            currentPackage = args.currentPackage
+        } catch (e: Exception) {
+            println("⚠️ Error getting arguments: ${e.message}")
+            shop = null
+            currentPackage = null
+        }
 
-        // Handle null shop - try to get from preferences
         if (shop == null) {
             val preferenceManager = PreferenceManager.getInstance(requireContext())
             shopId = preferenceManager.getCurrentShopId()
             val shopName = preferenceManager.getCurrentShopName()
 
             if (shopId.isNotEmpty()) {
-                // Create a basic shop object from preferences
                 shop = Shop(
                     id = shopId,
                     name = shopName,
@@ -86,7 +89,6 @@ class SubscriptionPackagesFragment : Fragment() {
                 )
                 println("✅ Created shop from preferences: $shopName")
             } else {
-                // No shop available - show error and navigate back
                 Toast.makeText(
                     requireContext(),
                     "No shop selected. Please select a shop first.",
@@ -180,45 +182,61 @@ class SubscriptionPackagesFragment : Fragment() {
                             binding.layoutContent.visibility = View.VISIBLE
                             binding.layoutError.visibility = View.GONE
                             subscriptionPackageAdapter.submitList(packages)
-                            binding.rvPackages.postDelayed({
-                                checkRecyclerViewState()
-                            }, 500)
                         }
                     }
                 }
                 is Resource.Error -> {
                     showErrorState(resource.message ?: "Failed to load packages")
                 }
-                is Resource.Loading -> {
-                    // Show loading
-                }
+                is Resource.Loading -> {}
             }
         }
 
+        // Single subscriptionResult observer
+        // In observeViewModel() - update the subscriptionResult observer
         viewModel.subscriptionResult.observe(viewLifecycleOwner) { resource ->
+            println("🔔 SubscriptionPackages: subscriptionResult = $resource")
+
             when (resource) {
+                is Resource.Loading -> {
+                    // Optionally show loading indicator
+                }
                 is Resource.Success -> {
-                    val paymentId = resource.data?.data?.paymentId
+                    val response = resource.data
+                    // FIXED: response is SubscriptionResponse directly
+                    val paymentId = response?.paymentId  // No .data
+                    println("🔔 PaymentId: $paymentId")
+
                     if (!paymentId.isNullOrBlank()) {
-                        navigateToPayment(paymentId)
+                        println("🔔 Found paymentId, navigating to PaymentStatusFragment")
+                        try {
+                            val action = SubscriptionPackagesFragmentDirections
+                                .actionSubscriptionPackagesFragmentToPaymentStatusFragment(
+                                    transactionId = paymentId,
+                                    shopId = shopId,
+                                    amount = (selectedPackage?.unitMonthlyAmount?.toFloatOrNull() ?: 0f),
+                                    currency = "UGX",
+                                    phoneNumber = ""
+                                )
+                            findNavController().navigate(action)
+                            println("✅ Navigation successful!")
+                        } catch (e: Exception) {
+                            println("❌ Navigation error: ${e.message}")
+                            Toast.makeText(requireContext(),
+                                "Payment initiated. Please check your phone.",
+                                Toast.LENGTH_LONG).show()
+                        }
                     } else {
-                        Toast.makeText(
-                            requireContext(),
-                            "Subscription created successfully!",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        findNavController().popBackStack()
+                        Toast.makeText(requireContext(),
+                            response?.message ?: "Subscription created",
+                            Toast.LENGTH_SHORT).show()
                     }
                 }
                 is Resource.Error -> {
-                    Toast.makeText(
-                        requireContext(),
+                    println("🔔 Error: ${resource.message}")
+                    Toast.makeText(requireContext(),
                         resource.message ?: "Failed to create subscription",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-                is Resource.Loading -> {
-                    // Show loading
+                        Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -355,8 +373,16 @@ class SubscriptionPackagesFragment : Fragment() {
     private fun showPaymentDialog(packageItem: SubscriptionPackage, shop: Shop) {
         selectedPackage = packageItem
 
-        // Convert String to Double safely
+        println("💰 DEBUG PACKAGE PRICES:")
+        println("   price: ${packageItem.price}")
+        println("   unitMonthlyAmount: ${packageItem.unitMonthlyAmount}")
+        println("   displayPrice: ${packageItem.displayPrice}")
+        println("   currency: ${packageItem.currency}")
+
         val amount = packageItem.unitMonthlyAmount?.toDoubleOrNull() ?: 0.0
+
+        println("💰 final amount: $amount")
+
 
         val dialog = PaymentDialogFragment.newInstance(
             shopId = shop.id,
@@ -365,11 +391,22 @@ class SubscriptionPackagesFragment : Fragment() {
             amount = amount
         )
 
-        dialog.setPaymentListener { phoneNumber, packageId, months ->
-            createSubscription(shop.id, packageId, phoneNumber, months)
+        dialog.setPaymentListener { phoneNumber, packageId, months, totalAmount ->
+            createSubscription(shop.id, packageId, phoneNumber, months, totalAmount)
         }
 
         dialog.show(parentFragmentManager, "PaymentDialog")
+    }
+
+    private fun createSubscription(
+        shopId: String,
+        packageId: String,
+        phoneNumber: String,
+        months: Int,
+        amount: Double  // Add this parameter
+    ) {
+        if (!isAdded) return
+        viewModel.createSubscription(shopId, packageId, phoneNumber, months, amount)
     }
 
     private fun showTrialConfirmationDialog(packageItem: SubscriptionPackage, shop: Shop) {
@@ -417,122 +454,9 @@ class SubscriptionPackagesFragment : Fragment() {
     private fun activateFreeTrial(shopId: String, packageId: String) {
         lifecycleScope.launch {
             viewModel.activateFreeTrial(shopId, packageId)
-
             if (isAdded) {
                 (requireActivity() as? MainActivity)?.refreshNavigationMenu()
             }
-        }
-    }
-
-    // FIXED: Use a simple approach with viewLifecycleOwner but with safe checks
-    private fun createSubscription(
-        shopId: String,
-        packageId: String,
-        phoneNumber: String,
-        months: Int
-    ) {
-        // First, check if fragment is still added
-        if (!isAdded) return
-
-        // Start the subscription process
-        viewModel.createSubscription(shopId, packageId, phoneNumber, months)
-
-        // Use a one-time observer with viewLifecycleOwner, but with a try-catch
-        try {
-            viewLifecycleOwner.lifecycleScope.launch {
-                // Collect the result once
-                viewModel.subscriptionResult.observe(viewLifecycleOwner) { resource ->
-                    // Double-check if fragment is still added
-                    if (!isAdded) return@observe
-
-                    when (resource) {
-                        is Resource.Success -> {
-                            resource.data?.let { response ->
-                                if (response.success) {
-                                    val paymentId = response.data?.paymentId
-                                    if (!paymentId.isNullOrBlank()) {
-                                        try {
-                                            val packagePrice = selectedPackage?.unitMonthlyAmount?.toDoubleOrNull() ?: 0.0
-                                            val totalAmount = packagePrice * months
-
-                                            // Check again before navigation
-                                            if (isAdded) {
-                                                val action = SubscriptionPackagesFragmentDirections
-                                                    .actionSubscriptionPackagesFragmentToPaymentStatusFragment(
-                                                        transactionId = paymentId,
-                                                        shopId = shopId,
-                                                        amount = totalAmount.toFloat(),
-                                                        currency = "UGX",
-                                                        phoneNumber = phoneNumber
-                                                    )
-                                                findNavController().navigate(action)
-                                            }
-                                        } catch (e: Exception) {
-                                            if (isAdded) {
-                                                Toast.makeText(requireContext(),
-                                                    "Navigation error", Toast.LENGTH_SHORT).show()
-                                            }
-                                        }
-                                    } else {
-                                        if (isAdded) {
-                                            Toast.makeText(requireContext(),
-                                                "Subscription created successfully!",
-                                                Toast.LENGTH_SHORT).show()
-                                            findNavController().popBackStack()
-                                        }
-                                    }
-                                } else {
-                                    if (isAdded) {
-                                        Toast.makeText(requireContext(),
-                                            response.message ?: "Failed to create subscription",
-                                            Toast.LENGTH_SHORT).show()
-                                    }
-                                }
-                            }
-                        }
-                        is Resource.Error -> {
-                            if (isAdded) {
-                                Toast.makeText(requireContext(),
-                                    resource.message ?: "Error creating subscription",
-                                    Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                        is Resource.Loading -> {
-                            // Show loading if needed
-                        }
-                    }
-                }
-            }
-        } catch (e: IllegalStateException) {
-            // This happens when viewLifecycleOwner is not available
-            println("⚠️ ViewLifecycleOwner not available: ${e.message}")
-        }
-    }
-
-    private fun navigateToPayment(transactionId: String) {
-        try {
-            shop?.let { shop ->
-                val selectedPackage = subscriptionPackageAdapter.getSelectedPackage()
-                val amount = selectedPackage?.price?.toFloat() ?: 0.0f
-                val currency = selectedPackage?.currency ?: "UGX"
-
-                val action = SubscriptionPackagesFragmentDirections
-                    .actionSubscriptionPackagesFragmentToPaymentStatusFragment(
-                        transactionId = transactionId,
-                        shopId = shop.id,
-                        amount = amount,
-                        currency = currency,
-                        phoneNumber = ""
-                    )
-                findNavController().navigate(action)
-            }
-        } catch (e: IllegalArgumentException) {
-            Toast.makeText(
-                requireContext(),
-                "Payment initiated. Please check your phone to complete the transaction.",
-                Toast.LENGTH_LONG
-            ).show()
-            findNavController().popBackStack()
         }
     }
 

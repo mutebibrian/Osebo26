@@ -1,13 +1,12 @@
 package com.devbrian.osebo.fragments
 
 import android.os.Bundle
+import android.util.Log
 import android.view.*
 import android.widget.ArrayAdapter
-import android.widget.PopupMenu
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
-import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.devbrian.osebo.R
@@ -16,7 +15,6 @@ import com.devbrian.osebo.databinding.FragmentFinanceBinding
 import com.devbrian.osebo.models.Transaction
 import com.devbrian.osebo.ui.viewmodels.FinanceViewModel
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
@@ -53,7 +51,7 @@ class FinanceFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Check if shop is selected
+        
         if (!viewModel.hasShopSelected()) {
             showNoShopSelectedDialog()
             return
@@ -65,7 +63,7 @@ class FinanceFragment : Fragment() {
         setupClickListeners()
         observeViewModel()
 
-        // Load initial data
+        
         loadFinancialData()
     }
 
@@ -74,7 +72,7 @@ class FinanceFragment : Fragment() {
             .setTitle("No Shop Selected")
             .setMessage("Please select a shop to view financial information.")
             .setPositiveButton("Select Shop") { _, _ ->
-                findNavController().navigate(R.id.action_financeFragment_to_shopsFragment)
+                findNavController().navigate(R.id.shopsFragment)
             }
             .setNegativeButton("Cancel") { _, _ ->
                 findNavController().popBackStack()
@@ -84,7 +82,6 @@ class FinanceFragment : Fragment() {
     }
 
     private fun observeViewModel() {
-        // Observe transactions
         viewModel.transactions.observe(viewLifecycleOwner) { transactions ->
             if (transactions.isEmpty()) {
                 showNoTransactionsState()
@@ -95,12 +92,10 @@ class FinanceFragment : Fragment() {
             }
         }
 
-        // Observe loading state
         viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
             binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
         }
 
-        // Observe errors
         viewModel.error.observe(viewLifecycleOwner) { error ->
             error?.let {
                 Toast.makeText(requireContext(), it, Toast.LENGTH_LONG).show()
@@ -108,12 +103,10 @@ class FinanceFragment : Fragment() {
             }
         }
 
-        // Observe financial statement
         viewModel.financialStatement.observe(viewLifecycleOwner) { statement ->
             updateFinancialStatementUI(statement)
         }
 
-        // Observe shop name
         viewModel.currentShopName.observe(viewLifecycleOwner) { shopName ->
             binding.toolbar.subtitle = shopName
         }
@@ -121,15 +114,22 @@ class FinanceFragment : Fragment() {
 
     private fun updateFinancialStatementUI(statement: com.devbrian.osebo.models.FinancialStatement) {
         val formatter = NumberFormat.getNumberInstance(Locale.US)
-
         binding.tvTotalIncome.text = "UGX ${formatter.format(statement.sales.toInt())}"
         binding.tvTotalExpenses.text = "UGX ${formatter.format(statement.expenses.toInt())}"
-        binding.tvNetProfit.text = "UGX ${formatter.format(statement.netProfit.toInt())}"
+
+        val netProfit = statement.netProfit
+        binding.tvNetProfit.text = "UGX ${formatter.format(netProfit.toInt())}"
+
+        val profitColor = if (netProfit >= 0) {
+            requireContext().getColor(R.color.green_success)
+        } else {
+            requireContext().getColor(R.color.red_error)
+        }
+        binding.tvNetProfit.setTextColor(profitColor)
 
         val profitMargin = if (statement.sales > 0) {
             (statement.netProfit / statement.sales * 100)
         } else 0.0
-
         binding.tvProfitPeriod.text = "$selectedPeriod • ${String.format("%.1f", profitMargin)}% profit margin"
     }
 
@@ -158,11 +158,7 @@ class FinanceFragment : Fragment() {
     }
 
     private fun setupPeriodSpinner() {
-        val adapter = ArrayAdapter(
-            requireContext(),
-            android.R.layout.simple_spinner_item,
-            periods
-        )
+        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, periods)
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         binding.spinnerPeriod.adapter = adapter
 
@@ -172,11 +168,10 @@ class FinanceFragment : Fragment() {
         }
 
         binding.spinnerPeriod.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: android.view.View?, position: Int, id: Long) {
+            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
                 selectedPeriod = periods[position]
                 loadFinancialData()
             }
-
             override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
         }
     }
@@ -190,7 +185,6 @@ class FinanceFragment : Fragment() {
                 showTransactionOptionsMenu(transaction, anchorView)
             }
         )
-
         transactionAdapter.showAttachments = true
         transactionAdapter.showNotes = true
         transactionAdapter.currencySymbol = "UGX"
@@ -203,45 +197,54 @@ class FinanceFragment : Fragment() {
     }
 
     private fun setupClickListeners() {
+        
         binding.cardAddExpense.setOnClickListener {
-            navigateToAddExpense()
+            Log.d("FinanceFragment", "Add Expense clicked - navigating to addExpenseFragment")
+            findNavController().navigate(R.id.addExpenseFragment)
         }
 
         binding.cardViewReports.setOnClickListener {
-            navigateToReports()
+            Log.d("FinanceFragment", "View Reports clicked - navigating to reportsFragment")
+            findNavController().navigate(R.id.reportsFragment)
         }
 
         binding.cardCategories.setOnClickListener {
-            navigateToExpenseCategories()
+            Log.d("FinanceFragment", "Categories clicked - navigating to expenseCategoriesFragment")
+            findNavController().navigate(R.id.expenseCategoriesFragment)
         }
 
         binding.cardStatement.setOnClickListener {
-            navigateToFinancialStatement()
+            Log.d("FinanceFragment", "Statement clicked - navigating to financialStatementFragment")
+            findNavController().navigate(R.id.financialStatementFragment)
         }
 
         binding.cardExport.setOnClickListener {
+            Log.d("FinanceFragment", "Export clicked")
             exportFinancialData()
         }
 
         binding.cardSettings.setOnClickListener {
-            navigateToFinanceSettings()
+            Log.d("FinanceFragment", "Settings clicked - navigating to financeSettingsFragment")
+            findNavController().navigate(R.id.financeSettingsFragment)
         }
 
         binding.tvViewAllTransactions.setOnClickListener {
-            navigateToAllTransactions()
+            Log.d("FinanceFragment", "View All Transactions clicked - navigating to transactionsFragment")
+            findNavController().navigate(R.id.transactionsFragment)
         }
 
         binding.btnAddFirstTransaction.setOnClickListener {
-            navigateToAddExpense()
+            Log.d("FinanceFragment", "Add First Transaction clicked - navigating to addExpenseFragment")
+            findNavController().navigate(R.id.addExpenseFragment)
         }
 
         binding.fabAddTransaction.setOnClickListener {
+            Log.d("FinanceFragment", "FAB clicked - showing menu")
             showAddTransactionMenu()
         }
     }
 
     private fun loadFinancialData() {
-        // Load based on selected period
         val (startDate, endDate) = getDateRangeForPeriod(selectedPeriod)
         viewModel.loadTransactions(startDate, endDate)
         viewModel.loadFinancialStatement(getPeriodForApi(selectedPeriod))
@@ -318,10 +321,16 @@ class FinanceFragment : Fragment() {
         val profitMargin = if (totalIncome > 0) (netProfit / totalIncome * 100) else 0.0
 
         val formatter = NumberFormat.getNumberInstance(Locale.US)
-
         binding.tvTotalIncome.text = "UGX ${formatter.format(totalIncome.toInt())}"
         binding.tvTotalExpenses.text = "UGX ${formatter.format(totalExpenses.toInt())}"
         binding.tvNetProfit.text = "UGX ${formatter.format(netProfit.toInt())}"
+
+        val profitColor = if (netProfit >= 0) {
+            requireContext().getColor(R.color.green_success)
+        } else {
+            requireContext().getColor(R.color.red_error)
+        }
+        binding.tvNetProfit.setTextColor(profitColor)
         binding.tvProfitPeriod.text = "$selectedPeriod • ${String.format("%.1f", profitMargin)}% profit margin"
     }
 
@@ -336,139 +345,65 @@ class FinanceFragment : Fragment() {
     }
 
     private fun showTransactionDetails(transaction: Transaction) {
-        Toast.makeText(
-            requireContext(),
-            "Transaction: ${transaction.description}",
-            Toast.LENGTH_SHORT
-        ).show()
+        Toast.makeText(requireContext(), "Transaction: ${transaction.description}\nAmount: ${formatCurrency(transaction.amount)}", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun formatCurrency(amount: Double): String {
+        return when {
+            amount >= 1_000_000 -> String.format("UGX %.1fM", amount / 1_000_000)
+            amount >= 1_000 -> String.format("UGX %.1fK", amount / 1_000)
+            else -> String.format("UGX %,.0f", amount)
+        }
     }
 
     private fun showTransactionOptionsMenu(transaction: Transaction, anchorView: View) {
-        val popup = PopupMenu(requireContext(), anchorView)
+        val popup = android.widget.PopupMenu(requireContext(), anchorView)
         popup.menuInflater.inflate(R.menu.menu_transaction_item, popup.menu)
-
         popup.setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
-                R.id.action_view_details -> {
-                    showTransactionDetails(transaction)
-                    true
-                }
-                R.id.action_edit_transaction -> {
-                    editTransaction(transaction)
-                    true
-                }
-                R.id.action_duplicate -> {
-                    duplicateTransaction(transaction)
-                    true
-                }
-                R.id.action_export_receipt -> {
-                    exportReceipt(transaction)
-                    true
-                }
-                R.id.action_mark_completed -> {
-                    markTransactionCompleted(transaction)
-                    true
-                }
-                R.id.action_delete_transaction -> {
-                    deleteTransaction(transaction)
-                    true
-                }
+                R.id.action_view_details -> { showTransactionDetails(transaction); true }
+                R.id.action_edit_transaction -> { editTransaction(transaction); true }
+                R.id.action_duplicate -> { duplicateTransaction(transaction); true }
+                R.id.action_export_receipt -> { exportReceipt(transaction); true }
+                R.id.action_mark_completed -> { markTransactionCompleted(transaction); true }
+                R.id.action_delete_transaction -> { deleteTransaction(transaction); true }
                 else -> false
             }
         }
-
         popup.show()
     }
 
     private fun showAddTransactionMenu() {
-        val popup = PopupMenu(requireContext(), binding.fabAddTransaction)
+        val popup = android.widget.PopupMenu(requireContext(), binding.fabAddTransaction)
         popup.menuInflater.inflate(R.menu.menu_add_transaction, popup.menu)
-
         popup.setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
-                R.id.action_add_expense -> {
-                    navigateToAddExpense()
-                    true
-                }
-                R.id.action_quick_sale -> {
-                    navigateToQuickSale()
-                    true
-                }
+                R.id.action_add_expense -> { findNavController().navigate(R.id.addExpenseFragment); true }
+                R.id.action_quick_sale -> { findNavController().navigate(R.id.newSaleFragment); true }
                 else -> false
             }
         }
-
         popup.show()
     }
 
-    // Navigation methods
-    private fun navigateToAddExpense() {
-        findNavController().navigate(R.id.action_financeFragment_to_addExpenseFragment)
-    }
-
-    private fun navigateToQuickSale() {
-        findNavController().navigate(R.id.action_financeFragment_to_newSaleFragment)
-    }
-
-    private fun navigateToReports() {
-        Toast.makeText(requireContext(), "Reports coming soon", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun navigateToExpenseCategories() {
-        findNavController().navigate(R.id.action_financeFragment_to_expenseCategoriesFragment)
-    }
-
-    private fun navigateToFinancialStatement() {
-        findNavController().navigate(R.id.action_financeFragment_to_financialStatementFragment)
-    }
-
-    private fun navigateToAllTransactions() {
-        findNavController().navigate(R.id.action_financeFragment_to_transactionsFragment)
-    }
-
-    private fun navigateToFinanceSettings() {
-        Toast.makeText(requireContext(), "Finance Settings coming soon", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun editTransaction(transaction: Transaction) {
-        Toast.makeText(requireContext(), "Edit Transaction: ${transaction.id}", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun duplicateTransaction(transaction: Transaction) {
-        Toast.makeText(requireContext(), "Duplicate Transaction: ${transaction.id}", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun exportReceipt(transaction: Transaction) {
-        Toast.makeText(requireContext(), "Export Receipt: ${transaction.id}", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun markTransactionCompleted(transaction: Transaction) {
-        Toast.makeText(requireContext(), "Mark Completed: ${transaction.id}", Toast.LENGTH_SHORT).show()
-    }
+    private fun editTransaction(transaction: Transaction) { Toast.makeText(requireContext(), "Edit: ${transaction.id}", Toast.LENGTH_SHORT).show() }
+    private fun duplicateTransaction(transaction: Transaction) { Toast.makeText(requireContext(), "Duplicate: ${transaction.id}", Toast.LENGTH_SHORT).show() }
+    private fun exportReceipt(transaction: Transaction) { Toast.makeText(requireContext(), "Export receipt: ${transaction.id}", Toast.LENGTH_SHORT).show() }
+    private fun markTransactionCompleted(transaction: Transaction) { Toast.makeText(requireContext(), "Marked completed: ${transaction.id}", Toast.LENGTH_SHORT).show() }
 
     private fun deleteTransaction(transaction: Transaction) {
         androidx.appcompat.app.AlertDialog.Builder(requireContext())
             .setTitle("Delete Transaction")
             .setMessage("Are you sure you want to delete this transaction?")
-            .setPositiveButton("Delete") { _, _ ->
-                Toast.makeText(requireContext(), "Deleted: ${transaction.id}", Toast.LENGTH_SHORT).show()
-            }
+            .setPositiveButton("Delete") { _, _ -> Toast.makeText(requireContext(), "Deleted: ${transaction.id}", Toast.LENGTH_SHORT).show() }
             .setNegativeButton("Cancel", null)
             .show()
     }
 
-    private fun showFilterDialog() {
-        Toast.makeText(requireContext(), "Filter coming soon", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun exportFinancialData() {
-        Toast.makeText(requireContext(), "Export coming soon", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun refreshData() {
-        loadFinancialData()
-        Toast.makeText(requireContext(), "Refreshing data...", Toast.LENGTH_SHORT).show()
-    }
+    private fun showFilterDialog() { Toast.makeText(requireContext(), "Filter coming soon", Toast.LENGTH_SHORT).show() }
+    private fun exportFinancialData() { Toast.makeText(requireContext(), "Export coming soon", Toast.LENGTH_SHORT).show() }
+    private fun refreshData() { loadFinancialData(); Toast.makeText(requireContext(), "Refreshing data...", Toast.LENGTH_SHORT).show() }
+    private fun navigateToFinanceSettings() { findNavController().navigate(R.id.financeSettingsFragment) }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
         inflater.inflate(R.menu.menu_finance, menu)
@@ -477,22 +412,10 @@ class FinanceFragment : Fragment() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
-            R.id.action_filter -> {
-                showFilterDialog()
-                true
-            }
-            R.id.action_export -> {
-                exportFinancialData()
-                true
-            }
-            R.id.action_refresh -> {
-                refreshData()
-                true
-            }
-            R.id.action_settings -> {
-                navigateToFinanceSettings()
-                true
-            }
+            R.id.action_filter -> { showFilterDialog(); true }
+            R.id.action_export -> { exportFinancialData(); true }
+            R.id.action_refresh -> { refreshData(); true }
+            R.id.action_settings -> { navigateToFinanceSettings(); true }
             else -> super.onOptionsItemSelected(item)
         }
     }

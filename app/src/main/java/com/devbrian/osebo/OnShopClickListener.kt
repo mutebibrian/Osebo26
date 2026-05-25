@@ -9,3 +9,4 @@ interface OnShopClickListener {
     fun onSetActiveClick(shop: Shop)
 }
 
+

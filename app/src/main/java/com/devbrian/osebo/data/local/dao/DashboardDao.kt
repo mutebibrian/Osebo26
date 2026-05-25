@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface DashboardDao {
 
-    // ============= DASHBOARD SUMMARY =============
+    
 
     @Query("SELECT * FROM dashboard_summary LIMIT 1")
     fun getDashboardSummary(): Flow<DashboardSummaryEntity?>
@@ -27,7 +27,7 @@ interface DashboardDao {
     suspend fun clearDashboardSummary()
 
 
-    // ============= TIME SERIES =============
+    
 
     @Query("SELECT * FROM time_series LIMIT 1")
     fun getTimeSeries(): Flow<TimeSeriesEntity?>
@@ -42,7 +42,7 @@ interface DashboardDao {
     suspend fun clearTimeSeries()
 
 
-    // ============= TOP STOCK ITEMS =============
+    
 
     @Query("SELECT * FROM top_stock_items ORDER BY sales DESC LIMIT 10")
     fun getTopStockItems(): Flow<List<TopStockItemEntity>>
@@ -60,7 +60,7 @@ interface DashboardDao {
     suspend fun deleteOldStockItems(cutoffTime: Long)
 
 
-    // ============= SHOP SUMMARY =============
+    
 
     @Query("SELECT * FROM shop_summary WHERE shopId = :shopId")
     fun getShopSummary(shopId: String): Flow<ShopSummaryEntity?>
@@ -75,7 +75,7 @@ interface DashboardDao {
     suspend fun clearShopSummary(shopId: String)
 
 
-    // ============= FINANCIAL STATEMENT =============
+    
 
     @Query("SELECT * FROM financial_statement LIMIT 1")
     fun getFinancialStatement(): Flow<FinancialStatementEntity?>
@@ -90,7 +90,7 @@ interface DashboardDao {
     suspend fun clearFinancialStatement()
 
 
-    // ============= UTILITY METHODS =============
+    
 
     @Query("SELECT COUNT(*) FROM dashboard_summary")
     suspend fun hasDashboardData(): Int

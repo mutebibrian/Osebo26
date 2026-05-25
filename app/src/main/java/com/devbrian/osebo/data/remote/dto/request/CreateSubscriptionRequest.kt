@@ -10,9 +10,9 @@ data class CreateSubscriptionRequest(
     val customerPhone: String,
 
     @SerializedName("duration")
-    val duration: Int = 1,
+    val duration: Int,
 
     @SerializedName("currency")
-    val currency: String = "UGX"
-)
+    val currency: String
 
+)

@@ -22,3 +22,4 @@ data class UpdateAccountRequest(
     val paymentMethod: String? = null
 )
 
+

@@ -42,3 +42,4 @@ interface SaleDao {
     suspend fun getTodaySalesCount(shopId: String): Int
 }
 
+

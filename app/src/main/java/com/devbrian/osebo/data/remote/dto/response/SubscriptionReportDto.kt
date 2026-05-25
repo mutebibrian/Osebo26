@@ -33,3 +33,4 @@ data class MonthlyRevenueDto(
     val newSubscriptions: Int
 )
 
+

@@ -44,7 +44,6 @@ class DashboardViewModel @Inject constructor(
     private val _lastUpdated = MutableStateFlow<String?>(null)
     val lastUpdated: StateFlow<String?> = _lastUpdated.asStateFlow()
 
-    // Track if initial load is complete
     private var isInitialLoadComplete = false
 
     init {
@@ -84,27 +83,27 @@ class DashboardViewModel @Inject constructor(
         Log.d(TAG, "   timeSeries: ${timeSeriesEntity != null}")
         Log.d(TAG, "   topItems count: ${topItems.size}")
 
-        // Log the actual entity values
         topItems.forEachIndexed { index, entity ->
             Log.d(TAG, "   📦 Entity[$index]: ${entity.name}, qty: ${entity.quantity}, sales: ${entity.sales}")
         }
 
-        // Update dashboard data
+        // Update dashboard state with summary data
         if (summary != null) {
-            Log.d(TAG, "📊 Summary data - Employees: ${summary.employeesCount}, Suppliers: ${summary.suppliersCount}, Customers: ${summary.customersCount}, Sales: ${summary.totalSales}")
+            Log.d(TAG, "📊 Summary data - Employees: ${summary.employeesCount}, Suppliers: ${summary.suppliersCount}, Customers: ${summary.customersCount}, Sales: ${summary.totalSales}, Expenses: ${summary.totalExpenses}")
 
             _dashboardState.value = DashboardState.Success(
                 DashboardData(
                     employeesCount = summary.employeesCount,
                     suppliersCount = summary.suppliersCount,
                     customersCount = summary.customersCount,
-                    totalSales = summary.totalSales
+                    totalSales = summary.totalSales,
+                    totalExpenses = summary.totalExpenses  // FIXED: Added totalExpenses here
                 )
             )
             Log.d(TAG, "✅ DashboardState updated to Success")
         }
 
-        // Update time series
+        // Update time series data
         if (timeSeriesEntity != null) {
             Log.d(TAG, "📈 Time series data - xAxis size: ${timeSeriesEntity.getXAxisList().size}")
 
@@ -116,17 +115,16 @@ class DashboardViewModel @Inject constructor(
             Log.d(TAG, "✅ TimeSeriesData updated")
         }
 
-        // Update top stock items - FIXED VERSION
+        // Update top stock items
         if (topItems.isNotEmpty()) {
             Log.d(TAG, "📦 Processing ${topItems.size} top stock items")
 
-            // Map to the CORRECT DTO from API package
             val dtoList = topItems.map { entity ->
                 TopStockItemDto(
-                    id = entity.id,                          // Map ID
+                    id = entity.id,
                     name = entity.name,
-                    totalQuantitySold = entity.quantity,     // Map quantity to totalQuantitySold
-                    totalSalesAmount = entity.sales          // Map sales to totalSalesAmount
+                    totalQuantitySold = entity.quantity,
+                    totalSalesAmount = entity.sales
                 )
             }
 
@@ -138,13 +136,13 @@ class DashboardViewModel @Inject constructor(
             _topStockItems.value = emptyList()
         }
 
-        // Mark initial load as complete if we have any data
+        // Mark initial load as complete
         if (summary != null || timeSeriesEntity != null || topItems.isNotEmpty()) {
             isInitialLoadComplete = true
             Log.d(TAG, "✅ Initial load marked as complete")
         }
 
-        // Update last updated time
+        // Update last updated timestamp
         viewModelScope.launch {
             try {
                 val lastUpdateTime = repository.getLastUpdateTime()
@@ -241,7 +239,6 @@ class DashboardViewModel @Inject constructor(
 
     fun hasCachedData(): Boolean {
         Log.d(TAG, "🔍 hasCachedData called")
-        // This will be overridden by actual repository check
         return true
     }
 
@@ -257,7 +254,6 @@ class DashboardViewModel @Inject constructor(
     }
 
     private fun isNetworkAvailable(): Boolean {
-        // TODO: Implement proper network check with Context
         Log.d(TAG, "🌐 isNetworkAvailable called - returning true (placeholder)")
         return true
     }
@@ -279,14 +275,13 @@ class DashboardViewModel @Inject constructor(
         val employeesCount: Int,
         val suppliersCount: Int,
         val customersCount: Int,
-        val totalSales: Double
+        val totalSales: Double,
+        val totalExpenses: Double  // Keep this field
     ) {
         init {
-            Log.d(TAG, "📊 DashboardData created: Emp:$employeesCount, Sup:$suppliersCount, Cust:$customersCount, Sales:$totalSales")
+            Log.d(TAG, "📊 DashboardData created: Emp:$employeesCount, Sup:$suppliersCount, Cust:$customersCount, Sales:$totalSales, Expenses:$totalExpenses")
         }
     }
-
-
 
     data class TimeSeriesDto(
         val xAxis: List<String>,
@@ -298,14 +293,12 @@ class DashboardViewModel @Inject constructor(
         }
     }
 
-
-
     sealed class DashboardState {
         object Loading : DashboardState() {
             init { Log.d(TAG, "⏳ DashboardState: Loading") }
         }
         data class Success(val data: DashboardData) : DashboardState() {
-            init { Log.d(TAG, "✅ DashboardState: Success with ${data.employeesCount} employees") }
+            init { Log.d(TAG, "✅ DashboardState: Success with ${data.employeesCount} employees, Expenses: ${data.totalExpenses}") }
         }
         data class Error(val message: String) : DashboardState() {
             init { Log.d(TAG, "❌ DashboardState: Error - $message") }

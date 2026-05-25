@@ -9,7 +9,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.devbrian.osebo.R
 import com.devbrian.osebo.models.ExpenseCategory
 
-// Remove any import of ItemExpenseCategoryBinding
+
 
 class ExpenseCategoryAdapter(
     private val onEditClick: (ExpenseCategory) -> Unit,
@@ -45,9 +45,9 @@ class ExpenseCategoryAdapter(
 
         fun bind(category: ExpenseCategory) {
             tvCategoryName.text = category.name
-            tvCategoryDescription.text = category.description.ifEmpty { "No description" }
+            tvCategoryDescription.text = category.description?.ifEmpty { "No description" }
 
-            // Set color indicator
+            
             try {
                 val color = android.graphics.Color.parseColor(category.color ?: "#6200EE")
                 viewColorIndicator.setBackgroundColor(color)

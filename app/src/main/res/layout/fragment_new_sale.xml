@@ -482,6 +482,15 @@
                                     android:textSize="24sp"
                                     android:textStyle="bold" />
 
+                                <!-- Add this button temporarily for debugging -->
+                                <Button
+                                    android:id="@+id/btnDebugBarcode"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Debug Barcodes"
+                                    android:layout_margin="8dp"
+                                    android:visibility="visible" />
+
                             </LinearLayout>
 
                             <LinearLayout

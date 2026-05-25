@@ -187,7 +187,7 @@ class FinancialStatementFragment : Fragment() {
 
         binding.tvProfitMargin.text = "${String.format("%.1f", profitMargin)}%"
 
-        // Set colors based on values
+        
         val profitColor = if (statement.netProfit >= 0) {
             requireContext().getColor(R.color.green_success)
         } else {

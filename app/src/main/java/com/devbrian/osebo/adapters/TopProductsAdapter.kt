@@ -55,7 +55,7 @@ class TopProductsAdapter(
                 tvRevenue.text = product.formattedRevenue
                 tvTrend.text = product.trendText
 
-                // Set trend color
+                
                 val trendColor = when {
                     product.trend > 0 -> R.color.success_green
                     product.trend < 0 -> R.color.error_red
@@ -65,7 +65,7 @@ class TopProductsAdapter(
                     ContextCompat.getColor(root.context, trendColor)
                 )
 
-                // Set trend icon
+                
                 val trendIcon = when {
                     product.trend > 0 -> R.drawable.ic_trend_up
                     product.trend < 0 -> R.drawable.ic_trend_down
@@ -76,7 +76,7 @@ class TopProductsAdapter(
                     ContextCompat.getColor(root.context, trendColor)
                 )
 
-                // Load product image
+                
                 loadProductImage(product.imageUrl)
             }
         }

@@ -27,30 +27,30 @@ data class PackageDto(
     @SerializedName("is_active")
     val isActive: Boolean
 ) {
-    // Helper property to get monthly amount as Double
+    
     val monthlyAmount: Double
         get() = unitMonthlyAmount.toDoubleOrNull() ?: 0.0
 
-    // Helper property to get formatted price
+    
     val formattedPrice: String
         get() = when {
             monthlyAmount > 0 -> "UGX ${String.format("%,.0f", monthlyAmount)}/month"
             else -> "Contact Sales"
         }
 
-    // Helper property to check if it's a custom/enterprise plan
+    
     val isCustomPlan: Boolean
         get() = tier.equals("custom", ignoreCase = true) || monthlyAmount == 0.0
 
-    // Helper property to get feature names list
+    
     val featureNames: List<String>
         get() = features.map { it.name }
 
-    // Helper property to get included features count
+    
     val includedFeaturesCount: Int
         get() = features.count { it.included }
 
-    // Helper property to get display name with tier
+    
     val displayName: String
         get() = when (tier.lowercase()) {
             "basic" -> "Basic Plan"
@@ -61,7 +61,7 @@ data class PackageDto(
             else -> name
         }
 
-    // Helper property to get tier badge color (you can replace with actual color resources)
+    
     val tierColorRes: Int
         get() = when (tier.lowercase()) {
             "basic" -> android.R.color.holo_blue_dark
@@ -173,11 +173,11 @@ data class FeatureDto(
     @SerializedName("description")
     val description: String?
 ) {
-    // Helper property to check if feature is included
+    
     val isIncluded: Boolean
         get() = included
 
-    // Helper property to get display text
+    
     val displayText: String
         get() = if (included) "✓ $name" else "✗ $name"
 

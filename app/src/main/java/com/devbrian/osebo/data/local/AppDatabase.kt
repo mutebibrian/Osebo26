@@ -12,52 +12,201 @@ import com.devbrian.osebo.data.local.entity.*
 
 @Database(
     entities = [
-        // Existing entities
+        // Product related
         ProductEntity::class,
         CategoryEntity::class,
         SyncQueueEntity::class,
         SaleEntity::class,
         CustomerEntity::class,
 
-        // ADD ShopEntity HERE
+        // Shop related
         ShopEntity::class,
 
-        // Dashboard entities
+        // Dashboard related
         DashboardSummaryEntity::class,
         TimeSeriesEntity::class,
         TopStockItemEntity::class,
         ShopSummaryEntity::class,
-        FinancialStatementEntity::class
+        FinancialStatementEntity::class,
+
+        // Expense related
+        ExpenseEntity::class,
+        ExpenseCategoryEntity::class
     ],
-    version = 7,  // INCREMENT VERSION TO 7
+    version = 10,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
 
-    // Existing DAOs
+    // Product related DAOs
     abstract fun productDao(): ProductDao
     abstract fun categoryDao(): CategoryDao
     abstract fun syncQueueDao(): SyncQueueDao
     abstract fun saleDao(): SaleDao
     abstract fun customerDao(): CustomerDao
 
-    // ADD ShopDao HERE
+    // Shop DAO
     abstract fun shopDao(): ShopDao
 
-    // Dashboard DAOs
+    // Dashboard DAO
     abstract fun dashboardDao(): DashboardDao
+
+    // Expense related DAOs
+    abstract fun expenseDao(): ExpenseDao
+    abstract fun expenseCategoryDao(): ExpenseCategoryDao
 
     companion object {
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
-        // Migration from version 6 to 7 - Add shops table
+        // Migration from version 9 to 10 - Add expense tables
+        private val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                println("📦 Room Database - Migrating from version 9 to 10")
+                println("📦 Room Database - Creating expense tables")
+
+                // Create expenses table
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS expenses (
+                        id TEXT PRIMARY KEY NOT NULL,
+                        name TEXT NOT NULL,
+                        description TEXT,
+                        amount REAL NOT NULL,
+                        expenseCategoryId TEXT NOT NULL,
+                        expenseCategoryName TEXT,
+                        date TEXT NOT NULL,
+                        shopId TEXT NOT NULL,
+                        paymentMethod TEXT,
+                        receiptUrl TEXT,
+                        createdAt TEXT NOT NULL,
+                        updatedAt TEXT,
+                        isPendingSync INTEGER NOT NULL DEFAULT 0,
+                        syncAction TEXT
+                    )
+                """)
+
+                // Create expense categories table
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS expense_categories (
+                        id TEXT PRIMARY KEY NOT NULL,
+                        name TEXT NOT NULL,
+                        description TEXT,
+                        shopId TEXT NOT NULL,
+                        createdAt TEXT NOT NULL,
+                        updatedAt TEXT
+                    )
+                """)
+
+                // Create indexes for better performance
+                database.execSQL("CREATE INDEX IF NOT EXISTS idx_expenses_shopId ON expenses(shopId)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(date)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS idx_expenses_shopId_date ON expenses(shopId, date)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS idx_expenses_pendingSync ON expenses(isPendingSync)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS idx_expense_categories_shopId ON expense_categories(shopId)")
+
+                println("📦 Room Database - Migration 9->10 completed successfully")
+            }
+        }
+
+        // Migration from version 8 to 9 - Fix all schema mismatches
+        private val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                println("📦 Room Database - Migrating from version 8 to 9")
+                println("📦 Room Database - Recreating products table with correct schema")
+
+                // Create new products table with correct column definitions and defaults
+                database.execSQL("""
+                    CREATE TABLE products_new (
+                        id TEXT PRIMARY KEY NOT NULL,
+                        name TEXT NOT NULL,
+                        sku TEXT NOT NULL,
+                        category TEXT NOT NULL,
+                        categoryId TEXT,
+                        price REAL NOT NULL,
+                        cost REAL,
+                        stock REAL NOT NULL,
+                        lowStockThreshold INTEGER NOT NULL DEFAULT 10,
+                        imageUrl TEXT,
+                        description TEXT,
+                        barcode TEXT,
+                        supplierId TEXT,
+                        supplierName TEXT,
+                        taxRate REAL,
+                        weight REAL,
+                        dimensions TEXT,
+                        location TEXT,
+                        isActive INTEGER NOT NULL DEFAULT 1,
+                        lastSyncedAt INTEGER NOT NULL DEFAULT (strftime('%s', 'now') * 1000),
+                        isPendingSync INTEGER NOT NULL DEFAULT 0,
+                        syncAction TEXT,
+                        shopId TEXT NOT NULL,
+                        maxDiscount REAL NOT NULL DEFAULT 0,
+                        unitMeasure TEXT NOT NULL DEFAULT 'piece',
+                        allowsFloatQuantity INTEGER NOT NULL DEFAULT 0,
+                        shopName TEXT,
+                        createdAt TEXT,
+                        updatedAt TEXT,
+                        photos TEXT
+                    )
+                """)
+
+                // Copy data from old table if it exists
+                try {
+                    database.execSQL("""
+                        INSERT INTO products_new (
+                            id, name, sku, category, categoryId, price, cost, stock,
+                            lowStockThreshold, imageUrl, description, barcode, supplierId,
+                            supplierName, taxRate, weight, dimensions, location, isActive,
+                            lastSyncedAt, isPendingSync, syncAction, shopId, maxDiscount,
+                            unitMeasure, allowsFloatQuantity, shopName, createdAt, updatedAt, photos
+                        )
+                        SELECT 
+                            id, name, sku, 
+                            COALESCE(category, 'Uncategorized'),
+                            categoryId, price, cost, 
+                            CAST(COALESCE(stock, 0) AS REAL),
+                            COALESCE(lowStockThreshold, 10),
+                            imageUrl, description, barcode, supplierId,
+                            supplierName, taxRate, weight, dimensions, location, 
+                            COALESCE(isActive, 1),
+                            COALESCE(lastSyncedAt, strftime('%s', 'now') * 1000),
+                            COALESCE(isPendingSync, 0),
+                            syncAction, shopId, 
+                            COALESCE(maxDiscount, 0),
+                            COALESCE(unitMeasure, 'piece'),
+                            COALESCE(allowsFloatQuantity, 0),
+                            shopName, createdAt, updatedAt, photos
+                        FROM products
+                    """)
+
+                    // Drop old table and rename new one
+                    database.execSQL("DROP TABLE IF EXISTS products")
+                    database.execSQL("ALTER TABLE products_new RENAME TO products")
+
+                    println("📦 Room Database - Migration 8->9 completed successfully")
+                } catch (e: Exception) {
+                    println("❌ Room Database - Error during migration: ${e.message}")
+                    // If migration fails, create new table without data
+                    database.execSQL("DROP TABLE IF EXISTS products")
+                    database.execSQL("ALTER TABLE products_new RENAME TO products")
+                }
+            }
+        }
+
+        // Migration from version 7 to 8
+        private val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                println("📦 Room Database - Migrating from version 7 to 8")
+                MIGRATION_8_9.migrate(database)
+            }
+        }
+
+        // Migration from version 6 to 7
         private val MIGRATION_6_7 = object : Migration(6, 7) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 println("📦 Room Database - Migrating from version 6 to 7")
 
-                // Create shops table
                 database.execSQL("""
                     CREATE TABLE IF NOT EXISTS `shops` (
                         `id` TEXT PRIMARY KEY NOT NULL,
@@ -89,88 +238,23 @@ abstract class AppDatabase : RoomDatabase() {
                     )
                 """)
 
-                println("📦 Room Database - Created shops table")
+                println("📦 Room Database - Migration 6->7 completed")
             }
         }
 
-        // Existing migration from version 5 to 6
+        // Migration from version 5 to 6
         private val MIGRATION_5_6 = object : Migration(5, 6) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 println("📦 Room Database - Migrating from version 5 to 6")
-
-                // Create temporary table with new schema
-                database.execSQL("""
-                    CREATE TABLE products_new (
-                        id TEXT PRIMARY KEY NOT NULL,
-                        name TEXT NOT NULL,
-                        sku TEXT NOT NULL,
-                        category TEXT NOT NULL,
-                        categoryId TEXT,
-                        price REAL NOT NULL,
-                        cost REAL,
-                        stock INTEGER NOT NULL,
-                        lowStockThreshold INTEGER NOT NULL,
-                        imageUrl TEXT,
-                        description TEXT,
-                        barcode TEXT,
-                        supplierId TEXT,
-                        supplierName TEXT,
-                        taxRate REAL,
-                        weight REAL,
-                        dimensions TEXT,
-                        location TEXT,
-                        isActive INTEGER NOT NULL DEFAULT 1,
-                        lastSyncedAt INTEGER NOT NULL,
-                        isPendingSync INTEGER NOT NULL DEFAULT 0,
-                        syncAction TEXT,
-                        shopId TEXT NOT NULL,
-                        maxDiscount REAL NOT NULL DEFAULT 0,
-                        unitMeasure TEXT NOT NULL DEFAULT 'piece',
-                        allowsFloatQuantity INTEGER NOT NULL DEFAULT 0,
-                        shopName TEXT,
-                        createdAt TEXT,
-                        updatedAt TEXT,
-                        photos TEXT
-                    )
-                """)
-
-                // Copy data from old table to new table
-                database.execSQL("""
-                    INSERT INTO products_new (
-                        id, name, sku, category, price, stock, lowStockThreshold,
-                        imageUrl, description, barcode, supplierId, supplierName,
-                        taxRate, weight, dimensions, location, isActive,
-                        lastSyncedAt, isPendingSync, syncAction, shopId,
-                        cost, 
-                        maxDiscount, unitMeasure, allowsFloatQuantity,
-                        categoryId, shopName, createdAt, updatedAt, photos
-                    )
-                    SELECT 
-                        id, name, sku, category, price, stock, lowStockThreshold,
-                        imageUrl, description, barcode, supplierId, supplierName,
-                        taxRate, weight, dimensions, location, isActive,
-                        lastSyncedAt, isPendingSync, syncAction, shopId,
-                        COALESCE(cost, 0),
-                        0, 'piece', 0,
-                        NULL, NULL, NULL, NULL, NULL
-                    FROM products
-                """)
-
-                // Drop old table
-                database.execSQL("DROP TABLE products")
-
-                // Rename new table to original name
-                database.execSQL("ALTER TABLE products_new RENAME TO products")
-
-                println("📦 Room Database - Migration 5->6 completed successfully")
+                MIGRATION_8_9.migrate(database)
             }
         }
 
-        // Migration from version 4 to 5 (if needed)
+        // Migration from version 4 to 5
         private val MIGRATION_4_5 = object : Migration(4, 5) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 println("📦 Room Database - Migrating from version 4 to 5")
-                // Add your version 4 to 5 migration here if needed
+                // No changes needed
             }
         }
 
@@ -185,11 +269,15 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "osebo_inventory_db"
                 )
-                    // Add all migrations
-                    .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
-                    // Fallback to destructive migration if no migration path exists
+                    .addMigrations(
+                        MIGRATION_4_5,
+                        MIGRATION_5_6,
+                        MIGRATION_6_7,
+                        MIGRATION_7_8,
+                        MIGRATION_8_9,
+                        MIGRATION_9_10
+                    )
                     .fallbackToDestructiveMigration()
-                    // Add callback to log database creation/opening
                     .addCallback(object : RoomDatabase.Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {
                             super.onCreate(db)

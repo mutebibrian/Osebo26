@@ -5,13 +5,7 @@ import com.devbrian.osebo.data.PreferenceManager
 import com.devbrian.osebo.data.local.AppDatabase
 import com.devbrian.osebo.data.local.entity.ShopEntity
 import com.devbrian.osebo.data.remote.dto.response.ShopDto
-import com.devbrian.osebo.data.remote.dto.response.ShopSubscriptionDto
-import com.devbrian.osebo.data.remote.dto.response.PackageDto
-import com.devbrian.osebo.data.remote.dto.response.FeatureDto
-import com.devbrian.osebo.models.Feature
 import com.devbrian.osebo.models.Shop
-import com.devbrian.osebo.models.ShopSubscription
-import com.devbrian.osebo.models.SubscriptionPackage
 import com.devbrian.osebo.utils.NetworkUtils
 import com.devbrian.osebo.utils.Resource
 import kotlinx.coroutines.flow.Flow
@@ -28,36 +22,46 @@ class ShopRepositoryImpl @Inject constructor(
     private val database: AppDatabase
 ) : ShopRepository {
 
-    // Get shops from local database as Flow
     fun getShopsFlow(): Flow<List<Shop>> {
         val userId = preferenceManager.getUserId()
-        println("🔍 Getting shops flow for user: $userId")
+        val userRole = preferenceManager.getUserRole()
+        val isOwner = userRole.equals("owner", ignoreCase = true) || userRole.equals("admin", ignoreCase = true)
 
-        return database.shopDao().getShopsByUser(userId)
-            .map { entities ->
-                entities.map { it.toShop() }
-            }
+        println("🔍 Getting shops flow - User: $userId, Role: $userRole, IsOwner: $isOwner")
+
+        return if (isOwner) {
+            database.shopDao().getShopsByUser(userId)
+                .map { entities -> entities.map { it.toShop() } }
+        } else {
+            database.shopDao().getAllShops()
+                .map { entities -> entities.map { it.toShop() } }
+        }
     }
 
-    // Get active shop (with active subscription)
     suspend fun getActiveShop(): Shop? {
         val userId = preferenceManager.getUserId()
-        val activeEntity = database.shopDao().getFirstActiveShopByUser(userId)
+        val userRole = preferenceManager.getUserRole()
+        val isOwner = userRole.equals("owner", ignoreCase = true) || userRole.equals("admin", ignoreCase = true)
+
+        val activeEntity = if (isOwner) {
+            database.shopDao().getFirstActiveShopByUser(userId)
+        } else {
+            database.shopDao().getFirstActiveShop()
+        }
         return activeEntity?.toShop()
     }
 
-
-
-    // Refresh shops from API
-    // Refresh shops from API
     suspend fun refreshShops(): Resource<Boolean> {
         val token = preferenceManager.getAuthToken()
         val userId = preferenceManager.getUserId()
+        val userRole = preferenceManager.getUserRole()
+        val isOwner = userRole.equals("owner", ignoreCase = true) || userRole.equals("admin", ignoreCase = true)
 
-        println("🔍 Refreshing shops with token: ${token.take(20)}...")
-        println("🔍 Current user ID: $userId")
+        println("🔍 Refreshing shops - User: $userId, Role: $userRole, IsOwner: $isOwner")
+        println("🔍 Token exists: ${token.isNotEmpty()}, Token length: ${token.length}")
 
         if (token.isEmpty()) {
+            println("❌ No auth token found")
             return Resource.Error("Not authenticated. Please login again.")
         }
 
@@ -66,90 +70,79 @@ class ShopRepositoryImpl @Inject constructor(
                 return Resource.Error("No internet connection. Showing cached shops.")
             }
 
-            val response = apiService.getShops("Bearer $token")
+            // FIXED: Use getShopsWithAuth instead of getShops
+            val response = apiService.getShopsWithAuth("Bearer $token")
+
+            println("📡 API Response code: ${response.code()}")
 
             if (response.isSuccessful) {
                 val apiResponse = response.body()
                 if (apiResponse?.success == true) {
-                    val allShops = apiResponse.data ?: emptyList()
+                    val shops = apiResponse.data ?: emptyList()
 
-                    println("✅ Received ${allShops.size} shops from API")
+                    println("✅ Received ${shops.size} shops from API")
 
-                    // Log all shops from API for debugging
-
-                    allShops.forEachIndexed { index, dto ->
+                    shops.forEachIndexed { index, dto ->
                         println("   API Shop[$index] - ID: ${dto.id}, Name: ${dto.name}")
-                        println("        Owner: ${dto.ownerId}")
-                        println("        Subscription present: ${dto.subscription != null}")
                         if (dto.subscription != null) {
-                            println("        Subscription ID: ${dto.subscription?.id}")
-                            println("        Subscription isActive: ${dto.subscription?.isActive}")
-                            println("        Subscription isTrial: ${dto.subscription?.isTrial}")
-                            println("        Subscription endsAt: ${dto.subscription?.endsAt}")
-                            println("        Has Active Subscription: ${dto.hasActiveSubscription}")
-                        } else {
-                            println("        Subscription: null")
+                            println("        Subscription isActive: ${dto.subscription.isActive}")
+                            println("        Subscription isTrial: ${dto.subscription.isTrialActive}")
                         }
                     }
 
-                    // CRITICAL FIX: Filter shops by current user - ONLY include shops with matching ownerId
-                    val userShops = if (userId.isNotEmpty()) {
-                        allShops.filter { dto ->
-                            dto.ownerId == userId  // ← REMOVED the .isNullOrEmpty() condition
-                        }
-                    } else {
-                        emptyList()  // No user ID, return empty list
-                    }
-
-                    println("📊 Found ${userShops.size} shops for user $userId")
-
-                    // Convert to entities and save to database
-                    val entities = userShops.map { dto ->
+                    // Convert to entities
+                    val entities = shops.map { dto ->
                         ShopEntity.fromDto(dto, userId)
                     }
 
-                    database.shopDao().syncShops(entities, userId)
+                    // Save to database based on user role
+                    if (isOwner) {
+                        database.shopDao().syncShops(entities, userId)
+                    } else {
+                        database.shopDao().syncAllShops(entities)
+                    }
 
-                    // Check for shops with active subscription
-                    val activeShops = userShops.filter { it.hasActiveSubscription }
+                    println("✅ Saved ${entities.size} shops to database")
 
-                    // In the refreshShops() method, when you find an active shop:
-                    if (activeShops.isNotEmpty()) {
-                        val firstActive = activeShops.first()
-                        println("✅ Found active shop: ${firstActive.name}")
-                        println("✅ Shop ID: ${firstActive.id}")
-                        println("✅ Is Valid UUID: ${isValidUUID(firstActive.id)}")
+                    // Find active shop using the DTO's helper property
+                    val activeShop = shops.find { it.hasActiveSubscription }
 
-                        // Save the active shop to preferences
-                        preferenceManager.saveCurrentShopId(firstActive.id)      // This should be the UUID
-                        preferenceManager.saveCurrentShopName(firstActive.name)
-                        preferenceManager.saveCurrentShopUuid(firstActive.id)   // This should also be the UUID
+                    if (activeShop != null) {
+                        println("✅ Found active shop: ${activeShop.name}")
+                        println("✅ Shop ID: ${activeShop.id}")
+
+                        preferenceManager.saveCurrentShopId(activeShop.id)
+                        preferenceManager.saveCurrentShopName(activeShop.name)
+                        preferenceManager.saveCurrentShopUuid(activeShop.id)
                         preferenceManager.saveHasShop(true)
                         preferenceManager.saveSubscriptionStatus("ACTIVE")
-                        preferenceManager.saveSubscriptionId(firstActive.subscription?.id ?: "")
-                        preferenceManager.saveSubscriptionType(firstActive.subscription?.packageType ?: "")
-                        preferenceManager.saveSubscriptionExpiry(firstActive.subscription?.endsAt ?: "")
+                        preferenceManager.saveSubscriptionId(activeShop.subscription?.id ?: "")
+                        preferenceManager.saveSubscriptionType(activeShop.subscription?.packageType ?: "")
+                        preferenceManager.saveSubscriptionExpiry(activeShop.subscription?.endsAt ?: "")
 
-                        println("✅ Auto-activated shop: ${firstActive.name}")
-                        println("✅ Shop UUID saved: ${firstActive.id}")
+                        println("✅ Auto-activated shop: ${activeShop.name}")
                         preferenceManager.debugSubscriptionInfo()
-
                     } else {
-                        println("⚠️ No active shops found for user")
+                        println("⚠️ No active shops found")
                         preferenceManager.saveSubscriptionStatus("INACTIVE")
 
-                        // If there are shops but none active, save the first shop ID
-                        if (userShops.isNotEmpty()) {
-                            val firstShop = userShops.first()
+                        if (shops.isNotEmpty()) {
+                            val firstShop = shops.first()
                             preferenceManager.saveCurrentShopId(firstShop.id)
                             preferenceManager.saveCurrentShopName(firstShop.name)
                             preferenceManager.saveCurrentShopUuid(firstShop.id)
+                            preferenceManager.saveHasShop(true)
+                            println("✅ Selected first shop: ${firstShop.name}")
+                        } else {
+                            preferenceManager.saveHasShop(false)
                         }
                     }
 
                     Resource.Success(true)
                 } else {
-                    Resource.Error(apiResponse?.message ?: "Failed to fetch shops")
+                    val errorMsg = apiResponse?.message ?: "Failed to fetch shops"
+                    println("❌ API error: $errorMsg")
+                    Resource.Error(errorMsg)
                 }
             } else {
                 when (response.code()) {
@@ -157,7 +150,10 @@ class ShopRepositoryImpl @Inject constructor(
                         println("❌ Unauthorized - Token expired")
                         Resource.Error("Session expired. Please login again.")
                     }
-                    403 -> Resource.Error("Access denied")
+                    403 -> {
+                        println("❌ Forbidden - Access denied")
+                        Resource.Error("Access denied. You don't have permission to view shops.")
+                    }
                     else -> Resource.Error("Network error: ${response.code()}")
                 }
             }
@@ -167,22 +163,32 @@ class ShopRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             println("❌ Error: ${e.message}")
             e.printStackTrace()
-            Resource.Error(e.message ?: "Unknown error")
+            Resource.Error(e.message ?: "Unknown error occurred")
         }
     }
 
     override suspend fun getShops(): Resource<List<Shop>> {
         return try {
             val userId = preferenceManager.getUserId()
-            if (userId.isEmpty()) {
-                println("⚠️ No user ID found, returning empty list")
-                Resource.Success(emptyList())
+            val userRole = preferenceManager.getUserRole()
+            val isOwner = userRole.equals("owner", ignoreCase = true) || userRole.equals("admin", ignoreCase = true)
+
+            println("📊 Getting shops from database - User: $userId, Role: $userRole, IsOwner: $isOwner")
+
+            val entities = if (isOwner) {
+                if (userId.isEmpty()) {
+                    println("⚠️ No user ID found, returning empty list")
+                    emptyList()
+                } else {
+                    database.shopDao().getShopsByUserSuspend(userId)
+                }
             } else {
-                val entities = database.shopDao().getShopsByUserSuspend(userId)
-                val shops = entities.map { it.toShop() }
-                println("📊 Retrieved ${shops.size} shops for user $userId from database")
-                Resource.Success(shops)
+                database.shopDao().getAllShopsSuspend()
             }
+
+            val shops = entities.map { it.toShop() }
+            println("📊 Retrieved ${shops.size} shops from database")
+            Resource.Success(shops)
         } catch (e: Exception) {
             println("❌ Error getting shops: ${e.message}")
             Resource.Error(e.message ?: "Failed to load shops")
@@ -192,18 +198,24 @@ class ShopRepositoryImpl @Inject constructor(
     override suspend fun deleteShop(shopId: String) {
         try {
             val token = preferenceManager.getAuthToken()
+            if (token.isEmpty()) {
+                throw Exception("Not authenticated")
+            }
+
+            // FIXED: Use deleteShop with token parameter
             val response = apiService.deleteShop("Bearer $token", shopId)
             if (!response.isSuccessful) {
                 throw Exception("Failed to delete shop: ${response.code()}")
             }
-            // Also delete from local database
+
             database.shopDao().deleteShopById(shopId)
+            println("✅ Shop deleted: $shopId")
         } catch (e: Exception) {
+            println("❌ Error deleting shop: ${e.message}")
             throw Exception("Failed to delete shop: ${e.message}")
         }
     }
 
-    // Helper function to validate UUID
     private fun isValidUUID(uuid: String): Boolean {
         return try {
             UUID.fromString(uuid)
@@ -213,8 +225,3 @@ class ShopRepositoryImpl @Inject constructor(
         }
     }
 }
-
-// Extension function to check if shop has active subscription
-private val ShopDto.hasActiveSubscription: Boolean
-    get() = subscription?.status.equals("ACTIVE", ignoreCase = true) ||
-            subscription?.status.equals("TRIAL", ignoreCase = true)

@@ -49,14 +49,14 @@ class ShopOverviewFragment : Fragment() {
     private fun displayOverview() {
         val formatter = NumberFormat.getNumberInstance(Locale.US)
 
-        // Business metrics
+        
         binding.tvTotalRevenue.text = formatCurrency(shop.totalRevenue)
         binding.tvTotalExpenses.text = formatCurrency(shop.totalExpenses)
         binding.tvTotalProfit.text = formatCurrency(shop.profit)
         binding.tvTotalProducts.text = formatter.format(shop.totalProducts)
         binding.tvTotalEmployees.text = formatter.format(shop.totalEmployees)
 
-        // Calculate profit margin
+        
         val profitMargin = if (shop.totalRevenue > 0) {
             (shop.profit / shop.totalRevenue) * 100
         } else {
@@ -64,7 +64,7 @@ class ShopOverviewFragment : Fragment() {
         }
         binding.tvProfitMargin.text = String.format("%.1f%%", profitMargin)
 
-        // Set progress for profit margin (0-100%)
+        
         binding.profitProgress.progress = profitMargin.toInt()
     }
 

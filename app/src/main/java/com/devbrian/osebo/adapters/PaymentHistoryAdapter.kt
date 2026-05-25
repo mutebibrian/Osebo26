@@ -39,7 +39,7 @@ class PaymentHistoryAdapter(
                 tvMethod.text = payment.displayMethod
                 tvReference.text = "Ref: ${payment.reference ?: payment.transactionId ?: "N/A"}"
 
-                // Set status color
+                
                 tvStatus.setTextColor(
                     root.context.getColor(
                         when {

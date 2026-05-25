@@ -20,3 +20,4 @@ data class FinanceSummaryDto(
     val currency: String = "UGX"
 )
 
+

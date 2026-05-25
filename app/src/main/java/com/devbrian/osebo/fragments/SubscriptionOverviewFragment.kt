@@ -51,7 +51,7 @@ class SubscriptionOverviewFragment : Fragment() {
         setupObservers()
         setupClickListeners()
 
-        // Load data
+        
         loadSubscriptionData()
     }
 
@@ -120,31 +120,31 @@ class SubscriptionOverviewFragment : Fragment() {
     }
 
     private fun displaySubscriptionData(subscription: Subscription) {
-        // Set shop name from preferences
+        
         binding.tvShopName.text = getCurrentShopName()
 
-        // Plan name
+        
         binding.planNameTextView.text = subscription.displayPackage ?: subscription.packageType
 
-        // Price
+        
         binding.priceTextView.text = if (subscription.isTrial) {
             "Free Trial"
         } else {
             subscription.formattedAmount
         }
 
-        // Format dates nicely for display
+        
         val expiryDate = formatDateForDisplay(subscription.endDate)
         binding.expiresValue.text = expiryDate
         binding.endDateTextView.text = expiryDate
 
         binding.startDateTextView.text = formatDateForDisplay(subscription.startDate)
 
-        // Days left
+        
         val daysLeft = subscription.daysRemaining
         binding.daysLeftValue.text = daysLeft.toString()
 
-        // Set color based on days remaining
+        
         val daysColor = when {
             daysLeft < 3 -> R.color.error_red
             daysLeft < 7 -> R.color.warning_orange
@@ -154,11 +154,11 @@ class SubscriptionOverviewFragment : Fragment() {
         binding.daysLeftTextView.text = "$daysLeft days"
         binding.daysLeftTextView.setTextColor(ContextCompat.getColor(requireContext(), daysColor))
 
-        // Status
+        
         binding.statusTextView.text = subscription.displayStatus
         binding.statusChip.text = subscription.displayStatus
 
-        // Status color
+        
         val statusColor = when {
             subscription.isTrialActive -> R.color.info_blue
             subscription.isActiveStatus -> R.color.success_green
@@ -169,10 +169,10 @@ class SubscriptionOverviewFragment : Fragment() {
         binding.statusTextView.setTextColor(ContextCompat.getColor(requireContext(), statusColor))
         binding.statusChip.setChipBackgroundColorResource(statusColor)
 
-        // Auto renew
+        
         binding.autoRenewTextView.text = if (subscription.autoRenew) "Enabled" else "Disabled"
 
-        // Payment method
+        
         binding.paymentMethodTextView.text = subscription.paymentMethod?.let {
             when (it.uppercase()) {
                 "MOBILE_MONEY" -> "Mobile Money"
@@ -182,7 +182,7 @@ class SubscriptionOverviewFragment : Fragment() {
             }
         } ?: "Not set"
 
-        // Show/hide renew button
+        
         binding.renewButton.visibility = if (subscription.isActiveStatus || subscription.isTrialActive) {
             View.VISIBLE
         } else {
@@ -208,7 +208,7 @@ class SubscriptionOverviewFragment : Fragment() {
 
     private fun setupClickListeners() {
         binding.upgradePlanButton.setOnClickListener {
-            // Scroll to plans section
+            
             binding.plansRecyclerView.smoothScrollToPosition(0)
         }
 
@@ -229,7 +229,7 @@ class SubscriptionOverviewFragment : Fragment() {
         }
 
         binding.subscribeNowButton.setOnClickListener {
-            // Scroll to plans section
+            
             binding.plansRecyclerView.smoothScrollToPosition(0)
         }
 
@@ -247,7 +247,7 @@ class SubscriptionOverviewFragment : Fragment() {
             .setTitle("Renew Subscription")
             .setMessage("Do you want to renew your ${subscription.displayPackage}?")
             .setPositiveButton("Renew Now") { _, _ ->
-                // Navigate to payment or show plans
+                
                 binding.plansRecyclerView.smoothScrollToPosition(0)
             }
             .setNegativeButton("Cancel", null)
@@ -260,19 +260,20 @@ class SubscriptionOverviewFragment : Fragment() {
             return
         }
 
-        // Check if custom plan
+        
         if (packageItem.tier.equals("custom", ignoreCase = true) || packageItem.isCustom) {
             openContactSales()
             return
         }
 
-        // Show payment dialog
+        
         showPaymentDialog(packageItem)
     }
 
     private fun showPaymentDialog(packageItem: SubscriptionPackage) {
-        // Convert String to Double
+        // Get the amount from the package
         val amount = packageItem.unitMonthlyAmount?.toDoubleOrNull() ?: 0.0
+        println("💰 Payment amount: $amount")
 
         val dialog = com.devbrian.osebo.fragments.PaymentDialogFragment.newInstance(
             shopId = shopId,
@@ -281,12 +282,14 @@ class SubscriptionOverviewFragment : Fragment() {
             amount = amount
         )
 
-        dialog.setPaymentListener { phoneNumber, packageId, months ->
+        // FIXED: Update listener to include the amount parameter
+        dialog.setPaymentListener { phoneNumber, packageId, months, totalAmount ->
             viewModel.createSubscription(
                 shopId = shopId,
                 packageId = packageId,
                 phoneNumber = phoneNumber,
-                months = months
+                months = months,
+                amount = totalAmount
             )
         }
 

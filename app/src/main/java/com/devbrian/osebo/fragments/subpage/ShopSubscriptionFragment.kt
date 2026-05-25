@@ -79,17 +79,17 @@ class ShopSubscriptionFragment : Fragment() {
 
     private fun setupClickListeners() {
         binding.btnManageSubscription.setOnClickListener {
-            // Navigate to subscription packages (this is the Subscribe Now button in no-subscription layout)
+            
             Toast.makeText(requireContext(), "Subscribe Now", Toast.LENGTH_SHORT).show()
         }
 
         binding.btnRenewSubscription.setOnClickListener {
-            // Handle renew
+            
             Toast.makeText(requireContext(), "Renew Subscription", Toast.LENGTH_SHORT).show()
         }
 
         binding.btnUpgradeSubscription.setOnClickListener {
-            // Handle upgrade
+            
             Toast.makeText(requireContext(), "Upgrade Subscription", Toast.LENGTH_SHORT).show()
         }
     }
@@ -103,7 +103,7 @@ class ShopSubscriptionFragment : Fragment() {
             binding.cardSubscription.visibility = View.VISIBLE
             binding.layoutNoSubscription.visibility = View.GONE
 
-            // Plan info
+            
             binding.tvSubscriptionPlan.text = when (shop.subscriptionType?.uppercase()) {
                 "BASIC" -> "Basic Plan"
                 "PRO" -> "Pro Plan"
@@ -111,7 +111,7 @@ class ShopSubscriptionFragment : Fragment() {
                 else -> shop.subscriptionType ?: "Unknown Plan"
             }
 
-            // Status
+            
             val isTrial = shop.subscriptionStatus.equals("trial", ignoreCase = true)
             binding.tvSubscriptionStatus.text = if (isTrial) "TRIAL" else "ACTIVE"
             binding.tvSubscriptionStatus.setTextColor(
@@ -121,10 +121,10 @@ class ShopSubscriptionFragment : Fragment() {
                 )
             )
 
-            // Expiry
+            
             binding.tvSubscriptionExpiry.text = formatDate(shop.subscriptionExpiry)
 
-            // Show/hide renew/upgrade buttons based on subscription status
+            
             if (isSubscriptionExpiringSoon(shop.subscriptionExpiry)) {
                 binding.btnRenewSubscription.visibility = View.VISIBLE
                 binding.btnUpgradeSubscription.visibility = View.GONE
@@ -150,7 +150,7 @@ class ShopSubscriptionFragment : Fragment() {
                         resource.data?.let { subscription ->
                             currentSubscription = subscription
 
-                            // Update detailed subscription info card
+                            
                             binding.tvCurrentPlanDetail.text = subscription.displayPackage
                             binding.tvSubscriptionStatusDetail.text = subscription.displayStatus
                             binding.tvStartDate.text = subscription.formattedStartDate
@@ -159,7 +159,7 @@ class ShopSubscriptionFragment : Fragment() {
                             binding.tvPaymentMethod.text = subscription.displayPaymentMethod
                             binding.tvDaysRemaining.text = subscription.displayDaysRemaining
 
-                            // Set days remaining color
+                            
                             val daysRemainingColor = when {
                                 subscription.daysRemaining < 0 -> R.color.error_red
                                 subscription.daysRemaining <= 3 -> R.color.warning_orange
@@ -169,7 +169,7 @@ class ShopSubscriptionFragment : Fragment() {
                                 ContextCompat.getColor(requireContext(), daysRemainingColor)
                             )
 
-                            // Load features from package
+                            
                             subscription.packageDetails?.features?.let { features ->
                                 featureAdapter.submitList(features)
                             }
@@ -177,7 +177,7 @@ class ShopSubscriptionFragment : Fragment() {
                     }
                     is Resource.Error -> {
                         binding.progressBar?.visibility = View.GONE
-                        // Don't show error for now, just use the shop data
+                        
                     }
                     is Resource.Loading -> {
                         binding.progressBar?.visibility = View.VISIBLE
@@ -188,7 +188,7 @@ class ShopSubscriptionFragment : Fragment() {
     }
 
     private fun loadFeatures() {
-        // Load features based on plan type
+        
         val features = when (shop.subscriptionType?.uppercase()) {
             "BASIC" -> listOf(
                 "Up to 500 products",
@@ -264,7 +264,7 @@ class ShopSubscriptionFragment : Fragment() {
                     Toast.makeText(requireContext(), resource.message ?: "Failed to cancel subscription", Toast.LENGTH_SHORT).show()
                 }
                 is Resource.Loading -> {
-                    // Optionally show loading
+                    
                 }
             }
         }

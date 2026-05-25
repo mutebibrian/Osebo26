@@ -345,9 +345,15 @@
             app:argType="string"
             app:nullable="true"
             android:defaultValue="@null" />
+
+        <argument
+            android:name="servedBy"
+            app:argType="string"
+            android:defaultValue=""
+            app:nullable="true" />
     </fragment>
 
-    <!-- Finance Fragment -->
+    <!-- Finance Fragment - UPDATED with all missing actions -->
     <fragment
         android:id="@+id/financeFragment"
         android:name="com.devbrian.osebo.fragments.FinanceFragment"
@@ -378,7 +384,29 @@
             android:id="@+id/action_financeFragment_to_shopsFragment"
             app:destination="@id/shopsFragment" />
 
+        <action
+            android:id="@+id/action_financeFragment_to_reportsFragment"
+            app:destination="@id/reportsFragment" />
+
+        <action
+            android:id="@+id/action_financeFragment_to_financeSettingsFragment"
+            app:destination="@id/financeSettingsFragment" />
+
     </fragment>
+
+    <!-- Reports Fragment - NEW -->
+    <fragment
+        android:id="@+id/reportsFragment"
+        android:name="com.devbrian.osebo.fragments.ReportsFragment"
+        android:label="Reports"
+        tools:layout="@layout/fragment_reports" />
+
+    <!-- Finance Settings Fragment - NEW -->
+    <fragment
+        android:id="@+id/financeSettingsFragment"
+        android:name="com.devbrian.osebo.fragments.FinanceSettingsFragment"
+        android:label="Finance Settings"
+        tools:layout="@layout/fragment_finance_settings" />
 
     <!-- Expense Categories Fragment -->
     <fragment
@@ -419,6 +447,10 @@
             app:destination="@id/addProductFragment" />
 
         <action
+            android:id="@+id/action_inventory_to_restock"
+            app:destination="@id/restockFragment" />
+
+        <action
             android:id="@+id/action_inventory_to_productDetails"
             app:destination="@id/productDetailsFragment">
             <argument
@@ -434,6 +466,13 @@
         android:name="com.devbrian.osebo.fragments.SuppliersFragment"
         android:label="Suppliers"
         tools:layout="@layout/fragment_suppliers" />
+
+    <!-- Restock Fragment -->
+    <fragment
+        android:id="@+id/restockFragment"
+        android:name="com.devbrian.osebo.fragments.RestockFragment"
+        android:label="Restock Products"
+        tools:layout="@layout/fragment_restock" />
 
     <!-- Add Expense Fragment -->
     <fragment

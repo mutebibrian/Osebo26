@@ -10,3 +10,4 @@ data class NotificationSettingsDto(
     val salesNotifications: Boolean
 )
 
+

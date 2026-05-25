@@ -29,18 +29,18 @@ data class SaleApiData(
     @SerializedName("id")
     val id: String,
 
-    // NOTE: sometimes backend uses invoice_number; if yours does, change SerializedName accordingly
+    
     @SerializedName("invoiceNumber")
     val invoiceNumber: String? = null,
 
     @SerializedName("createdAt")
     val createdAt: String? = null,
 
-    // The property your repository references: apiData.totalPrice
+    
     @SerializedName("total_price")
     val totalPrice: Double? = null,
 
-    // The property your repository references: apiData.paidAmountString
+    
     @SerializedName("paid_amount")
     val paidAmountString: String? = null,
 
@@ -59,12 +59,12 @@ data class SaleApiData(
     @SerializedName("shop")
     val shop: ShopInfo? = null,
 
-    // NOTE: sometimes backend uses sale_stock_items; adjust if needed
+    
     @SerializedName("saleStockItems")
     val saleStockItems: List<SaleStockItemDto>? = null,
 
-    // The property your repository references: apiData.salePayments
-    // NOTE: sometimes backend uses sale_payments; adjust if needed
+    
+    
     @SerializedName("salePayments")
     val salePayments: List<SalePaymentDto>? = null
 )
@@ -74,7 +74,8 @@ data class SaleStockItemDto(
     val id: String,
 
     @SerializedName("quantity")
-    val quantity: Int,
+    val quantity: Double,
+
 
     @SerializedName("price")
     val price: Double,

@@ -139,7 +139,7 @@ class ShopStatisticsFragment : Fragment() {
             updatePeriod("year")
         }
 
-        // Set initial selection
+        
         when (currentPeriod) {
             "day" -> binding.chipDay.isChecked = true
             "week" -> binding.chipWeek.isChecked = true
@@ -163,30 +163,30 @@ class ShopStatisticsFragment : Fragment() {
             setScaleEnabled(true)
             setPinchZoom(true)
 
-            // X Axis configuration
+            
             xAxis.position = XAxis.XAxisPosition.BOTTOM
             xAxis.setDrawGridLines(false)
             xAxis.granularity = 1f
             xAxis.textColor = ContextCompat.getColor(requireContext(), R.color.text_secondary)
 
-            // Left Axis configuration
+            
             axisLeft.setDrawGridLines(true)
             axisLeft.gridColor = ContextCompat.getColor(requireContext(), R.color.divider)
             axisLeft.textColor = ContextCompat.getColor(requireContext(), R.color.text_secondary)
             axisLeft.setDrawZeroLine(true)
 
-            // Right Axis configuration
+            
             axisRight.isEnabled = false
 
-            // Legend configuration
+            
             legend.isEnabled = true
             legend.textColor = ContextCompat.getColor(requireContext(), R.color.text_primary)
 
-            // Empty state
+            
             setNoDataText("No data available")
             setNoDataTextColor(ContextCompat.getColor(requireContext(), R.color.text_secondary))
 
-            // Value selection listener
+            
             setOnChartValueSelectedListener(object : OnChartValueSelectedListener {
                 override fun onValueSelected(e: Entry?, h: Highlight?) {
                     e?.let {
@@ -195,7 +195,7 @@ class ShopStatisticsFragment : Fragment() {
                 }
 
                 override fun onNothingSelected() {
-                    // Hide tooltip
+                    
                 }
             })
         }
@@ -232,7 +232,7 @@ class ShopStatisticsFragment : Fragment() {
     }
 
     private fun observeViewModels() {
-        // Observe summary statistics
+        
         statisticsViewModel.statisticsSummary.observe(viewLifecycleOwner) { resource ->
             when (resource) {
                 is Resource.Success -> {
@@ -253,7 +253,7 @@ class ShopStatisticsFragment : Fragment() {
             }
         }
 
-        // Observe sales chart data
+        
         statisticsViewModel.salesChartData.observe(viewLifecycleOwner) { resource ->
             when (resource) {
                 is Resource.Success -> {
@@ -269,12 +269,12 @@ class ShopStatisticsFragment : Fragment() {
                     Toast.makeText(requireContext(), resource.message, Toast.LENGTH_SHORT).show()
                 }
                 is Resource.Loading -> {
-                    // Show loading on chart
+                    
                 }
             }
         }
 
-        // Observe top products
+        
         statisticsViewModel.topProducts.observe(viewLifecycleOwner) { resource ->
             when (resource) {
                 is Resource.Success -> {
@@ -288,7 +288,7 @@ class ShopStatisticsFragment : Fragment() {
                     binding.tvNoProducts.text = resource.message ?: "No products found"
                 }
                 is Resource.Loading -> {
-                    // Show loading
+                    
                 }
             }
         }
@@ -300,13 +300,13 @@ class ShopStatisticsFragment : Fragment() {
         binding.tvAvgOrderValue.text = numberFormat.format(stats.averageOrderValue)
         binding.tvConversionRateValue.text = String.format("%.1f%%", stats.conversionRate)
 
-        // Set trend indicators
+        
         setTrendIndicator(binding.tvSalesTrend, binding.ivSalesTrend, stats.salesGrowth)
         setTrendIndicator(binding.tvOrdersTrend, binding.ivOrdersTrend, stats.ordersGrowth)
         setTrendIndicator(binding.tvAvgOrderTrend, binding.ivAvgOrderTrend, stats.avgOrderGrowth)
         setTrendIndicator(binding.tvConversionTrend, binding.ivConversionTrend, stats.conversionGrowth)
 
-        // Update period text
+        
         binding.tvPeriodRange.text = formatPeriodRange(stats.periodStart, stats.periodEnd)
     }
 
@@ -335,13 +335,13 @@ class ShopStatisticsFragment : Fragment() {
 
     private fun updateChart(dataPoints: List<SalesDataPoint>) {
         try {
-            // Create entries using for loop
+            
             val entries = ArrayList<Entry>()
             val labelList = ArrayList<String>()
 
             for (i in dataPoints.indices) {
                 val point = dataPoints[i]
-                // Explicitly access properties with safe casts
+                
                 val value = point.value
                 val label = point.label
 

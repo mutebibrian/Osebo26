@@ -51,7 +51,6 @@ class AddProductFragment : Fragment() {
 
     private fun setupClickListeners() {
         binding.btnUploadImage.setOnClickListener {
-            
             Toast.makeText(requireContext(), "Image upload coming soon", Toast.LENGTH_SHORT).show()
         }
 
@@ -125,7 +124,12 @@ class AddProductFragment : Fragment() {
         binding.etDescription.setText(product.description ?: "")
         binding.etPrice.setText(product.price.toString())
         binding.etCost.setText(product.cost?.toString() ?: "")
-        binding.etStock.setText(product.stock.toString())
+        // Convert Double to Int for display (but store as string)
+        binding.etStock.setText(if (product.stock == product.stock.toInt().toDouble()) {
+            product.stock.toInt().toString()
+        } else {
+            product.stock.toString()
+        })
         binding.etLowStockThreshold.setText(product.lowStockThreshold.toString())
         binding.etLocation.setText(product.location ?: "")
         binding.etTaxRate.setText(product.taxRate?.toString() ?: "")
@@ -135,7 +139,6 @@ class AddProductFragment : Fragment() {
     private fun validateInputs(): Boolean {
         var isValid = true
 
-        
         binding.etProductName.error = null
         binding.etSku.error = null
         binding.etPrice.error = null
@@ -173,7 +176,7 @@ class AddProductFragment : Fragment() {
             isValid = false
         } else {
             try {
-                stockStr.toInt()
+                stockStr.toDouble()  // Changed from toInt() to toDouble()
             } catch (e: NumberFormatException) {
                 binding.etStock.error = "Invalid stock format"
                 isValid = false
@@ -197,22 +200,37 @@ class AddProductFragment : Fragment() {
     }
 
     private fun saveProduct() {
+        // Parse stock as Double
+        val stockValue = binding.etStock.text.toString().trim().toDouble()
+
         val product = Product(
             id = productId ?: "",
             name = binding.etProductName.text.toString().trim(),
             sku = binding.etSku.text.toString().trim(),
             category = binding.etCategory.text.toString().trim(),
+            categoryId = null,
             price = binding.etPrice.text.toString().toDouble(),
             cost = binding.etCost.text.toString().trim().takeIf { it.isNotEmpty() }?.toDouble(),
-            stock = binding.etStock.text.toString().toInt(),
+            stock = stockValue,  // Now using Double
             lowStockThreshold = binding.etLowStockThreshold.text.toString().toInt(),
             imageUrl = null,
             description = binding.etDescription.text.toString().trim().takeIf { it.isNotEmpty() },
             barcode = binding.etBarcode.text.toString().trim().takeIf { it.isNotEmpty() },
+            supplierId = null,
             supplierName = binding.etSupplier.text.toString().trim().takeIf { it.isNotEmpty() },
             taxRate = binding.etTaxRate.text.toString().trim().takeIf { it.isNotEmpty() }?.toDouble(),
             weight = binding.etWeight.text.toString().trim().takeIf { it.isNotEmpty() }?.toDouble(),
-            location = binding.etLocation.text.toString().trim().takeIf { it.isNotEmpty() }
+            dimensions = null,
+            location = binding.etLocation.text.toString().trim().takeIf { it.isNotEmpty() },
+            isActive = true,
+            createdAt = null,
+            updatedAt = null,
+            maxDiscount = null,
+            unit = null,
+            allowsFloatQuantity = null,
+            shopId = null,
+            shopName = null,
+            photos = null
         )
 
         if (isEditMode && !productId.isNullOrEmpty()) {
@@ -227,4 +245,3 @@ class AddProductFragment : Fragment() {
         _binding = null
     }
 }
-

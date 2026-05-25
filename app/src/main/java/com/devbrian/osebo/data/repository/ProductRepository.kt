@@ -4,7 +4,6 @@ import com.devbrian.osebo.data.ApiService
 import com.devbrian.osebo.data.PreferenceManager
 import com.devbrian.osebo.data.local.AppDatabase
 import com.devbrian.osebo.data.local.entity.ProductEntity
-import com.devbrian.osebo.data.remote.dto.response.ProductDto
 import com.devbrian.osebo.models.Product
 import com.devbrian.osebo.utils.NetworkUtils
 import com.devbrian.osebo.utils.Resource
@@ -20,23 +19,17 @@ class ProductRepository @Inject constructor(
     private val database: AppDatabase
 ) {
 
+    // Get all products from API or local
     suspend fun getProducts(): Resource<List<Product>> {
-        // Get BOTH identifiers
-        val shopUuid = preferenceManager.getCurrentShopUuid()  // For API calls
-        val shopId = preferenceManager.getCurrentShopId()      // For local DB
+        val shopUuid = preferenceManager.getCurrentShopUuid()
+        val shopId = preferenceManager.getCurrentShopId()
 
         println("📦 ProductRepository - Shop UUID (API): '$shopUuid'")
         println("📦 ProductRepository - Shop ID (Local): '$shopId'")
 
-        // Validate shop selection
         if (shopUuid.isEmpty()) {
             println("❌ ProductRepository - No shop UUID found!")
             return Resource.Error("No shop selected. Please select a shop first.")
-        }
-
-        if (shopId.isEmpty()) {
-            println("⚠️ ProductRepository - Shop ID is empty! Local persistence may not work.")
-            // Continue anyway, but log warning
         }
 
         return try {
@@ -53,13 +46,43 @@ class ProductRepository @Inject constructor(
             if (response.isSuccessful) {
                 val apiResponse = response.body()
                 if (apiResponse?.success == true) {
-                    val products = apiResponse.data?.map { it.toProduct() } ?: emptyList()
+                    val productDtos = apiResponse.data ?: emptyList()
+                    val products = productDtos.map { dto ->
+                        Product(
+                            id = dto.id,
+                            name = dto.name,
+                            sku = dto.sku,
+                            category = dto.stockCategory.name,
+                            categoryId = dto.stockCategory.id,
+                            price = dto.sellingPrice,
+                            cost = null,
+                            stock = dto.quantity,
+                            lowStockThreshold = dto.lowQuantityMark,
+                            imageUrl = dto.photos?.firstOrNull(),
+                            description = dto.description,
+                            barcode = dto.barcode,
+                            supplierId = null,
+                            supplierName = null,
+                            taxRate = null,
+                            weight = null,
+                            dimensions = null,
+                            location = null,
+                            isActive = true,
+                            createdAt = dto.createdAt,
+                            updatedAt = dto.updatedAt,
+                            maxDiscount = dto.maxDiscount,
+                            unit = dto.unitMeasure,
+                            allowsFloatQuantity = dto.allowsFloatQuantity,
+                            shopId = dto.shop.id,
+                            shopName = dto.shop.name,
+                            photos = dto.photos
+                        )
+                    }
                     println("📦 ProductRepository - Products loaded: ${products.size}")
 
+                    // Save to local database
                     if (shopId.isNotEmpty()) {
                         saveProductsToLocal(products, shopId)
-                    } else {
-                        println("⚠️ ProductRepository - Cannot save products: No shop ID")
                     }
 
                     Resource.Success(products)
@@ -113,100 +136,76 @@ class ProductRepository @Inject constructor(
         }
     }
 
+    // Search products
     suspend fun searchProducts(query: String): Resource<List<Product>> {
-        val shopUuid = preferenceManager.getCurrentShopUuid()
         val shopId = preferenceManager.getCurrentShopId()
-
-        if (shopUuid.isEmpty()) {
-            return Resource.Error("No shop selected")
-        }
 
         if (query.isBlank()) {
             return getProducts()
         }
 
         return try {
-            println("📦 ProductRepository - Searching products: '$query'")
+            // First try to search locally
+            val localResults = searchLocalProducts(shopId, query)
+            if (localResults.isNotEmpty()) {
+                println("📦 ProductRepository - Local search found: ${localResults.size} products")
+                return Resource.Success(localResults)
+            }
 
+            // If online, search from API
             if (NetworkUtils.isNetworkAvailable(preferenceManager.getContext())) {
-                try {
-                    val response = apiService.getProducts(shopUuid)
-
-                    if (response.isSuccessful) {
-                        val apiResponse = response.body()
-                        if (apiResponse?.success == true) {
-                            val allProducts = apiResponse.data?.map { it.toProduct() } ?: emptyList()
-
-                            val filteredProducts = allProducts.filter { product ->
-                                product.name.contains(query, ignoreCase = true) ||
-                                        product.sku.contains(query, ignoreCase = true) ||
-                                        (product.barcode?.contains(query, ignoreCase = true) == true) ||
-                                        product.category?.contains(query, ignoreCase = true) == true
-                            }
-
-                            println("📦 ProductRepository - Online search found: ${filteredProducts.size} products")
-
-                            if (shopId.isNotEmpty()) {
-                                saveProductsToLocal(allProducts, shopId)
-                            }
-
-                            return Resource.Success(filteredProducts)
-                        }
+                val allProductsResult = getProducts()
+                if (allProductsResult is Resource.Success) {
+                    val filtered = allProductsResult.data.filter { product ->
+                        product.name.contains(query, ignoreCase = true) ||
+                                product.sku.contains(query, ignoreCase = true) ||
+                                (product.barcode?.contains(query, ignoreCase = true) == true) ||
+                                product.category?.contains(query, ignoreCase = true) == true
                     }
-                    println("📦 ProductRepository - Online search failed, falling back to local")
-                } catch (e: Exception) {
-                    println("📦 ProductRepository - Online search exception: ${e.message}")
+                    println("📦 ProductRepository - Online search found: ${filtered.size} products")
+                    return Resource.Success(filtered)
                 }
             }
 
-            searchLocalProducts(shopId, query)
-
+            Resource.Success(emptyList())
         } catch (e: Exception) {
             println("❌ ProductRepository - Search error: ${e.message}")
-            e.printStackTrace()
-            try {
-                searchLocalProducts(shopId, query)
-            } catch (e2: Exception) {
-                Resource.Error("Search failed: ${e.message}")
-            }
+            Resource.Error("Search failed: ${e.message}")
         }
     }
 
+    // Get local products only
     private suspend fun getLocalProducts(shopId: String): List<Product> {
         return try {
             if (shopId.isEmpty()) {
                 println("📦 ProductRepository - No shop ID for local query")
                 return emptyList()
             }
-            val entities = database.productDao().getAllProductsSuspend(shopId)
+            val entities = database.productDao().getProductsByShopSuspend(shopId)
             println("📦 ProductRepository - Found ${entities.size} products in local DB for shop: $shopId")
-            entities.map { entity -> entity.toProduct() }
+            entities.map { it.toProduct() }
         } catch (e: Exception) {
             println("❌ ProductRepository - Error getting local products: ${e.message}")
             emptyList()
         }
     }
 
-    private suspend fun searchLocalProducts(shopId: String, query: String): Resource<List<Product>> {
+    // Search local products
+    private suspend fun searchLocalProducts(shopId: String, query: String): List<Product> {
         return try {
-            println("📦 ProductRepository - Searching local products: '$query' for shop: $shopId")
-
             if (shopId.isEmpty()) {
-                return Resource.Error("No shop selected")
+                return emptyList()
             }
-
-            val entities = database.productDao().searchProductsSuspend(shopId, query)
-            val results = entities.map { it.toProduct() }
-
-            println("📦 ProductRepository - Local search found: ${results.size} products")
-            Resource.Success(results)
+            val entities = database.productDao().searchProducts(query)
+            // Filter by shopId since search doesn't have shop filter
+            entities.filter { it.shopId == shopId }.map { it.toProduct() }
         } catch (e: Exception) {
             println("❌ ProductRepository - Local search error: ${e.message}")
-            e.printStackTrace()
-            Resource.Error("Local search failed: ${e.message}")
+            emptyList()
         }
     }
 
+    // Save products to local database
     private suspend fun saveProductsToLocal(products: List<Product>, shopId: String) {
         if (products.isEmpty()) {
             println("📦 ProductRepository - No products to save locally")
@@ -214,19 +213,10 @@ class ProductRepository @Inject constructor(
         }
 
         try {
-            if (shopId.isEmpty()) {
-                println("❌ ProductRepository - Cannot save products: No shop ID")
-                return
-            }
-
             val entities = products.map { product ->
-                ProductEntity.fromProduct(
-                    product = product,
-                    shopId = shopId,
-                    isPendingSync = false
-                )
+                ProductEntity.fromProduct(product, shopId)
             }
-            database.productDao().insertAllProducts(entities)
+            database.productDao().syncProducts(entities, shopId)
             println("📦 ProductRepository - Saved ${entities.size} products to local DB for shop: $shopId")
         } catch (e: Exception) {
             println("❌ ProductRepository - Error saving to local DB: ${e.message}")
@@ -234,43 +224,27 @@ class ProductRepository @Inject constructor(
         }
     }
 
-    // ==================== OBSERVABLE QUERIES ====================
-
+    // Observe all products for current shop (Flow)
     fun observeProducts(): Flow<List<Product>> {
         val shopId = preferenceManager.getCurrentShopId()
         println("📦 ProductRepository - observeProducts for shop: $shopId")
-        return database.productDao().getAllProducts(shopId)
+        return database.productDao().getProductsByShop(shopId)
             .map { entities ->
                 entities.map { it.toProduct() }
             }
     }
 
-    fun observeActiveProducts(): Flow<List<Product>> {
+    // Observe low stock products
+    fun observeLowStockProducts(threshold: Int = 10): Flow<List<Product>> {
         val shopId = preferenceManager.getCurrentShopId()
-        return database.productDao().getActiveProducts(shopId)
+        return database.productDao().getProductsByShop(shopId)
             .map { entities ->
-                entities.map { it.toProduct() }
+                entities.filter { it.stock <= threshold }
+                    .map { it.toProduct() }
             }
     }
 
-    fun observeSearchResults(query: String): Flow<List<Product>> {
-        val shopId = preferenceManager.getCurrentShopId()
-        return database.productDao().searchProducts(shopId, query)
-            .map { entities ->
-                entities.map { it.toProduct() }
-            }
-    }
-
-    fun observeLowStockProducts(): Flow<List<Product>> {
-        val shopId = preferenceManager.getCurrentShopId()
-        return database.productDao().getLowStockProducts(shopId)
-            .map { entities ->
-                entities.map { it.toProduct() }
-            }
-    }
-
-    // ==================== SINGLE PRODUCT OPERATIONS ====================
-
+    // Get product by ID
     suspend fun getProductById(productId: String): Product? {
         return try {
             database.productDao().getProductById(productId)?.toProduct()
@@ -280,25 +254,36 @@ class ProductRepository @Inject constructor(
         }
     }
 
-    // ==================== UTILITY METHODS ====================
-
+    // Get product count for current shop
     suspend fun getLocalProductCount(): Int {
         val shopId = preferenceManager.getCurrentShopId()
         return try {
-            database.productDao().getProductCount(shopId)
+            val products = database.productDao().getProductsByShopSuspend(shopId)
+            products.size
         } catch (e: Exception) {
             println("❌ ProductRepository - Error getting product count: ${e.message}")
             0
         }
     }
 
+    // Clear all local products for current shop
     suspend fun clearLocalProducts() {
         val shopId = preferenceManager.getCurrentShopId()
         try {
-            database.productDao().clearProducts(shopId)
+            database.productDao().deleteProductsByShop(shopId)
             println("📦 ProductRepository - Cleared local products for shop: $shopId")
         } catch (e: Exception) {
             println("❌ ProductRepository - Error clearing local products: ${e.message}")
         }
+    }
+
+    // Get total inventory value
+    suspend fun getTotalInventoryValue(): Double {
+        return database.productDao().getTotalInventoryValue() ?: 0.0
+    }
+
+    // Get low stock count
+    suspend fun getLowStockCount(threshold: Double = 10.0): Int {
+        return database.productDao().getLowStockCount(threshold)
     }
 }

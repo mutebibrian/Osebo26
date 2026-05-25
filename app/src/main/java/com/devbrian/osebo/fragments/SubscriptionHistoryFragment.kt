@@ -118,7 +118,7 @@ class SubscriptionHistoryFragment : Fragment() {
     }
 
     private fun updateHistoryData(payments: List<Payment>) {
-        // Convert Payments -> Subscription rows (because your item layout + adapter are Subscription-based)
+        
         val subscriptions: List<Subscription> = payments.map { payment ->
             Subscription(
                 id = payment.id,
@@ -130,11 +130,11 @@ class SubscriptionHistoryFragment : Fragment() {
                 paymentMethod = payment.paymentMethod,
                 createdAt = payment.paymentDate ?: payment.paidAt ?: payment.createdAt,
                 isActive = payment.status.equals("completed", ignoreCase = true)
-                // NOTE: if your Subscription constructor requires more params, add defaults here
+                
             )
         }
 
-        // FIX: ListAdapter uses submitList(...)
+        
         subscriptionHistoryAdapter.submitList(subscriptions)
 
         binding.progressBar.visibility = View.GONE

@@ -13,6 +13,7 @@ import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import com.devbrian.osebo.R
+import com.devbrian.osebo.data.PreferenceManager
 import com.devbrian.osebo.databinding.FragmentPaymentBinding
 import com.devbrian.osebo.ui.viewmodels.SalesViewModel
 import com.devbrian.osebo.utils.Resource
@@ -22,6 +23,7 @@ import com.devbrian.osebo.utils.CurrencyFormatter
 import dagger.hilt.android.AndroidEntryPoint
 import java.text.NumberFormat
 import java.util.*
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class PaymentFragment : Fragment() {
@@ -39,7 +41,10 @@ class PaymentFragment : Fragment() {
 
     private var selectedPaymentMethod = "cash"
 
-    // Store the sale response data to pass to receipt
+    @Inject
+    lateinit var preferenceManager: PreferenceManager
+
+    
     private var saleResponseData: SaleData? = null
 
     private val customerId: String by lazy {
@@ -178,6 +183,11 @@ class PaymentFragment : Fragment() {
         }
     }
 
+    private fun getCurrentEmployeeName(): String {
+        // Get from your auth/session manager
+        return preferenceManager.getCurrentEmployeeName() ?: ""
+    }
+
     private fun setupObservers() {
         viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
             binding.btnProcessPayment.isEnabled = !isLoading
@@ -192,10 +202,10 @@ class PaymentFragment : Fragment() {
                         binding.progressBar.visibility = View.GONE
                         Toast.makeText(requireContext(), "Payment successful!", Toast.LENGTH_SHORT).show()
 
-                        // Store the sale data for receipt navigation
+                        
                         saleResponseData = saleData
 
-                        // Log the shop information from response
+                        
                         println("📱 PaymentFragment - Shop data from response:")
                         println("   - Shop Name: ${saleData.shop?.name ?: "Not available"}")
                         println("   - Shop Address: ${saleData.shop?.address ?: "Not available"}")
@@ -226,7 +236,7 @@ class PaymentFragment : Fragment() {
 
     private fun navigateToReceipt(saleData: SaleData) {
         try {
-            // Extract shop information from sale data
+            
             val shopName = saleData.shop?.name
             val shopAddress = saleData.shop?.address
             val shopPhone = saleData.shop?.phone
@@ -238,7 +248,7 @@ class PaymentFragment : Fragment() {
             println("   - Shop Address: $shopAddress")
             println("   - Shop Phone: $shopPhone")
 
-            // Get customer phone from input
+            
             val customerPhone = binding.etPhoneNumber.text.toString().ifEmpty { "N/A" }
 
             val action = PaymentFragmentDirections.actionPaymentFragmentToReceiptFragment(
@@ -250,13 +260,15 @@ class PaymentFragment : Fragment() {
                 paidAmount = saleData.paidAmount.toFloat(),
                 change = saleData.change.toFloat(),
                 paymentMethod = selectedPaymentMethod,
-                // Pass shop data to receipt fragment
+                
                 shopName = shopName ?: "",
                 shopAddress = shopAddress ?: "",
                 shopPhone = shopPhone ?: "",
                 shopDescription = shopDescription ?: "",
                 receiptDate = saleDate ?: "",
-                saleId = saleData.id
+                saleId = saleData.id ,
+                        servedBy = getCurrentEmployeeName()
+
             )
             findNavController().navigate(action)
         } catch (e: Exception) {

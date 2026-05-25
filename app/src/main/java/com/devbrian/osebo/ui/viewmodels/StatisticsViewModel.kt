@@ -20,58 +20,54 @@ class StatisticsViewModel @Inject constructor(
     private val repository: StatisticsRepository
 ) : ViewModel() {
 
-    // LiveData for statistics summary
+    
     private val _statisticsSummary = MutableLiveData<Resource<StatisticsSummary>>()
     val statisticsSummary: LiveData<Resource<StatisticsSummary>> = _statisticsSummary
 
-    // LiveData for sales chart data
+    
     private val _salesChartData = MutableLiveData<Resource<List<SalesDataPoint>>>()
     val salesChartData: LiveData<Resource<List<SalesDataPoint>>> = _salesChartData
 
-    // LiveData for top products
+    
     private val _topProducts = MutableLiveData<Resource<List<TopProduct>>>()
     val topProducts: LiveData<Resource<List<TopProduct>>> = _topProducts
 
-    // Loading state
+    
     private val _isLoading = MutableLiveData(false)
     val isLoading: LiveData<Boolean> = _isLoading
 
-    /**
-     * Load all statistics data for a shop
-     */
+    
     fun loadStatistics(shopId: String, period: String = "month") {
         viewModelScope.launch {
             _isLoading.value = true
 
             try {
-                // Load summary stats
+                
                 loadStatisticsSummary(shopId, period)
 
-                // Load chart data
+                
                 loadSalesChartData(shopId, period)
 
-                // Load top products
+                
                 loadTopProducts(shopId, period)
             } catch (e: Exception) {
-                // Handle error
+                
             } finally {
                 _isLoading.value = false
             }
         }
     }
 
-    /**
-     * Load statistics summary
-     */
+    
     fun loadStatisticsSummary(shopId: String, period: String) {
         viewModelScope.launch {
             _statisticsSummary.value = Resource.Loading
 
             try {
-                // In a real app, this would come from the repository
-                // val result = repository.getStatisticsSummary(shopId, period)
+                
+                
 
-                // For now, return mock data
+                
                 val mockData = getMockStatisticsSummary(period)
                 _statisticsSummary.value = Resource.Success(mockData)
             } catch (e: Exception) {
@@ -80,18 +76,16 @@ class StatisticsViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Load sales chart data
-     */
+    
     fun loadSalesChartData(shopId: String, period: String) {
         viewModelScope.launch {
             _salesChartData.value = Resource.Loading
 
             try {
-                // In a real app, this would come from the repository
-                // val result = repository.getSalesChartData(shopId, period)
+                
+                
 
-                // For now, return mock data
+                
                 val mockData = getMockSalesChartData(period)
                 _salesChartData.value = Resource.Success(mockData)
             } catch (e: Exception) {
@@ -100,18 +94,16 @@ class StatisticsViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Load top products
-     */
+    
     fun loadTopProducts(shopId: String, period: String) {
         viewModelScope.launch {
             _topProducts.value = Resource.Loading
 
             try {
-                // In a real app, this would come from the repository
-                // val result = repository.getTopProducts(shopId, period)
+                
+                
 
-                // For now, return mock data
+                
                 val mockData = getMockTopProducts()
                 _topProducts.value = Resource.Success(mockData)
             } catch (e: Exception) {
@@ -120,16 +112,12 @@ class StatisticsViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Refresh all data
-     */
+    
     fun refreshData(shopId: String, period: String) {
         loadStatistics(shopId, period)
     }
 
-    /**
-     * Get color resource based on trend
-     */
+    
     fun getTrendColor(trend: Double): Int {
         return when {
             trend > 0 -> R.color.success_green
@@ -138,9 +126,7 @@ class StatisticsViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Get trend icon based on trend
-     */
+    
     fun getTrendIcon(trend: Double): Int {
         return when {
             trend > 0 -> R.drawable.ic_trend_up
@@ -149,9 +135,7 @@ class StatisticsViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Mock data for statistics summary
-     */
+    
     private fun getMockStatisticsSummary(period: String): StatisticsSummary {
         val calendar = Calendar.getInstance()
         val endDate = calendar.time
@@ -172,9 +156,7 @@ class StatisticsViewModel @Inject constructor(
         )
     }
 
-    /**
-     * Mock data for sales chart
-     */
+    
     private fun getMockSalesChartData(period: String): List<SalesDataPoint> {
         return when (period) {
             "day" -> listOf(
@@ -221,9 +203,7 @@ class StatisticsViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Mock data for top products
-     */
+    
     private fun getMockTopProducts(): List<TopProduct> {
         return listOf(
             TopProduct(
@@ -274,9 +254,7 @@ class StatisticsViewModel @Inject constructor(
         )
     }
 
-    /**
-     * Get calendar field based on period
-     */
+    
     private fun getCalendarField(period: String): Int {
         return when (period) {
             "day" -> Calendar.DAY_OF_MONTH
@@ -287,9 +265,7 @@ class StatisticsViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Data class for statistics summary
-     */
+    
     data class StatisticsSummary(
         val totalSales: Double,
         val totalOrders: Int,

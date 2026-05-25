@@ -4,10 +4,10 @@ import com.google.gson.annotations.SerializedName
 
 data class ShopSubscriptionDto(
     @SerializedName("id")
-    val id: String? = null,  // Make nullable since some shops may not have subscription
+    val id: String? = null,  
 
     @SerializedName("status")
-    val status: String? = null,  // This might be null in the response
+    val status: String? = null,  
 
     @SerializedName("package_type")
     val packageType: String? = null,
@@ -22,7 +22,7 @@ data class ShopSubscriptionDto(
     val endsAt: String? = null,
 
     @SerializedName("is_active")
-    val isActive: Boolean = false,  // This is the actual field from API
+    val isActive: Boolean = false,  
 
     @SerializedName("duration_days")
     val durationDays: Int = 0,
@@ -30,16 +30,16 @@ data class ShopSubscriptionDto(
     @SerializedName("is_trial")
     val isTrial: Boolean = false
 ) {
-    // Helper property to check if subscription is active
-    // Use isActive from API response first, fallback to status string if needed
+    
+    
     val isActiveStatus: Boolean
         get() = isActive || status.equals("ACTIVE", ignoreCase = true)
 
-    // Helper property to check if subscription is on trial
+    
     val isTrialActive: Boolean
         get() = isTrial && isActiveStatus
 
-    // Helper property to get display status
+    
     val displayStatus: String
         get() = when {
             isTrialActive -> "Trial"
@@ -49,11 +49,11 @@ data class ShopSubscriptionDto(
             else -> "Inactive"
         }
 
-    // Helper property to get package display name
+    
     val packageDisplayName: String
         get() = packageDetails?.name ?: packageType ?: "No Plan"
 
-    // Helper property to get formatted duration
+    
     val durationDisplay: String
         get() = when {
             durationDays == 30 -> "1 month"
@@ -64,7 +64,7 @@ data class ShopSubscriptionDto(
             else -> "Custom duration"
         }
 
-    // Helper property to get color resource based on status
+    
     val statusColorRes: Int
         get() = when {
             isTrialActive -> android.R.color.holo_blue_dark

@@ -106,8 +106,8 @@ class TransactionViewModel @Inject constructor(
     fun deleteTransaction(transactionId: String) {
         _isLoading.value = true
         viewModelScope.launch {
-            // TODO: Implement delete API call
-            // For now, just remove from list
+            
+            
             val currentList = _transactions.value?.toMutableList() ?: return@launch
             currentList.removeAll { it.id == transactionId }
             _transactions.value = currentList
@@ -117,7 +117,7 @@ class TransactionViewModel @Inject constructor(
     }
 
     fun exportTransactions() {
-        // TODO: Implement export to CSV/Excel
+        
     }
 
     fun clearError() {

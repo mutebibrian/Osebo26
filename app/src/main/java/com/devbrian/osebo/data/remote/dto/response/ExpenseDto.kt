@@ -14,3 +14,4 @@ data class ExpenseDto(
     @SerializedName("updated_at") val updatedAt: String
 )
 
+

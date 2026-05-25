@@ -15,7 +15,7 @@ import com.devbrian.osebo.R
 import com.devbrian.osebo.models.Transaction
 import java.util.*
 
-// Remove any import of ItemTransactionBinding - DO NOT import it
+
 
 class TransactionAdapter(
     private val onItemClick: (Transaction) -> Unit = { _ -> },
@@ -45,7 +45,7 @@ class TransactionAdapter(
         private val currencySymbol: String
     ) : RecyclerView.ViewHolder(itemView) {
 
-        // Find views by ID
+        
         private val llTransactionIcon: LinearLayout = itemView.findViewById(R.id.ll_transaction_icon)
         private val ivTransactionType: ImageView = itemView.findViewById(R.id.iv_transaction_type)
         private val tvTransactionDescription: TextView = itemView.findViewById(R.id.tv_transaction_description)

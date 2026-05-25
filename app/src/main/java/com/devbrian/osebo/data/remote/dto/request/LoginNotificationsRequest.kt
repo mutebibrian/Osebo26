@@ -7,3 +7,4 @@ data class LoginNotificationsRequest(
     val enabled: Boolean
 )
 
+

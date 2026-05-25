@@ -25,3 +25,4 @@ data class ContactInfoDto(
     val socialMedia: Map<String, String>
 )
 
+

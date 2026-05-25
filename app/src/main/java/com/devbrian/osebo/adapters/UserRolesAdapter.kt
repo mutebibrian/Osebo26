@@ -4,7 +4,7 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.devbrian.osebo.R
-import com.devbrian.osebo.models.UserRole
+import com.devbrian.osebo.data.models.UserRole
 import com.devbrian.osebo.viewholders.UserRoleViewHolder
 
 class UserRolesAdapter(
@@ -31,4 +31,5 @@ class UserRolesAdapter(
 
     override fun getItemCount(): Int = userRoles.size
 }
+
 

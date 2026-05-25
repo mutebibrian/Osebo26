@@ -20,7 +20,7 @@ class CustomDrawerMenuListener(
         for (i in 0 until menu.size()) {
             val item = menu.getItem(i)
             try {
-                // This is a workaround for broken touch handling
+                
                 item.isCheckable = false
                 Log.d("NavDrawer_DEBUG", "✅ Menu item ready: ${item.title} (ID: ${item.itemId})")
             } catch (e: Exception) {

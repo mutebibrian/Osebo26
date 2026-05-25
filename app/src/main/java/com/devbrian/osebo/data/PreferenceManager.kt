@@ -20,7 +20,7 @@ class PreferenceManager private constructor(private val context: Context) {
 
     fun getContext(): Context = context
 
-    // ==================== AUTHENTICATION ====================
+    // ==================== AUTH TOKEN METHODS ====================
 
     fun saveAuthToken(token: String) {
         prefs.edit().putString("auth_token", token).apply()
@@ -34,7 +34,49 @@ class PreferenceManager private constructor(private val context: Context) {
         prefs.edit().remove("auth_token").apply()
     }
 
-    // ==================== USER INFO ====================
+    // ==================== REFRESH TOKEN METHODS (NEW) ====================
+
+    fun saveRefreshToken(token: String) {
+        prefs.edit().putString("refresh_token", token).apply()
+        println("💾 Refresh token saved")
+    }
+
+    fun getRefreshToken(): String {
+        return prefs.getString("refresh_token", "") ?: ""
+    }
+
+    fun clearRefreshToken() {
+        prefs.edit().remove("refresh_token").apply()
+        println("💾 Refresh token cleared")
+    }
+
+    // ==================== TEMPORARY CREDENTIALS FOR OTP FLOW (NEW) ====================
+
+    fun saveTempCredentials(username: String, password: String) {
+        prefs.edit().apply {
+            putString("temp_username", username)
+            putString("temp_password", password)
+        }.apply()
+        println("💾 Temporary credentials saved for OTP flow")
+    }
+
+    fun getTempUsername(): String {
+        return prefs.getString("temp_username", "") ?: ""
+    }
+
+    fun getTempPassword(): String {
+        return prefs.getString("temp_password", "") ?: ""
+    }
+
+    fun clearTempCredentials() {
+        prefs.edit().apply {
+            remove("temp_username")
+            remove("temp_password")
+        }.apply()
+        println("💾 Temporary credentials cleared")
+    }
+
+    // ==================== USER DATA METHODS ====================
 
     fun saveUserId(userId: String) {
         prefs.edit().putString("user_id", userId).apply()
@@ -102,8 +144,8 @@ class PreferenceManager private constructor(private val context: Context) {
 
     fun saveUserFullData(
         userId: String,
-        email: String,
-        firstName: String,
+        email: String?,
+        firstName: String?,
         lastName: String,
         phone: String
     ) {
@@ -118,6 +160,48 @@ class PreferenceManager private constructor(private val context: Context) {
         println("💾 Saved user full data: $firstName $lastName, $email, $phone")
     }
 
+    fun saveCurrentEmployeeName(name: String) {
+        prefs.edit().putString("current_employee_name", name).apply()
+    }
+
+    fun getCurrentEmployeeName(): String? {
+        return prefs.getString("current_employee_name", null)
+    }
+
+    fun clearCurrentEmployee() {
+        prefs.edit().remove("current_employee_name").apply()
+    }
+
+    fun getShopEmail(): String {
+        return prefs.getString("shop_email", "") ?: ""
+    }
+
+    // ==================== USER SESSION METHODS ====================
+
+    fun setUserLoggedIn(loggedIn: Boolean) {
+        prefs.edit().putBoolean("user_logged_in", loggedIn).apply()
+    }
+
+    fun isUserLoggedIn(): Boolean {
+        return prefs.getBoolean("user_logged_in", false)
+    }
+
+    fun isLoggedIn(): Boolean {
+        val hasToken = getAuthToken().isNotEmpty()
+        val isUserLoggedIn = isUserLoggedIn()
+        return hasToken || isUserLoggedIn
+    }
+
+    fun setLastLoginTimestamp(timestamp: Long) {
+        prefs.edit().putLong("last_login", timestamp).apply()
+    }
+
+    fun getLastLoginTimestamp(): Long {
+        return prefs.getLong("last_login", 0)
+    }
+
+    // ==================== CLEAR DATA METHODS ====================
+
     fun clearUserData() {
         prefs.edit().apply {
             remove("user_id")
@@ -127,17 +211,23 @@ class PreferenceManager private constructor(private val context: Context) {
             remove("last_name")
             remove("user_phone")
             remove("user_role")
-            remove("auth_token")
+            remove("user_verified")
             remove("user_logged_in")
         }.apply()
+        println("💾 User data cleared")
     }
 
-    // ==================== SHOP MANAGEMENT ====================
+    fun clearAllAuthData() {
+        clearAuthToken()
+        clearRefreshToken()
+        clearUserData()
+        setUserLoggedIn(false)
+        clearTempCredentials()
+        println("💾 All auth data cleared")
+    }
 
-    /**
-     * Save complete shop information at once
-     * IMPORTANT: This saves BOTH the ID and UUID
-     */
+    // ==================== SHOP DATA METHODS ====================
+
     fun saveCurrentShop(shopId: String, shopUuid: String, shopName: String) {
         prefs.edit().apply {
             putString("current_shop_id", shopId)
@@ -149,62 +239,36 @@ class PreferenceManager private constructor(private val context: Context) {
         println("💾 Saved shop - ID: '$shopId', UUID: '$shopUuid', Name: '$shopName'")
     }
 
-    /**
-     * Save the current shop UUID (this is what the API expects in X-Shop header)
-     * This should be a valid UUID v4 format
-     */
     fun saveCurrentShopUuid(uuid: String) {
         prefs.edit().putString("current_shop_uuid", uuid).apply()
         println("💾 Saved shop UUID: $uuid")
     }
 
-    /**
-     * Get the current shop UUID for API calls
-     * Returns empty string if not set
-     */
     fun getCurrentShopUuid(): String {
         return prefs.getString("current_shop_uuid", "") ?: ""
     }
 
-    /**
-     * Save the current shop ID (for local database)
-     */
     fun saveCurrentShopId(shopId: String) {
         prefs.edit().putString("current_shop_id", shopId).apply()
         println("💾 Saved shop ID: $shopId")
     }
 
-    /**
-     * Get the current shop ID for local database
-     */
     fun getCurrentShopId(): String {
         return prefs.getString("current_shop_id", "") ?: ""
     }
 
-    /**
-     * Save the current shop name
-     */
     fun saveCurrentShopName(shopName: String) {
         prefs.edit().putString("current_shop_name", shopName).apply()
     }
 
-    /**
-     * Get the current shop name
-     */
     fun getCurrentShopName(): String {
         return prefs.getString("current_shop_name", "") ?: ""
     }
 
-    /**
-     * Save all shop info at once (legacy method - kept for compatibility)
-     */
     fun saveCurrentShopInfo(shopId: String, shopUuid: String, shopName: String) {
         saveCurrentShop(shopId, shopUuid, shopName)
     }
 
-    /**
-     * Clear current shop data
-     */
     fun clearCurrentShop() {
         prefs.edit().apply {
             remove("current_shop_id")
@@ -219,16 +283,10 @@ class PreferenceManager private constructor(private val context: Context) {
         println("💾 Cleared shop data")
     }
 
-    /**
-     * Check if a shop is selected
-     */
     fun hasCurrentShop(): Boolean {
         return getCurrentShopUuid().isNotEmpty() || getCurrentShopId().isNotEmpty()
     }
 
-    /**
-     * Check if a shop is properly selected (both ID and UUID present)
-     */
     fun isShopProperlySelected(): Boolean {
         val hasId = getCurrentShopId().isNotEmpty()
         val hasUuid = getCurrentShopUuid().isNotEmpty()
@@ -236,18 +294,11 @@ class PreferenceManager private constructor(private val context: Context) {
         return hasId && hasUuid
     }
 
-    /**
-     * Get the appropriate shop identifier for API calls
-     * Prefers UUID if available, falls back to ID
-     */
     fun getShopIdentifierForApi(): String {
         val uuid = getCurrentShopUuid()
         return if (uuid.isNotEmpty()) uuid else getCurrentShopId()
     }
 
-    /**
-     * Debug method to check current shop info
-     */
     fun debugCurrentShop() {
         println("💾 ===== CURRENT SHOP DEBUG =====")
         println("💾 Shop ID: '${getCurrentShopId()}'")
@@ -259,7 +310,7 @@ class PreferenceManager private constructor(private val context: Context) {
         println("💾 ===============================")
     }
 
-    // ==================== SHOP METADATA ====================
+    // ==================== SHOP SETUP METHODS ====================
 
     fun saveBusinessType(businessType: String) {
         prefs.edit().putString("business_type", businessType).apply()
@@ -358,7 +409,7 @@ class PreferenceManager private constructor(private val context: Context) {
         }
     }
 
-    // ==================== LOGIN STATE ====================
+    // ==================== REMEMBER ME METHODS ====================
 
     fun setRememberMeEnabled(enabled: Boolean) {
         prefs.edit().putBoolean("remember_me", enabled).apply()
@@ -384,27 +435,7 @@ class PreferenceManager private constructor(private val context: Context) {
         return prefs.getString("saved_phone", "") ?: ""
     }
 
-    fun setLastLoginTimestamp(timestamp: Long) {
-        prefs.edit().putLong("last_login", timestamp).apply()
-    }
-
-    fun getLastLoginTimestamp(): Long {
-        return prefs.getLong("last_login", 0)
-    }
-
-    fun isLoggedIn(): Boolean {
-        val hasToken = getAuthToken().isNotEmpty()
-        val isUserLoggedIn = isUserLoggedIn()
-        return hasToken || isUserLoggedIn
-    }
-
-    fun setUserLoggedIn(loggedIn: Boolean) {
-        prefs.edit().putBoolean("user_logged_in", loggedIn).apply()
-    }
-
-    fun isUserLoggedIn(): Boolean {
-        return prefs.getBoolean("user_logged_in", false)
-    }
+    // ==================== SETUP & LAUNCH METHODS ====================
 
     fun markSetupCompleted() {
         prefs.edit().putBoolean("setup_completed", true).apply()
@@ -422,7 +453,7 @@ class PreferenceManager private constructor(private val context: Context) {
         return prefs.getBoolean("is_first_launch", true)
     }
 
-    // ==================== SUBSCRIPTION MANAGEMENT ====================
+    // ==================== SUBSCRIPTION METHODS ====================
 
     fun saveSubscriptionStatus(status: String) {
         prefs.edit().putString("subscription_status", status).apply()
@@ -541,7 +572,7 @@ class PreferenceManager private constructor(private val context: Context) {
         )
     }
 
-    // ==================== APP SETTINGS ====================
+    // ==================== APP SETTINGS METHODS ====================
 
     fun saveLanguage(language: String) {
         prefs.edit().putString("app_language", language).apply()
@@ -567,7 +598,7 @@ class PreferenceManager private constructor(private val context: Context) {
         return prefs.getBoolean("notifications_enabled", true)
     }
 
-    // ==================== GENERIC METHODS ====================
+    // ==================== GENERIC STORAGE METHODS ====================
 
     fun saveString(key: String, value: String) {
         prefs.edit().putString(key, value).apply()
@@ -625,7 +656,20 @@ class PreferenceManager private constructor(private val context: Context) {
         prefs.edit().clear().apply()
     }
 
-    // ==================== USER INFO HELPER ====================
+    // ==================== DEBUG METHODS ====================
+
+    fun debugAllPreferences() {
+        println("💾 ===== ALL PREFERENCES DEBUG =====")
+        println("💾 auth_token: ${getAuthToken().take(20)}...")
+        println("💾 refresh_token: ${getRefreshToken().take(20)}...")
+        println("💾 user_id: ${getUserId()}")
+        println("💾 user_email: ${getUserEmail()}")
+        println("💾 user_name: ${getUserName()}")
+        println("💾 user_role: ${getUserRole()}")
+        println("💾 user_logged_in: ${isUserLoggedIn()}")
+        println("💾 user_verified: ${getUserVerified()}")
+        println("💾 =================================")
+    }
 
     fun getUserInfo(): Map<String, String> {
         return mapOf(

@@ -87,8 +87,6 @@ class AddEmployeeDialogFragment : DialogFragment() {
         val shopId = preferenceManager.getCurrentShopId()
         val isMultiShopOwner = preferenceManager.isMultiShopOwner()
 
-        // ✅ Role IDs must exactly match API accepted values:
-        // super_admin, owner, admin, manager, staff
         availableRoles = if (isMultiShopOwner) {
             listOf(
                 Role(id = "admin", name = "Admin", description = "Shop administrator",
@@ -199,20 +197,36 @@ class AddEmployeeDialogFragment : DialogFragment() {
 
         showLoading(true)
 
+        // IMPORTANT: Get the current shop ID from PreferenceManager
+        val shopUuid = preferenceManager.getCurrentShopUuid()
+        val shopId = preferenceManager.getCurrentShopId()
+
+        println("🏪 AddEmployee - Shop UUID: $shopUuid")
+        println("🏪 AddEmployee - Shop ID: $shopId")
+
+        if (shopUuid.isEmpty() || !isValidUUID(shopUuid)) {
+            showLoading(false)
+            showError("No shop selected. Please select a shop first.")
+            return
+        }
+
         val employeeRequest = EmployeeRequest(
             firstName = firstName,
             lastName = lastName,
             password = password,
             phone = extractPhoneNumber(countryCode) + phone,
             title = title,
-            role = selectedRole.id, // ✅ "manager", "staff", "admin" etc.
+            role = selectedRole.id,
+            shopId = shopUuid,
             kinName = kinName.ifEmpty { null },
             kinPhone = kinPhone.ifEmpty { null },
             residence = residence.ifEmpty { null },
             email = email.ifEmpty { null }
         )
 
-        println("📦 AddEmployee - Role: '${selectedRole.name}' → API value: '${selectedRole.id}'")
+        println("📦 AddEmployee - Request: $employeeRequest")
+        println("🏪 AddEmployee - Employee will be assigned to shop: $shopUuid")
+
         submitEmployee(employeeRequest)
     }
 
@@ -245,7 +259,7 @@ class AddEmployeeDialogFragment : DialogFragment() {
                     return@launch
                 }
 
-                // ✅ Returns CreateEmployeeResponse (data = single object)
+                // Call API with shop ID in the header
                 val response = withContext(Dispatchers.IO) {
                     apiService.createEmployee("Bearer $token", request)
                 }
@@ -265,7 +279,6 @@ class AddEmployeeDialogFragment : DialogFragment() {
         }
     }
 
-    // ✅ Handles CreateEmployeeResponse — data is a SINGLE EmployeeData object
     private suspend fun handleResponse(response: Response<CreateEmployeeResponse>) {
         withContext(Dispatchers.Main) {
             if (response.isSuccessful) {
@@ -277,12 +290,21 @@ class AddEmployeeDialogFragment : DialogFragment() {
                     val employeeData = body.data
                     if (employeeData != null) {
                         showLoading(false)
-                        Toast.makeText(
-                            requireContext(),
-                            "${employeeData.firstName} ${employeeData.lastName} added successfully!",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        // ✅ Notify EmployeesFragment to reload and dismiss dialog
+
+                        // Verify the employee was assigned to the shop
+                        println("✅ Employee created with ID: ${employeeData.id}")
+                        println("   Name: ${employeeData.firstName} ${employeeData.lastName}")
+                        println("   Role: ${employeeData.role}")
+                        println("   Shop ID: ${employeeData.shopId ?: "Not assigned"}")
+
+                        val message = if (employeeData.shopId.isNullOrEmpty()) {
+                            "${employeeData.firstName} ${employeeData.lastName} added but not assigned to any shop! Please assign manually."
+                        } else {
+                            "${employeeData.firstName} ${employeeData.lastName} added successfully!"
+                        }
+
+                        Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
+
                         listener?.onEmployeeAdded(employeeData)
                         dismiss()
                     } else {

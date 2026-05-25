@@ -4,6 +4,8 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
+
 
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
@@ -12,6 +14,9 @@
     <uses-permission android:name="android.permission.USB_PERMISSION" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="true" />
+    <uses-feature
+        android:name="android.hardware.telephony"
+        android:required="false" />
 
 
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
@@ -30,6 +35,15 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Osebo"
         tools:targetApi="31">
+
+        <service
+            android:name="com.google.android.gms.auth.api.phone.SmsRetrieverService"
+            android:exported="true"
+            tools:ignore="ExportedService">
+            <intent-filter>
+                <action android:name="com.google.android.gms.auth.api.phone.SmsRetriever.API" />
+            </intent-filter>
+        </service>
 
         <activity
             android:name=".ui.OtpVerificationActivity"

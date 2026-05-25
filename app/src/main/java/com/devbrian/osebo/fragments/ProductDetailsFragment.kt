@@ -117,7 +117,7 @@ class ProductDetailsFragment : Fragment() {
             tvSupplier.text = product.supplierName ?: "No supplier"
             tvDescription.text = product.description ?: "No description available"
 
-            // Currency formatting
+            
             val currencyFormat = NumberFormat.getCurrencyInstance(Locale.US).apply {
                 currency = java.util.Currency.getInstance("UGX")
             }
@@ -125,7 +125,7 @@ class ProductDetailsFragment : Fragment() {
             tvSellingPrice.text = currencyFormat.format(product.price)
             tvCostPrice.text = product.cost?.let { currencyFormat.format(it) } ?: "N/A"
 
-            // Profit margin
+            
             val profitMargin = if (product.cost != null && product.cost > 0) {
                 ((product.price - product.cost) / product.price * 100).toInt()
             } else {
@@ -133,7 +133,7 @@ class ProductDetailsFragment : Fragment() {
             }
             tvProfitMargin.text = "$profitMargin%"
 
-            // Stock information
+            
             tvCurrentStock.text = "${product.stock} units"
 
             val lowStockThreshold = product.lowStockThreshold ?: 5
@@ -266,4 +266,5 @@ class ProductDetailsFragment : Fragment() {
         _binding = null
     }
 }
+
 

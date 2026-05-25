@@ -2,608 +2,403 @@ package com.devbrian.osebo.ui
 
 import android.content.Intent
 import android.os.Bundle
-import android.text.InputType
-import android.util.Patterns
 import android.view.View
 import android.widget.*
-import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.cardview.widget.CardView
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
 import com.devbrian.osebo.R
 import com.devbrian.osebo.data.PreferenceManager
-import com.devbrian.osebo.data.repository.ShopRepositoryImpl
-import com.devbrian.osebo.models.PermissionType
-import com.devbrian.osebo.ui.viewmodels.LoginViewModel
+import com.devbrian.osebo.data.remote.dto.response.AccountInfo
+import com.devbrian.osebo.data.remote.dto.response.PreAuthData
+import com.devbrian.osebo.data.remote.dto.response.SigninData
+import com.devbrian.osebo.data.repository.AuthRepository
 import com.devbrian.osebo.utils.NetworkUtils
-import com.devbrian.osebo.utils.PermissionManager
-import com.devbrian.osebo.utils.Resource
-import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.launch
-import javax.inject.Inject
+import kotlinx.coroutines.*
 
-@AndroidEntryPoint
 class LoginActivity : AppCompatActivity() {
 
-    @Inject
-    lateinit var preferenceManager: PreferenceManager
-
-    @Inject
-    lateinit var shopRepository: ShopRepositoryImpl
-
-    private lateinit var permissionManager: PermissionManager
-
-    private lateinit var imgLogo: ImageView
-    private lateinit var cardLogin: CardView
     private lateinit var rgLoginMethod: RadioGroup
-    private lateinit var rbEmail: RadioButton
     private lateinit var rbPhone: RadioButton
+    private lateinit var rbEmail: RadioButton
     private lateinit var emailLayout: LinearLayout
     private lateinit var phoneLayout: LinearLayout
     private lateinit var etEmail: EditText
     private lateinit var etPhone: EditText
     private lateinit var etPassword: EditText
-    private lateinit var btnLogin: Button
+    private lateinit var etOtpCode: EditText
+    private lateinit var btnSignIn: Button
     private lateinit var tvSignUp: TextView
     private lateinit var tvForgotPassword: TextView
+    private lateinit var tvResendOtp: TextView
     private lateinit var progressBar: ProgressBar
+    private lateinit var otpLayout: LinearLayout
     private lateinit var tvError: TextView
 
-    private val viewModel: LoginViewModel by viewModels()
-    private var errorRunnable: Runnable? = null
-    private var isShopsLoading = false
+    private val authRepository = AuthRepository()
+    private lateinit var preferenceManager: PreferenceManager
+
+    private var currentPhoneNumber: String = ""
+    private var currentUserId: String? = null
+    private var currentPreAuthToken: String? = null
+    private var currentAccounts: List<AccountInfo>? = null
+    private var isOtpMode = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        // Initialize PermissionManager
-        permissionManager = PermissionManager(this)
-
-        // Check if already logged in
-        if (preferenceManager.isLoggedIn()) {
-            // If already logged in, check if we need to refresh shops
-            checkAndRefreshShopsBeforeMain()
-            return
-        }
-
         setContentView(R.layout.activity_login)
+
+        preferenceManager = PreferenceManager.getInstance(this)
 
         initViews()
         setupListeners()
-        observeLoginState()
-
-        // Load saved credentials
-        loadSavedCredentials()
+        // Initially select phone (default)
+        rbPhone.isChecked = true
+        showPhoneLayout()
     }
 
     private fun initViews() {
-        imgLogo = findViewById(R.id.imgLogo)
-        cardLogin = findViewById(R.id.cardLogin)
         rgLoginMethod = findViewById(R.id.rgLoginMethod)
-        rbEmail = findViewById(R.id.rbEmail)
         rbPhone = findViewById(R.id.rbPhone)
+        rbEmail = findViewById(R.id.rbEmail)
         emailLayout = findViewById(R.id.emailLayout)
         phoneLayout = findViewById(R.id.phoneLayout)
         etEmail = findViewById(R.id.etEmail)
         etPhone = findViewById(R.id.etPhone)
         etPassword = findViewById(R.id.etPassword)
-        btnLogin = findViewById(R.id.btnLogin)
+        etOtpCode = findViewById(R.id.etOtpCode)
+        btnSignIn = findViewById(R.id.btnSignIn)
         tvSignUp = findViewById(R.id.tvSignUp)
         tvForgotPassword = findViewById(R.id.tvForgotPassword)
+        tvResendOtp = findViewById(R.id.tvResendOtp)
         progressBar = findViewById(R.id.progressBar)
+        otpLayout = findViewById(R.id.otpLayout)
         tvError = findViewById(R.id.tvError)
-
-        etPassword.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
-        tvError.visibility = View.GONE
-
-        rbEmail.isChecked = true
-        emailLayout.visibility = View.VISIBLE
-        phoneLayout.visibility = View.GONE
     }
 
     private fun setupListeners() {
         rgLoginMethod.setOnCheckedChangeListener { _, checkedId ->
             when (checkedId) {
-                R.id.rbEmail -> {
-                    emailLayout.visibility = View.VISIBLE
-                    phoneLayout.visibility = View.GONE
-                    clearErrors()
-                }
-                R.id.rbPhone -> {
-                    phoneLayout.visibility = View.VISIBLE
-                    emailLayout.visibility = View.GONE
-                    clearErrors()
-                }
+                R.id.rbPhone -> showPhoneLayout()
+                R.id.rbEmail -> showEmailLayout()
             }
         }
-
-        btnLogin.setOnClickListener {
-            validateAndLogin()
-        }
-
+        btnSignIn.setOnClickListener { attemptLogin() }
         tvSignUp.setOnClickListener {
             startActivity(Intent(this, SignUpActivity::class.java))
+            finish()
         }
-
         tvForgotPassword.setOnClickListener {
-            Toast.makeText(this, getString(R.string.forgot_password_coming_soon), Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Password reset coming soon", Toast.LENGTH_SHORT).show()
         }
-
-        etEmail.setOnFocusChangeListener { _, hasFocus ->
-            if (hasFocus) clearErrors()
-        }
-
-        etPhone.setOnFocusChangeListener { _, hasFocus ->
-            if (hasFocus) clearErrors()
-        }
-
-        etPassword.setOnFocusChangeListener { _, hasFocus ->
-            if (hasFocus) clearErrors()
-        }
+        tvResendOtp.setOnClickListener { resendOtp() }
     }
 
-    private fun loadSavedCredentials() {
-        val savedEmail = preferenceManager.getSavedEmail()
-        val savedPhone = preferenceManager.getSavedPhone()
-
-        if (savedEmail.isNotEmpty() && preferenceManager.isRememberMeEnabled()) {
-            rbEmail.isChecked = true
-            etEmail.setText(savedEmail)
-            etPassword.requestFocus()
-        } else if (savedPhone.isNotEmpty() && preferenceManager.isRememberMeEnabled()) {
-            rbPhone.isChecked = true
-            etPhone.setText(savedPhone)
-            etPassword.requestFocus()
-        }
-    }
-
-    private fun observeLoginState() {
-        lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.loginState.collect { state ->
-                    when (state) {
-                        is LoginViewModel.LoginState.Idle -> {
-                            showLoading(false)
-                        }
-                        is LoginViewModel.LoginState.Loading -> {
-                            showLoading(true)
-                        }
-                        is LoginViewModel.LoginState.Success -> {
-                            showLoading(false)
-                            onLoginSuccess(state.authData)
-                        }
-                        is LoginViewModel.LoginState.Error -> {
-                            showLoading(false)
-                            showError(state.message)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private fun validateAndLogin() {
+    private fun showPhoneLayout() {
+        emailLayout.visibility = View.GONE
+        phoneLayout.visibility = View.VISIBLE
+        otpLayout.visibility = View.GONE
+        etPassword.hint = "Password (optional)"
+        btnSignIn.text = "Sign In"
+        isOtpMode = false
         clearErrors()
+    }
+
+    private fun showEmailLayout() {
+        emailLayout.visibility = View.VISIBLE
+        phoneLayout.visibility = View.GONE
+        otpLayout.visibility = View.GONE
+        etPassword.hint = "Password"
+        btnSignIn.text = "Sign In"
+        isOtpMode = false
+        clearErrors()
+    }
+
+    private fun attemptLogin() {
+        if (rbPhone.isChecked) {
+            attemptPhoneLogin()
+        } else {
+            attemptEmailLogin()
+        }
+    }
+
+    // ---------- PHONE LOGIN (OTP) ----------
+    private fun attemptPhoneLogin() {
+        val phoneRaw = etPhone.text.toString().trim()
+        if (phoneRaw.isEmpty()) {
+            etPhone.error = "Phone number required"
+            return
+        }
+        val phone = formatUgandanPhone(phoneRaw)
+        if (!isValidUgandanPhone(phone)) {
+            etPhone.error = "Invalid Ugandan phone number"
+            return
+        }
+        currentPhoneNumber = phone
 
         val password = etPassword.text.toString().trim()
-        val identifier: String
-        val isEmailLogin: Boolean
+        if (password.isNotEmpty()) {
+            // Phone+password not supported – just ignore
+            Toast.makeText(this, "Phone login uses OTP only. Password ignored.", Toast.LENGTH_SHORT).show()
+        }
 
-        if (rbEmail.isChecked) {
-            val email = etEmail.text.toString().trim()
-
-            if (email.isEmpty()) {
-                etEmail.error = getString(R.string.error_email_required)
-                etEmail.requestFocus()
-                return
-            }
-
-            if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                etEmail.error = getString(R.string.error_valid_email)
-                etEmail.requestFocus()
-                return
-            }
-
-            identifier = email
-            isEmailLogin = true
-
+        if (isOtpMode) {
+            verifyOtp()
         } else {
-            val phone = etPhone.text.toString().trim()
-
-            if (phone.isEmpty()) {
-                etPhone.error = getString(R.string.error_phone_required)
-                etPhone.requestFocus()
-                return
-            }
-
-            if (phone.length < 9 || phone.length > 15) {
-                etPhone.error = getString(R.string.error_valid_phone)
-                etPhone.requestFocus()
-                return
-            }
-
-            if (!phone.matches(Regex("^\\+?[0-9]+$"))) {
-                etPhone.error = getString(R.string.error_phone_digits_only)
-                etPhone.requestFocus()
-                return
-            }
-
-            identifier = phone
-            isEmailLogin = false
+            requestOtp()
         }
+    }
 
-        if (password.isEmpty()) {
-            etPassword.error = getString(R.string.error_password_required)
-            etPassword.requestFocus()
-            return
-        }
-
-        if (password.length < 6) {
-            etPassword.error = getString(R.string.error_password_length)
-            etPassword.requestFocus()
-            return
-        }
-
+    private fun requestOtp() {
         if (!NetworkUtils.isNetworkAvailable(this)) {
-            showError(getString(R.string.error_no_internet))
+            showError("No internet")
             return
         }
-
-        trackLoginAttempt("started", if (isEmailLogin) "email" else "phone")
-        saveCredentials(identifier, isEmailLogin)
-        viewModel.login(identifier, password)
-    }
-
-    private fun saveCredentials(identifier: String, isEmail: Boolean) {
-        preferenceManager.setRememberMeEnabled(true)
-        if (isEmail) {
-            preferenceManager.saveEmail(identifier)
-        } else {
-            preferenceManager.savePhone(identifier)
-        }
-    }
-
-    private fun onLoginSuccess(authData: LoginViewModel.DomainAuthData) {
-        try {
-            trackLoginAttempt("success", if (rbEmail.isChecked) "email" else "phone")
-            saveUserData(authData)
-            clearOldShopData()
-
-
-            preferenceManager.saveShopCount(1)
-
-            // Check if user is owner based on role
-            val isOwner = authData.user.role.equals("owner", ignoreCase = true) ||
-                    authData.user.role.equals("admin", ignoreCase = true)
-
-            if (!isOwner) {
-                permissionManager.saveUserPermissions(
-                    listOf(
-                        PermissionType.VIEW_INVENTORY,
-                        PermissionType.VIEW_SALES,
-                        PermissionType.PROCESS_SALES,
-                        PermissionType.VIEW_CUSTOMERS
-                    )
-                )
-            }
-
-            showWelcomeMessage(authData.user.name)
-
-            // CRITICAL FIX: Load shops immediately after login
-            loadShopsAfterLogin()
-
-        } catch (e: Exception) {
-            println("❌ Error in onLoginSuccess: ${e.message}")
-            e.printStackTrace()
-            showError("Error: ${e.message}")
-        }
-    }
-
-    /**
-     * Load shops from API and save subscription info before navigating to MainActivity
-     * This fixes the issue where subscription status was showing as expired initially
-     */
-    private fun loadShopsAfterLogin() {
-        if (isShopsLoading) return
-        isShopsLoading = true
-
         showLoading(true)
-
-        lifecycleScope.launch {
-            try {
-                println("🔄 Loading shops after successful login...")
-
-                val result = shopRepository.refreshShops()
-
-                when (result) {
-                    is Resource.Success -> {
-                        println("✅ Shops loaded successfully")
-
-                        val shopsResult = shopRepository.getShops()
-                        when (shopsResult) {
-                            is Resource.Success -> {
-                                val shopList = shopsResult.data ?: emptyList()
-                                println("📊 Found ${shopList.size} shops for user")
-
-                                // Log all shops for debugging
-                                shopList.forEachIndexed { index, shop ->
-                                    println("   Shop[$index] - ID: ${shop.id}, Name: ${shop.name}, Status: ${shop.subscriptionStatus}")
-                                    println("        Is Valid UUID: ${isValidUUID(shop.id)}")
-                                }
-
-                                // Find active shop (with ACTIVE or TRIAL subscription)
-                                val activeShop = shopList.find { shop ->
-                                    shop.subscriptionStatus.equals("ACTIVE", ignoreCase = true) ||
-                                            shop.subscriptionStatus.equals("TRIAL", ignoreCase = true)
-                                }
-
-                                if (activeShop != null) {
-                                    // CRITICAL: Save the actual shop UUID, not "shop_1"
-                                    preferenceManager.saveCurrentShopId(activeShop.id)  // This should be the UUID
-                                    preferenceManager.saveCurrentShopName(activeShop.name)
-                                    preferenceManager.saveCurrentShopUuid(activeShop.id)  // This should also be the UUID
-                                    preferenceManager.saveHasShop(true)
-
-                                    // Save subscription info
-                                    preferenceManager.saveSubscriptionStatus(activeShop.subscriptionStatus.uppercase())
-                                    preferenceManager.saveSubscriptionExpiry(activeShop.subscriptionExpiry ?: "")
-                                    preferenceManager.saveSubscriptionType(activeShop.subscriptionType ?: "")
-
-                                    println("✅ Active shop found: ${activeShop.name}")
-                                    println("✅ Shop UUID saved: ${activeShop.id}")
-                                    println("✅ Is Valid UUID: ${isValidUUID(activeShop.id)}")
-                                    println("✅ Subscription status saved: ${activeShop.subscriptionStatus}")
-                                } else if (shopList.isNotEmpty()) {
-                                    // No active shop, select the first one
-                                    val firstShop = shopList.first()
-                                    preferenceManager.saveCurrentShopId(firstShop.id)
-                                    preferenceManager.saveCurrentShopName(firstShop.name)
-                                    preferenceManager.saveCurrentShopUuid(firstShop.id)
-                                    preferenceManager.saveHasShop(true)
-                                    preferenceManager.saveSubscriptionStatus("INACTIVE")
-
-                                    println("⚠️ No active shop found, selected first shop: ${firstShop.name}")
-                                    println("⚠️ Shop UUID: ${firstShop.id}")
-                                } else {
-                                    println("⚠️ No shops found for user")
-                                    preferenceManager.saveHasShop(false)
-                                    preferenceManager.saveSubscriptionStatus("INACTIVE")
-                                }
-
-                                preferenceManager.debugSubscriptionInfo()
-                            }
-                            is Resource.Error -> {
-                                println("⚠️ Failed to get shops from database: ${shopsResult.message}")
-                            }
-                            is Resource.Loading -> {
-                                println("⏳ Loading shops from database...")
-                            }
-                        }
-
-                        navigateToMainActivity()
-                    }
-
-                    is Resource.Error -> {
-                        println("❌ Failed to load shops: ${result.message}")
-                        preferenceManager.saveSubscriptionStatus("INACTIVE")
-                        navigateToMainActivity()
-                    }
-
-                    is Resource.Loading -> {
-                        println("⏳ Loading shops from API...")
-                    }
-                }
-
-            } catch (e: Exception) {
-                println("❌ Error loading shops: ${e.message}")
-                e.printStackTrace()
-                preferenceManager.saveSubscriptionStatus("INACTIVE")
-                navigateToMainActivity()
-            } finally {
-                isShopsLoading = false
+        CoroutineScope(Dispatchers.IO).launch {
+            val result = authRepository.requestOtp(currentPhoneNumber)
+            withContext(Dispatchers.Main) {
                 showLoading(false)
+                if (result.isSuccess) {
+                    currentUserId = result.getOrNull()?.userId
+                    isOtpMode = true
+                    otpLayout.visibility = View.VISIBLE
+                    btnSignIn.text = "Verify & Sign In"
+                    Toast.makeText(this@LoginActivity, "OTP sent to $currentPhoneNumber", Toast.LENGTH_SHORT).show()
+                } else {
+                    showError(result.exceptionOrNull()?.message ?: "Failed to request OTP")
+                }
             }
         }
     }
 
-    private fun isValidUUID(uuid: String): Boolean {
-        return try {
-            java.util.UUID.fromString(uuid)
-            true
-        } catch (e: IllegalArgumentException) {
-            false
+    private fun verifyOtp() {
+        val otp = etOtpCode.text.toString().trim()
+        if (otp.isEmpty() || otp.length != 6) {
+            etOtpCode.error = "Enter 6-digit code"
+            return
         }
-    }
-
-    /**
-     * Check and refresh shops when app is reopened and user is already logged in
-     */
-    private fun checkAndRefreshShopsBeforeMain() {
-        lifecycleScope.launch {
-            try {
-                println("🔄 Checking shops for already logged in user...")
-
-                // Refresh shops to get latest subscription status
-                val result = shopRepository.refreshShops()
-
-                when (result) {
-                    is Resource.Success -> {
-                        val shopsResult = shopRepository.getShops()
-                        when (shopsResult) {
-                            is Resource.Success -> {
-                                val shopList = shopsResult.data ?: emptyList()
-                                val activeShop = shopList.find { shop ->
-                                    shop.subscriptionStatus.equals("ACTIVE", ignoreCase = true) ||
-                                            shop.subscriptionStatus.equals("TRIAL", ignoreCase = true)
-                                }
-
-                                if (activeShop != null) {
-                                    preferenceManager.saveSubscriptionStatus(activeShop.subscriptionStatus.uppercase())
-                                    preferenceManager.saveSubscriptionExpiry(activeShop.subscriptionExpiry ?: "")
-                                    println("✅ Subscription refreshed: ${activeShop.subscriptionStatus}")
-                                }
-                            }
-                            is Resource.Error -> {
-                                println("⚠️ Failed to get shops: ${shopsResult.message}")
-                            }
-                            is Resource.Loading -> {
-                                // Handle loading state if needed
-                                println("⏳ Loading shops...")
-                            }
-                        }
-                    }
-                    is Resource.Error -> {
-                        println("❌ Error refreshing shops: ${result.message}")
-                    }
-                    is Resource.Loading -> {
-                        println("⏳ Refreshing shops...")
+        if (currentUserId == null) {
+            showError("Session expired. Please try again.")
+            resetOtpMode()
+            return
+        }
+        if (!NetworkUtils.isNetworkAvailable(this)) {
+            showError("No internet")
+            return
+        }
+        showLoading(true)
+        CoroutineScope(Dispatchers.IO).launch {
+            val result = authRepository.verify2fa(currentUserId!!, otp)
+            withContext(Dispatchers.Main) {
+                showLoading(false)
+                if (result.isSuccess) {
+                    val preAuthData = result.getOrNull()!!
+                    currentPreAuthToken = preAuthData.preAuthToken
+                    currentAccounts = preAuthData.accounts
+                    handleAccounts(preAuthData)
+                } else {
+                    val errorMsg = result.exceptionOrNull()?.message ?: "Verification failed"
+                    if (errorMsg.contains("already verified", ignoreCase = true)) {
+                        showAlreadyVerifiedDialog()
+                    } else {
+                        showError(errorMsg)
                     }
                 }
-            } catch (e: Exception) {
-                println("❌ Error refreshing shops: ${e.message}")
             }
-
-            // Navigate to MainActivity
-            navigateToMainActivity()
         }
     }
 
-    private fun saveUserData(authData: LoginViewModel.DomainAuthData) {
-        println("🎉 LoginSuccess - Saving user data with PreferenceManager")
-
-        val userName = authData.user.name
-        val displayName = if (userName.isNotEmpty()) userName else authData.user.email
-
-        // Split name into first and last for full data saving
-        val parts = displayName.split(" ", limit = 2)
-        val firstName = parts.getOrNull(0) ?: displayName
-        val lastName = parts.getOrNull(1) ?: ""
-
-        // Use existing PreferenceManager methods
-        preferenceManager.saveAuthToken(authData.token)
-        println("✅ Token saved: ${authData.token.take(20)}...")
-
-        // Save user full data using existing method
-        preferenceManager.saveUserFullData(
-            userId = authData.user.id,
-            email = authData.user.email,
-            firstName = firstName,
-            lastName = lastName,
-            phone = authData.user.phone
-        )
-
-        preferenceManager.saveUserRole(authData.user.role)
-        preferenceManager.setLastLoginTimestamp(System.currentTimeMillis())
-        preferenceManager.setUserLoggedIn(true)
-
-        println("✅ User data saved successfully")
-    }
-
-    private fun showWelcomeMessage(userName: String) {
-        val welcomeMessage = if (userName.isNotEmpty()) {
-            getString(R.string.welcome_back_name, userName)
+    private fun handleAccounts(preAuthData: PreAuthData) {
+        if (preAuthData.accounts.isEmpty()) {
+            showError("No accounts found for this user")
+            return
+        }
+        if (preAuthData.accounts.size == 1) {
+            // Single account: select automatically
+            selectAccount(preAuthData.preAuthToken, preAuthData.accounts[0].accountId)
         } else {
-            getString(R.string.welcome)
+            // Multiple accounts: show picker
+            showAccountPicker(preAuthData.preAuthToken, preAuthData.accounts)
         }
-        Toast.makeText(this, welcomeMessage, Toast.LENGTH_SHORT).show()
     }
 
-    private fun navigateToMainActivity() {
-        val intent = Intent(this, MainActivity::class.java)
-        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-        startActivity(intent)
-        finish()
-    }
-
-    private fun trackLoginAttempt(status: String, method: String) {
-        println("📊 Login attempt: $status, method: $method")
-    }
-
-    private fun clearOldShopData() {
-        val currentShopId = preferenceManager.getCurrentShopId()
-        val currentShopUuid = preferenceManager.getCurrentShopUuid()
-
-        if (currentShopId == "shop_1" || currentShopUuid == "shop_1") {
-            println("⚠️ Clearing old shop data with invalid ID: $currentShopId")
-            preferenceManager.clearCurrentShop()
-            preferenceManager.saveHasShop(false)
+    private fun selectAccount(preAuthToken: String, accountId: String) {
+        if (!NetworkUtils.isNetworkAvailable(this)) {
+            showError("No internet")
+            return
         }
+        showLoading(true)
+        CoroutineScope(Dispatchers.IO).launch {
+            val result = authRepository.selectAccount(preAuthToken, accountId)
+            withContext(Dispatchers.Main) {
+                showLoading(false)
+                if (result.isSuccess) {
+                    val signinData = result.getOrNull()!!
+                    // ✅ IMPORTANT: Save tokens and user data before navigating
+                    saveAuthData(signinData)
+                    startActivity(Intent(this@LoginActivity, MainActivity::class.java))
+                    finish()
+                } else {
+                    showError(result.exceptionOrNull()?.message ?: "Account selection failed")
+                }
+            }
+        }
+    }
+
+    private fun showAccountPicker(preAuthToken: String, accounts: List<AccountInfo>) {
+        val accountNames = accounts.map { "${it.ownerFirstName} ${it.ownerLastName}" }
+        AlertDialog.Builder(this)
+            .setTitle("Select Account")
+            .setItems(accountNames.toTypedArray()) { _, which ->
+                val selectedAccount = accounts[which]
+                selectAccount(preAuthToken, selectedAccount.accountId)
+            }
+            .setCancelable(false)
+            .setNegativeButton("Cancel") { _, _ ->
+                resetOtpMode()
+            }
+            .show()
+    }
+
+    private fun resendOtp() {
+        if (currentUserId == null) {
+            requestOtp()
+            return
+        }
+        if (!NetworkUtils.isNetworkAvailable(this)) {
+            showError("No internet")
+            return
+        }
+        showLoading(true)
+        CoroutineScope(Dispatchers.IO).launch {
+            val result = authRepository.resendOtp(currentUserId!!)
+            withContext(Dispatchers.Main) {
+                showLoading(false)
+                if (result.isSuccess) {
+                    Toast.makeText(this@LoginActivity, "OTP resent", Toast.LENGTH_SHORT).show()
+                } else {
+                    showError(result.exceptionOrNull()?.message ?: "Resend failed")
+                }
+            }
+        }
+    }
+
+    private fun resetOtpMode() {
+        isOtpMode = false
+        currentUserId = null
+        otpLayout.visibility = View.GONE
+        btnSignIn.text = "Sign In"
+        etOtpCode.text.clear()
+    }
+
+    // ---------- EMAIL LOGIN (password) ----------
+    private fun attemptEmailLogin() {
+        val email = etEmail.text.toString().trim()
+        if (email.isEmpty()) {
+            etEmail.error = "Email required"
+            return
+        }
+        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            etEmail.error = "Invalid email address"
+            return
+        }
+        val password = etPassword.text.toString().trim()
+        if (password.isEmpty()) {
+            etPassword.error = "Password required"
+            return
+        }
+        if (!NetworkUtils.isNetworkAvailable(this)) {
+            showError("No internet")
+            return
+        }
+        showLoading(true)
+        CoroutineScope(Dispatchers.IO).launch {
+            val result = authRepository.loginWithPassword(email, password)
+            withContext(Dispatchers.Main) {
+                showLoading(false)
+                if (result.isSuccess) {
+                    val preAuthData = result.getOrNull()!!
+                    currentPreAuthToken = preAuthData.preAuthToken
+                    currentAccounts = preAuthData.accounts
+                    handleAccounts(preAuthData)
+                } else {
+                    showError(result.exceptionOrNull()?.message ?: "Login failed")
+                }
+            }
+        }
+    }
+
+    // ---------- SAVE AUTH DATA (CRITICAL) ----------
+    private fun saveAuthData(signinData: SigninData) {
+        with(preferenceManager) {
+            saveAuthToken(signinData.accessToken)
+            saveRefreshToken(signinData.refreshToken)
+            saveUserId(signinData.user.id)
+            saveUserEmail(signinData.user.email ?: "")
+            saveUserName("${signinData.user.firstName ?: ""} ${signinData.user.lastName ?: ""}".trim())
+            saveUserPhone(signinData.user.phone ?: "")
+            saveUserRole(signinData.user.role ?: "")
+            setUserLoggedIn(true)
+            setLastLoginTimestamp(System.currentTimeMillis())
+        }
+        // Debug log to verify
+        println("✅ Auth tokens saved - Token: ${preferenceManager.getAuthToken().take(20)}...")
+        println("✅ User ID: ${preferenceManager.getUserId()}")
+    }
+
+    // ---------- HELPERS ----------
+    private fun showAlreadyVerifiedDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("Account Already Verified")
+            .setMessage("Your account is already verified. Please login with your password.")
+            .setPositiveButton("Login with Password") { _, _ ->
+                rbEmail.isChecked = true
+                showEmailLayout()
+                resetOtpMode()
+                etEmail.requestFocus()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     private fun showLoading(show: Boolean) {
         progressBar.visibility = if (show) View.VISIBLE else View.GONE
-        btnLogin.isEnabled = !show
-        btnLogin.text = if (show) getString(R.string.logging_in) else getString(R.string.sign_in)
-
+        btnSignIn.isEnabled = !show
         etEmail.isEnabled = !show
         etPhone.isEnabled = !show
         etPassword.isEnabled = !show
-        rbEmail.isEnabled = !show
-        rbPhone.isEnabled = !show
-        tvSignUp.isEnabled = !show
-        tvForgotPassword.isEnabled = !show
+        etOtpCode.isEnabled = !show
+        tvResendOtp.isEnabled = !show
+        rgLoginMethod.isEnabled = !show
     }
 
-    private fun showError(message: String) {
-        tvError.text = message
+    private fun showError(msg: String) {
+        tvError.text = msg
         tvError.visibility = View.VISIBLE
-
-        errorRunnable?.let { tvError.removeCallbacks(it) }
-
-        errorRunnable = Runnable {
-            if (!isFinishing && !isDestroyed) {
-                tvError.visibility = View.GONE
-            }
-        }
-        tvError.postDelayed(errorRunnable, 5000)
-
-        tvError.animate()
-            .translationXBy(10f)
-            .setDuration(100)
-            .withEndAction {
-                tvError.animate()
-                    .translationXBy(-20f)
-                    .setDuration(100)
-                    .withEndAction {
-                        tvError.animate()
-                            .translationXBy(10f)
-                            .setDuration(100)
-                            .start()
-                    }
-                    .start()
-            }
-            .start()
+        tvError.postDelayed({ tvError.visibility = View.GONE }, 5000)
     }
 
     private fun clearErrors() {
-        errorRunnable?.let { tvError.removeCallbacks(it) }
         tvError.visibility = View.GONE
         etEmail.error = null
         etPhone.error = null
         etPassword.error = null
+        etOtpCode.error = null
     }
 
-    override fun onBackPressed() {
-        if (viewModel.loginState.value is LoginViewModel.LoginState.Loading || isShopsLoading) {
-            return
+    private fun isValidUgandanPhone(phone: String): Boolean {
+        val clean = phone.replace(Regex("[\\s-()]"), "")
+        return clean.startsWith("+2567") && clean.length == 13
+    }
+
+    private fun formatUgandanPhone(phone: String): String {
+        var clean = phone.trim().replace(Regex("[\\s-()]"), "")
+        return when {
+            clean.startsWith("07") && clean.length == 10 -> "+256${clean.substring(1)}"
+            clean.startsWith("7") && clean.length == 9 -> "+256$clean"
+            clean.startsWith("256") && clean.length == 12 -> "+$clean"
+            clean.startsWith("+2567") && clean.length == 13 -> clean
+            else -> clean
         }
-
-        AlertDialog.Builder(this)
-            .setTitle(getString(R.string.exit_app_title))
-            .setMessage(getString(R.string.exit_app_message))
-            .setPositiveButton(getString(R.string.exit)) { _, _ ->
-                super.onBackPressed()
-            }
-            .setNegativeButton(getString(R.string.cancel), null)
-            .show()
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        errorRunnable?.let { tvError.removeCallbacks(it) }
-        viewModel.resetState()
     }
 }

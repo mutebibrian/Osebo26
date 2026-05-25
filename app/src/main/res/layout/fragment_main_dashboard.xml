@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F8F9FA"
+    android:background="#F5F7FA"
     tools:context=".fragments.MainDashboardFragment">
 
     <!-- App Bar with Gradient -->
@@ -18,14 +18,15 @@
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
-            android:layout_height="88dp"
-            android:paddingTop="24dp"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp">
+            android:layout_height="wrap_content"
+            android:paddingTop="32dp"
+            android:paddingBottom="16dp"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp">
 
             <RelativeLayout
                 android:layout_width="match_parent"
-                android:layout_height="match_parent">
+                android:layout_height="wrap_content">
 
                 <!-- Welcome Text -->
                 <LinearLayout
@@ -40,20 +41,20 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Welcome back,"
-                        android:textColor="#E0E0E0"
-                        android:textSize="14sp"
+                        android:textColor="#B0BEC5"
+                        android:textSize="13sp"
                         android:fontFamily="@font/poppins_regular" />
 
                     <TextView
                         android:id="@+id/tvUserName"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Tom!"
+                        android:text="User!"
                         android:textColor="@android:color/white"
-                        android:textSize="24sp"
+                        android:textSize="22sp"
                         android:textStyle="bold"
                         android:fontFamily="@font/poppins_bold"
-                        android:layout_marginTop="-4dp" />
+                        android:layout_marginTop="-2dp" />
 
                 </LinearLayout>
 
@@ -67,17 +68,18 @@
 
                     <!-- Notification Icon with Badge -->
                     <FrameLayout
-                        android:layout_width="44dp"
-                        android:layout_height="44dp"
-                        android:layout_marginEnd="8dp">
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:layout_marginEnd="12dp">
 
                         <ImageView
                             android:id="@+id/ivNotification"
-                            android:layout_width="44dp"
-                            android:layout_height="44dp"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
                             android:background="@drawable/bg_notification_dark"
-                            android:padding="12dp"
-                            android:src="@drawable/ic_notification" />
+                            android:padding="10dp"
+                            android:src="@drawable/ic_notification"
+                            android:contentDescription="Notifications" />
 
                         <!-- Notification Badge -->
                         <View
@@ -93,11 +95,12 @@
                     <!-- Profile Icon -->
                     <ImageView
                         android:id="@+id/ivProfile"
-                        android:layout_width="44dp"
-                        android:layout_height="44dp"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
                         android:background="@drawable/bg_profile_dark"
-                        android:padding="10dp"
-                        android:src="@drawable/ic_profile" />
+                        android:padding="8dp"
+                        android:src="@drawable/ic_profile"
+                        android:contentDescription="Profile" />
 
                 </LinearLayout>
 
@@ -113,7 +116,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:visibility="visible"
-        android:background="#F8F9FA"
+        android:background="#F5F7FA"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <LinearLayout
@@ -127,7 +130,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layout_marginBottom="16dp">
+                android:layout_marginBottom="20dp">
 
                 <TextView
                     android:id="@+id/tvCurrentDate"
@@ -135,17 +138,17 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="Monday, 08 Mar 2026"
-                    android:textColor="#757575"
-                    android:textSize="14sp"
+                    android:textColor="#7F8C8D"
+                    android:textSize="13sp"
                     android:fontFamily="@font/poppins_regular" />
 
                 <TextView
                     android:id="@+id/tvVersion"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="v1.2.0 (Build 337)"
-                    android:textColor="#9E9E9E"
-                    android:textSize="12sp"
+                    android:text="v1.2.0"
+                    android:textColor="#95A5A6"
+                    android:textSize="11sp"
                     android:fontFamily="@font/poppins_regular"
                     android:background="@drawable/bg_version"
                     android:paddingHorizontal="10dp"
@@ -157,10 +160,11 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Here's your store overview for today"
-                android:textColor="#424242"
-                android:textSize="16sp"
-                android:fontFamily="@font/poppins_medium"
+                android:text="📊 Store Performance"
+                android:textColor="#2C3E50"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:fontFamily="@font/poppins_bold"
                 android:layout_marginBottom="16dp" />
 
             <!-- Shop Performance Card -->
@@ -168,7 +172,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:cardCornerRadius="20dp"
-                app:cardElevation="4dp"
+                app:cardElevation="2dp"
                 android:layout_marginBottom="24dp"
                 app:cardBackgroundColor="@android:color/white"
                 app:cardUseCompatPadding="true">
@@ -183,9 +187,9 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="📊 Shop performance"
-                        android:textColor="#212121"
-                        android:textSize="18sp"
+                        android:text="Today's Summary"
+                        android:textColor="#2C3E50"
+                        android:textSize="16sp"
                         android:textStyle="bold"
                         android:fontFamily="@font/poppins_semibold"
                         android:layout_marginBottom="16dp" />
@@ -196,27 +200,28 @@
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
                         android:paddingVertical="12dp"
-                        android:background="#F5F5F5"
-                        android:layout_marginBottom="8dp">
+                        android:background="#F8F9FA"
+                        android:layout_marginBottom="8dp"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp">
 
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="2"
                             android:text="Shop"
-                            android:textColor="#757575"
-                            android:textSize="13sp"
+                            android:textColor="#7F8C8D"
+                            android:textSize="12sp"
                             android:textStyle="bold"
-                            android:fontFamily="@font/poppins_medium"
-                            android:paddingStart="12dp" />
+                            android:fontFamily="@font/poppins_medium" />
 
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="Sales"
-                            android:textColor="#757575"
-                            android:textSize="13sp"
+                            android:textColor="#7F8C8D"
+                            android:textSize="12sp"
                             android:textStyle="bold"
                             android:fontFamily="@font/poppins_medium"
                             android:gravity="end" />
@@ -226,12 +231,11 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="Expenses"
-                            android:textColor="#757575"
-                            android:textSize="13sp"
+                            android:textColor="#7F8C8D"
+                            android:textSize="12sp"
                             android:textStyle="bold"
                             android:fontFamily="@font/poppins_medium"
-                            android:gravity="end"
-                            android:paddingEnd="12dp" />
+                            android:gravity="end" />
 
                     </LinearLayout>
 
@@ -253,27 +257,28 @@
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal">
+                        android:orientation="horizontal"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp">
 
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="2"
                             android:text="Total"
-                            android:textColor="#212121"
+                            android:textColor="#2C3E50"
                             android:textSize="16sp"
                             android:textStyle="bold"
-                            android:fontFamily="@font/poppins_bold"
-                            android:paddingStart="12dp" />
+                            android:fontFamily="@font/poppins_bold" />
 
                         <TextView
                             android:id="@+id/tvTotalSales"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="UGX 1,850,000"
-                            android:textColor="#4CAF50"
-                            android:textSize="15sp"
+                            android:text="UGX 0"
+                            android:textColor="#27AE60"
+                            android:textSize="14sp"
                             android:textStyle="bold"
                             android:fontFamily="@font/poppins_bold"
                             android:gravity="end" />
@@ -283,13 +288,12 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="UGX 150,000"
-                            android:textColor="#F44336"
-                            android:textSize="15sp"
+                            android:text="UGX 0"
+                            android:textColor="#E74C3C"
+                            android:textSize="14sp"
                             android:textStyle="bold"
                             android:fontFamily="@font/poppins_bold"
-                            android:gravity="end"
-                            android:paddingEnd="12dp" />
+                            android:gravity="end" />
 
                     </LinearLayout>
 
@@ -309,8 +313,8 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="🏪 Your Shops"
-                    android:textColor="#212121"
-                    android:textSize="20sp"
+                    android:textColor="#2C3E50"
+                    android:textSize="18sp"
                     android:textStyle="bold"
                     android:fontFamily="@font/poppins_bold" />
 
@@ -327,7 +331,7 @@
                         android:layout_height="36dp"
                         android:text="Today"
                         android:textColor="@android:color/white"
-                        android:textSize="13sp"
+                        android:textSize="12sp"
                         android:textStyle="bold"
                         android:fontFamily="@font/poppins_medium"
                         android:paddingHorizontal="16dp"
@@ -340,8 +344,8 @@
                         android:layout_width="wrap_content"
                         android:layout_height="36dp"
                         android:text="All Shops"
-                        android:textColor="#757575"
-                        android:textSize="13sp"
+                        android:textColor="#7F8C8D"
+                        android:textSize="12sp"
                         android:fontFamily="@font/poppins_medium"
                         android:paddingHorizontal="16dp"
                         android:paddingVertical="8dp"
@@ -363,10 +367,10 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="⚡ Quick Actions"
-                android:textColor="#212121"
+                android:textColor="#2C3E50"
                 android:textSize="18sp"
                 android:textStyle="bold"
-                android:fontFamily="@font/poppins_semibold"
+                android:fontFamily="@font/poppins_bold"
                 android:layout_marginTop="24dp"
                 android:layout_marginBottom="16dp" />
 
@@ -377,7 +381,6 @@
                 android:weightSum="4"
                 android:padding="16dp"
                 android:elevation="2dp"
-                app:cardCornerRadius="16dp"
                 android:background="@drawable/bg_quick_actions_container">
 
                 <!-- Add Product -->
@@ -412,7 +415,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Add\nProduct"
-                        android:textColor="#616161"
+                        android:textColor="#7F8C8D"
                         android:textSize="11sp"
                         android:textAlignment="center"
                         android:fontFamily="@font/poppins_medium"
@@ -453,7 +456,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="New\nSale"
-                        android:textColor="#616161"
+                        android:textColor="#7F8C8D"
                         android:textSize="11sp"
                         android:textAlignment="center"
                         android:fontFamily="@font/poppins_medium"
@@ -494,7 +497,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Add\nEmployee"
-                        android:textColor="#616161"
+                        android:textColor="#7F8C8D"
                         android:textSize="11sp"
                         android:textAlignment="center"
                         android:fontFamily="@font/poppins_medium"
@@ -535,7 +538,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="View\nReports"
-                        android:textColor="#616161"
+                        android:textColor="#7F8C8D"
                         android:textSize="11sp"
                         android:textAlignment="center"
                         android:fontFamily="@font/poppins_medium"
@@ -551,10 +554,10 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="📋 Recent Activity"
-                android:textColor="#212121"
+                android:textColor="#2C3E50"
                 android:textSize="18sp"
                 android:textStyle="bold"
-                android:fontFamily="@font/poppins_semibold"
+                android:fontFamily="@font/poppins_bold"
                 android:layout_marginTop="24dp"
                 android:layout_marginBottom="12dp" />
 
@@ -576,12 +579,12 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="12:00"
-                        android:textColor="#2196F3"
+                        android:text="Today's Activity"
+                        android:textColor="#3498DB"
                         android:textSize="14sp"
                         android:textStyle="bold"
                         android:fontFamily="@font/poppins_bold"
-                        android:layout_marginBottom="8dp" />
+                        android:layout_marginBottom="12dp" />
 
                     <!-- Activity Item -->
                     <LinearLayout
@@ -595,29 +598,73 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Sales"
-                            android:textColor="#212121"
+                            android:text="Total Sales"
+                            android:textColor="#2C3E50"
                             android:textSize="14sp"
                             android:fontFamily="@font/poppins_medium" />
 
                         <TextView
+                            android:id="@+id/tvTodaySales"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="0"
-                            android:textColor="#9E9E9E"
+                            android:textColor="#27AE60"
                             android:textSize="14sp"
-                            android:fontFamily="@font/poppins_regular"
+                            android:textStyle="bold"
+                            android:fontFamily="@font/poppins_bold"
                             android:layout_marginEnd="16dp" />
 
                         <TextView
+                            android:id="@+id/tvViewAllTransactions"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="View All"
-                            android:textColor="#2196F3"
+                            android:textColor="#3498DB"
                             android:textSize="12sp"
                             android:fontFamily="@font/poppins_medium"
                             android:background="?selectableItemBackground"
                             android:padding="4dp" />
+
+                    </LinearLayout>
+
+                    <!-- Divider -->
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="#F0F0F0"
+                        android:layout_marginVertical="8dp" />
+
+                    <!-- Activity Item -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:paddingVertical="12dp"
+                        android:background="@drawable/bg_activity_item">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Total Expenses"
+                            android:textColor="#2C3E50"
+                            android:textSize="14sp"
+                            android:fontFamily="@font/poppins_medium" />
+
+                        <TextView
+                            android:id="@+id/tvTodayExpenses"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textColor="#E74C3C"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:fontFamily="@font/poppins_bold"
+                            android:layout_marginEnd="16dp" />
+
+                        <View
+                            android:layout_width="48dp"
+                            android:layout_height="wrap_content" />
 
                     </LinearLayout>
 

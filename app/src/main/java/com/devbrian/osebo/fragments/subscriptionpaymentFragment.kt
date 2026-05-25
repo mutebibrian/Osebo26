@@ -1,8 +1,6 @@
 package com.devbrian.osebo.fragments
 
 import android.os.Bundle
-import android.text.Editable
-import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -11,10 +9,11 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
+import com.devbrian.osebo.R
 import com.devbrian.osebo.databinding.FragmentSubscriptionPaymentBinding
+import com.devbrian.osebo.models.Shop
 import com.devbrian.osebo.ui.viewmodels.SubscriptionViewModel
 import com.devbrian.osebo.utils.Resource
-import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -22,8 +21,14 @@ class SubscriptionPaymentFragment : Fragment() {
 
     private var _binding: FragmentSubscriptionPaymentBinding? = null
     private val binding get() = _binding!!
+
     private val viewModel: SubscriptionViewModel by viewModels()
     private val args: SubscriptionPaymentFragmentArgs by navArgs()
+
+    private var shop: Shop? = null
+    private var packageId: String = ""
+    private var packageName: String = ""
+    private var packagePrice: Float = 0f
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -37,10 +42,17 @@ class SubscriptionPaymentFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        setupArguments()
         setupUI()
-        setupPhoneNumberWatcher()
         setupClickListeners()
         observeViewModel()
+    }
+
+    private fun setupArguments() {
+        shop = args.shop
+        packageId = args.packageId
+        packageName = args.packageName
+        packagePrice = args.packagePrice
     }
 
     private fun setupUI() {
@@ -49,181 +61,146 @@ class SubscriptionPaymentFragment : Fragment() {
             findNavController().navigateUp()
         }
 
-        // Set package details
-        binding.tvPackageName.text = args.packageName
-        binding.tvTotalAmount.text = "UGX ${String.format("%,d", args.packagePrice.toInt())}"
-        binding.tvMonths.text = "1 month"
-
-        // Set shop name if available
-        args.shop?.let { shop ->
-            binding.toolbar.subtitle = shop.name
-        }
-
-        // Set default phone number format
-        binding.etPhoneNumber.setText("+256")
-        binding.etPhoneNumber.setSelection(binding.etPhoneNumber.text?.length ?: 4)
-    }
-
-    private fun setupPhoneNumberWatcher() {
-        binding.etPhoneNumber.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                // Clear error when user starts typing
-                binding.tilPhoneNumber.error = null
-            }
-
-            override fun afterTextChanged(s: Editable?) {
-                // Auto-format: ensure it starts with +256
-                if (!s.isNullOrEmpty() && !s.startsWith("+")) {
-                    binding.etPhoneNumber.removeTextChangedListener(this)
-                    binding.etPhoneNumber.setText("+256${s}")
-                    binding.etPhoneNumber.setSelection(binding.etPhoneNumber.text?.length ?: 4)
-                    binding.etPhoneNumber.addTextChangedListener(this)
-                }
-            }
-        })
+        binding.tvPackageName.text = packageName
+        binding.tvAmount.text = "UGX ${String.format("%,.0f", packagePrice)}"
+        binding.tvShopName.text = shop?.name ?: "Your Shop"
     }
 
     private fun setupClickListeners() {
-        binding.btnProceedToPay.setOnClickListener {
-            val phoneNumber = binding.etPhoneNumber.text.toString().trim()
-            if (isValidPhoneNumber(phoneNumber)) {
-                binding.tilPhoneNumber.error = null
-                proceedToPayment(formatPhoneNumber(phoneNumber))
-            } else {
-                binding.tilPhoneNumber.error = "Please enter a valid phone number (e.g., +2567XXXXXXXX)"
-            }
+        binding.btnPayNow.setOnClickListener {
+            processPayment()
         }
-    }
 
-    private fun isValidPhoneNumber(phone: String): Boolean {
-        val cleaned = phone.replace("\\s".toRegex(), "").replace("-", "")
-        val digits = cleaned.filter { it.isDigit() }
-
-        return when {
-            cleaned.isEmpty() -> false
-            cleaned.startsWith("+256") && digits.length >= 12 -> true
-            cleaned.startsWith("0") && digits.length >= 10 -> true
-            digits.length >= 9 -> true
-            else -> false
-        }
-    }
-
-    private fun formatPhoneNumber(phone: String): String {
-        val cleaned = phone.replace("\\s".toRegex(), "").replace("-", "")
-
-        return when {
-            cleaned.startsWith("+256") -> cleaned
-            cleaned.startsWith("256") -> "+$cleaned"
-            cleaned.startsWith("0") -> "+256${cleaned.substring(1)}"
-            else -> "+256$cleaned"
-        }
-    }
-
-    private fun proceedToPayment(phoneNumber: String) {
-        args.shop?.let { shop ->
-            showLoading(true)
-
-            println("💳 Processing payment for:")
-            println("  - Shop ID: ${shop.id}")
-            println("  - Package ID: ${args.packageId}")
-            println("  - Phone: $phoneNumber")
-            println("  - Amount: ${args.packagePrice}")
-
-            viewModel.createSubscription(
-                shopId = shop.id,
-                packageId = args.packageId,
-                phoneNumber = phoneNumber,
-                months = 1
-            )
-        } ?: run {
-            showError("Shop information not available")
+        binding.btnCancel.setOnClickListener {
+            findNavController().navigateUp()
         }
     }
 
     private fun observeViewModel() {
-        viewModel.createSubscriptionResult.observe(viewLifecycleOwner) { resource ->
+        // Observe subscription result
+        viewModel.subscriptionResult.observe(viewLifecycleOwner) { resource ->
             when (resource) {
                 is Resource.Loading -> {
                     showLoading(true)
                 }
                 is Resource.Success -> {
                     showLoading(false)
-                    resource.data?.let { response ->
-                        if (response.success) {
-                            val paymentId = response.data?.paymentId
-                            if (!paymentId.isNullOrBlank()) {
-                                Toast.makeText(
-                                    requireContext(),
-                                    "Payment request sent. Check your phone.",
-                                    Toast.LENGTH_LONG
-                                ).show()
+                    val response = resource.data
+                    // Check if we have a paymentId (payment initiated successfully)
+                    if (response?.paymentId != null) {
+                        Toast.makeText(
+                            requireContext(),
+                            "Payment initiated! Check your phone for the prompt.",
+                            Toast.LENGTH_LONG
+                        ).show()
 
-                                // Navigate to PaymentStatusFragment with the transaction ID
-                                navigateToPaymentStatus(paymentId, phoneNumber = binding.etPhoneNumber.text.toString())
-                            } else {
-                                showError("No payment ID received")
-                            }
-                        } else {
-                            showError(response.message)
-                        }
+                        // Navigate to payment status fragment
+                        val action = SubscriptionPaymentFragmentDirections
+                            .actionSubscriptionPaymentFragmentToPaymentStatusFragment(
+                                transactionId = response.paymentId,
+                                shopId = shop?.id ?: "",
+                                amount = packagePrice,
+                                currency = "UGX",
+                                phoneNumber = binding.etPhoneNumber.text.toString()
+                            )
+                        findNavController().navigate(action)
+                    } else {
+                        Toast.makeText(
+                            requireContext(),
+                            response?.message ?: "Subscription created successfully!",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        findNavController().popBackStack()
                     }
                 }
                 is Resource.Error -> {
                     showLoading(false)
-                    showError(resource.message)
+                    Toast.makeText(
+                        requireContext(),
+                        resource.message ?: "Failed to create subscription",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
             }
         }
 
-        viewModel.errorMessage.observe(viewLifecycleOwner) { error ->
-            error?.let {
-                showLoading(false)
-                showError(it)
+        // Observe loading state
+        viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
+            if (isLoading) {
+                showLoading(true)
             }
         }
 
-        viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
-            showLoading(isLoading)
+        // Observe error messages
+        viewModel.errorMessage.observe(viewLifecycleOwner) { message ->
+            message?.let {
+                Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
-    private fun navigateToPaymentStatus(transactionId: String, phoneNumber: String) {
-        args.shop?.let { shop ->
-            try {
-                val action = SubscriptionPaymentFragmentDirections
-                    .actionSubscriptionPaymentFragmentToPaymentStatusFragment(
-                        transactionId = transactionId,
-                        shopId = shop.id,
-                        amount = args.packagePrice,
-                        currency = "UGX",
-                        phoneNumber = phoneNumber
-                    )
-                findNavController().navigate(action)
-            } catch (e: Exception) {
-                e.printStackTrace()
-                showError("Navigation error: ${e.message}")
+    private fun processPayment() {
+        val phoneNumber = binding.etPhoneNumber.text.toString().trim()
+
+        if (phoneNumber.isEmpty()) {
+            binding.tilPhoneNumber.error = "Phone number is required"
+            return
+        }
+
+        val formattedPhone = formatPhoneNumber(phoneNumber)
+
+        if (shop == null) {
+            Toast.makeText(requireContext(), "No shop selected", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (packageId.isEmpty()) {
+            Toast.makeText(requireContext(), "Invalid package", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // Show confirmation dialog
+        showPaymentConfirmation(formattedPhone)
+    }
+
+    private fun showPaymentConfirmation(phoneNumber: String) {
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle("Confirm Payment")
+            .setMessage(buildString {
+                appendLine("Package: $packageName")
+                appendLine("Amount: UGX ${String.format("%,.0f", packagePrice)}")
+                appendLine("Phone: $phoneNumber")
+                appendLine("\nYou will receive a payment prompt on your phone.")
+            })
+            .setPositiveButton("Confirm") { _, _ ->
+                // FIXED: Pass the amount (packagePrice) as the last parameter
+                viewModel.createSubscription(
+                    shopId = shop?.id ?: "",
+                    packageId = packageId,
+                    phoneNumber = phoneNumber,
+                    months = 1,
+                    amount = packagePrice.toDouble()  // Add the amount parameter
+                )
             }
-        } ?: run {
-            showError("Shop information not available")
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun formatPhoneNumber(phone: String): String {
+        val cleaned = phone.replace("\\s".toRegex(), "").replace("-", "")
+        return when {
+            cleaned.startsWith("+256") -> cleaned
+            cleaned.startsWith("256") -> "+$cleaned"
+            cleaned.startsWith("0") && cleaned.length == 10 -> "+256${cleaned.substring(1)}"
+            cleaned.length == 9 -> "+256$cleaned"
+            else -> "+256$cleaned"
         }
     }
 
     private fun showLoading(show: Boolean) {
-        binding.overlayProgress.visibility = if (show) View.VISIBLE else View.GONE
-        binding.btnProceedToPay.isEnabled = !show
-    }
-
-    private fun showError(message: String?) {
-        Snackbar.make(
-            binding.root,
-            message ?: "An error occurred",
-            Snackbar.LENGTH_LONG
-        ).apply {
-            setAction("Dismiss") { dismiss() }
-            show()
-        }
+        binding.progressBar.visibility = if (show) View.VISIBLE else View.GONE
+        binding.btnPayNow.isEnabled = !show
+        binding.btnPayNow.text = if (show) "Processing..." else "Pay Now"
     }
 
     override fun onDestroyView() {

@@ -20,27 +20,27 @@ class FinanceViewModel @Inject constructor(
     private val preferenceManager: PreferenceManager
 ) : ViewModel() {
 
-    // Transactions
+    
     private val _transactions = MutableLiveData<List<Transaction>>()
     val transactions: LiveData<List<Transaction>> = _transactions
 
-    // Expenses
+    
     private val _expenses = MutableLiveData<List<Expense>>()
     val expenses: LiveData<List<Expense>> = _expenses
 
-    // Expense Categories
+    
     private val _expenseCategories = MutableLiveData<List<ExpenseCategory>>()
     val expenseCategories: LiveData<List<ExpenseCategory>> = _expenseCategories
 
-    // Financial Statement
+    
     private val _financialStatement = MutableLiveData<FinancialStatement>()
     val financialStatement: LiveData<FinancialStatement> = _financialStatement
 
-    // Shop Info
+    
     private val _currentShopName = MutableLiveData<String>()
     val currentShopName: LiveData<String> = _currentShopName
 
-    // Loading and Error states
+    
     private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> = _isLoading
 

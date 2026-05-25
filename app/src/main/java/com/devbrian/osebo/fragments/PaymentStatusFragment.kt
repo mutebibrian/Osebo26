@@ -16,6 +16,10 @@ import com.devbrian.osebo.ui.viewmodels.SubscriptionViewModel
 import com.devbrian.osebo.utils.Resource
 import com.devbrian.osebo.data.PreferenceManager
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class PaymentStatusFragment : Fragment() {
@@ -26,6 +30,8 @@ class PaymentStatusFragment : Fragment() {
     private val args: PaymentStatusFragmentArgs by navArgs()
 
     private lateinit var preferenceManager: PreferenceManager
+    private var isPollingActive = true
+    private var pollCount = 0
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -55,6 +61,13 @@ class PaymentStatusFragment : Fragment() {
 
         binding.tvTransactionId.text = "Transaction ID: ${args.transactionId.take(12)}..."
         binding.tvAmount.text = "Amount: ${args.currency} ${String.format("%,.0f", args.amount)}"
+
+        // Show initial status
+        updateStatus("Payment Pending", R.color.yellow_500)
+        binding.tvStatusMessage.text = "Please check your phone and enter your PIN when prompted"
+        binding.tvPollingMessage.text = "Waiting for payment confirmation..."
+
+        println("🔍 PaymentStatusFragment: Started with transactionId=${args.transactionId}, shopId=${args.shopId}")
     }
 
     private fun setupClickListeners() {
@@ -70,38 +83,57 @@ class PaymentStatusFragment : Fragment() {
     private fun observeViewModel() {
         // Observe payment polling status
         viewModel.paymentPollingStatus.observe(viewLifecycleOwner) { resource ->
+            println("🔔 PaymentStatus: paymentPollingStatus = $resource")
+
             when (resource) {
                 is Resource.Loading -> {
-                    updateStatus("Checking...", R.color.yellow_500)
+                    updateStatus("Processing...", R.color.yellow_500)
                 }
                 is Resource.Success -> {
                     val response = resource.data
+                    println("🔔 PaymentStatus: Success response = $response")
+                    println("🔔 PaymentStatus: status = ${response?.status}")
+                    println("🔔 PaymentStatus: success = ${response?.success}")
 
                     if (response?.success == true) {
                         when (response.status.lowercase()) {
                             "completed", "success" -> {
+                                println("✅ PaymentStatus: Payment COMPLETED!")
                                 updateStatus("Payment Completed!", R.color.green_500)
                                 binding.ivStatusIcon.setImageResource(R.drawable.ic_check_circle)
                                 binding.tvStatusMessage.text = "Your subscription has been activated successfully!"
+                                binding.tvPollingMessage.text = "Subscription activated!"
                                 showSuccessButtons()
                                 stopPolling()
 
-                                // CRITICAL: Refresh shop subscription status
+                                // Refresh subscription status
                                 refreshShopSubscription(args.shopId)
                             }
                             "pending" -> {
+                                println("⏳ PaymentStatus: Payment PENDING (poll #$pollCount)")
                                 updateStatus("Payment Pending", R.color.yellow_500)
                                 binding.tvStatusMessage.text = response.message ?: "Please complete payment on your phone"
-                                binding.tvNextCheck.text = "Next check in ${response.nextPollSeconds ?: 5} seconds"
+                                val nextSeconds = response.nextPollSeconds
+                                binding.tvNextCheck.text = "Next check in $nextSeconds seconds"
+                                binding.tvPollingMessage.text = "Waiting for payment confirmation..."
                             }
                             "failed", "cancelled" -> {
+                                println("❌ PaymentStatus: Payment ${response.status}")
                                 updateStatus("Payment ${response.status.replaceFirstChar { it.uppercase() }}", R.color.red_500)
                                 binding.ivStatusIcon.setImageResource(R.drawable.ic_error)
                                 binding.tvStatusMessage.text = response.message ?: "Payment failed. Please try again."
                                 showRetryButton()
                                 stopPolling()
                             }
+                            "timeout" -> {
+                                println("⏰ PaymentStatus: Payment TIMEOUT")
+                                updateStatus("Payment Timeout", R.color.red_500)
+                                binding.tvStatusMessage.text = "Payment took too long. Please try again."
+                                showRetryButton()
+                                stopPolling()
+                            }
                             else -> {
+                                println("❓ PaymentStatus: Unknown status = ${response.status}")
                                 updateStatus("Unknown Status", R.color.gray_500)
                                 binding.tvStatusMessage.text = response.message ?: "Unknown payment status"
                                 showRetryButton()
@@ -109,6 +141,7 @@ class PaymentStatusFragment : Fragment() {
                             }
                         }
                     } else {
+                        println("❌ PaymentStatus: API returned success=false - ${response?.message}")
                         updateStatus("Error", R.color.red_500)
                         binding.tvStatusMessage.text = response?.message ?: "Payment verification failed"
                         showRetryButton()
@@ -116,16 +149,19 @@ class PaymentStatusFragment : Fragment() {
                     }
                 }
                 is Resource.Error -> {
+                    println("❌ PaymentStatus: Error - ${resource.message}")
                     updateStatus("Error", R.color.red_500)
-                    binding.tvStatusMessage.text = resource.message ?: "Network error"
+                    binding.tvStatusMessage.text = resource.message ?: "Network error. Please check your connection."
                     showRetryButton()
                     stopPolling()
                 }
             }
         }
 
-        // Observe shop subscription status - Using actual fields from response
+        // Observe shop subscription status
         viewModel.shopSubscriptionStatus.observe(viewLifecycleOwner) { resource ->
+            println("🔔 PaymentStatus: shopSubscriptionStatus = $resource")
+
             when (resource) {
                 is Resource.Success -> {
                     resource.data?.let { statusResponse ->
@@ -134,55 +170,38 @@ class PaymentStatusFragment : Fragment() {
                         println("   - status: ${statusResponse.status}")
                         println("   - isActive: ${statusResponse.isActive}")
                         println("   - subscriptionId: ${statusResponse.subscriptionId}")
-                        println("   - daysRemaining: ${statusResponse.daysRemaining}")
+                        println("   - type: ${statusResponse.type}")
+                        println("   - expiryDate: ${statusResponse.expiryDate}")
 
-                        // Check if subscription is active using the isActive field
-                        if (statusResponse.isActive) {
+                        if (statusResponse.isActive == true) {
                             binding.tvStatusMessage.text = "Subscription activated! Redirecting..."
 
-                            // Update local preferences with subscription data
-                            preferenceManager.saveSubscriptionStatus(
-                                statusResponse.status.uppercase()
-                            )
+                            // Save subscription details to preferences
+                            val subscriptionStatus = when {
+                                statusResponse.type.equals("trial", ignoreCase = true) -> "TRIAL"
+                                statusResponse.isActive -> "ACTIVE"
+                                else -> statusResponse.status.uppercase()
+                            }
 
+                            preferenceManager.saveSubscriptionStatus(subscriptionStatus)
                             statusResponse.subscriptionId?.let {
                                 preferenceManager.saveSubscriptionId(it)
                                 preferenceManager.saveCurrentShopUuid(it)
                             }
+                            statusResponse.type?.let { preferenceManager.saveSubscriptionType(it) }
+                            statusResponse.expiryDate?.let { preferenceManager.saveSubscriptionExpiry(it) }
+                            statusResponse.shopId?.let { preferenceManager.saveCurrentShopId(it) }
 
-                            statusResponse.subscription?.packageType?.let {
-                                preferenceManager.saveSubscriptionType(it)
-                            }
-
-                            statusResponse.expiryDate?.let {
-                                preferenceManager.saveSubscriptionExpiry(it)
-                            }
-
-                            // Save shop info
-                            statusResponse.shopId?.let {
-                                preferenceManager.saveCurrentShopId(it)
-                            }
-
-                            statusResponse.shopName?.let {
-                                preferenceManager.saveCurrentShopName(it)
-                            }
-
-                            println("✅ Saved subscription to preferences")
+                            println("✅ Saved subscription to preferences: $subscriptionStatus")
                             preferenceManager.debugSubscriptionInfo()
 
-                            // Navigate to dashboard after short delay
+                            // Navigate to dashboard after delay
                             binding.btnViewSubscription.postDelayed({
                                 navigateToDashboard()
                             }, 1500)
                         } else {
-                            // Subscription not active yet
                             println("⚠️ Subscription not active yet. Status: ${statusResponse.status}")
-
-                            // Show appropriate message based on status
                             when (statusResponse.status.lowercase()) {
-                                "pending" -> {
-                                    binding.tvStatusMessage.text = "Payment is still processing..."
-                                }
                                 "trial" -> {
                                     binding.tvStatusMessage.text = "Trial activated! Redirecting..."
                                     binding.btnViewSubscription.postDelayed({
@@ -190,7 +209,7 @@ class PaymentStatusFragment : Fragment() {
                                     }, 1500)
                                 }
                                 else -> {
-                                    binding.tvStatusMessage.text = "Subscription is not active. Please try again."
+                                    binding.tvStatusMessage.text = "Subscription status: ${statusResponse.status}"
                                 }
                             }
                         }
@@ -198,13 +217,12 @@ class PaymentStatusFragment : Fragment() {
                 }
                 is Resource.Error -> {
                     println("⚠️ Error refreshing subscription: ${resource.message}")
-                    binding.tvStatusMessage.text = "Could not verify subscription. Please check later."
                 }
                 else -> {}
             }
         }
 
-        // Observe current active subscription as backup
+        // Observe current subscription as fallback
         viewModel.currentSubscription.observe(viewLifecycleOwner) { resource ->
             when (resource) {
                 is Resource.Success -> {
@@ -218,7 +236,6 @@ class PaymentStatusFragment : Fragment() {
                         if (subscription.isActiveStatus) {
                             binding.tvStatusMessage.text = "Subscription activated! Redirecting..."
 
-                            // Update local preferences
                             preferenceManager.saveSubscriptionStatus(
                                 if (subscription.isTrial) "TRIAL" else "ACTIVE"
                             )
@@ -227,10 +244,6 @@ class PaymentStatusFragment : Fragment() {
                             preferenceManager.saveSubscriptionType(subscription.packageType)
                             subscription.endDate?.let { preferenceManager.saveSubscriptionExpiry(it) }
 
-                            println("✅ Saved subscription to preferences from currentSubscription")
-                            preferenceManager.debugSubscriptionInfo()
-
-                            // Navigate to dashboard
                             binding.btnViewSubscription.postDelayed({
                                 navigateToDashboard()
                             }, 1500)
@@ -248,26 +261,29 @@ class PaymentStatusFragment : Fragment() {
     private fun refreshShopSubscription(shopId: String) {
         println("🔄 Refreshing shop subscription for shop: $shopId")
 
-        // First check shop subscription status
+        // Check subscription status
         viewModel.checkShopSubscription(shopId)
 
-        // Also get the active subscription to ensure it's updated in local storage
+        // Also get active subscription
         viewModel.getShopActiveSubscription(shopId)
     }
 
     private fun navigateToDashboard() {
-        try {
-            // Try to navigate to main dashboard
-            val action = PaymentStatusFragmentDirections.actionPaymentStatusFragmentToMainDashboard()
-            findNavController().navigate(action)
-        } catch (e: Exception) {
-            println("⚠️ Navigation error: ${e.message}")
+        println("🔍 NAVIGATION: Attempting to navigate to dashboard")
 
-            // Fallback: Try to navigate to shop dashboard or pop back stack
+        try {
+            val action = PaymentStatusFragmentDirections.actionPaymentStatusFragmentToMainDashboard()
+            println("🔍 NAVIGATION: Action created, executing...")
+            findNavController().navigate(action)
+            println("✅ NAVIGATION: Navigation successful")
+        } catch (e: Exception) {
+            println("❌ NAVIGATION: Error - ${e.message}")
+            e.printStackTrace()
+
+            // Fallback: pop back to main
             try {
                 findNavController().popBackStack(R.id.mainDashboardFragment, false)
             } catch (e2: Exception) {
-                // Last resort: just go back
                 findNavController().navigateUp()
             }
         }
@@ -280,18 +296,51 @@ class PaymentStatusFragment : Fragment() {
     }
 
     private fun startPolling() {
+        println("🚀 PaymentStatus: Starting payment polling for transaction: ${args.transactionId}")
+        isPollingActive = true
+        pollCount = 0
+
+        // Start ViewModel polling
         viewModel.startPaymentPolling(args.transactionId, args.shopId)
+
+        // Also start manual polling as backup
+        startManualPolling()
+    }
+
+    private fun startManualPolling() {
+        CoroutineScope(Dispatchers.Main).launch {
+            while (isPollingActive && pollCount < 60) { // Max 60 attempts (about 5 minutes)
+                delay(5000) // Check every 5 seconds
+                pollCount++
+
+                if (!isPollingActive) break
+
+                binding.tvNextCheck.text = "Checking... ($pollCount/60)"
+                println("🔄 Manual poll #$pollCount for transaction: ${args.transactionId}")
+
+                // Call API to check payment status
+                viewModel.checkPaymentStatus(args.transactionId)
+            }
+
+            if (pollCount >= 60 && isPollingActive) {
+                println("⏰ Manual polling timeout after 60 attempts")
+                updateStatus("Payment Timeout", R.color.red_500)
+                binding.tvStatusMessage.text = "Payment confirmation timed out. Please check your subscription status later."
+                showRetryButton()
+                isPollingActive = false
+            }
+        }
     }
 
     private fun stopPolling() {
+        println("🛑 PaymentStatus: Stopping payment polling")
+        isPollingActive = false
         viewModel.stopPaymentPolling()
     }
 
     private fun showSuccessButtons() {
         binding.btnViewSubscription.visibility = View.VISIBLE
         binding.btnTryAgain.visibility = View.GONE
-
-        // FIX: Use pbPolling instead of progressBar
         binding.pbPolling.visibility = View.GONE
         binding.tvPollingMessage.visibility = View.GONE
         binding.tvNextCheck.visibility = View.GONE
@@ -300,17 +349,15 @@ class PaymentStatusFragment : Fragment() {
     private fun showRetryButton() {
         binding.btnTryAgain.visibility = View.VISIBLE
         binding.btnViewSubscription.visibility = View.GONE
-
-        // FIX: Use pbPolling instead of progressBar
         binding.pbPolling.visibility = View.GONE
         binding.tvPollingMessage.visibility = View.GONE
         binding.tvNextCheck.visibility = View.GONE
     }
+
     private fun navigateBackToPackages() {
         try {
-            findNavController().navigate(
-                R.id.action_paymentStatusFragment_to_subscriptionPackagesFragment
-            )
+            val action = PaymentStatusFragmentDirections.actionPaymentStatusFragmentToSubscriptionPackagesFragment()
+            findNavController().navigate(action)
         } catch (e: Exception) {
             findNavController().popBackStack()
         }
@@ -318,13 +365,8 @@ class PaymentStatusFragment : Fragment() {
 
     private fun navigateToSubscriptionDetails() {
         try {
-            // Navigate to subscription details with the shopId
             val action = PaymentStatusFragmentDirections
-                .actionPaymentStatusFragmentToSubscriptionDetailsFragment(
-                    shopId = args.shopId,
-                    subscriptionId = null,
-                    subscription = null
-                )
+                .actionPaymentStatusFragmentToSubscriptionDetailsFragment()
             findNavController().navigate(action)
         } catch (e: Exception) {
             Toast.makeText(requireContext(), "Could not load subscription details", Toast.LENGTH_SHORT).show()

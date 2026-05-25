@@ -5,7 +5,6 @@
     <!-- Login Activity -->
     <string name="welcome_back">Welcome Back</string>
     <string name="sign_in_to_continue">Sign in to continue</string>
-    <string name="sign_in">Sign In</string>
     <string name="logging_in">Signing in...</string>
     <string name="email">Email</string>
     <string name="email_address">Email address</string>
@@ -135,5 +134,41 @@
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="you_re_offline_sales_will_be_saved_locally">📴 You\'re offline. Sales will be saved locally.</string>
     <string name="customer">Customer</string>
+
+    <string-array name="titles_array">
+        <item>Mr.</item>
+        <item>Mrs.</item>
+        <item>Ms.</item>
+        <item>Dr.</item>
+        <item>Other</item>
+    </string-array>
+
+    <!-- Login screen -->
+    <string name="sign_in_with_phone">Sign in with phone</string>
+    <string name="phone_number_label">Phone number</string>
+    <string name="country_code_ug">ug (UG) ▼</string>
+    <string name="enter_phone_number">Enter phone number</string>
+    <string name="verification_code_label">Verification Code</string>
+    <string name="enter_6_digit_code">Enter 6-digit code</string>
+    <string name="resend_code">Resend code</string>
+    <string name="send_otp">Send OTP</string>
+    <string name="verify_and_sign_in">Verify &amp; Sign In</string>
+    <string name="have_no_account">Have no account?</string>
+    <string name="create_account">Create an account</string>
+
+    <!-- Signup screen -->
+    <string name="create_account_title">Create your account</string>
+    <string name="title_label">Title *</string>
+    <string name="first_name_label">First Name *</string>
+    <string name="first_name_hint">First name</string>
+    <string name="last_name_label">Last Name *</string>
+    <string name="last_name_hint">Last name</string>
+    <string name="phone_format_hint">Format: 7XXXXXXXX (9 digits)</string>
+    <string name="email_optional_label">Email Address (optional)</string>
+    <string name="email_hint">Email address</string>
+    <string name="terms_accept">I accept the Terms and Conditions</string>
+    <string name="verify_and_create">Verify &amp; Create Account</string>
+    <string name="already_have_account">Already have an Account?</string>
+    <string name="sign_in">Sign In</string>
 
 </resources>

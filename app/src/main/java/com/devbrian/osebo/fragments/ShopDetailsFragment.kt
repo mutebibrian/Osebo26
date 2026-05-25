@@ -45,7 +45,7 @@ class ShopDetailsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Get shop from arguments
+        
         shop = args.shop
 
         setupToolbar()
@@ -61,7 +61,7 @@ class ShopDetailsFragment : Fragment() {
             findNavController().navigateUp()
         }
 
-        // Setup menu items
+        
         binding.toolbar.setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
                 R.id.action_edit -> {
@@ -94,7 +94,7 @@ class ShopDetailsFragment : Fragment() {
     }
 
     private fun observeViewModels() {
-        // Observe shop updates
+        
         shopViewModel.shops.observe(viewLifecycleOwner) { resource ->
             when (resource) {
                 is Resource.Success -> {
@@ -107,32 +107,32 @@ class ShopDetailsFragment : Fragment() {
                     Toast.makeText(requireContext(), resource.message, Toast.LENGTH_SHORT).show()
                 }
                 is Resource.Loading -> {
-                    // Show loading
+                    
                 }
             }
         }
     }
 
     private fun displayShopInfo() {
-        // Basic Info
+        
         binding.tvShopName.text = shop.name
         binding.tvShopType.text = shop.shopTypeDisplay
         binding.tvShopAddress.text = shop.fullAddress.ifEmpty { "No address provided" }
 
-        // Contact Info
+        
         binding.tvShopPhone.text = shop.phone ?: "No phone provided"
         binding.tvShopEmail.text = shop.email ?: "No email provided"
         binding.tvShopWebsite.text = shop.website ?: "No website provided"
 
-        // Business Info
+        
         binding.tvRegistrationNumber.text = shop.registrationNumber ?: "Not registered"
         binding.tvTaxNumber.text = shop.taxIdentificationNumber ?: "Not provided"
 
-        // Dates
+        
         binding.tvCreatedAt.text = formatDate(shop.createdAt)
         binding.tvUpdatedAt.text = formatDate(shop.updatedAt)
 
-        // Status
+        
         updateShopStatus()
     }
 
@@ -165,11 +165,11 @@ class ShopDetailsFragment : Fragment() {
     }
 
     private fun editShop() {
-        // Navigate to edit shop fragment
+        
         Toast.makeText(requireContext(), "Edit shop", Toast.LENGTH_SHORT).show()
-        // Uncomment when you have the action defined
-        // val action = ShopDetailsFragmentDirections.actionShopDetailsFragmentToEditShopFragment(shop)
-        // findNavController().navigate(action)
+        
+        
+        
     }
 
     private fun showDeleteConfirmationDialog() {
@@ -197,11 +197,11 @@ class ShopDetailsFragment : Fragment() {
     }
 
     private fun navigateToStatistics() {
-        // Navigate to statistics fragment
+        
         Toast.makeText(requireContext(), "View Statistics", Toast.LENGTH_SHORT).show()
-        // Uncomment when you have the action defined
-        // val action = ShopDetailsFragmentDirections.actionShopDetailsFragmentToShopStatisticsFragment(shop.id)
-        // findNavController().navigate(action)
+        
+        
+        
     }
 
     override fun onDestroyView() {

@@ -25,10 +25,8 @@ class DashboardRepository @Inject constructor(
 
     companion object {
         private const val TAG = "DashboardRepository"
-        private const val CACHE_VALIDITY_PERIOD = 30 * 60 * 1000 // 30 minutes
+        private const val CACHE_VALIDITY_PERIOD = 30 * 60 * 1000
     }
-
-    // ============= OBSERVABLE FLOWS =============
 
     fun getDashboardSummary(): Flow<DashboardSummaryEntity?> = dao.getDashboardSummary()
     fun getTimeSeries(): Flow<TimeSeriesEntity?> = dao.getTimeSeries()
@@ -36,13 +34,9 @@ class DashboardRepository @Inject constructor(
     fun getShopSummary(shopId: String): Flow<ShopSummaryEntity?> = dao.getShopSummary(shopId)
     fun getFinancialStatement(): Flow<FinancialStatementEntity?> = dao.getFinancialStatement()
 
-    // ============= SYNCHRONOUS GETTERS =============
-
     suspend fun getDashboardSummarySync(): DashboardSummaryEntity? = dao.getDashboardSummarySync()
     suspend fun getTimeSeriesSync(): TimeSeriesEntity? = dao.getTimeSeriesSync()
     suspend fun getTopStockItemsSync(): List<TopStockItemEntity> = dao.getTopStockItemsSync()
-
-    // ============= CACHE MANAGEMENT =============
 
     suspend fun hasCachedData(): Boolean = dao.hasDashboardData() > 0
     suspend fun getLastUpdateTime(): Long? = dao.getLastUpdateTime()
@@ -51,8 +45,6 @@ class DashboardRepository @Inject constructor(
         val lastUpdate = getLastUpdateTime() ?: return false
         return (System.currentTimeMillis() - lastUpdate) < CACHE_VALIDITY_PERIOD
     }
-
-    // ============= DATA REFRESH =============
 
     suspend fun refreshDashboardData() {
         val shopId = preferences.getCurrentShopId()
@@ -64,7 +56,6 @@ class DashboardRepository @Inject constructor(
         Log.d(TAG, "Refreshing dashboard data for shop: $shopId")
 
         try {
-            // Fetch all data
             fetchAndSaveShopSummary(shopId)
             fetchAndSaveTimeSeries(shopId)
             fetchAndSaveTopStockItems(shopId)
@@ -87,16 +78,15 @@ class DashboardRepository @Inject constructor(
             val response = apiService.getShopSummary(shopId)
             if (response.isSuccessful && response.body()?.success == true) {
                 response.body()?.data?.let { summary ->
-                    // Save to dashboard summary
                     val dashboardEntity = DashboardSummaryEntity(
                         employeesCount = summary.totalEmployees,
                         suppliersCount = summary.totalSuppliers,
                         customersCount = summary.totalCustomers,
-                        totalSales = summary.totalSales
+                        totalSales = summary.totalSales,
+                        totalExpenses = summary.totalExpenses  // Use totalExpenses from your DTO
                     )
                     dao.insertDashboardSummary(dashboardEntity)
 
-                    // Save to shop-specific summary
                     val shopEntity = ShopSummaryEntity(
                         shopId = shopId,
                         shopName = preferences.getCurrentShopName(),
@@ -107,7 +97,7 @@ class DashboardRepository @Inject constructor(
                     )
                     dao.insertShopSummary(shopEntity)
 
-                    Log.d(TAG, "Shop summary saved: ${summary.totalEmployees} employees")
+                    Log.d(TAG, "Shop summary saved: ${summary.totalEmployees} employees, totalExpenses: ${summary.totalExpenses}")
                 }
             }
         } catch (e: Exception) {
@@ -119,20 +109,15 @@ class DashboardRepository @Inject constructor(
         try {
             val response = apiService.getTimeSeries(shopId, "monthly")
             if (response.isSuccessful && response.body()?.success == true) {
-                val timeSeriesList = response.body()?.data ?: emptyList()
-                if (timeSeriesList.isNotEmpty()) {
-                    // Extract labels, sales, and expenses from the list
-                    val labels = timeSeriesList.map { it.label }
-                    val sales = timeSeriesList.map { it.sales }
-                    val expenses = timeSeriesList.map { it.expenses }
-
+                val timeSeriesData = response.body()?.data
+                if (timeSeriesData != null && timeSeriesData.xAxis.isNotEmpty()) {
                     val entity = TimeSeriesEntity(
-                        xAxis = gson.toJson(labels),
-                        sales = gson.toJson(sales),
-                        expenses = gson.toJson(expenses)
+                        xAxis = gson.toJson(timeSeriesData.xAxis),
+                        sales = gson.toJson(timeSeriesData.sales),
+                        expenses = gson.toJson(timeSeriesData.expenses)
                     )
                     dao.insertTimeSeries(entity)
-                    Log.d(TAG, "Time series saved with ${labels.size} points")
+                    Log.d(TAG, "Time series saved with ${timeSeriesData.xAxis.size} points")
                 } else {
                     Log.d(TAG, "No time series data available")
                 }
@@ -149,7 +134,6 @@ class DashboardRepository @Inject constructor(
                 val items = response.body()?.data?.items ?: emptyList()
                 Log.d(TAG, "📦 API returned ${items.size} top stock items")
 
-                // Log each item
                 items.forEachIndexed { index, item ->
                     Log.d(TAG, "   API Item[$index]: ${item.name}, quantity: ${item.totalQuantitySold}, sales: ${item.totalSalesAmount}")
                 }
@@ -167,7 +151,6 @@ class DashboardRepository @Inject constructor(
                     dao.insertTopStockItems(entities)
                     Log.d(TAG, "✅ Saved ${entities.size} top stock items to DB")
 
-                    // Verify what was saved
                     val savedItems = dao.getTopStockItemsSync()
                     savedItems.forEachIndexed { index, entity ->
                         Log.d(TAG, "   Saved Entity[$index]: ${entity.name}, qty: ${entity.quantity}, sales: ${entity.sales}")
@@ -199,8 +182,6 @@ class DashboardRepository @Inject constructor(
         }
     }
 
-    // ============= DATA CLEANUP =============
-
     suspend fun clearAllDashboardData() {
         dao.clearDashboardSummary()
         dao.clearTimeSeries()
@@ -212,8 +193,6 @@ class DashboardRepository @Inject constructor(
     suspend fun deleteOldStockItems(cutoffTime: Long) {
         dao.deleteOldStockItems(cutoffTime)
     }
-
-    // ============= UTILITY METHODS =============
 
     suspend fun shouldRefreshData(): Boolean {
         return !isCacheValid() || !hasCachedData()

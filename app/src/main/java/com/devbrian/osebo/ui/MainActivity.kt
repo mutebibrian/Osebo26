@@ -62,7 +62,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         R.id.suppliersFragment,
         R.id.paymentFragment,
         R.id.receiptFragment,
-        R.id.paymentStatusFragment
     )
 
     private val managementRequiredDestinations = setOf(
@@ -79,9 +78,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private var currentShop: Shop? = null
     private var isDataLoading = false
 
-    // -------------------------------------------------------------------------
-    // Lifecycle
-    // -------------------------------------------------------------------------
+    
+    
+    
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -100,9 +99,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         loadInitialData()
     }
 
-    // -------------------------------------------------------------------------
-    // Setup
-    // -------------------------------------------------------------------------
+    
+    
+    
 
     private fun setupToolbar() {
         setSupportActionBar(binding.topAppBar)
@@ -134,7 +133,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         setupActionBarWithNavController(navController, appBarConfiguration)
 
-        // 🔥 SET LISTENER
+        
         binding.navigationView.setNavigationItemSelectedListener(this)
         Log.d("NavDrawer_DEBUG", "✅ NavigationItemSelectedListener set")
 
@@ -149,7 +148,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             binding.drawerLayout.openDrawer(GravityCompat.START)
         }
 
-        // 🔥 DEBUG: Log drawer events
+        
         binding.drawerLayout.addDrawerListener(object : androidx.drawerlayout.widget.DrawerLayout.DrawerListener {
             override fun onDrawerSlide(drawerView: View, slideOffset: Float) {
                 Log.d("NavDrawer_DEBUG", "📂 Drawer sliding: offset=$slideOffset")
@@ -284,7 +283,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         tvUserInitial.text = initial.uppercase()
         llUserAvatar.setBackgroundColor(getAvatarColor(userName))
 
-        // Set up click listeners
+        
         llUserAvatar.setOnClickListener {
             Log.d("NavDrawer_DEBUG", "🔵 Avatar clicked - navigating to profile")
             navigateToProfile()
@@ -295,9 +294,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Data loading — with auto-logout on 401
-    // -------------------------------------------------------------------------
+    
+    
+    
 
     private fun loadInitialData() {
         if (isDataLoading) return
@@ -445,7 +444,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
     private fun checkForExpiringSubscription() {
-        // Your existing implementation
+        
     }
 
     private fun handleDestinationArguments(destinationId: Int, arguments: Bundle?) {
@@ -454,9 +453,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Navigation menu visibility
-    // -------------------------------------------------------------------------
+
+
+
 
     private fun setupNavigationMenu() {
         Log.d("NavDrawer_DEBUG", "📍 setupNavigationMenu() called")
@@ -467,16 +466,16 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         Log.d("NavDrawer_DEBUG", "📊 Menu setup state: hasShops=$hasShops, isOwner=$isOwner")
 
-        // Always visible — never gated by subscription or shop
+        // Always visible items
         menu.findItem(R.id.nav_dashboard).isVisible = true
         menu.findItem(R.id.nav_contact_us).isVisible = true
         menu.findItem(R.id.nav_logout).isVisible = true
 
-        // Owner-only items
+        // Shop management - only for owners
         menu.findItem(R.id.nav_shops).isVisible = isOwner
         menu.findItem(R.id.nav_shop_home).isVisible = hasShops
 
-        // Business operations — gated by permission
+        // Business operations items based on permissions
         val businessItems = mapOf(
             R.id.nav_sales to PermissionType.VIEW_SALES,
             R.id.nav_finance to PermissionType.VIEW_FINANCE,
@@ -494,7 +493,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 permissionManager.hasPermission(PermissionType.VIEW_INVENTORY)
         menu.findItem(R.id.nav_transfers).isVisible = hasShops
 
-        // Subscription item — label changes to "UPGRADE NOW" when no active subscription
+        // Subscription - only for owners
         val subscriptionItem = menu.findItem(R.id.nav_subscription)
         subscriptionItem.isVisible = hasShops && isOwner
         if (hasShops && isOwner) {
@@ -507,9 +506,14 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             }
         }
 
-        // Account
+        // Account - only for owners or employees with VIEW_EMPLOYEES permission
         menu.findItem(R.id.nav_account).isVisible = hasShops &&
                 (isOwner || permissionManager.hasPermission(PermissionType.VIEW_EMPLOYEES))
+
+        // ===== FIX: Hide User Roles for employees (only owners can see it) =====
+        val userRolesItem = menu.findItem(R.id.nav_user_roles)
+        userRolesItem.isVisible = hasShops && isOwner  // Only shop owners can see User Roles
+        Log.d("NavDrawer_DEBUG", "  Menu item nav_user_roles: visible=${userRolesItem.isVisible} (isOwner=$isOwner)")
 
         updateHeaderWithSubscriptionStatus()
         Log.d("NavDrawer_DEBUG", "✅ setupNavigationMenu() completed")
@@ -520,10 +524,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         binding.navigationView.invalidate()
     }
 
-    // -------------------------------------------------------------------------
-    // Navigation item selection
-    // ALL menu item IDs have an explicit handler — no silent dead ends
-    // -------------------------------------------------------------------------
+    
+    
+    
+    
 
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
         Log.d("NavDrawer_DEBUG", "🔴 ============ MenuItem CLICKED ============")
@@ -534,7 +538,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         when (item.itemId) {
 
-            // HOME
+            
             R.id.nav_dashboard -> {
                 Log.d("NavDrawer_DEBUG", "→ Case: nav_dashboard - Navigating to mainDashboardFragment")
                 navController.navigate(R.id.mainDashboardFragment)
@@ -551,7 +555,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 }
             }
 
-            // SHOP
+            
             R.id.nav_shop_home -> {
                 Log.d("NavDrawer_DEBUG", "→ Case: nav_shop_home - hasShop: ${preferenceManager.hasShop()}")
                 if (preferenceManager.hasShop()) {
@@ -563,7 +567,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 }
             }
 
-            // BUSINESS OPERATIONS
+            
             R.id.nav_sales -> {
                 Log.d("NavDrawer_DEBUG", "→ Case: nav_sales - Checking permission: VIEW_SALES")
                 val hasPermission = permissionManager.hasPermission(PermissionType.VIEW_SALES)
@@ -608,7 +612,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 Toast.makeText(this, "Transfers coming soon", Toast.LENGTH_SHORT).show()
             }
 
-            // MANAGEMENT
+            
             R.id.nav_employees -> {
                 Log.d("NavDrawer_DEBUG", "→ Case: nav_employees - Checking permission: VIEW_EMPLOYEES")
                 val hasPermission = permissionManager.hasPermission(PermissionType.VIEW_EMPLOYEES)
@@ -648,7 +652,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 }
             }
 
-            // SETTINGS
+            
             R.id.nav_subscription -> {
                 Log.d("NavDrawer_DEBUG", "→ Case: nav_subscription - isShopOwner: ${permissionManager.isShopOwner()}")
                 if (permissionManager.isShopOwner()) {
@@ -661,8 +665,18 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             }
 
             R.id.nav_user_roles -> {
-                Log.d("NavDrawer_DEBUG", "→ Case: nav_user_roles - Navigating to userRolesFragment")
-                navController.navigate(R.id.userRolesFragment)
+                Log.d("NavDrawer_DEBUG", "→ Case: nav_user_roles - Checking permission")
+                // Only shop owners can access User Roles
+                if (permissionManager.isShopOwner()) {
+                    Log.d("NavDrawer_DEBUG", "→ Owner verified - Navigating to userRolesFragment")
+                    navController.navigate(R.id.userRolesFragment)
+                } else {
+                    Log.d("NavDrawer_DEBUG", "⚠️ Permission denied - User Roles only for shop owners")
+                    showPermissionDeniedDialog("user roles management")
+                    // Close drawer and don't navigate
+                    binding.drawerLayout.closeDrawer(GravityCompat.START)
+                    return true
+                }
             }
 
             R.id.nav_account -> {
@@ -701,9 +715,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         return true
     }
 
-    // -------------------------------------------------------------------------
-    // Header updates
-    // -------------------------------------------------------------------------
+    
+    
+    
 
     private fun updateHeaderWithSubscriptionStatus() {
         val headerView = binding.navigationView.getHeaderView(0)
@@ -776,9 +790,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         tvSubscriptionBadge.visibility = View.VISIBLE
     }
 
-    // -------------------------------------------------------------------------
-    // Public API for fragments to call back into MainActivity
-    // -------------------------------------------------------------------------
+    
+    
+    
 
     fun updateHeaderShopInfo(shopName: String) {
         val headerView = binding.navigationView.getHeaderView(0)
@@ -821,9 +835,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         Toast.makeText(this, "Subscription updated successfully!", Toast.LENGTH_SHORT).show()
     }
 
-    // -------------------------------------------------------------------------
-    // FAB
-    // -------------------------------------------------------------------------
+    
+    
+    
 
     private fun showFab() {
         binding.mainFab.visibility = View.VISIBLE
@@ -887,9 +901,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         navController.navigate(R.id.newSaleFragment)
     }
 
-    // -------------------------------------------------------------------------
-    // Subscription / access helpers
-    // -------------------------------------------------------------------------
+    
+    
+    
 
     private fun hasAccessToBusinessOperations(): Boolean {
         if (subscriptionCheckInProgress) return false
@@ -940,9 +954,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Dialogs
-    // -------------------------------------------------------------------------
+    
+    
+    
 
     private fun showSelectShopFirstDialog() {
         AlertDialog.Builder(this)
@@ -1010,9 +1024,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         forceLogoutToLogin()
     }
 
-    // -------------------------------------------------------------------------
-    // Helpers
-    // -------------------------------------------------------------------------
+    
+    
+    
 
     private fun getAvatarColor(name: String): Int {
         val colors = listOf(
@@ -1044,9 +1058,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         binding.progressOverlay?.visibility = View.GONE
     }
 
-    // -------------------------------------------------------------------------
-    // Back stack / Up navigation
-    // -------------------------------------------------------------------------
+    
+    
+    
 
     override fun onSupportNavigateUp(): Boolean {
         return navController.navigateUp(appBarConfiguration) || super.onSupportNavigateUp()

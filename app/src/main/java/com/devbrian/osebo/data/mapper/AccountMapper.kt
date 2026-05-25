@@ -7,9 +7,8 @@ import javax.inject.Inject
 
 class AccountMapper @Inject constructor() {
 
-    fun toDomain(dto: ApiResponse<AccountDto>): Account {
-        
-        val accountData = dto.data ?: throw IllegalArgumentException("Account data is null in API response")
+    fun toDomain(response: ApiResponse<AccountDto>): Account {
+        val accountData = response.data ?: throw IllegalArgumentException("Account data is null in API response")
 
         return Account(
             id = accountData.id,
@@ -29,4 +28,3 @@ class AccountMapper @Inject constructor() {
         )
     }
 }
-

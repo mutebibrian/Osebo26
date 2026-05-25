@@ -6,3 +6,4 @@ sealed class Result<out T> {
     object Loading : Result<Nothing>()
 }
 
+

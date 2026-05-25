@@ -1,50 +1,47 @@
 package com.devbrian.osebo.utils
 
 import com.devbrian.osebo.data.PreferenceManager
+import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
 import okhttp3.Response
 import javax.inject.Inject
 
 class AuthInterceptor @Inject constructor(
-    private val preferenceManager: PreferenceManager
+    private val preferenceManager: PreferenceManager,
+    private val refreshToken: suspend () -> Boolean
 ) : Interceptor {
 
     override fun intercept(chain: Interceptor.Chain): Response {
-        val originalRequest = chain.request()
+        val request = chain.request()
+        val token = preferenceManager.getAuthToken()
 
-        // Get the shop UUID from preferences
-        val shopUuid = preferenceManager.getCurrentShopUuid()
-        val shopId = preferenceManager.getCurrentShopId()
-
-        // Prefer UUID if it's valid, otherwise use ID
-        val shopIdentifier = if (isValidUUID(shopUuid)) {
-            shopUuid
-        } else if (isValidUUID(shopId)) {
-            shopId
+        val newRequest = if (token.isNotEmpty()) {
+            request.newBuilder()
+                .addHeader("Authorization", "Bearer $token")
+                .build()
         } else {
-            println("⚠️ No valid shop UUID found! Using: $shopUuid")
-            shopUuid
+            request
         }
 
-        println("🔐 AuthInterceptor - Using shop UUID: $shopIdentifier")
+        val response = chain.proceed(newRequest)
 
-        val requestBuilder = originalRequest.newBuilder()
-            .header("Authorization", "Bearer ${preferenceManager.getAuthToken()}")
-            .header("X-App-Platform", "Android")
+        // If 401, try to refresh token
+        if (response.code == 401) {
+            response.close()
 
-        if (shopIdentifier.isNotEmpty()) {
-            requestBuilder.header("X-Shop", shopIdentifier)
+            // Synchronize to prevent multiple refresh calls
+            synchronized(this) {
+                val success = runBlocking { refreshToken() }
+                if (success) {
+                    val newToken = preferenceManager.getAuthToken()
+                    val retryRequest = request.newBuilder()
+                        .addHeader("Authorization", "Bearer $newToken")
+                        .build()
+                    return chain.proceed(retryRequest)
+                }
+            }
         }
 
-        return chain.proceed(requestBuilder.build())
-    }
-
-    private fun isValidUUID(uuid: String): Boolean {
-        return try {
-            java.util.UUID.fromString(uuid)
-            true
-        } catch (e: IllegalArgumentException) {
-            false
-        }
+        return response
     }
 }

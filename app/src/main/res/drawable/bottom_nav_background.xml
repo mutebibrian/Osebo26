@@ -1,4 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<selector xmlns:android="http://schemas.android.com/apk/res/android">
-  
-</selector>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Shadow -->
+    <item>
+        <shape>
+            <solid android:color="@color/black_alpha_10" />
+            <corners android:topLeftRadius="20dp" android:topRightRadius="20dp" />
+        </shape>
+    </item>
+
+    <!-- Main Background -->
+    <item android:top="2dp">
+        <shape>
+            <solid android:color="@color/white" />
+            <corners
+                android:topLeftRadius="20dp"
+                android:topRightRadius="20dp" />
+            <stroke
+                android:width="0.5dp"
+                android:color="@color/grey_300" />
+        </shape>
+    </item>
+</layer-list>

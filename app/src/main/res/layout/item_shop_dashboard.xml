@@ -72,7 +72,7 @@
                         android:id="@+id/tvShopLocation"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@kamapala"
+                        android:text="Kampala"
                         android:textColor="#9E9E9E"
                         android:textSize="13sp"
                         android:layout_marginStart="4dp"
@@ -129,7 +129,7 @@
                     android:id="@+id/tvTodaySales"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="UGX 1.2M"
+                    android:text="UGX 0"
                     android:textColor="#4CAF50"
                     android:textSize="14sp"
                     android:textStyle="bold"
@@ -156,7 +156,7 @@
                     android:id="@+id/tvProductsCount"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="120"
+                    android:text="0"
                     android:textColor="#2196F3"
                     android:textSize="14sp"
                     android:textStyle="bold"
@@ -183,7 +183,7 @@
                     android:id="@+id/tvEmployeesCount"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="5"
+                    android:text="0"
                     android:textColor="#FF9800"
                     android:textSize="14sp"
                     android:textStyle="bold"
@@ -212,12 +212,12 @@
                     android:layout_height="wrap_content"
                     android:text="Active"
                     android:textColor="#FFFFFF"
-                    android:textSize="12sp"
+                    android:textSize="11sp"
                     android:textStyle="bold"
                     android:layout_marginTop="4dp"
-                    android:background="@drawable/bg_status"
-                    android:paddingHorizontal="8dp"
-                    android:paddingVertical="2dp" />
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="4dp"
+                    android:background="@drawable/bg_status_active" />
 
             </LinearLayout>
 

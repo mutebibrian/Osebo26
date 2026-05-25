@@ -29,7 +29,7 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
-    private const val BASE_URL = "https://dev-api.osebo.ai/"
+    private const val BASE_URL = "https://prod-api.osebo.ai"
 
     @Provides
     @Singleton
@@ -69,17 +69,13 @@ object NetworkModule {
 
             val requestBuilder = originalRequest.newBuilder()
 
-            // ✅ Always accept JSON
             requestBuilder.removeHeader("Accept")
             requestBuilder.addHeader("Accept", "application/json")
 
-            // ✅ Only add Content-Type for body requests (POST, PUT, PATCH)
-            // Cloudflare WAF blocks GET/DELETE with Content-Type: application/json
             if (!isGetRequest && !isDeleteRequest) {
                 requestBuilder.removeHeader("Content-Type")
                 requestBuilder.addHeader("Content-Type", "application/json")
             }
-
 
             requestBuilder.removeHeader("Authorization")
             if (token.isNotEmpty()) {
@@ -88,7 +84,6 @@ object NetworkModule {
                 println("⚠️ AuthInterceptor - WARNING: No auth token found!")
             }
 
-            // ✅ Add X-Shop UUID — remove first to prevent duplicates
             val shopUuid = preferenceManager.getCurrentShopUuid()
             requestBuilder.removeHeader("X-Shop")
             requestBuilder.removeHeader("x-shop")
@@ -101,13 +96,11 @@ object NetworkModule {
                 println("⚠️ AuthInterceptor - WARNING: No shop UUID found!")
             }
 
-            // ✅ Platform identifier — remove first to prevent duplicates
             requestBuilder.removeHeader("X-App-Platform")
             requestBuilder.addHeader("X-App-Platform", "Android")
 
             val newRequest = requestBuilder.build()
 
-            // Debug: log final headers (mask token value for security)
             if (BuildConfig.DEBUG) {
                 println("📡 ${newRequest.method} ${newRequest.url}")
                 newRequest.headers.names().forEach { name ->
@@ -140,7 +133,6 @@ object NetworkModule {
         authInterceptor: Interceptor
     ): OkHttpClient {
         return OkHttpClient.Builder()
-            // ✅ Auth FIRST — headers are fully set before logging captures the request
             .addInterceptor(authInterceptor)
             .addInterceptor(loggingInterceptor)
             .connectTimeout(30, TimeUnit.SECONDS)
@@ -188,10 +180,9 @@ object NetworkModule {
     fun provideInventoryRepository(
         database: AppDatabase,
         apiService: ApiService,
-        preferenceManager: PreferenceManager,
-        gson: Gson
+        preferenceManager: PreferenceManager
     ): InventoryRepository {
-        return InventoryRepository(database, apiService, preferenceManager, gson)
+        return InventoryRepository(database, apiService, preferenceManager)
     }
 
     @Provides

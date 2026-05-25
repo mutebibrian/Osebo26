@@ -25,7 +25,9 @@ data class UserData(
     val isActive: Boolean,
 
     @SerializedName("isVerified")
-    val isVerified: Boolean,
+    val isVerified: Boolean? = false,
+
+
 
     @SerializedName("photo")
     val photo: String? = null,
@@ -33,4 +35,5 @@ data class UserData(
     @SerializedName("role")
     val role: RoleData? = null
 )
+
 

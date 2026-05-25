@@ -12,6 +12,7 @@ data class DashboardSummaryEntity(
     val suppliersCount: Int,
     val customersCount: Int,
     val totalSales: Double,
+    val totalExpenses: Double = 0.0,
     val lastUpdated: Long = System.currentTimeMillis()
 )
 
@@ -98,4 +99,5 @@ data class TopStockItemEntity(
     val sales: Double,
     val lastUpdated: Long = System.currentTimeMillis()
 )
+
 

@@ -15,6 +15,7 @@ import com.devbrian.osebo.adapters.CartAdapter
 import com.devbrian.osebo.adapters.ProductAdapter
 import com.devbrian.osebo.data.PreferenceManager
 import com.devbrian.osebo.data.local.AppDatabase
+import com.devbrian.osebo.data.local.entity.ProductEntity
 import com.devbrian.osebo.databinding.FragmentNewSaleBinding
 import com.devbrian.osebo.models.Customer
 import com.devbrian.osebo.ui.viewmodels.SalesViewModel
@@ -48,7 +49,6 @@ class NewSaleFragment : Fragment() {
     ): View {
         _binding = FragmentNewSaleBinding.inflate(inflater, container, false)
 
-        // Create adapters
         productAdapter = ProductAdapter(
             onItemClick = { product ->
                 println("📱 Product clicked: ${product.name}")
@@ -68,7 +68,6 @@ class NewSaleFragment : Fragment() {
             }
         )
 
-        // Set adapters on RecyclerViews
         binding.productsRecyclerView?.apply {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = productAdapter
@@ -90,29 +89,238 @@ class NewSaleFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         preferenceManager = PreferenceManager.getInstance(requireContext())
 
-        // Validate shop
         if (!preferenceManager.isShopProperlySelected()) {
             showShopSelectionErrorDialog()
             return
         }
 
-        // Setup UI components
         setupToolbar()
         setupClickListeners()
         setupObservers()
         setupSearchListener()
 
-        // Load data
         viewModel.loadProducts()
         viewModel.loadCustomers()
         viewModel.selectCustomer(walkInCustomer)
 
         debugShopInfo()
 
-        // Force a layout update after a delay to ensure products appear
         binding.productsRecyclerView?.postDelayed({
             forceProductDisplay()
         }, 500)
+    }
+
+    // Fixed: Use ProductDao methods that exist
+    private fun testBarcodeSearch(barcode: String) {
+        println("🔍 ===== TESTING BARCODE SEARCH =====")
+        println("🔍 Barcode searched: '$barcode'")
+
+        lifecycleScope.launch {
+            try {
+                val db = AppDatabase.getInstance(requireContext())
+                val shopId = preferenceManager.getCurrentShopId()
+
+                println("🔍 Shop ID for search: '$shopId'")
+
+                if (shopId.isEmpty()) {
+                    println("❌ Shop ID is empty! Cannot search local DB")
+                    Toast.makeText(requireContext(), "No shop selected. Please select a shop first.", Toast.LENGTH_LONG).show()
+                    return@launch
+                }
+
+                // Use searchProducts instead of getProductByBarcodeAndShop
+                val allProducts = db.productDao().getProductsByShopSuspend(shopId)
+                val productByBarcode = allProducts.find { it.barcode == barcode }
+
+                if (productByBarcode != null) {
+                    println("✅✅✅ PRODUCT FOUND IN LOCAL DB BY BARCODE! ✅✅✅")
+                    println("   Product: ${productByBarcode.name}")
+                    println("   ID: ${productByBarcode.id}")
+                    println("   Barcode: ${productByBarcode.barcode}")
+                    println("   Price: ${productByBarcode.price}")
+
+                    val product = productByBarcode.toProduct()
+                    viewModel.addToCart(product)
+                    Toast.makeText(requireContext(), "Found via barcode: ${product.name}", Toast.LENGTH_LONG).show()
+                } else {
+                    println("❌ No product found with barcode: '$barcode'")
+
+                    val allProductsList = db.productDao().getProductsByShopSuspend(shopId)
+                    println("📊 Total products in DB: ${allProductsList.size}")
+
+                    val productsWithBarcodes = allProductsList.filter { !it.barcode.isNullOrEmpty() }
+                    println("📊 Products with barcodes in DB (${productsWithBarcodes.size}):")
+                    if (productsWithBarcodes.isNotEmpty()) {
+                        productsWithBarcodes.forEachIndexed { index, product ->
+                            println("   ${index + 1}. ${product.name}: barcode='${product.barcode}'")
+                        }
+                    } else {
+                        println("   No products have barcodes set!")
+                        Toast.makeText(requireContext(),
+                            "No products have barcodes. Please add barcodes to products first.",
+                            Toast.LENGTH_LONG).show()
+                    }
+
+                    Toast.makeText(requireContext(),
+                        "No product found with barcode: '$barcode'\n${productsWithBarcodes.size} products have barcodes",
+                        Toast.LENGTH_LONG).show()
+                }
+            } catch (e: Exception) {
+                println("❌ Error searching barcode: ${e.message}")
+                e.printStackTrace()
+                Toast.makeText(requireContext(), "Error searching barcode: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    // Fixed: Remove isPendingSync and syncAction
+    private fun updateProductWithBarcode(productName: String, barcode: String) {
+        lifecycleScope.launch {
+            try {
+                val db = AppDatabase.getInstance(requireContext())
+                val shopId = preferenceManager.getCurrentShopId()
+                val allProducts = db.productDao().getProductsByShopSuspend(shopId)
+
+                val productToUpdate = if (productName.isNotEmpty()) {
+                    allProducts.find { it.name.contains(productName, ignoreCase = true) }
+                } else {
+                    allProducts.firstOrNull()
+                }
+
+                if (productToUpdate != null) {
+                    println("📝 Updating product: ${productToUpdate.name}")
+                    println("   Current barcode: '${productToUpdate.barcode ?: "NULL"}'")
+                    println("   New barcode: '$barcode'")
+
+                    val updatedProduct = productToUpdate.copy(barcode = barcode)
+                    db.productDao().updateProduct(updatedProduct)
+                    println("✅ Product updated successfully!")
+
+                    // Verify update
+                    val verifiedProducts = db.productDao().getProductsByShopSuspend(shopId)
+                    val verified = verifiedProducts.find { it.barcode == barcode }
+                    if (verified != null) {
+                        println("✅ Verification successful! Product '${verified.name}' now has barcode '${verified.barcode}'")
+                        Toast.makeText(requireContext(), "Added barcode to: ${verified.name}", Toast.LENGTH_LONG).show()
+                    } else {
+                        println("❌ Verification failed - barcode not found after update")
+                    }
+                } else {
+                    println("❌ No products found to update")
+                    Toast.makeText(requireContext(), "No products found", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                println("❌ Error: ${e.message}")
+                e.printStackTrace()
+                Toast.makeText(requireContext(), "Error: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    private fun showAddBarcodeDialog() {
+        lifecycleScope.launch {
+            try {
+                val db = AppDatabase.getInstance(requireContext())
+                val shopId = preferenceManager.getCurrentShopId()
+                val allProducts = db.productDao().getProductsByShopSuspend(shopId)
+
+                if (allProducts.isEmpty()) {
+                    Toast.makeText(requireContext(), "No products found", Toast.LENGTH_SHORT).show()
+                    return@launch
+                }
+
+                val productNames = allProducts.map { it.name }.toTypedArray()
+
+                android.app.AlertDialog.Builder(requireContext())
+                    .setTitle("Select Product to Add Barcode")
+                    .setItems(productNames) { _, which ->
+                        val selectedProduct = allProducts[which]
+                        showEnterBarcodeDialog(selectedProduct)
+                    }
+                    .setNegativeButton("Cancel", null)
+                    .show()
+            } catch (e: Exception) {
+                println("❌ Error: ${e.message}")
+            }
+        }
+    }
+
+    private fun showEnterBarcodeDialog(product: ProductEntity) {
+        val input = android.widget.EditText(requireContext()).apply {
+            hint = "Enter barcode number"
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER
+            setText(product.barcode ?: "")
+        }
+
+        android.app.AlertDialog.Builder(requireContext())
+            .setTitle("Add Barcode to ${product.name}")
+            .setMessage("Current barcode: ${product.barcode ?: "None"}")
+            .setView(input)
+            .setPositiveButton("Save") { _, _ ->
+                val barcode = input.text.toString().trim()
+                if (barcode.isNotEmpty()) {
+                    updateProductWithBarcode(product.name, barcode)
+                } else {
+                    Toast.makeText(requireContext(), "Please enter a barcode", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun debugAllProductsWithBarcodes() {
+        lifecycleScope.launch {
+            try {
+                val db = AppDatabase.getInstance(requireContext())
+                val shopId = preferenceManager.getCurrentShopId()
+                val allProducts = db.productDao().getProductsByShopSuspend(shopId)
+
+                println("🔍 ===== ALL PRODUCTS =====")
+                allProducts.forEachIndexed { index, product ->
+                    println("${index + 1}. Name: ${product.name}")
+                    println("   SKU: ${product.sku}")
+                    println("   Barcode: '${product.barcode ?: "NULL"}'")
+                    println("   ID: ${product.id}")
+                    println("   ---")
+                }
+                println("🔍 =======================")
+
+                val productsWithBarcodes = allProducts.filter { !it.barcode.isNullOrEmpty() }
+                println("\n📊 Products with barcodes: ${productsWithBarcodes.size} / ${allProducts.size}")
+
+                if (productsWithBarcodes.isEmpty()) {
+                    println("⚠️ No products have barcodes! Please add barcodes to products.")
+                    Toast.makeText(requireContext(), "No products have barcodes. Please add barcodes first.", Toast.LENGTH_LONG).show()
+                }
+
+            } catch (e: Exception) {
+                println("❌ Error: ${e.message}")
+            }
+        }
+    }
+
+    private fun showBarcodeScanner() {
+        val scannerFragment = BarcodeScannerFragment.newInstance()
+        scannerFragment.setOnBarcodeScannedListener { barcode ->
+            println("🔍 Barcode received from scanner: '$barcode'")
+            searchProductByBarcode(barcode)
+        }
+        scannerFragment.show(parentFragmentManager, "barcode_scanner")
+    }
+
+    private fun searchProductByBarcode(barcode: String) {
+        binding.loadingProgressBar?.visibility = View.VISIBLE
+
+        viewModel.searchProductByBarcode(barcode) { product ->
+            binding.loadingProgressBar?.visibility = View.GONE
+
+            if (product != null) {
+                viewModel.addToCart(product)
+                Toast.makeText(requireContext(), "Added: ${product.name}", Toast.LENGTH_SHORT).show()
+            } else {
+                testBarcodeSearch(barcode)
+            }
+        }
     }
 
     private fun forceProductDisplay() {
@@ -128,12 +336,12 @@ class NewSaleFragment : Fragment() {
             binding.productsRecyclerView?.smoothScrollToPosition(0)
         } else {
             println("⚠️ No products available for force display")
-            // Check local DB for cached products
+
             lifecycleScope.launch {
                 try {
                     val db = AppDatabase.getInstance(requireContext())
                     val shopId = preferenceManager.getCurrentShopId()
-                    val localProducts = db.productDao().getAllProductsSuspend(shopId)
+                    val localProducts = db.productDao().getProductsByShopSuspend(shopId)
                     if (localProducts.isNotEmpty()) {
                         val productList = localProducts.map { it.toProduct() }
                         println("✅ Found ${productList.size} products in cache")
@@ -205,6 +413,14 @@ class NewSaleFragment : Fragment() {
 
         binding.addCustomerButton?.setOnClickListener {
             Toast.makeText(requireContext(), "Add customer coming soon", Toast.LENGTH_SHORT).show()
+        }
+
+        binding.btnDebugBarcode?.setOnClickListener {
+            debugAllProductsWithBarcodes()
+        }
+
+        binding.btnAddBarcode?.setOnClickListener {
+            showAddBarcodeDialog()
         }
     }
 
@@ -305,7 +521,6 @@ class NewSaleFragment : Fragment() {
     }
 
     private fun setupObservers() {
-        // Products observer
         viewModel.products.observe(viewLifecycleOwner) { products ->
             println("📱 Products received: ${products.size}")
 
@@ -313,11 +528,7 @@ class NewSaleFragment : Fragment() {
                 println("📱 Showing ${products.size} products")
                 binding.productsRecyclerView?.visibility = View.VISIBLE
                 binding.noProductsTextView?.visibility = View.GONE
-
-                // Submit to adapter
                 productAdapter.submitList(products)
-
-                // Force update
                 binding.productsRecyclerView?.post {
                     productAdapter.notifyDataSetChanged()
                     binding.productsRecyclerView?.invalidate()
@@ -340,7 +551,6 @@ class NewSaleFragment : Fragment() {
             }
         }
 
-        // Cart items observer
         viewModel.cartItems.observe(viewLifecycleOwner) { cartItems ->
             if (cartItems.isEmpty()) {
                 binding.emptyCartLayout?.visibility = View.VISIBLE
@@ -360,7 +570,6 @@ class NewSaleFragment : Fragment() {
             updateCartSummary()
         }
 
-        // Selected customer observer
         viewModel.selectedCustomer.observe(viewLifecycleOwner) { customer ->
             customer?.let {
                 binding.selectedCustomerTextView?.text = it.name
@@ -371,12 +580,10 @@ class NewSaleFragment : Fragment() {
             }
         }
 
-        // Loading state observer
         viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
             binding.loadingProgressBar?.visibility = if (isLoading) View.VISIBLE else View.GONE
         }
 
-        // Error messages observer
         viewModel.errorMessage.observe(viewLifecycleOwner) { message ->
             message?.let {
                 Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
@@ -384,7 +591,6 @@ class NewSaleFragment : Fragment() {
             }
         }
 
-        // Success messages observer
         viewModel.successMessage.observe(viewLifecycleOwner) { message ->
             message?.let {
                 Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
@@ -392,7 +598,6 @@ class NewSaleFragment : Fragment() {
             }
         }
 
-        // Offline mode observer
         viewModel.isOffline.observe(viewLifecycleOwner) { isOffline ->
             binding.offlineIndicatorTextView?.visibility = if (isOffline) View.VISIBLE else View.GONE
         }
@@ -408,7 +613,7 @@ class NewSaleFragment : Fragment() {
         lifecycleScope.launch {
             try {
                 val db = AppDatabase.getInstance(requireContext())
-                val localProducts = db.productDao().getAllProductsSuspend(shopId)
+                val localProducts = db.productDao().getProductsByShopSuspend(shopId)
                 println("Local products count: ${localProducts.size}")
                 if (localProducts.isNotEmpty() && viewModel.products.value.isNullOrEmpty()) {
                     println("⚠️ Local products exist but ViewModel is empty, forcing display")
@@ -420,37 +625,6 @@ class NewSaleFragment : Fragment() {
                 }
             } catch (e: Exception) {
                 println("Error reading local DB: ${e.message}")
-            }
-        }
-    }
-
-    private fun showBarcodeScanner() {
-        val scannerFragment = BarcodeScannerFragment.newInstance()
-        scannerFragment.setOnBarcodeScannedListener { barcode ->
-            searchProductByBarcode(barcode)
-        }
-        scannerFragment.show(parentFragmentManager, "barcode_scanner")
-    }
-
-    private fun searchProductByBarcode(barcode: String) {
-        binding.loadingProgressBar?.visibility = View.VISIBLE
-
-        viewModel.searchProductByBarcode(barcode) { product ->
-            binding.loadingProgressBar?.visibility = View.GONE
-
-            if (product != null) {
-                viewModel.addToCart(product)
-                Toast.makeText(requireContext(), "Added: ${product.name}", Toast.LENGTH_SHORT).show()
-            } else {
-                android.app.AlertDialog.Builder(requireContext())
-                    .setTitle("Product Not Found")
-                    .setMessage("No product found with barcode: $barcode")
-                    .setPositiveButton("Search Manually") { _, _ ->
-                        binding.searchEditText?.text?.clear()
-                        binding.searchEditText?.setText(barcode)
-                    }
-                    .setNegativeButton("Cancel", null)
-                    .show()
             }
         }
     }

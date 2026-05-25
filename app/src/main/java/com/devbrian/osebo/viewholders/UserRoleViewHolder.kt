@@ -5,7 +5,7 @@ import android.widget.Button
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.devbrian.osebo.R
-import com.devbrian.osebo.models.UserRole
+import com.devbrian.osebo.data.models.UserRole
 import java.util.Locale
 
 class UserRoleViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -31,4 +31,5 @@ class UserRoleViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         }
     }
 }
+
 

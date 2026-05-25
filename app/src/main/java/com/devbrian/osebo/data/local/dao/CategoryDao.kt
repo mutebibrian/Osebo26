@@ -30,3 +30,4 @@ interface CategoryDao {
     suspend fun getPendingSyncCategories(): List<CategoryEntity>
 }
 
+

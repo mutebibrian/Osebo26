@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.devbrian.osebo.data.ApiService
 import com.devbrian.osebo.data.PreferenceManager
 import com.devbrian.osebo.data.local.AppDatabase
+import com.devbrian.osebo.data.local.entity.ProductEntity
 import com.devbrian.osebo.data.repository.CustomerRepository
 import com.devbrian.osebo.data.repository.ProductRepository
 import com.devbrian.osebo.data.repository.SalesRepository
@@ -34,8 +35,6 @@ class SalesViewModel @Inject constructor(
     private val preferences: PreferenceManager,
     private val database: AppDatabase
 ) : ViewModel() {
-
-    // ==================== LIVEDATA ====================
 
     private val _recentSales = MutableLiveData<List<Sale>>(emptyList())
     val recentSales: LiveData<List<Sale>> = _recentSales
@@ -76,24 +75,9 @@ class SalesViewModel @Inject constructor(
     private val _selectedCustomer = MutableLiveData<Customer?>()
     val selectedCustomer: LiveData<Customer?> = _selectedCustomer
 
-    // ==================== INIT ====================
-
     init {
-        // FIX: loadProducts() intentionally removed from here.
-        //
-        // Previously calling loadProducts() in init caused it to fire BEFORE
-        // the fragment's RecyclerView adapter was attached. This meant:
-        //   1. Observer fired with 0 products → RecyclerView set to GONE
-        //   2. API returned 6 products → submitList called, but RecyclerView
-        //      had already been hidden and "No adapter attached" error occurred
-        //
-        // Now loadProducts() is only called from NewSaleFragment.onViewCreated()
-        // AFTER setupAdapters() and setupRecyclerViews() have run.
-        // This guarantees the adapter is attached before any data arrives.
         loadRecentSales()
     }
-
-    // ==================== PRODUCT FUNCTIONS ====================
 
     fun loadProducts() {
         viewModelScope.launch {
@@ -204,15 +188,18 @@ class SalesViewModel @Inject constructor(
         }
     }
 
+    // Fixed: Use getProductsByShopSuspend and find instead of getProductByBarcode
     fun searchProductByBarcode(barcode: String, callback: (Product?) -> Unit) {
         viewModelScope.launch {
             _isLoading.value = true
             println("📱 SalesViewModel - Searching for barcode: $barcode")
 
             try {
+                val shopId = preferences.getCurrentShopId()
                 val localProductEntity = withContext(Dispatchers.IO) {
                     try {
-                        database.productDao().getProductByBarcode(barcode)
+                        val allProducts = database.productDao().getProductsByShopSuspend(shopId)
+                        allProducts.find { it.barcode == barcode }
                     } catch (e: Exception) {
                         println("📱 SalesViewModel - Error searching local DB: ${e.message}")
                         null
@@ -220,6 +207,7 @@ class SalesViewModel @Inject constructor(
                 }
 
                 if (localProductEntity != null) {
+                    // Use the toProduct() method from ProductEntity
                     val localProduct = localProductEntity.toProduct()
                     println("📱 SalesViewModel - Product found in local database: ${localProduct.name}")
                     callback(localProduct)
@@ -280,8 +268,6 @@ class SalesViewModel @Inject constructor(
             }
         }
     }
-
-    // ==================== CART FUNCTIONS ====================
 
     fun addToCart(product: Product) {
         println("📱 VIEWMODEL - addToCart called with: ${product.name}")
@@ -372,8 +358,6 @@ class SalesViewModel @Inject constructor(
         _successMessage.value = "Sale held successfully"
     }
 
-    // ==================== CART SUMMARY ====================
-
     fun getCartSummary(): CartSummary {
         val items = _cartItems.value ?: emptyList()
 
@@ -399,8 +383,6 @@ class SalesViewModel @Inject constructor(
         }
     }
 
-    // ==================== CUSTOMER FUNCTIONS ====================
-
     fun selectCustomer(customer: Customer) {
         _selectedCustomer.value = customer
         _successMessage.value = "Customer selected: ${customer.name}"
@@ -411,8 +393,6 @@ class SalesViewModel @Inject constructor(
         _selectedCustomer.value = null
         println("📱 VIEWMODEL - Customer cleared")
     }
-
-    // ==================== SALE FUNCTIONS ====================
 
     fun loadRecentSales() {
         viewModelScope.launch {
@@ -545,7 +525,7 @@ class SalesViewModel @Inject constructor(
                     calendar.time = date
                     return calendar
                 } catch (e: Exception) {
-                    // Try next format
+                    // Continue to next format
                 }
             }
 

@@ -15,11 +15,6 @@ class ShopPerformanceAdapter(
     private val onItemClick: (String) -> Unit
 ) : ListAdapter<ShopPerformance, ShopPerformanceAdapter.ViewHolder>(ShopPerformanceDiffCallback()) {
 
-    private val currencyFormatter: NumberFormat = NumberFormat.getCurrencyInstance().apply {
-        maximumFractionDigits = 0
-        currency = Currency.getInstance("UGX")
-    }
-
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         return ViewHolder(
             ItemShopPerformanceBinding.inflate(
@@ -51,10 +46,13 @@ class ShopPerformanceAdapter(
             binding.apply {
                 tvShopName.text = performance.shopName
                 tvShopLocation.text = performance.location
-                tvSalesPercentage.text = "${performance.salesPercentage}%"
-                tvExpenses.text = formatCurrency(performance.expenses)
 
-                // Set text color based on subscription status
+                
+                tvSalesPercentage.text = formatCompactCurrency(performance.totalSales)
+
+                tvExpenses.text = formatCompactCurrency(performance.expenses)
+
+                
                 when (performance.subscriptionStatus.lowercase(Locale.getDefault())) {
                     "active" -> tvSalesPercentage.setTextColor(Color.parseColor("#4CAF50"))
                     "trial" -> tvSalesPercentage.setTextColor(Color.parseColor("#FF9800"))
@@ -63,8 +61,12 @@ class ShopPerformanceAdapter(
             }
         }
 
-        private fun formatCurrency(amount: Double): String {
-            return currencyFormatter.format(amount)
+        private fun formatCompactCurrency(amount: Double): String {
+            return when {
+                amount >= 1_000_000 -> String.format("UGX %.1fM", amount / 1_000_000)
+                amount >= 1_000 -> String.format("UGX %.1fK", amount / 1_000)
+                else -> String.format("UGX %.0f", amount)
+            }
         }
     }
 

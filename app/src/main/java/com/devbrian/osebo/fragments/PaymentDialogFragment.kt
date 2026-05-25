@@ -8,17 +8,16 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.core.net.toUri
-import androidx.fragment.app.viewModels
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.devbrian.osebo.R
-import com.devbrian.osebo.data.PreferenceManager
 import com.devbrian.osebo.databinding.FragmentPaymentDialogBinding
 import com.devbrian.osebo.ui.viewmodels.SubscriptionViewModel
 import com.devbrian.osebo.utils.Resource
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -35,8 +34,9 @@ class PaymentDialogFragment : BottomSheetDialogFragment() {
     private var amount: Double = 0.0
     private var selectedMonths: Int = 1
     private var isProcessing: Boolean = false
+    private var hasNavigated = false
 
-    private var paymentListener: ((String, String, Int) -> Unit)? = null
+    private var paymentListener: ((String, String, Int, Double) -> Unit)? = null
 
     companion object {
         const val TAG = "PaymentDialogFragment"
@@ -87,6 +87,10 @@ class PaymentDialogFragment : BottomSheetDialogFragment() {
         setupUI()
         setupListeners()
         setupObservers()
+    }
+
+    fun setPaymentListener(listener: (String, String, Int, Double) -> Unit) {
+        this.paymentListener = listener
     }
 
     private fun setupUI() {
@@ -156,97 +160,6 @@ class PaymentDialogFragment : BottomSheetDialogFragment() {
         selectedMonths = 1
     }
 
-    // In PaymentDialogFragment.kt, update the createSubscription call:
-
-    // In PaymentDialogFragment.kt, update the createSubscription function:
-
-    private fun createSubscription(
-        shopId: String,
-        packageId: String,
-        phoneNumber: String,
-        months: Int
-    ) {
-        if (!isAdded) return
-
-        // CRITICAL: Ensure shop UUID is saved before creating subscription
-        val prefs = PreferenceManager.getInstance(requireContext())
-        prefs.saveCurrentShopId(shopId)
-        prefs.saveCurrentShopUuid(shopId)  // Save UUID format if needed
-
-        println("✅ Creating subscription with shop ID: $shopId")
-        println("✅ Package ID: $packageId")
-        println("✅ Months: $months")
-        println("✅ Phone: $phoneNumber")
-
-        viewModel.createSubscription(shopId, packageId, phoneNumber, months)
-
-        try {
-            viewLifecycleOwner.lifecycleScope.launch {
-                viewModel.subscriptionResult.observe(viewLifecycleOwner) { resource ->
-                    if (!isAdded) return@observe
-
-                    when (resource) {
-                        is Resource.Success -> {
-                            resource.data?.let { response ->
-                                if (response.success) {
-                                    val paymentId = response.data?.paymentId
-                                    if (!paymentId.isNullOrBlank()) {
-                                        try {
-                                            // Use the amount from arguments instead of selectedPackage
-                                            val totalAmount = amount * months
-
-                                            if (isAdded) {
-                                                val action = PaymentDialogFragmentDirections
-                                                    .actionPaymentDialogFragmentToPaymentStatusFragment(
-                                                        transactionId = paymentId,
-                                                        shopId = shopId,
-                                                        amount = totalAmount.toFloat(),
-                                                        currency = "UGX",
-                                                        phoneNumber = phoneNumber
-                                                    )
-                                                findNavController().navigate(action)
-                                            }
-                                        } catch (e: Exception) {
-                                            if (isAdded) {
-                                                Toast.makeText(requireContext(),
-                                                    "Navigation error: ${e.message}", Toast.LENGTH_SHORT).show()
-                                            }
-                                        }
-                                    } else {
-                                        if (isAdded) {
-                                            Toast.makeText(requireContext(),
-                                                "Subscription created successfully!",
-                                                Toast.LENGTH_SHORT).show()
-                                            findNavController().popBackStack()
-                                        }
-                                    }
-                                } else {
-                                    if (isAdded) {
-                                        Toast.makeText(requireContext(),
-                                            response.message ?: "Failed to create subscription",
-                                            Toast.LENGTH_SHORT).show()
-                                    }
-                                }
-                            }
-                        }
-                        is Resource.Error -> {
-                            if (isAdded) {
-                                Toast.makeText(requireContext(),
-                                    resource.message ?: "Error creating subscription",
-                                    Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                        is Resource.Loading -> {
-                            // Show loading if needed
-                        }
-                    }
-                }
-            }
-        } catch (e: IllegalStateException) {
-            println("⚠️ ViewLifecycleOwner not available: ${e.message}")
-        }
-    }
-
     private fun setupListeners() {
         binding.btnPayNow.setOnClickListener {
             if (!isProcessing) {
@@ -292,56 +205,69 @@ class PaymentDialogFragment : BottomSheetDialogFragment() {
             }
         }
 
-        // Observe subscriptionResult for navigation
         viewModel.subscriptionResult.observe(viewLifecycleOwner) { resource ->
-            println("🔔 subscriptionResult received: $resource")
+            println("🔔 PaymentDialog: subscriptionResult = $resource")
+
+            if (hasNavigated) {
+                println("🔔 PaymentDialog: Already navigated, ignoring")
+                return@observe
+            }
+
             when (resource) {
                 is Resource.Loading -> {
-                    // Already handled by isLoading
+                    println("🔔 PaymentDialog: Loading...")
                 }
                 is Resource.Success -> {
-                    resource.data?.let { response ->
-                        if (response.success) {
-                            val paymentId = response.data?.paymentId
-                            if (!paymentId.isNullOrBlank()) {
-                                // Navigate to PaymentStatusFragment
-                                try {
-                                    val action = PaymentDialogFragmentDirections
-                                        .actionPaymentDialogFragmentToPaymentStatusFragment(
-                                            transactionId = paymentId,
-                                            shopId = shopId!!,
-                                            amount = (amount * selectedMonths).toFloat(),
-                                            currency = "UGX",
-                                            phoneNumber = binding.etPhoneNumber.text.toString()
-                                        )
+                    val response = resource.data
+                    val paymentId = response?.paymentId
+                    println("🔔 PaymentDialog: paymentId = $paymentId")
 
-                                    // Dismiss dialog and navigate
-                                    dismiss()
-                                    findNavController().navigate(action)
+                    if (!paymentId.isNullOrBlank()) {
+                        println("🔔 PaymentDialog: Found paymentId, navigating to PaymentStatusFragment")
+                        hasNavigated = true
 
-                                    Toast.makeText(
-                                        requireContext(),
-                                        "Payment initiated. Check your phone.",
-                                        Toast.LENGTH_LONG
-                                    ).show()
-                                } catch (e: Exception) {
-                                    showError("Navigation error: ${e.message}")
-                                }
-                            } else {
-                                // No payment ID needed (maybe free trial)
-                                dismiss()
-                                Toast.makeText(
-                                    requireContext(),
-                                    "Subscription created successfully!",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
-                        } else {
-                            showError(response.message ?: "Failed to create subscription")
+                        // Dismiss the bottom sheet
+                        try {
+                            dismissAllowingStateLoss()
+                        } catch (e: Exception) {
+                            println("Error dismissing: ${e.message}")
                         }
+
+                        // Navigate after a short delay
+                        viewLifecycleOwner.lifecycleScope.launch {
+                            delay(300)
+                            try {
+                                val action = PaymentDialogFragmentDirections
+                                    .actionPaymentDialogFragmentToPaymentStatusFragment(
+                                        transactionId = paymentId,
+                                        shopId = shopId!!,
+                                        amount = (amount * selectedMonths).toFloat(),
+                                        currency = "UGX",
+                                        phoneNumber = binding.etPhoneNumber.text.toString()
+                                    )
+                                findNavController().navigate(action)
+                                println("✅ PaymentDialog: Navigation successful!")
+                            } catch (e: Exception) {
+                                println("❌ PaymentDialog: Navigation error - ${e.message}")
+                                e.printStackTrace()
+                                Toast.makeText(requireContext(),
+                                    "Payment initiated. Please check your phone.",
+                                    Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    } else {
+                        println("🔔 PaymentDialog: No paymentId received")
+                        hasNavigated = true
+                        try {
+                            dismissAllowingStateLoss()
+                        } catch (e: Exception) {}
+                        Toast.makeText(requireContext(),
+                            response?.message ?: "Subscription created successfully!",
+                            Toast.LENGTH_SHORT).show()
                     }
                 }
                 is Resource.Error -> {
+                    println("🔔 PaymentDialog: Error - ${resource.message}")
                     showError(resource.message ?: "Failed to create subscription")
                 }
             }
@@ -351,7 +277,6 @@ class PaymentDialogFragment : BottomSheetDialogFragment() {
     private fun processPayment() {
         val phoneNumber = binding.etPhoneNumber.text.toString().trim()
 
-        // Validation
         val validationError = validatePhoneNumber(phoneNumber)
         if (validationError != null) {
             binding.tilPhoneNumber.error = validationError
@@ -377,27 +302,37 @@ class PaymentDialogFragment : BottomSheetDialogFragment() {
             return
         }
 
-        // Show confirmation dialog
         showPaymentConfirmationDialog(formattedPhone, selectedMonths)
     }
 
     private fun showPaymentConfirmationDialog(phoneNumber: String, months: Int) {
+        val totalAmount = amount * months
+
+        println("🔔 PaymentDialog: Showing confirmation dialog for amount: $totalAmount")
+
         androidx.appcompat.app.AlertDialog.Builder(requireContext())
             .setTitle("Confirm Payment")
             .setMessage(buildString {
                 appendLine("Package: $packageName")
-                appendLine("Amount: UGX ${String.format("%,.0f", amount * months)}")
+                appendLine("Amount: UGX ${String.format("%,.0f", totalAmount)}")
                 appendLine("Duration: $months month${if (months > 1) "s" else ""}")
                 appendLine("Phone: $phoneNumber")
                 appendLine("\nYou will receive a payment prompt on your phone.")
             })
             .setPositiveButton("Confirm") { _, _ ->
-                // Call the payment listener to create subscription
-                paymentListener?.invoke(phoneNumber, packageId!!, months)
-                // Navigation will happen in the observer when the result comes back
-                // DO NOT dismiss here - let the observer handle it
+                println("✅ User confirmed payment - calling createSubscription")
+
+                // Call the payment listener
+                if (paymentListener != null) {
+                    paymentListener?.invoke(phoneNumber, packageId!!, months, totalAmount)
+                } else {
+                    viewModel.createSubscription(shopId!!, packageId!!, phoneNumber, months, totalAmount)
+                }
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton("Cancel") { _, _ ->
+                println("❌ User cancelled payment")
+            }
+            .setCancelable(true)
             .show()
     }
 
@@ -472,10 +407,6 @@ class PaymentDialogFragment : BottomSheetDialogFragment() {
         binding.tvErrorMessage.text = message
         binding.tvErrorMessage.visibility = View.VISIBLE
         Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
-    }
-
-    fun setPaymentListener(listener: (String, String, Int) -> Unit) {
-        this.paymentListener = listener
     }
 
     override fun onDestroyView() {

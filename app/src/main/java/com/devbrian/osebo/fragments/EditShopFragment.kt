@@ -88,7 +88,7 @@ class EditShopFragment : Fragment() {
     }
 
     private fun setupBusinessTypeSpinner() {
-        // Business Type Spinner
+        
         val businessTypes = arrayOf(
             "Retail Store",
             "Wholesale",
@@ -112,7 +112,7 @@ class EditShopFragment : Fragment() {
         businessTypeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         binding.spinnerBusinessType.adapter = businessTypeAdapter
 
-        // Set selected business type
+        
         val businessTypePosition = businessTypes.indexOfFirst {
             it.equals(originalShop.shopTypeDisplay, ignoreCase = true)
         }
@@ -122,36 +122,36 @@ class EditShopFragment : Fragment() {
     }
 
     private fun displayShopInfo() {
-        // Basic Info
+        
         binding.etShopName.setText(originalShop.name)
         binding.etShopAddress.setText(originalShop.address)
         binding.etShopPhone.setText(originalShop.phone)
         binding.etShopEmail.setText(originalShop.email)
         binding.etShopWebsite.setText(originalShop.website)
 
-        // Business Info
+        
         binding.etRegistrationNumber.setText(originalShop.registrationNumber)
         binding.etTaxNumber.setText(originalShop.taxIdentificationNumber)
 
-        // Location Info (using the IDs from your layout)
+        
         binding.etCity.setText(originalShop.city)
         binding.etCountry.setText(originalShop.country)
         binding.etPostalCode.setText(originalShop.postalCode)
 
-        // Description
+        
         binding.etDescription.setText(originalShop.description)
 
-        // Status
+        
         binding.switchActive.isChecked = originalShop.isActive
     }
 
     private fun saveChanges() {
-        // Validate inputs
+        
         if (!validateInputs()) {
             return
         }
 
-        // Create updated shop object
+        
         val updatedShop = originalShop.copy(
             name = binding.etShopName.text.toString(),
             address = binding.etShopAddress.text.toString(),
@@ -168,15 +168,15 @@ class EditShopFragment : Fragment() {
             isActive = binding.switchActive.isChecked
         )
 
-        // Show loading
+        
         binding.progressBar.visibility = View.VISIBLE
 
-        // Save to ViewModel
+        
         lifecycleScope.launch {
-            // You need to implement updateShop in your ViewModel
-            // shopViewModel.updateShop(updatedShop)
+            
+            
 
-            // Simulate save
+            
             binding.progressBar.visibility = View.GONE
             Toast.makeText(requireContext(), "Shop updated successfully", Toast.LENGTH_SHORT).show()
             findNavController().navigateUp()
@@ -186,19 +186,19 @@ class EditShopFragment : Fragment() {
     private fun validateInputs(): Boolean {
         var isValid = true
 
-        // Validate Shop Name
+        
         if (binding.etShopName.text.isNullOrBlank()) {
             binding.etShopName.error = "Shop name is required"
             isValid = false
         }
 
-        // Validate Phone
+        
         if (binding.etShopPhone.text.isNullOrBlank()) {
             binding.etShopPhone.error = "Phone number is required"
             isValid = false
         }
 
-        // Validate Email
+        
         val email = binding.etShopEmail.text.toString()
         if (email.isNotBlank() && !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
             binding.etShopEmail.error = "Invalid email address"
@@ -257,12 +257,12 @@ class EditShopFragment : Fragment() {
     }
 
     private fun uploadLogo() {
-        // TODO: Implement image upload
+        
         Toast.makeText(requireContext(), "Upload Logo", Toast.LENGTH_SHORT).show()
     }
 
     private fun observeViewModel() {
-        // Observe any ViewModel data if needed
+        
     }
 
     override fun onDestroyView() {

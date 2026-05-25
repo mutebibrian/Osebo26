@@ -1,18 +1,19 @@
 package com.devbrian.osebo.data.remote.dto.request
 
-
-
 import com.google.gson.annotations.SerializedName
 
 data class CreateExpenseRequest(
+    @SerializedName("name")
+    val name: String,  // ADD THIS - server requires name field
+
     @SerializedName("description")
     val description: String,
 
     @SerializedName("amount")
     val amount: Double,
 
-    @SerializedName("category_id")
-    val categoryId: String,
+    @SerializedName("expense_category_id")  // CHANGE from category_id to expense_category_id
+    val expenseCategoryId: String,
 
     @SerializedName("date")
     val date: String,
@@ -37,8 +38,8 @@ data class UpdateExpenseRequest(
     @SerializedName("amount")
     val amount: Double? = null,
 
-    @SerializedName("category_id")
-    val categoryId: String? = null,
+    @SerializedName("expense_category_id")  // CHANGE from category_id to expense_category_id
+    val expenseCategoryId: String? = null,
 
     @SerializedName("date")
     val date: String? = null,
@@ -55,7 +56,7 @@ data class CreateExpenseCategoryRequest(
     val name: String,
 
     @SerializedName("description")
-    val description: String,
+    val description: String?,
 
     @SerializedName("color")
     val color: String? = null,

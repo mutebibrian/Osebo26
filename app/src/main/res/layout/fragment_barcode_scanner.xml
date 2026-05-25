@@ -44,25 +44,79 @@
 
     </LinearLayout>
 
-    <!-- Camera Preview -->
-    <androidx.camera.view.PreviewView
-        android:id="@+id/previewView"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1" />
-
-    <!-- Scan Overlay -->
+    <!-- Camera Preview Container -->
     <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@android:color/transparent">
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="@android:color/black">
 
+        <!-- Camera Preview -->
+        <androidx.camera.view.PreviewView
+            android:id="@+id/previewView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <!-- Scanner Status Text -->
+        <TextView
+            android:id="@+id/tvScannerStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|center_horizontal"
+            android:layout_marginTop="16dp"
+            android:padding="8dp"
+            android:text="Starting camera..."
+            android:textColor="@android:color/white"
+            android:textSize="12sp"
+            android:background="#CC000000"
+            android:gravity="center"
+            android:visibility="visible" />
+
+        <!-- Scan Overlay Frame -->
         <ImageView
-            android:layout_width="250dp"
-            android:layout_height="250dp"
+            android:layout_width="280dp"
+            android:layout_height="280dp"
             android:layout_gravity="center"
             android:src="@drawable/ic_scan_frame"
-            android:tint="#80FFFFFF" />
+            android:tint="#80FFFFFF"
+            android:alpha="0.8" />
+
+        <!-- Corner Guides - Positioned using margins -->
+        <!-- Top Left Corner -->
+        <View
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_gravity="top|start"
+            android:layout_marginStart="20dp"
+            android:layout_marginTop="20dp"
+            android:background="@drawable/corner_top_left" />
+
+        <!-- Top Right Corner -->
+        <View
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_gravity="top|end"
+            android:layout_marginEnd="20dp"
+            android:layout_marginTop="20dp"
+            android:background="@drawable/corner_top_right" />
+
+        <!-- Bottom Left Corner -->
+        <View
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_gravity="bottom|start"
+            android:layout_marginStart="20dp"
+            android:layout_marginBottom="20dp"
+            android:background="@drawable/corner_bottom_left" />
+
+        <!-- Bottom Right Corner -->
+        <View
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_gravity="bottom|end"
+            android:layout_marginEnd="20dp"
+            android:layout_marginBottom="20dp"
+            android:background="@drawable/corner_bottom_right" />
 
     </FrameLayout>
 

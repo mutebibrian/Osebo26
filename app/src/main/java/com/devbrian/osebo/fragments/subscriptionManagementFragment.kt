@@ -53,7 +53,7 @@ class SubscriptionManagementFragment : Fragment() {
     }
 
     private fun setupToolbar() {
-        // Check if toolbar exists in layout
+        
         binding.toolbar.apply {
             title = "Manage Subscription"
             setNavigationOnClickListener {
@@ -134,13 +134,13 @@ class SubscriptionManagementFragment : Fragment() {
         binding.layoutNoSubscription.visibility = View.GONE
         binding.tvError.visibility = View.GONE
 
-        // Basic Info
+        
         binding.tvPlanName.text = subscription.displayPackage
         binding.tvPlanNameDetail.text = subscription.displayPackage
         binding.tvStatus.text = subscription.displayStatus.uppercase()
         binding.tvAmount.text = subscription.formattedAmount
 
-        // Status color
+        
         val statusColor = when {
             subscription.isActiveStatus -> R.color.success_green
             subscription.isExpired -> R.color.error_red
@@ -150,12 +150,12 @@ class SubscriptionManagementFragment : Fragment() {
         binding.tvStatus.setBackgroundColor(ContextCompat.getColor(requireContext(), statusColor))
         binding.tvStatus.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.white))
 
-        // Dates
+        
         binding.tvStartDate.text = formatDate(subscription.startDate)
         binding.tvEndDate.text = formatDate(subscription.endDate ?: subscription.trialEndsAt)
         binding.tvDaysRemaining.text = subscription.displayDaysRemaining
 
-        // Days remaining color
+        
         val daysColor = when {
             subscription.daysRemaining < 0 -> R.color.error_red
             subscription.daysRemaining <= 3 -> R.color.warning_orange
@@ -163,13 +163,13 @@ class SubscriptionManagementFragment : Fragment() {
         }
         binding.tvDaysRemaining.setTextColor(ContextCompat.getColor(requireContext(), daysColor))
 
-        // Payment Info
+        
         binding.tvPaymentMethod.text = subscription.displayPaymentMethod
         binding.tvBillingCycle.text = subscription.durationText
         binding.tvLastPayment.text = formatDate(subscription.updatedAt)
         binding.tvNextBilling.text = formatDate(subscription.endDate)
 
-        // Auto Renew
+        
         if (subscription.autoRenew) {
             binding.layoutAutoRenewEnabled.visibility = View.VISIBLE
             binding.layoutAutoRenewDisabled.visibility = View.GONE
@@ -202,7 +202,7 @@ class SubscriptionManagementFragment : Fragment() {
         currentSubscription?.let { subscription ->
             lifecycleScope.launch {
                 Toast.makeText(requireContext(), "Processing renewal...", Toast.LENGTH_SHORT).show()
-                // TODO: Implement renewal logic with subscriptionViewModel.renewSubscription()
+                
             }
         } ?: run {
             Toast.makeText(requireContext(), "No active subscription to renew", Toast.LENGTH_SHORT).show()
@@ -248,16 +248,16 @@ class SubscriptionManagementFragment : Fragment() {
 
     private fun showChangePaymentDialog() {
         Toast.makeText(requireContext(), "Change Payment Method", Toast.LENGTH_SHORT).show()
-        // TODO: Implement payment method change dialog
+        
     }
 
     private fun toggleAutoRenew(enable: Boolean) {
         currentSubscription?.let { subscription ->
             lifecycleScope.launch {
-                // TODO: Implement auto-renew toggle in ViewModel
+                
                 val message = if (enable) "Auto-renew enabled" else "Auto-renew disabled"
                 Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
-                loadSubscriptionDetails() // Refresh
+                loadSubscriptionDetails() 
             }
         } ?: run {
             Toast.makeText(requireContext(), "No active subscription", Toast.LENGTH_SHORT).show()
@@ -267,7 +267,7 @@ class SubscriptionManagementFragment : Fragment() {
     private fun navigateToUpgrade() {
         try {
             if (currentSubscription != null) {
-                // Create a shop object with current subscription info
+                
                 val shop = Shop(
                     id = args.shopId,
                     name = "",
@@ -292,14 +292,14 @@ class SubscriptionManagementFragment : Fragment() {
 
     private fun navigateToBillingHistory() {
         Toast.makeText(requireContext(), "View Billing History", Toast.LENGTH_SHORT).show()
-        // TODO: Navigate to billing history fragment
+        
     }
 
     private fun navigateToSubscriptionPackages() {
-        // Create a shop object with the shopId - Shop class has default values
+        
         val shop = Shop(
             id = args.shopId,
-            name = "",  // Will be loaded in the packages fragment
+            name = "",  
             subscriptionStatus = "inactive"
         )
 
@@ -314,9 +314,9 @@ class SubscriptionManagementFragment : Fragment() {
     }
 
     private fun observeViewModels() {
-        // Observe cancel subscription result if needed
+        
         subscriptionViewModel.cancelSubscriptionResult.observe(viewLifecycleOwner) { resource ->
-            // Already handled in cancelSubscription()
+            
         }
     }
 

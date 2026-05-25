@@ -11,9 +11,8 @@ import androidx.fragment.app.DialogFragment
 import androidx.lifecycle.lifecycleScope
 import com.devbrian.osebo.data.ApiClient
 import com.devbrian.osebo.databinding.DialogAddRoleBinding
-import com.devbrian.osebo.models.ApiResponse
 import com.devbrian.osebo.models.CreateRoleRequest
-import com.devbrian.osebo.models.UserRole
+import com.devbrian.osebo.data.models.UserRole
 import kotlinx.coroutines.launch
 import java.io.IOException
 
@@ -196,4 +195,5 @@ class AddRoleDialogFragment : DialogFragment() {
         this.onRoleAddedListener = listener
     }
 }
+
 

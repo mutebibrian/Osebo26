@@ -32,6 +32,17 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
+            <!-- Shop Name Display -->
+            <TextView
+                android:id="@+id/tvShopName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Shop Name"
+                android:textSize="14sp"
+                android:textColor="@color/on_surface_variant"
+                android:gravity="center"
+                android:layout_marginBottom="16dp" />
+
             <!-- Order Summary -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
@@ -52,13 +63,14 @@
                         android:text="Order Summary"
                         android:textSize="16sp"
                         android:textStyle="bold"
-                        android:textColor="@color/on_surface" />
+                        android:textColor="@color/on_surface"
+                        android:layout_marginBottom="12dp" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:layout_marginTop="12dp">
+                        android:layout_marginTop="4dp">
 
                         <TextView
                             android:layout_width="0dp"
@@ -73,6 +85,29 @@
                             android:layout_height="wrap_content"
                             android:text="BASIC"
                             android:textStyle="bold" />
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginTop="8dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Amount"
+                            android:textColor="@color/on_surface_variant" />
+
+                        <TextView
+                            android:id="@+id/tvAmount"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="UGX 0"
+                            android:textStyle="bold"
+                            android:textColor="@color/primary" />
 
                     </LinearLayout>
 
@@ -113,13 +148,14 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="Total Amount"
-                            android:textStyle="bold" />
+                            android:textStyle="bold"
+                            android:textSize="16sp" />
 
                         <TextView
                             android:id="@+id/tvTotalAmount"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="UGX 20,000"
+                            android:text="UGX 0"
                             android:textSize="18sp"
                             android:textStyle="bold"
                             android:textColor="@color/primary" />
@@ -130,25 +166,25 @@
 
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Payment Method - Simplified -->
+            <!-- Payment Method Section -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Mobile Money Number"
+                android:text="Payment Method"
                 android:textSize="16sp"
                 android:textStyle="bold"
                 android:layout_marginBottom="8dp" />
 
-            <!-- Phone Input -->
+            <!-- Mobile Money Number Input -->
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/tilPhoneNumber"
                 style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Enter your mobile money number"
+                android:hint="Mobile Money Number"
                 app:startIconDrawable="@drawable/ic_phone"
                 app:endIconMode="clear_text"
-                android:layout_marginBottom="16dp">
+                android:layout_marginBottom="8dp">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/etPhoneNumber"
@@ -156,7 +192,7 @@
                     android:layout_height="wrap_content"
                     android:inputType="phone"
                     android:maxLines="1"
-                    android:text="+256"
+                    android:hint="e.g., 0772123456 or +256772123456"
                     android:maxLength="15" />
 
             </com.google.android.material.textfield.TextInputLayout>
@@ -165,20 +201,29 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="You will receive a payment request on your phone. Supported networks: MTN, Airtel, Africell"
+                android:text="You will receive a payment request on your phone. Supported networks: MTN, Airtel"
                 android:textSize="12sp"
                 android:textColor="@color/on_surface_variant"
                 android:gravity="center"
                 android:layout_marginBottom="24dp" />
 
-            <!-- Proceed Button -->
+            <!-- Proceed Button - FIXED ID -->
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnProceedToPay"
+                android:id="@+id/btnPayNow"
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
                 android:text="PROCEED TO PAY"
                 app:icon="@drawable/ic_lock"
                 app:iconGravity="textStart" />
+
+            <!-- Cancel Button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnCancel"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:text="Cancel"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_marginTop="8dp" />
 
             <!-- Terms Text -->
             <TextView
@@ -214,6 +259,7 @@
             android:background="@drawable/bg_dialog_rounded">
 
             <ProgressBar
+                android:id="@+id/progressBar"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:indeterminateTint="@color/primary" />

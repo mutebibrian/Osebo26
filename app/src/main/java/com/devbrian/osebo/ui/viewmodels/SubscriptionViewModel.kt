@@ -30,7 +30,7 @@ import javax.inject.Inject
 @HiltViewModel
 class SubscriptionViewModel @Inject constructor(
     private val repository: SubscriptionRepository,
-    private val application: Application  // Add Application parameter
+    private val application: Application
 ) : ViewModel() {
 
     private val _subscriptionPackages = MutableLiveData<Resource<List<SubscriptionPackage>>>()
@@ -42,6 +42,7 @@ class SubscriptionViewModel @Inject constructor(
     private val _subscriptionDetails = MutableLiveData<Resource<Subscription?>>()
     val subscriptionDetails: LiveData<Resource<Subscription?>> = _subscriptionDetails
 
+    // SubscriptionResponse now directly contains paymentId
     private val _subscriptionResult = MutableLiveData<Resource<SubscriptionResponse>>()
     val subscriptionResult: LiveData<Resource<SubscriptionResponse>> = _subscriptionResult
 
@@ -86,6 +87,8 @@ class SubscriptionViewModel @Inject constructor(
 
     private val _paymentStatus = MutableLiveData<Resource<PaymentStatusResponse?>>()
     val paymentStatus: LiveData<Resource<PaymentStatusResponse?>> = _paymentStatus
+
+    // ==================== PUBLIC FUNCTIONS ====================
 
     fun checkPaymentStatus(paymentId: String) {
         viewModelScope.launch {
@@ -137,11 +140,50 @@ class SubscriptionViewModel @Inject constructor(
         }
     }
 
+    fun getSubscriptionDetails(shopId: String, subscriptionId: String) {
+        viewModelScope.launch {
+            _subscriptionDetails.value = Resource.Loading
+            try {
+                val result = repository.getSubscriptionDetails(shopId, subscriptionId)
+                _subscriptionDetails.value = result
+            } catch (e: Exception) {
+                _subscriptionDetails.value = Resource.Error(e.message ?: "Failed to load subscription details")
+            }
+        }
+    }
+
+    fun getPaymentHistory(shopId: String, subscriptionId: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                val result = repository.getPaymentHistory(shopId, subscriptionId)
+                when (result) {
+                    is Resource.Success -> {
+                        _paymentHistory.value = Resource.Success(result.data)
+                    }
+                    is Resource.Error -> {
+                        _paymentHistory.value = Resource.Error(result.message)
+                        _errorMessage.value = result.message
+                    }
+                    is Resource.Loading -> {
+                        _paymentHistory.value = Resource.Loading
+                    }
+                }
+            } catch (e: Exception) {
+                _paymentHistory.value = Resource.Error(e.message ?: "Failed to load payment history")
+                _errorMessage.value = e.message ?: "Failed to load payment history"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
     fun createSubscription(
         shopId: String,
         packageId: String,
         phoneNumber: String,
-        months: Int = 1
+        months: Int = 1,
+        amount: Double
     ) {
         viewModelScope.launch {
             _subscriptionResult.value = Resource.Loading
@@ -158,154 +200,39 @@ class SubscriptionViewModel @Inject constructor(
                 )
 
                 val result = repository.createSubscription(shopId, request)
+                println("📢 ViewModel: createSubscription result = $result")
 
                 when (result) {
                     is Resource.Success -> {
-                        val response = result.data as? SubscriptionResponse
+                        val response = result.data
+                        println("📢 ViewModel: Response = $response")
+                        println("📢 ViewModel: PaymentId = ${response?.paymentId}")
 
-                        if (response != null) {
-                            _subscriptionResult.value = Resource.success(response)
-                            _createSubscriptionResult.value = Resource.success(response)
+                        _subscriptionResult.value = Resource.Success(response)
+                        _createSubscriptionResult.value = Resource.Success(response)
 
-                            if (response.success) {
-                                _successMessage.value = "Subscription initiated successfully"
-
-                                val paymentId = response.data?.paymentId
-                                if (!paymentId.isNullOrBlank()) {
-                                    startPaymentPolling(paymentId, shopId)
-                                } else {
-                                    _successMessage.value = "Subscription created successfully"
-                                    refreshAllData(shopId)
-                                }
-                            } else {
-                                _errorMessage.value = response.message ?: "Failed to create subscription"
-                            }
-                        } else {
-                            _errorMessage.value = "Invalid response format"
-                            _subscriptionResult.value = Resource.error("Invalid response format")
-                            _createSubscriptionResult.value = Resource.error("Invalid response format")
-                        }
-                    }
-                    is Resource.Error -> {
-                        _subscriptionResult.value = Resource.error(result.message)
-                        _createSubscriptionResult.value = Resource.error(result.message)
-                        _errorMessage.value = result.message
-                    }
-                    is Resource.Loading -> {}
-                }
-            } catch (e: Exception) {
-                _subscriptionResult.value = Resource.error(e.message ?: "Failed to create subscription")
-                _createSubscriptionResult.value = Resource.error(e.message ?: "Failed to create subscription")
-                _errorMessage.value = e.message ?: "Failed to create subscription"
-            } finally {
-                _isLoading.value = false
-            }
-        }
-    }
-
-    fun updateLocalSubscriptionStatus(shopId: String, isActive: Boolean, subscription: Subscription?) {
-        viewModelScope.launch {
-            try {
-                val prefs = PreferenceManager.getInstance(application.applicationContext)
-
-                if (isActive && subscription != null) {
-                    prefs.saveSubscriptionStatus("ACTIVE")
-                    prefs.saveSubscriptionId(subscription.id)
-                    prefs.saveCurrentShopUuid(subscription.id)
-                    prefs.saveSubscriptionType(subscription.packageType)
-                    prefs.saveSubscriptionExpiry(subscription.endDate ?: "")
-                    prefs.savePackageId(subscription.actualPackageId)
-
-                    println("✅ Updated local subscription status: ACTIVE")
-                    println("✅ Subscription ID: ${subscription.id}")
-                    println("✅ Package: ${subscription.packageType}")
-                    println("✅ Expiry: ${subscription.endDate}")
-                } else {
-                    prefs.saveSubscriptionStatus("INACTIVE")
-                    println("⚠️ Subscription is not active")
-                }
-
-                _successMessage.value = "Subscription status updated"
-
-            } catch (e: Exception) {
-                println("❌ Error updating local subscription: ${e.message}")
-            }
-        }
-    }
-
-    fun getPaymentHistory(shopId: String, subscriptionId: String) {
-        viewModelScope.launch {
-            _paymentHistory.value = Resource.Loading
-
-            try {
-                val result = repository.getPaymentHistory(shopId, subscriptionId)
-                _paymentHistory.value = result
-            } catch (e: Exception) {
-                _paymentHistory.value = Resource.Error(e.message ?: "Failed to load payment history")
-            }
-        }
-    }
-
-    fun initiatePayment(
-        shopId: String,
-        amount: Double,
-        currency: String,
-        phoneNumber: String,
-        provider: String,
-        packageId: String,
-        months: Int
-    ) {
-        viewModelScope.launch {
-            _initiatePaymentResult.value = Resource.Loading
-            _isLoading.value = true
-            currentShopId = shopId
-
-            try {
-                val request = InitiatePaymentRequest(
-                    amount = amount,
-                    currency = currency,
-                    phoneNumber = phoneNumber,
-                    provider = provider,
-                    shopId = shopId,
-                    packageId = packageId,
-                    months = months,
-                    metadata = mapOf(
-                        "app" to "Osebo Android",
-                        "version" to "1.0.0"
-                    )
-                )
-
-                val result = repository.initiatePayment(shopId, request)
-
-                when (result) {
-                    is Resource.Success -> {
-                        val response = result.data as? InitiatePaymentResponse
-
-                        if (response != null) {
-                            _initiatePaymentResult.value = Resource.success(response)
-
-                            val paymentId = response.data?.paymentId
-                            if (!paymentId.isNullOrBlank()) {
-                                _successMessage.value = "Payment initiated. Check your phone."
+                        // Check if we have a paymentId (means payment was initiated)
+                        if (!response?.paymentId.isNullOrBlank()) {
+                            _successMessage.value = "Subscription initiated successfully"
+                            response?.paymentId?.let { paymentId ->
                                 startPaymentPolling(paymentId, shopId)
-                            } else {
-                                _errorMessage.value = "No payment ID received"
                             }
                         } else {
-                            _errorMessage.value = "Invalid response format"
-                            _initiatePaymentResult.value = Resource.error("Invalid response format")
+                            // No paymentId means direct subscription (like free trial)
+                            _successMessage.value = response?.message ?: "Subscription created successfully"
                         }
                     }
                     is Resource.Error -> {
-                        _initiatePaymentResult.value = Resource.error(result.message)
+                        _subscriptionResult.value = Resource.Error(result.message)
+                        _createSubscriptionResult.value = Resource.Error(result.message)
                         _errorMessage.value = result.message
                     }
                     is Resource.Loading -> {}
                 }
             } catch (e: Exception) {
-                val errorMsg = e.message ?: "Failed to initiate payment"
-                _initiatePaymentResult.value = Resource.error(errorMsg)
-                _errorMessage.value = errorMsg
+                _subscriptionResult.value = Resource.Error(e.message ?: "Failed to create subscription")
+                _createSubscriptionResult.value = Resource.Error(e.message ?: "Failed to create subscription")
+                _errorMessage.value = e.message ?: "Failed to create subscription"
             } finally {
                 _isLoading.value = false
             }
@@ -339,7 +266,6 @@ class SubscriptionViewModel @Inject constructor(
                                 when (paymentStatus) {
                                     "completed", "success" -> {
                                         _successMessage.value = "Payment completed successfully!"
-
                                         val pollResponse = PaymentPollResponse(
                                             success = true,
                                             message = "Payment completed",
@@ -352,14 +278,12 @@ class SubscriptionViewModel @Inject constructor(
                                             paymentDate = paymentData?.paidAt,
                                             data = null
                                         )
-
-                                        _paymentPollingStatus.value = Resource.success(pollResponse)
+                                        _paymentPollingStatus.value = Resource.Success(pollResponse)
                                         refreshAllData(shopId)
                                         break
                                     }
                                     "failed", "cancelled" -> {
                                         _errorMessage.value = "Payment $paymentStatus"
-
                                         val pollResponse = PaymentPollResponse(
                                             success = false,
                                             message = "Payment $paymentStatus",
@@ -372,15 +296,13 @@ class SubscriptionViewModel @Inject constructor(
                                             paymentDate = null,
                                             data = null
                                         )
-
-                                        _paymentPollingStatus.value = Resource.success(pollResponse)
+                                        _paymentPollingStatus.value = Resource.Success(pollResponse)
                                         break
                                     }
                                     "pending" -> {
                                         if (pollCount % 3 == 0) {
                                             _successMessage.value = "Waiting for payment confirmation..."
                                         }
-
                                         val pollResponse = PaymentPollResponse(
                                             success = true,
                                             message = "Payment pending",
@@ -393,8 +315,7 @@ class SubscriptionViewModel @Inject constructor(
                                             paymentDate = null,
                                             data = null
                                         )
-
-                                        _paymentPollingStatus.value = Resource.success(pollResponse)
+                                        _paymentPollingStatus.value = Resource.Success(pollResponse)
                                     }
                                     else -> {
                                         if (pollCount % 3 == 0) {
@@ -424,7 +345,6 @@ class SubscriptionViewModel @Inject constructor(
 
             if (pollCount >= maxAttempts) {
                 _errorMessage.value = "Payment timeout. Please check your mobile money."
-
                 val timeoutResponse = PaymentPollResponse(
                     success = false,
                     message = "Payment timeout",
@@ -437,8 +357,7 @@ class SubscriptionViewModel @Inject constructor(
                     paymentDate = null,
                     data = null
                 )
-
-                _paymentPollingStatus.value = Resource.success(timeoutResponse)
+                _paymentPollingStatus.value = Resource.Success(timeoutResponse)
             }
             _isPolling.value = false
         }
@@ -463,7 +382,6 @@ class SubscriptionViewModel @Inject constructor(
 
                         data?.let { statusResponse ->
                             val prefs = PreferenceManager.getInstance(application.applicationContext)
-
                             val isActive = statusResponse.isActive
 
                             if (isActive) {
@@ -476,12 +394,8 @@ class SubscriptionViewModel @Inject constructor(
                                 }
                                 statusResponse.type?.let { prefs.saveSubscriptionType(it) }
                                 statusResponse.expiryDate?.let { prefs.saveSubscriptionExpiry(it) }
-
-                                println("✅ Shop subscription status saved: $isActive")
-                                prefs.debugSubscriptionInfo()
                             } else {
                                 prefs.saveSubscriptionStatus(statusResponse.status.uppercase())
-                                println("⚠️ Subscription status: ${statusResponse.status}")
                             }
                         }
                     }
@@ -508,14 +422,6 @@ class SubscriptionViewModel @Inject constructor(
                 when (result) {
                     is Resource.Success -> {
                         result.data?.let { subscription ->
-                            println("✅ Active subscription loaded: ${subscription.id}")
-                            println("✅ Status: ${subscription.status}")
-                            println("✅ Package: ${subscription.packageType}")
-                            println("✅ End date: ${subscription.endDate}")
-                            println("✅ Is trial: ${subscription.isTrial}")
-
-                            _currentSubscription.value = Resource.Success(subscription)
-
                             val prefs = PreferenceManager.getInstance(application.applicationContext)
                             prefs.saveSubscriptionStatus(
                                 if (subscription.isTrial) "TRIAL" else subscription.effectiveStatus
@@ -524,169 +430,39 @@ class SubscriptionViewModel @Inject constructor(
                             prefs.saveCurrentShopUuid(subscription.id)
                             prefs.saveSubscriptionType(subscription.packageType)
                             subscription.endDate?.let { prefs.saveSubscriptionExpiry(it) }
-
+                            _currentSubscription.value = Resource.Success(subscription)
                         } ?: run {
-                            println("⚠️ No active subscription found")
                             _currentSubscription.value = Resource.Error("No active subscription found")
                         }
                     }
                     is Resource.Error -> {
-                        println("❌ Error loading subscription: ${result.message}")
-                        _currentSubscription.value = Resource.Error(result.message ?: "Failed to load subscription")
+                        _currentSubscription.value = Resource.Error(result.message)
                     }
                     is Resource.Loading -> {}
                 }
             } catch (e: Exception) {
-                println("❌ Exception: ${e.message}")
                 _currentSubscription.value = Resource.Error(e.message ?: "Unknown error")
-            }
-        }
-    }
-
-    fun getSubscriptionDetails(shopId: String, subscriptionId: String) {
-        viewModelScope.launch {
-            _subscriptionDetails.value = Resource.Loading
-
-            try {
-                val result = repository.getSubscriptionDetails(shopId, subscriptionId)
-
-                when (result) {
-                    is Resource.Success -> {
-                        result.data?.let { subscription ->
-                            _subscriptionDetails.value = Resource.Success(subscription)
-
-                            val prefs = PreferenceManager.getInstance(application.applicationContext)
-                            prefs.saveSubscriptionStatus(
-                                if (subscription.isActiveStatus) "ACTIVE" else subscription.effectiveStatus
-                            )
-                            prefs.saveSubscriptionId(subscription.id)
-                            prefs.saveCurrentShopUuid(subscription.id)
-                            prefs.saveSubscriptionType(subscription.packageType)
-                            prefs.saveSubscriptionExpiry(subscription.endDate ?: "")
-
-                            println("✅ Subscription details saved: ${subscription.id}")
-                        }
-                    }
-                    is Resource.Error -> {
-                        _subscriptionDetails.value = Resource.Error(result.message)
-                    }
-                    is Resource.Loading -> {}
-                }
-            } catch (e: Exception) {
-                _subscriptionDetails.value = Resource.Error(e.message ?: "Failed to load details")
-            }
-        }
-    }
-
-    fun renewSubscription(
-        shopId: String,
-        subscriptionId: String,
-        phoneNumber: String,
-        months: Int = 1
-    ) {
-        viewModelScope.launch {
-            _renewSubscriptionResult.value = Resource.Loading
-            _isLoading.value = true
-            currentShopId = shopId
-
-            try {
-                val request = RenewSubscriptionRequest(
-                    phoneNumber = phoneNumber,
-                    months = months,
-                    autoRenew = false
-                )
-
-                val result = repository.renewSubscription(shopId, subscriptionId, request)
-
-                when (result) {
-                    is Resource.Success -> {
-                        val response = result.data
-                        _renewSubscriptionResult.value = Resource.Success(response)
-
-                        if (response.success) {
-                            _successMessage.value = "Subscription renewed successfully"
-
-                            val paymentId = response.data?.paymentId
-                            if (!paymentId.isNullOrBlank()) {
-                                startPaymentPolling(paymentId, shopId)
-                            }
-                        } else {
-                            _errorMessage.value = response.message ?: "Failed to renew subscription"
-                        }
-                    }
-                    is Resource.Error -> {
-                        _renewSubscriptionResult.value = Resource.Error(result.message)
-                        _errorMessage.value = result.message
-                    }
-                    is Resource.Loading -> {}
-                }
-            } catch (e: Exception) {
-                _renewSubscriptionResult.value = Resource.Error(e.message ?: "Failed to renew")
-                _errorMessage.value = e.message ?: "Failed to renew"
-            } finally {
-                _isLoading.value = false
             }
         }
     }
 
     fun cancelSubscription(shopId: String, subscriptionId: String) {
         viewModelScope.launch {
-            _cancelSubscriptionResult.value = Resource.Loading
             _isLoading.value = true
-
             try {
                 val result = repository.cancelSubscription(shopId, subscriptionId)
-
                 when (result) {
                     is Resource.Success -> {
-                        _cancelSubscriptionResult.value = Resource.Success(Unit)
                         _successMessage.value = "Subscription cancelled successfully"
-                        getSubscriptionDetails(shopId, subscriptionId)
+                        getShopActiveSubscription(shopId)
                     }
                     is Resource.Error -> {
-                        _cancelSubscriptionResult.value = Resource.Error(result.message)
-                        _errorMessage.value = result.message
+                        _errorMessage.value = result.message ?: "Failed to cancel subscription"
                     }
                     is Resource.Loading -> {}
                 }
             } catch (e: Exception) {
-                _cancelSubscriptionResult.value = Resource.Error(e.message ?: "Failed to cancel")
-                _errorMessage.value = e.message ?: "Failed to cancel"
-            } finally {
-                _isLoading.value = false
-            }
-        }
-    }
-
-    fun activateFreeTrial(shopId: String, packageId: String) {
-        viewModelScope.launch {
-            _activateTrialResult.value = Resource.Loading
-            _isLoading.value = true
-
-            try {
-                val result = repository.activateFreeTrial(shopId, packageId)
-
-                when (result) {
-                    is Resource.Success -> {
-                        val response = result.data
-                        _activateTrialResult.value = Resource.Success(response)
-
-                        if (response.success) {
-                            _successMessage.value = "Free trial activated successfully"
-                            getShopActiveSubscription(shopId)
-                        } else {
-                            _errorMessage.value = response.message ?: "Failed to activate trial"
-                        }
-                    }
-                    is Resource.Error -> {
-                        _activateTrialResult.value = Resource.Error(result.message)
-                        _errorMessage.value = result.message
-                    }
-                    is Resource.Loading -> {}
-                }
-            } catch (e: Exception) {
-                _activateTrialResult.value = Resource.Error(e.message ?: "Failed to activate trial")
-                _errorMessage.value = e.message ?: "Failed to activate trial"
+                _errorMessage.value = e.message ?: "Failed to cancel subscription"
             } finally {
                 _isLoading.value = false
             }
@@ -703,71 +479,38 @@ class SubscriptionViewModel @Inject constructor(
         _successMessage.value = null
     }
 
-    fun getPackageById(packageId: String): SubscriptionPackage? {
-        val value = _subscriptionPackages.value
-        return if (value is Resource.Success) {
-            value.data.find { it.id == packageId }
-        } else {
-            null
-        }
-    }
+    fun activateFreeTrial(shopId: String, packageId: String) {
+        viewModelScope.launch {
+            _activateTrialResult.value = Resource.Loading
+            _isLoading.value = true
 
-    fun getPackageByTier(tier: String): SubscriptionPackage? {
-        val value = _subscriptionPackages.value
-        return if (value is Resource.Success) {
-            value.data.find {
-                it.tier.equals(tier, ignoreCase = true)
+            try {
+                val result = repository.activateFreeTrial(shopId, packageId)
+
+                when (result) {
+                    is Resource.Success -> {
+                        val response = result.data
+                        _activateTrialResult.value = Resource.Success(response)
+                        // Check if we have a response (means success)
+                        if (response != null) {
+                            _successMessage.value = "Free trial activated successfully"
+                            getShopActiveSubscription(shopId)
+                        } else {
+                            _errorMessage.value = response?.message ?: "Failed to activate trial"
+                        }
+                    }
+                    is Resource.Error -> {
+                        _activateTrialResult.value = Resource.Error(result.message)
+                        _errorMessage.value = result.message
+                    }
+                    is Resource.Loading -> {}
+                }
+            } catch (e: Exception) {
+                _activateTrialResult.value = Resource.Error(e.message ?: "Failed to activate trial")
+                _errorMessage.value = e.message ?: "Failed to activate trial"
+            } finally {
+                _isLoading.value = false
             }
-        } else {
-            null
-        }
-    }
-
-    data class SubscriptionStatusUi(
-        val status: String,
-        val displayText: String,
-        val colorRes: Int,
-        val iconRes: Int,
-        val canActivate: Boolean = false
-    )
-
-    fun getShopSubscriptionStatus(shop: Shop?): SubscriptionStatusUi {
-        return when (shop?.subscriptionStatus?.lowercase()) {
-            "active" -> SubscriptionStatusUi(
-                status = "Active",
-                displayText = "Active",
-                colorRes = R.color.green_500,
-                iconRes = R.drawable.ic_check_circle,
-                canActivate = false
-            )
-            "trial" -> SubscriptionStatusUi(
-                status = "Trial",
-                displayText = "Trial",
-                colorRes = R.color.blue_500,
-                iconRes = R.drawable.ic_trial,
-                canActivate = true
-            )
-            "expired" -> SubscriptionStatusUi(
-                status = "Expired",
-                displayText = "Expired",
-                colorRes = R.color.red_500,
-                iconRes = R.drawable.ic_expired,
-                canActivate = true
-            )
-            "pending" -> SubscriptionStatusUi(
-                status = "Pending",
-                displayText = "Pending",
-                colorRes = R.color.yellow_500,
-                iconRes = R.drawable.ic_pending,
-                canActivate = false
-            )
-            else -> SubscriptionStatusUi(
-                status = "Inactive",
-                displayText = "Inactive",
-                colorRes = R.color.gray_500,
-                iconRes = R.drawable.ic_inactive,
-                canActivate = true
-            )
         }
     }
 

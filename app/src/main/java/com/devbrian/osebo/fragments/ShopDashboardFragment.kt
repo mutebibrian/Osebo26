@@ -18,7 +18,7 @@ import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import com.devbrian.osebo.R
 import com.devbrian.osebo.data.PreferenceManager
-import com.devbrian.osebo.databinding.FragmentShopDashboardBinding  // Changed from FragmentDashboardBinding
+import com.devbrian.osebo.databinding.FragmentShopDashboardBinding
 import com.devbrian.osebo.ui.viewmodels.DashboardViewModel
 import com.devbrian.osebo.utils.NetworkUtils
 import kotlinx.coroutines.launch
@@ -26,9 +26,9 @@ import kotlinx.coroutines.launch
 @AndroidEntryPoint
 class ShopDashboardFragment : Fragment() {
 
-    private val args: ShopDashboardFragmentArgs by navArgs()  // Add this to get shopId
+    private val args: ShopDashboardFragmentArgs by navArgs()
 
-    private var _binding: FragmentShopDashboardBinding? = null  // Changed binding type
+    private var _binding: FragmentShopDashboardBinding? = null
     private val binding get() = _binding!!
 
     private val viewModel: DashboardViewModel by viewModels()
@@ -40,32 +40,55 @@ class ShopDashboardFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentShopDashboardBinding.inflate(inflater, container, false)  // Changed inflater
+        _binding = FragmentShopDashboardBinding.inflate(inflater, container, false)
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Get shopId from arguments
+        
         val shopId = args.shopId
         Log.d("ShopDashboard", "Loading dashboard for shop: $shopId")
 
-        // Save the current shop ID to PreferenceManager
+        
         val prefs = PreferenceManager.getInstance(requireContext())
         prefs.saveCurrentShopId(shopId)
-
-
+        prefs.saveCurrentShopUuid(shopId)
 
         setupRecyclerView()
         setupSwipeRefresh()
         setupClickListeners()
+        setupBottomNavigation()
         observeViewModel()
 
         viewModel.loadDashboardData()
     }
 
-    // Rest of the methods remain the same...
+    private fun setupBottomNavigation() {
+        binding.bottomNavigation.setOnItemSelectedListener { menuItem ->
+            when (menuItem.itemId) {
+                R.id.nav_home -> {
+                    
+                    true
+                }
+                R.id.nav_sales -> {
+                    findNavController().navigate(R.id.salesFragment)
+                    true
+                }
+                R.id.nav_expenses -> {
+                    findNavController().navigate(R.id.financeFragment)
+                    true
+                }
+                R.id.nav_restock -> {
+                    findNavController().navigate(R.id.inventoryFragment)
+                    true
+                }
+                else -> false
+            }
+        }
+    }
+
     private fun setupRecyclerView() {
         topStockAdapter = TopStockAdapter { item ->
             val bundle = Bundle().apply {
@@ -235,7 +258,7 @@ class ShopDashboardFragment : Fragment() {
         } else {
             binding.errorLayout.visibility = View.VISIBLE
             binding.contentLayout.visibility = View.GONE
-            binding.shimmerLayout.visibility = View.GONE
+            binding.shimmerLayout.visibility = View.GONE  
             binding.tvErrorMessage.text = message
         }
     }
@@ -264,7 +287,7 @@ class ShopDashboardFragment : Fragment() {
     }
 }
 
-// Keep the adapter and data classes as they are
+
 class TopStockAdapter(
     private val onItemClick: (TopStockItem) -> Unit
 ) : RecyclerView.Adapter<TopStockAdapter.ViewHolder>() {
@@ -298,8 +321,8 @@ class TopStockAdapter(
             tvQuantity.text = "Qty: ${item.quantity}"
             tvSales.text = when {
                 item.sales >= 1_000_000 -> String.format("UGX %.1fM", item.sales / 1_000_000)
-                item.sales >= 1_000    -> String.format("UGX %.1fK", item.sales / 1_000)
-                else                   -> String.format("UGX %,.0f", item.sales)
+                item.sales >= 1_000 -> String.format("UGX %.1fK", item.sales / 1_000)
+                else -> String.format("UGX %,.0f", item.sales)
             }
 
             val colors = listOf(
@@ -325,8 +348,3 @@ data class TopStockItem(
     val quantity: Int,
     val sales: Double
 )
-
-fun Int.withAlpha(alpha: Float): Int {
-    val a = (alpha.coerceIn(0f, 1f) * 255).toInt()
-    return (this and 0x00FFFFFF) or (a shl 24)
-}

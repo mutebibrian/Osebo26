@@ -50,6 +50,8 @@ class InventoryFragment : Fragment() {
         viewModel.loadStats()
     }
 
+
+
     private fun setupRecyclerView() {
         productAdapter = ProductAdapter { product ->
             navigateToProductDetails(product)
@@ -197,8 +199,13 @@ class InventoryFragment : Fragment() {
     }
 
     private fun navigateToRestock() {
-        Toast.makeText(requireContext(), "Navigate to Restock", Toast.LENGTH_SHORT).show()
-        
+        try {
+            val action = InventoryFragmentDirections.actionInventoryToRestock()
+            findNavController().navigate(action)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(requireContext(), "Error navigating to restock", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun navigateToCategories() {
@@ -302,4 +309,5 @@ class InventoryFragment : Fragment() {
         _binding = null
     }
 }
+
 

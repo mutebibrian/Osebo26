@@ -16,3 +16,4 @@ data class DashboardSummaryDto(
     val totalProducts: Int
 )
 
+

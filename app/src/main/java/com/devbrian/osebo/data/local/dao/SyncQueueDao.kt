@@ -32,3 +32,4 @@ interface SyncQueueDao {
     suspend fun markAsFailed(id: Long, lastAttempt: Long)
 }
 
+

@@ -51,20 +51,17 @@ object CurrencyFormatter {
         }
     }
 
-    // This function currently takes Float
+    
     fun formatFull(amount: Float): String {
         return ugandaFormat.format(amount)
     }
 
-    // ADD THIS NEW FUNCTION for Double
+    
     fun formatFull(amount: Double): String {
         return ugandaFormat.format(amount)
     }
 
-    /**
-     * Format amount in short format without decimals (for receipt printing)
-     * Example: UGX 1,500 or UGX 1.5M
-     */
+    
     fun formatShort(amount: Double): String {
         return when {
             amount >= 1_000_000 -> {
@@ -89,14 +86,12 @@ object CurrencyFormatter {
         }
     }
 
-    // ADD THIS for Float
+    
     fun formatShort(amount: Float): String {
         return formatShort(amount.toDouble())
     }
 
-    /**
-     * Format amount in short format without decimals (for receipt printing) - Long overload
-     */
+    
     fun formatShort(amount: Long): String {
         return formatShort(amount.toDouble())
     }

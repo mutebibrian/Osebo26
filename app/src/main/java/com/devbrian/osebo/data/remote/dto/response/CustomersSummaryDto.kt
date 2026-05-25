@@ -16,3 +16,4 @@ data class CustomerSummaryItem(
     @SerializedName("last_purchase") val lastPurchase: String
 )
 
+

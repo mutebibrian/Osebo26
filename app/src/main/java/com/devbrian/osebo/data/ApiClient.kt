@@ -14,7 +14,7 @@ import com.google.gson.annotations.SerializedName
 object ApiClient {
 
     
-    private const val BASE_URL = "https://dev-api.osebo.ai"
+    private const val BASE_URL = "https://prod-api.osebo.ai"
 
     
     private const val PREFS_NAME = "OseboPrefs"
@@ -296,16 +296,7 @@ data class ShopsResponse(
     val hasMore: Boolean
 )
 
-data class BaseResponse(
-    @SerializedName("success")
-    val success: Boolean,
 
-    @SerializedName("message")
-    val message: String,
-
-    @SerializedName("timestamp")
-    val timestamp: String
-)
 
 
 
@@ -367,6 +358,7 @@ data class UpdateProfileRequest(
     @SerializedName("profileImage")
     val profileImage: String? = null
 )
+
 
 
 

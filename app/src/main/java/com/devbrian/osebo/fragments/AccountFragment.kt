@@ -14,7 +14,9 @@ import com.devbrian.osebo.fragments.dialogs.PaymentMethodDialogFragment
 import com.devbrian.osebo.ui.AccountViewModel
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
+import dagger.hilt.android.AndroidEntryPoint  // Add this import
 
+@AndroidEntryPoint  // Add this annotation
 class AccountFragment : Fragment() {
 
     private lateinit var binding: FragmentAccountBinding
@@ -34,6 +36,18 @@ class AccountFragment : Fragment() {
 
         setupObservers()
         setupClickListeners()
+        setupToolbar()  // Add this to handle back navigation
+    }
+
+    private fun setupToolbar() {
+        // If you have a toolbar in your layout
+        try {
+            binding.toolbar.setNavigationOnClickListener {
+                requireActivity().onBackPressed()
+            }
+        } catch (e: Exception) {
+            // Toolbar might not exist in this fragment
+        }
     }
 
     private fun setupObservers() {
@@ -48,7 +62,6 @@ class AccountFragment : Fragment() {
                 binding.billingCycleValue.text = it.billingCycle
                 binding.nextBillingValue.text = it.nextBillingDate
 
-                
                 when (it.status) {
                     "active" -> {
                         binding.statusChip.text = "Active"
@@ -64,7 +77,6 @@ class AccountFragment : Fragment() {
                     }
                 }
 
-                
                 binding.twoFactorSwitch.isChecked = it.twoFactorEnabled
                 binding.loginNotificationsSwitch.isChecked = it.loginNotificationsEnabled
             }
@@ -75,20 +87,33 @@ class AccountFragment : Fragment() {
                 showSnackbar("Account updated successfully")
             }
         }
+
+        // Add loading and error observers
+        viewModel.loading.observe(viewLifecycleOwner) { isLoading ->
+            // Show/hide progress bar if you have one
+            try {
+                binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
+            } catch (e: Exception) {
+                // Progress bar might not exist
+            }
+        }
+
+        viewModel.error.observe(viewLifecycleOwner) { error ->
+            if (error.isNotEmpty()) {
+                showSnackbar(error)
+            }
+        }
     }
 
     private fun setupClickListeners() {
-        
         binding.editAccountButton.setOnClickListener {
             openEditAccountDialog()
         }
 
-        
         binding.updatePaymentButton.setOnClickListener {
             openPaymentMethodDialog()
         }
 
-        
         binding.twoFactorSwitch.setOnCheckedChangeListener { _, isChecked ->
             viewModel.updateTwoFactorAuth(isChecked)
         }
@@ -101,7 +126,6 @@ class AccountFragment : Fragment() {
             openSessionManagement()
         }
 
-        
         binding.deactivateButton.setOnClickListener {
             showDeactivateConfirmation()
         }
@@ -152,4 +176,3 @@ class AccountFragment : Fragment() {
         Snackbar.make(binding.root, message, Snackbar.LENGTH_SHORT).show()
     }
 }
-

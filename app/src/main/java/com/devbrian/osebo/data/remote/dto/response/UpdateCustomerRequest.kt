@@ -9,3 +9,4 @@ data class UpdateCustomerRequest(
     @SerializedName("address") val address: String? = null,
     @SerializedName("customer_type") val customerType: String? = null)
 
+

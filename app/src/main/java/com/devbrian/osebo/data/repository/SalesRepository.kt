@@ -22,6 +22,7 @@ import com.google.gson.Gson
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
+import retrofit2.HttpException
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
@@ -35,9 +36,6 @@ class SalesRepository @Inject constructor(
     private val gson: Gson
 ) {
 
-    /**
-     * Get recent sales for the current shop
-     */
     fun getRecentSales(limit: Int = 20): Flow<List<Sale>> {
         val shopId = preferenceManager.getCurrentShopId()
         return flow {
@@ -52,10 +50,6 @@ class SalesRepository @Inject constructor(
 
                 val entities = database.saleDao().getRecentSales(shopId, limit).first()
                 println("📊 Repository - Raw entities count: ${entities.size}")
-
-                entities.forEachIndexed { index, entity ->
-                    println("📊 Repository - Entity[$index]: id=${entity.id}, amount=${entity.totalAmount}, status=${entity.status}, createdAt=${entity.createdAt}")
-                }
 
                 val sales = entities.map { entity ->
                     try {
@@ -78,9 +72,49 @@ class SalesRepository @Inject constructor(
         }
     }
 
-    /**
-     * Get sale by ID
-     */
+    suspend fun getTotalSalesForShop(shopId: String, limit: Int = 10000): Double {
+        return try {
+            println("📊 Getting total sales for shop: $shopId")
+            val entities = database.saleDao().getRecentSales(shopId, limit).first()
+            val totalSales = entities.sumOf { entity -> entity.totalAmount }
+            println("✅ Total sales for shop $shopId: $totalSales")
+            totalSales
+        } catch (e: Exception) {
+            println("❌ Error getting total sales for shop $shopId: ${e.message}")
+            e.printStackTrace()
+            0.0
+        }
+    }
+
+    suspend fun getRecentSalesForShop(shopId: String, limit: Int = 20): List<Sale> {
+        return try {
+            println("📊 Fetching recent sales for shop: $shopId")
+
+            if (shopId.isEmpty()) {
+                println("⚠️ Shop ID is empty, returning empty list")
+                return emptyList()
+            }
+
+            val entities = database.saleDao().getRecentSales(shopId, limit).first()
+            val sales = entities.map { entity ->
+                try {
+                    entity.toSale()
+                } catch (e: Exception) {
+                    println("❌ Error converting entity to sale: ${e.message}")
+                    null
+                }
+            }.filterNotNull()
+                .filter { it.amount > 0 }
+
+            println("📊 Converted sales count for shop $shopId: ${sales.size}")
+            sales
+        } catch (e: Exception) {
+            println("❌ Error getting recent sales for shop $shopId: ${e.message}")
+            e.printStackTrace()
+            emptyList()
+        }
+    }
+
     suspend fun getSaleById(saleId: String): Sale? {
         return try {
             val entity = database.saleDao().getSaleById(saleId)
@@ -91,9 +125,6 @@ class SalesRepository @Inject constructor(
         }
     }
 
-    /**
-     * Create a new sale
-     */
     suspend fun createSale(
         customer: Customer?,
         cartItems: List<CartItem>,
@@ -104,7 +135,6 @@ class SalesRepository @Inject constructor(
     ): Resource<SaleData> {
         val shopId = preferenceManager.getCurrentShopId()
 
-        // Debug shop ID
         println("🔍 CREATE SALE - Shop ID from preferences: '$shopId'")
         println("🔍 CREATE SALE - Shop ID length: ${shopId.length}")
         println("🔍 CREATE SALE - Shop ID empty? ${shopId.isEmpty()}")
@@ -114,7 +144,6 @@ class SalesRepository @Inject constructor(
             return Resource.Error("No shop selected. Please select a shop first.")
         }
 
-        // Check for temporary products
         val hasTempProducts = cartItems.any { it.product.id.startsWith("temp_") }
         if (hasTempProducts) {
             println("⚠️ CREATE SALE - Cart contains temporary products")
@@ -123,17 +152,24 @@ class SalesRepository @Inject constructor(
 
         val subtotal = cartItems.sumOf { it.subtotal }
         val totalAmount = subtotal
-
         val tempId = "temp_${System.currentTimeMillis()}"
         val invoiceNumber = generateInvoiceNumber()
 
         val saleItems = cartItems.map { item ->
+            val unitPrice = item.customPrice ?: item.product.price
+            val quantity = item.quantity
+            val discountPercentage = item.discount
+            val totalBeforeDiscount = unitPrice * quantity
+            val discountAmount = totalBeforeDiscount * (discountPercentage / 100)
+            val amount = totalBeforeDiscount - discountAmount
+
             SaleItemRequest(
                 stockItemId = item.product.id,
-                quantity = item.quantity,
-                price = item.unitPrice,
-                discount = item.discount,
-                isCustomPrice = item.isCustomPrice
+                quantity = quantity,
+                price = unitPrice,
+                discount = discountPercentage,
+                isCustomPrice = item.isCustomPrice,
+                amount = amount
             )
         }
 
@@ -149,6 +185,7 @@ class SalesRepository @Inject constructor(
         println("   - Shop ID: $shopId")
         println("   - Customer ID: ${customer?.id}")
         println("   - Paid Amount: $paidAmount")
+        println("   - Total Sale Amount: $totalAmount")
         println("   - Items: ${saleItems.size}")
 
         val initialStatus = when {
@@ -184,6 +221,7 @@ class SalesRepository @Inject constructor(
         } else {
             println("📦 Repository - No network, queuing sale for later sync")
             queueForSync(saleEntity, "CREATE")
+            // Return success with local data so user can proceed to receipt
             Resource.Success(
                 SaleData(
                     id = tempId,
@@ -193,15 +231,12 @@ class SalesRepository @Inject constructor(
                     change = (paidAmount - totalAmount).coerceAtLeast(0.0),
                     paymentMethod = paymentMethod,
                     createdAt = saleEntity.createdAt,
-                    shop = null
+                    shop = getCurrentShopInfo()
                 )
             )
         }
     }
 
-    /**
-     * Sync a created sale with the server
-     */
     private suspend fun syncCreateSale(
         entity: SaleEntity,
         request: SaleRequest,
@@ -210,23 +245,25 @@ class SalesRepository @Inject constructor(
         return try {
             val shopId = preferenceManager.getCurrentShopId()
 
-            // Double-check shop ID before sync
-            println("🔍 SYNC CREATE SALE - Shop ID check:")
-            println("   - From preferences: '$shopId'")
-            println("   - From entity: '${entity.shopId}'")
-            println("   - Match? ${shopId == entity.shopId}")
-
             if (shopId.isEmpty()) {
                 println("❌ SYNC CREATE SALE - ERROR: Shop ID is empty! Cannot sync sale")
                 queueForSync(entity, "CREATE")
-                return Resource.Error("No shop selected. Please select a shop first.")
+                // Return success with local data so user can proceed
+                return Resource.Success(
+                    SaleData(
+                        id = entity.id,
+                        invoiceNumber = entity.invoiceNumber,
+                        totalAmount = entity.totalAmount,
+                        paidAmount = entity.paidAmount,
+                        change = entity.change,
+                        paymentMethod = originalPaymentMethod,
+                        createdAt = entity.createdAt,
+                        shop = getCurrentShopInfo()
+                    )
+                )
             }
 
             println("📤 Syncing sale to server: ${entity.id}")
-            println("📤 Request details - Customer: ${request.customerId}, Amount: ${request.paidAmount}, Type: ${request.saleType}")
-            println("📤 Shop ID being sent as header: $shopId")
-
-            // Make the API call - shopId is passed as header automatically by Retrofit
             val response = apiService.createSale(shopId, request)
 
             if (response.isSuccessful) {
@@ -235,29 +272,20 @@ class SalesRepository @Inject constructor(
                     val apiData = apiResponse.data
                     if (apiData != null) {
                         println("✅ Sale synced successfully: ${apiData.id}")
-                        println("📦 API Response - Shop: ${apiData.shop?.name}")
 
-                        // Calculate total amount from total_price
                         val totalAmount = apiData.totalPrice ?: entity.totalAmount
-
-                        // Calculate paid amount from paid_amount string
                         val paidAmount = try {
                             apiData.paidAmountString?.toDouble() ?: entity.paidAmount
                         } catch (e: Exception) {
                             entity.paidAmount
                         }
-
-                        // Calculate change
                         val change = (paidAmount - totalAmount).coerceAtLeast(0.0)
-
-                        // Get payment method from salePayments if available
                         val paymentMethod = try {
                             apiData.salePayments?.firstOrNull()?.payment?.method ?: originalPaymentMethod
                         } catch (e: Exception) {
                             originalPaymentMethod
                         }
 
-                        // Create SaleData object
                         val saleData = SaleData(
                             id = apiData.id,
                             invoiceNumber = apiData.invoiceNumber,
@@ -269,7 +297,6 @@ class SalesRepository @Inject constructor(
                             shop = apiData.shop
                         )
 
-                        // Create updated entity with real ID
                         val updatedEntity = SaleEntity(
                             id = saleData.id,
                             invoiceNumber = saleData.invoiceNumber ?: entity.invoiceNumber,
@@ -289,60 +316,100 @@ class SalesRepository @Inject constructor(
                             syncAction = null
                         )
 
-                        println("🗑️ Deleting temp record: ${entity.id}")
                         database.saleDao().deleteSaleById(entity.id)
-
-                        println("💾 Inserting real record: ${saleData.id}")
                         database.saleDao().insertSale(updatedEntity)
 
-                        val verifyInsert = database.saleDao().getSaleById(saleData.id)
-                        if (verifyInsert != null) {
-                            println("✅ Verified real record exists in DB: ${verifyInsert.id}")
-                        } else {
-                            println("⚠️ Warning: Real record not found after insert!")
-                        }
-
-                        println("✅ Replaced temp ID ${entity.id} with real ID ${saleData.id}")
-
-                        Resource.Success(saleData)
-                    } else {
-                        println("❌ Sync failed: No data returned from API")
-                        queueForSync(entity, "CREATE")
-                        Resource.Error("Failed to sync sale: No data returned")
+                        return Resource.Success(saleData)
                     }
-                } else {
-                    val errorMsg = apiResponse?.message ?: "Unknown error"
-                    println("❌ Sync failed: $errorMsg")
-                    queueForSync(entity, "CREATE")
-                    Resource.Error(errorMsg)
                 }
-            } else {
-                println("❌ Sync failed with code: ${response.code()}")
-                val errorBody = response.errorBody()?.string()
-                println("❌ Error body: $errorBody")
-
-                // Check if it's the X-Shop header error
-                if (errorBody?.contains("X-Shop header is required") == true) {
-                    println("❌ CRITICAL: X-Shop header is missing or invalid!")
-                    println("🔍 Current shop ID in preferences: '${preferenceManager.getCurrentShopId()}'")
-                    println("🔍 Current shop UUID: '${preferenceManager.getCurrentShopUuid()}'")
-                    preferenceManager.debugSubscriptionInfo()
-                }
-
-                queueForSync(entity, "CREATE")
-                Resource.Error("Network error: ${response.code()}")
             }
-        } catch (e: Exception) {
-            println("❌ Sync error: ${e.message}")
-            e.printStackTrace()
+
+            // Handle 401 Unauthorized - Token expired
+            if (response.code() == 401) {
+                println("⚠️ Token expired or invalid, queuing sale for later sync")
+                queueForSync(entity, "CREATE")
+                // Return success with local data so user can proceed to receipt
+                return Resource.Success(
+                    SaleData(
+                        id = entity.id,
+                        invoiceNumber = entity.invoiceNumber,
+                        totalAmount = entity.totalAmount,
+                        paidAmount = entity.paidAmount,
+                        change = entity.change,
+                        paymentMethod = originalPaymentMethod,
+                        createdAt = entity.createdAt,
+                        shop = getCurrentShopInfo()
+                    )
+                )
+            }
+
+            // For other errors, queue for sync and return error
+            queueForSync(entity, "CREATE")
+            Resource.Error("Network error: ${response.code()}")
+        } catch (e: HttpException) {
+            println("❌ HTTP error during sync: ${e.code()} - ${e.message}")
+
+            // Handle 401 from exception
+            if (e.code() == 401) {
+                queueForSync(entity, "CREATE")
+                return Resource.Success(
+                    SaleData(
+                        id = entity.id,
+                        invoiceNumber = entity.invoiceNumber,
+                        totalAmount = entity.totalAmount,
+                        paidAmount = entity.paidAmount,
+                        change = entity.change,
+                        paymentMethod = originalPaymentMethod,
+                        createdAt = entity.createdAt,
+                        shop = getCurrentShopInfo()
+                    )
+                )
+            }
+
             queueForSync(entity, "CREATE")
             Resource.Error(e.message ?: "Network error")
+        } catch (e: Exception) {
+            println("❌ Sync error: ${e.message}")
+            queueForSync(entity, "CREATE")
+            // Return success with local data so user can proceed
+            Resource.Success(
+                SaleData(
+                    id = entity.id,
+                    invoiceNumber = entity.invoiceNumber,
+                    totalAmount = entity.totalAmount,
+                    paidAmount = entity.paidAmount,
+                    change = entity.change,
+                    paymentMethod = originalPaymentMethod,
+                    createdAt = entity.createdAt,
+                    shop = getCurrentShopInfo()
+                )
+            )
         }
     }
 
-    /**
-     * Get sales for a specific customer
-     */
+    private fun getCurrentShopInfo(): ShopInfo? {
+        return try {
+            val shopId = preferenceManager.getCurrentShopId()
+            val shopName = preferenceManager.getCurrentShopName()
+            val shopAddress = preferenceManager.getShopLocation()
+            val shopPhone = preferenceManager.getShopContact()
+            val businessType = preferenceManager.getBusinessType()
+            val shopEmail = preferenceManager.getShopEmail() ?: ""
+
+            ShopInfo(
+                id = shopId,
+                name = shopName,
+                address = shopAddress,
+                phone = shopPhone,
+                description = businessType,
+                email = shopEmail
+            )
+        } catch (e: Exception) {
+            println("❌ Error getting shop info: ${e.message}")
+            null
+        }
+    }
+
     suspend fun getCustomerSales(customerId: String): Resource<List<SaleData>> {
         val shopId = preferenceManager.getCurrentShopId()
         if (shopId.isEmpty()) {
@@ -374,30 +441,14 @@ class SalesRepository @Inject constructor(
                 val apiResponse = response.body()
                 if (apiResponse?.success == true) {
                     val apiDataList = apiResponse.data ?: emptyList()
-                    println("✅ Received ${apiDataList.size} customer sales")
-
-                    // Convert ApiData list to SaleData list
                     val saleDataList = apiDataList.map { apiData ->
-                        val totalAmount = apiData.totalPrice ?: 0.0
-                        val paidAmount = try {
-                            apiData.paidAmountString?.toDouble() ?: 0.0
-                        } catch (e: Exception) {
-                            0.0
-                        }
-                        val change = (paidAmount - totalAmount).coerceAtLeast(0.0)
-                        val paymentMethod = try {
-                            apiData.salePayments?.firstOrNull()?.payment?.method ?: "cash"
-                        } catch (e: Exception) {
-                            "cash"
-                        }
-
                         SaleData(
                             id = apiData.id,
                             invoiceNumber = apiData.invoiceNumber,
-                            totalAmount = totalAmount,
-                            paidAmount = paidAmount,
-                            change = change,
-                            paymentMethod = paymentMethod,
+                            totalAmount = apiData.totalPrice ?: 0.0,
+                            paidAmount = apiData.paidAmountString?.toDouble() ?: 0.0,
+                            change = 0.0,
+                            paymentMethod = apiData.salePayments?.firstOrNull()?.payment?.method ?: "cash",
                             createdAt = apiData.createdAt,
                             shop = apiData.shop
                         )
@@ -415,9 +466,6 @@ class SalesRepository @Inject constructor(
         }
     }
 
-    /**
-     * Get detailed sale information
-     */
     suspend fun getSaleDetails(saleId: String): Resource<SaleData> {
         val shopId = preferenceManager.getCurrentShopId()
         if (shopId.isEmpty()) {
@@ -452,28 +500,13 @@ class SalesRepository @Inject constructor(
                 if (apiResponse?.success == true) {
                     val apiData = apiResponse.data
                     if (apiData != null) {
-                        println("✅ Sale details received")
-
-                        val totalAmount = apiData.totalPrice ?: 0.0
-                        val paidAmount = try {
-                            apiData.paidAmountString?.toDouble() ?: 0.0
-                        } catch (e: Exception) {
-                            0.0
-                        }
-                        val change = (paidAmount - totalAmount).coerceAtLeast(0.0)
-                        val paymentMethod = try {
-                            apiData.salePayments?.firstOrNull()?.payment?.method ?: "cash"
-                        } catch (e: Exception) {
-                            "cash"
-                        }
-
                         val saleData = SaleData(
                             id = apiData.id,
                             invoiceNumber = apiData.invoiceNumber,
-                            totalAmount = totalAmount,
-                            paidAmount = paidAmount,
-                            change = change,
-                            paymentMethod = paymentMethod,
+                            totalAmount = apiData.totalPrice ?: 0.0,
+                            paidAmount = apiData.paidAmountString?.toDouble() ?: 0.0,
+                            change = 0.0,
+                            paymentMethod = apiData.salePayments?.firstOrNull()?.payment?.method ?: "cash",
                             createdAt = apiData.createdAt,
                             shop = apiData.shop
                         )
@@ -493,9 +526,6 @@ class SalesRepository @Inject constructor(
         }
     }
 
-    /**
-     * Get complete sale history for a customer
-     */
     suspend fun getCustomerSaleHistory(customerId: String): Resource<List<SaleData>> {
         val shopId = preferenceManager.getCurrentShopId()
         if (shopId.isEmpty()) {
@@ -527,30 +557,14 @@ class SalesRepository @Inject constructor(
                 val apiResponse = response.body()
                 if (apiResponse?.success == true) {
                     val apiDataList = apiResponse.data ?: emptyList()
-                    println("✅ Received ${apiDataList.size} customer sale history")
-
-                    // Convert ApiData list to SaleData list
                     val saleDataList = apiDataList.map { apiData ->
-                        val totalAmount = apiData.totalPrice ?: 0.0
-                        val paidAmount = try {
-                            apiData.paidAmountString?.toDouble() ?: 0.0
-                        } catch (e: Exception) {
-                            0.0
-                        }
-                        val change = (paidAmount - totalAmount).coerceAtLeast(0.0)
-                        val paymentMethod = try {
-                            apiData.salePayments?.firstOrNull()?.payment?.method ?: "cash"
-                        } catch (e: Exception) {
-                            "cash"
-                        }
-
                         SaleData(
                             id = apiData.id,
                             invoiceNumber = apiData.invoiceNumber,
-                            totalAmount = totalAmount,
-                            paidAmount = paidAmount,
-                            change = change,
-                            paymentMethod = paymentMethod,
+                            totalAmount = apiData.totalPrice ?: 0.0,
+                            paidAmount = apiData.paidAmountString?.toDouble() ?: 0.0,
+                            change = 0.0,
+                            paymentMethod = apiData.salePayments?.firstOrNull()?.payment?.method ?: "cash",
                             createdAt = apiData.createdAt,
                             shop = apiData.shop
                         )
@@ -568,9 +582,6 @@ class SalesRepository @Inject constructor(
         }
     }
 
-    /**
-     * Record a payment for an existing sale
-     */
     suspend fun recordPayment(
         saleId: String,
         customerId: String?,
@@ -605,19 +616,15 @@ class SalesRepository @Inject constructor(
                     val paymentData = apiResponse.data
                     if (paymentData != null) {
                         println("✅ Payment recorded successfully: ${paymentData.id}")
-
                         updateLocalSalePaymentStatus(saleId, paidAmount, paymentMethod)
-
                         Resource.Success(paymentData)
                     } else {
                         Resource.Error("No payment data received")
                     }
                 } else {
-                    println("❌ Payment recording failed: ${apiResponse?.message}")
                     Resource.Error(apiResponse?.message ?: "Failed to record payment")
                 }
             } else {
-                println("❌ Payment recording failed with code: ${response.code()}")
                 Resource.Error("Network error: ${response.code()}")
             }
         } catch (e: Exception) {
@@ -626,9 +633,6 @@ class SalesRepository @Inject constructor(
         }
     }
 
-    /**
-     * Update local sale payment status after successful payment
-     */
     private suspend fun updateLocalSalePaymentStatus(saleId: String, paidAmount: Double, paymentMethod: String) {
         try {
             val sale = database.saleDao().getSaleById(saleId)
@@ -653,9 +657,6 @@ class SalesRepository @Inject constructor(
         }
     }
 
-    /**
-     * Queue a sale for later sync when offline
-     */
     private suspend fun queueForSync(entity: SaleEntity, action: String) {
         val syncItem = SyncQueueEntity(
             entityType = "SALE",
@@ -671,9 +672,6 @@ class SalesRepository @Inject constructor(
         println("📦 Queued for sync: $action - ${entity.id}")
     }
 
-    /**
-     * Generate a unique invoice number
-     */
     private fun generateInvoiceNumber(): String {
         val dateFormat = SimpleDateFormat("yyyyMMdd", Locale.getDefault())
         val date = dateFormat.format(Date())
@@ -681,23 +679,14 @@ class SalesRepository @Inject constructor(
         return "INV-$date-$random"
     }
 
-    /**
-     * Calculate change amount
-     */
     fun calculateChange(tendered: Double, total: Double): Double {
         return (tendered - total).coerceAtLeast(0.0)
     }
 
-    /**
-     * Calculate subtotal from cart items
-     */
     fun calculateSubtotal(items: List<CartItem>): Double {
         return items.sumOf { it.subtotal }
     }
 
-    /**
-     * Calculate total tax from cart items
-     */
     fun calculateTotalTax(items: List<CartItem>): Double {
         return items.sumOf { item ->
             val price = item.customPrice ?: item.product.price
@@ -706,9 +695,6 @@ class SalesRepository @Inject constructor(
         }
     }
 
-    /**
-     * Get complete sale summary
-     */
     data class SaleSummary(
         val subtotal: Double,
         val totalDiscount: Double,

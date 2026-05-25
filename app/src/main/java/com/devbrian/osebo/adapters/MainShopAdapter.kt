@@ -59,84 +59,145 @@ class MainShopAdapter(
 
         fun bind(shop: Shop) {
             binding.apply {
-                tvShopName.text = shop.name
-                tvShopLocation.text = shop.address ?: "Location not set"
-                tvShopType.text = shop.shopTypeDisplay
-                tvTodaySales.text = formatCurrency(shop.totalRevenue)
-                tvProductsCount.text = shop.totalProducts.toString()
-                tvEmployeesCount.text = shop.totalEmployees.toString()
+                // Basic shop info with null safety
+                tvShopName.text = shop.name ?: "Unnamed Shop"
+                tvShopLocation.text = shop.address?.takeIf { it.isNotEmpty() } ?: "Location not set"
+                tvShopType.text = shop.shopTypeDisplay?.takeIf { it.isNotEmpty() } ?: "Shop"
 
-                // Determine subscription status and colors
-                val isActive = shop.subscriptionStatus.equals("active", ignoreCase = true) ||
-                        shop.subscriptionStatus.equals("trial", ignoreCase = true)
+                // Safe number formatting
+                tvTodaySales.text = formatCurrency(shop.totalRevenue ?: 0.0)
+                tvProductsCount.text = (shop.totalProducts ?: 0).toString()
+                tvEmployeesCount.text = (shop.totalEmployees ?: 0).toString()
 
-                val statusInfo = when {
-                    isActive && shop.subscriptionStatus.equals("trial", ignoreCase = true) -> {
-                        Triple("TRIAL", R.color.blue_500, R.drawable.bg_status_trial)
-                    }
-                    isActive -> {
-                        Triple("ACTIVE", R.color.green_500, R.drawable.bg_status_active)
-                    }
-                    shop.subscriptionStatus.equals("expired", ignoreCase = true) -> {
-                        Triple("EXPIRED", R.color.red_500, R.drawable.bg_status_expired)
-                    }
-                    else -> {
-                        Triple("INACTIVE", R.color.gray_500, R.drawable.bg_status_inactive)
-                    }
+                // Status determination with null safety
+                val status = shop.subscriptionStatus ?: "inactive"
+                val isActive = status.equals("active", ignoreCase = true)
+                val isTrial = status.equals("trial", ignoreCase = true)
+                val isExpired = status.equals("expired", ignoreCase = true)
+                val isClickable = isActive || isTrial
+
+                // Status text and background based on subscription status
+                val (statusText, statusBgRes, statusTextColor) = when {
+                    isTrial -> Triple("TRIAL", R.drawable.bg_status_trial, R.color.white)
+                    isActive -> Triple("ACTIVE", R.drawable.bg_status_active, R.color.white)
+                    isExpired -> Triple("EXPIRED", R.drawable.bg_status_expired, R.color.white)
+                    else -> Triple("INACTIVE", R.drawable.bg_status_inactive, R.color.white)
                 }
 
-                // Set status text and colors
-                tvShopStatus.text = statusInfo.first
-                tvShopStatus.setTextColor(ContextCompat.getColor(root.context, statusInfo.second))
+                // Set status text and background
+                tvShopStatus.text = statusText
+                tvShopStatus.setTextColor(ContextCompat.getColor(root.context, statusTextColor))
 
-                // Apply background drawable if exists, otherwise just use text color
                 try {
-                    tvShopStatus.setBackgroundResource(statusInfo.third)
+                    tvShopStatus.setBackgroundResource(statusBgRes)
                 } catch (e: Exception) {
-                    tvShopStatus.setBackgroundColor(Color.TRANSPARENT)
+                    // Fallback to colored background if drawable not found
+                    val bgColor = when {
+                        isTrial -> R.color.orange_warning
+                        isActive -> R.color.green_success
+                        isExpired -> R.color.red_error
+                        else -> R.color.gray
+                    }
+                    tvShopStatus.setBackgroundColor(ContextCompat.getColor(root.context, bgColor))
                 }
 
-                // Disable click interactions if shop is not active
-                val isClickable = isActive
+                // Shop initials - FIXED: Added null safety and empty string check
+                val shopName = shop.name ?: "Shop"
+                val initials = getInitials(shopName)
+                tvShopInitial.text = initials
+
+                // Set gradient background for shop initial
+                try {
+                    tvShopInitial.setBackgroundResource(R.drawable.bg_shop_initial_gradient)
+                } catch (e: Exception) {
+                    // Fallback to solid color
+                    tvShopInitial.setBackgroundColor(Color.parseColor(getColorForShop(shopName)))
+                }
+
+                // Enable/disable based on subscription status
                 root.isEnabled = isClickable
                 btnViewDetails.isEnabled = isClickable
-
-                // Set alpha to indicate disabled state
                 root.alpha = if (isClickable) 1.0f else 0.6f
 
-                // Change button text/appearance based on status
+                // Change button text based on status
                 btnViewDetails.text = when {
+                    isTrial -> "VIEW SHOP"
                     isActive -> "VIEW SHOP"
-                    shop.subscriptionStatus.equals("expired", ignoreCase = true) -> "RENEW"
+                    isExpired -> "RENEW"
                     else -> "SUBSCRIBE"
                 }
-
-                // Set shop initial
-                val initials = getInitials(shop.name)
-                tvShopInitial.text = initials
-                tvShopInitial.setBackgroundColor(Color.parseColor(getColorForShop(shop.name)))
             }
         }
 
+        /**
+         * FIXED: Get initials from shop name with proper null/empty handling
+         * This was causing the NoSuchElementException crash
+         */
         private fun getInitials(name: String): String {
-            val words = name.split(" ")
+            // SAFETY CHECK: Handle empty or null names
+            if (name.isEmpty()) {
+                return "S"  // Default for "Shop"
+            }
+
+            val trimmed = name.trim()
+            if (trimmed.isEmpty()) {
+                return "S"
+            }
+
+            val words = trimmed.split(" ")
+
             return when (words.size) {
-                1 -> words[0].take(2).uppercase(Locale.getDefault())
-                else -> (words[0].first().toString() + words[1].first().toString()).uppercase(Locale.getDefault())
+                1 -> {
+                    val firstWord = words[0]
+                    if (firstWord.isNotEmpty()) {
+                        // Take first two letters if available, otherwise just first
+                        when {
+                            firstWord.length >= 2 -> firstWord.take(2).uppercase(Locale.getDefault())
+                            firstWord.length == 1 -> firstWord.uppercase(Locale.getDefault())
+                            else -> "S"
+                        }
+                    } else {
+                        "S"
+                    }
+                }
+                else -> {
+                    // Get first letter of first and second word
+                    val first = words[0].firstOrNull()?.toString() ?: ""
+                    val second = words[1].firstOrNull()?.toString() ?: ""
+
+                    if (first.isNotEmpty() && second.isNotEmpty()) {
+                        (first + second).uppercase(Locale.getDefault())
+                    } else if (first.isNotEmpty()) {
+                        first.uppercase(Locale.getDefault())
+                    } else {
+                        "S"
+                    }
+                }
             }
         }
 
+        /**
+         * Generate a consistent color for a shop based on its name
+         */
         private fun getColorForShop(name: String): String {
             val colors = listOf(
                 "#FF6B6B", "#4ECDC4", "#FFD166", "#06D6A0",
                 "#118AB2", "#EF476F", "#073B4C", "#FF9F1C"
             )
-            val index = name.hashCode() % colors.size
+            val safeName = if (name.isEmpty()) "Shop" else name
+            val index = safeName.hashCode() % colors.size
             return colors[Math.abs(index)]
         }
 
+        /**
+         * Format currency amount safely
+         */
         private fun formatCurrency(amount: Double): String {
-            return currencyFormatter.format(amount)
+            return try {
+                currencyFormatter.format(amount)
+            } catch (e: Exception) {
+                "UGX 0"
+            }
         }
     }
 

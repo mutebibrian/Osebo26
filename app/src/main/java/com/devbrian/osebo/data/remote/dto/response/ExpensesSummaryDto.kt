@@ -9,3 +9,4 @@ data class ExpensesSummaryDto(
     @SerializedName("percentage_change") val percentageChange: Double
 )
 
+

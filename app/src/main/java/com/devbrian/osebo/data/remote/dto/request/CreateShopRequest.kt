@@ -9,8 +9,8 @@ data class CreateShopRequest(
     @SerializedName("address")
     val address: String,
 
-    @SerializedName("shop_type_id")  
-    val shopTypeId: String,  
+    @SerializedName("shop_type_id")
+    val shopTypeId: String,
 
     @SerializedName("registration_number")
     val registrationNumber: String? = null,
@@ -19,13 +19,8 @@ data class CreateShopRequest(
     val taxIdentificationNumber: String? = null,
 
     @SerializedName("description")
-    val description: String?,
+    val description: String? = null,
 
-    
-    
-    
-    
-    
-    
+    @SerializedName("accountId")
+    val accountId: String
 )
-

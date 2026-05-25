@@ -36,10 +36,11 @@ data class UserDto(
     @SerializedName("updatedAt")
     val updatedAt: String?,
 
+    // ✅ role is now a String (as returned by the backend in login responses)
     @SerializedName("role")
-    val role: RoleDto? = null,
+    val role: String? = null,
 
-    
+    // Alternative field names that might come from different API endpoints
     @SerializedName("name")
     val name: String? = null,
 
@@ -53,9 +54,24 @@ data class UserDto(
     val updatedAtOld: String? = null,
 
     @SerializedName("profile_image_url")
-    val profileImageUrl: String? = null
+    val profileImageUrl: String? = null,
+
+    @SerializedName("is_email_verified")
+    val isEmailVerified: Boolean? = null,
+
+    @SerializedName("email_verified")
+    val emailVerified: Boolean? = null,
+
+    @SerializedName("status")
+    val status: String? = null,
+
+    @SerializedName("user_type")
+    val userType: String? = null,
+
+    @SerializedName("permissions")
+    val permissions: List<String>? = null
 ) {
-    
+
     fun getFullName(): String {
         return buildString {
             firstName?.let { append(it) }
@@ -66,30 +82,31 @@ data class UserDto(
         }.trim().ifEmpty { name ?: "" }
     }
 
-    
     fun extractFirstName(): String {
         return firstName ?: name?.substringBefore(" ") ?: ""
     }
 
-    
     fun extractLastName(): String {
         return lastName ?: name?.substringAfterLast(" ") ?: ""
     }
 
-    
     fun getDisplayName(): String {
         return name ?: getFullName()
     }
+
+    fun getPhoneNumber(): String {
+        return phone ?: ""
+    }
+
+    fun isEmailVerifiedCompat(): Boolean {
+        return isVerified == true || isEmailVerified == true || emailVerified == true
+    }
+
+    fun isActiveCompat(): Boolean {
+        return isActive == true && status != "inactive" && status != "disabled"
+    }
+
+    fun getRoleName(): String {
+        return role ?: userType ?: "staff"
+    }
 }
-
-data class RoleDto(
-    @SerializedName("id")
-    val id: String,
-
-    @SerializedName("name")
-    val name: String,
-
-    @SerializedName("description")
-    val description: String?
-)
-

@@ -8,18 +8,23 @@ import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
 import com.devbrian.osebo.databinding.FragmentAddExpenseBinding
+import com.devbrian.osebo.ui.viewmodels.AddExpenseViewModel
 import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import dagger.hilt.android.AndroidEntryPoint
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+@AndroidEntryPoint
 class AddExpenseFragment : Fragment() {
     private var _binding: FragmentAddExpenseBinding? = null
     private val binding get() = _binding!!
     private lateinit var dateFormat: SimpleDateFormat
+    private val viewModel: AddExpenseViewModel by viewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -40,6 +45,9 @@ class AddExpenseFragment : Fragment() {
         setupPaymentMethodSpinner()
         setupDatePicker()
         setupClickListeners()
+        observeViewModel()
+
+        viewModel.loadExpenseCategories()
     }
 
     private fun setupToolbar() {
@@ -49,26 +57,18 @@ class AddExpenseFragment : Fragment() {
     }
 
     private fun setupCategorySpinner() {
-        val categories = arrayOf(
-            "Rent",
-            "Utilities",
-            "Salaries",
-            "Supplies",
-            "Marketing",
-            "Transport",
-            "Maintenance",
-            "Equipment",
-            "Insurance",
-            "Taxes",
-            "Other"
-        )
+        viewModel.expenseCategories.observe(viewLifecycleOwner) { categories ->
+            val categoryNames = categories.map { it.name }.toTypedArray()
+            val adapter = ArrayAdapter(requireContext(), R.layout.simple_spinner_item, categoryNames)
+            adapter.setDropDownViewResource(R.layout.simple_spinner_dropdown_item)
+            binding.actvCategory.setAdapter(adapter)
 
-        val adapter = ArrayAdapter(requireContext(), R.layout.simple_spinner_item, categories)
-        adapter.setDropDownViewResource(R.layout.simple_spinner_dropdown_item)
-        binding.actvCategory.setAdapter(adapter)
+            viewModel.setCategoriesList(categories)
+        }
 
         binding.actvCategory.setOnItemClickListener { _, _, position, _ ->
             binding.tilCategory.error = null
+            viewModel.selectCategory(position)
         }
     }
 
@@ -84,10 +84,15 @@ class AddExpenseFragment : Fragment() {
         val adapter = ArrayAdapter(requireContext(), R.layout.simple_spinner_item, methods)
         adapter.setDropDownViewResource(R.layout.simple_spinner_dropdown_item)
         binding.actvPaymentMethod.setAdapter(adapter)
+
+        binding.actvPaymentMethod.setOnItemClickListener { _, _, position, _ ->
+            viewModel.setPaymentMethod(methods[position])
+        }
     }
 
     private fun setupDatePicker() {
         binding.etDate.setText(dateFormat.format(Date()))
+        viewModel.setDate(SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()))
 
         binding.etDate.setOnClickListener {
             showDatePicker()
@@ -103,6 +108,8 @@ class AddExpenseFragment : Fragment() {
         datePicker.addOnPositiveButtonClickListener { selection ->
             val date = Date(selection)
             binding.etDate.setText(dateFormat.format(date))
+            val formattedDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(date)
+            viewModel.setDate(formattedDate)
         }
 
         datePicker.show(parentFragmentManager, "DATE_PICKER")
@@ -122,12 +129,33 @@ class AddExpenseFragment : Fragment() {
         }
     }
 
+    private fun observeViewModel() {
+        viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
+            // Remove progressBar reference if it doesn't exist
+            binding.btnSave.isEnabled = !isLoading
+            binding.btnSave.text = if (isLoading) "Saving..." else "Save Expense"
+        }
+
+        viewModel.error.observe(viewLifecycleOwner) { error ->
+            error?.let {
+                Toast.makeText(requireContext(), it, Toast.LENGTH_LONG).show()
+                viewModel.clearError()
+            }
+        }
+
+        viewModel.success.observe(viewLifecycleOwner) { success ->
+            if (success) {
+                Toast.makeText(requireContext(), "Expense saved successfully", Toast.LENGTH_SHORT).show()
+                findNavController().navigateUp()
+            }
+        }
+    }
+
     private fun saveExpense() {
-        // Validate fields
         val category = binding.actvCategory.text.toString()
-        val amount = binding.etAmount.text.toString()
+        val amountStr = binding.etAmount.text.toString()
         val description = binding.etDescription.text.toString()
-        val date = binding.etDate.text.toString()
+        val paymentMethod = binding.actvPaymentMethod.text.toString()
 
         var isValid = true
 
@@ -136,13 +164,19 @@ class AddExpenseFragment : Fragment() {
             isValid = false
         }
 
-        if (amount.isEmpty()) {
+        if (amountStr.isEmpty()) {
             binding.tilAmount.error = "Enter amount"
             isValid = false
         } else {
             try {
-                amount.toDouble()
-                binding.tilAmount.error = null
+                val amount = amountStr.toDouble()
+                if (amount <= 0) {
+                    binding.tilAmount.error = "Amount must be greater than 0"
+                    isValid = false
+                } else {
+                    viewModel.setAmount(amount)
+                    binding.tilAmount.error = null
+                }
             } catch (e: NumberFormatException) {
                 binding.tilAmount.error = "Invalid amount"
                 isValid = false
@@ -152,13 +186,19 @@ class AddExpenseFragment : Fragment() {
         if (description.isEmpty()) {
             binding.tilDescription.error = "Enter description"
             isValid = false
+        } else {
+            viewModel.setDescription(description)
+            binding.tilDescription.error = null
+        }
+
+        if (paymentMethod.isEmpty()) {
+            binding.tilPaymentMethod.error = "Select payment method"
+            isValid = false
         }
 
         if (!isValid) return
 
-        // TODO: Save to API
-        Toast.makeText(requireContext(), "Expense saved successfully", Toast.LENGTH_SHORT).show()
-        findNavController().navigateUp()
+        viewModel.saveExpense()
     }
 
     private fun showAttachmentOptions() {

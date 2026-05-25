@@ -8,3 +8,4 @@ data class SalesSummaryDto(
     val transaction_count: Int
 )
 
+

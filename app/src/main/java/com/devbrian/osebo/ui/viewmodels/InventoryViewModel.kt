@@ -14,7 +14,9 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import javax.inject.Inject
+import kotlin.coroutines.resume
 
 @HiltViewModel
 class InventoryViewModel @Inject constructor(
@@ -102,9 +104,9 @@ class InventoryViewModel @Inject constructor(
 
             if (result is Resource.Error) {
                 _errorMessage.value = result.message
-            } else {
-                _successMessage.value = "Products updated"
             }
+            // REMOVED the success message for refresh
+            // DON'T set _successMessage here - it causes unwanted navigation
 
             loadStats()
             _isRefreshing.value = false
@@ -133,6 +135,47 @@ class InventoryViewModel @Inject constructor(
             _isLoading.value = false
         }
     }
+
+    // Add this method to InventoryViewModel
+    suspend fun updateProductAndWait(product: Product): Boolean {
+        return suspendCancellableCoroutine { continuation ->
+            viewModelScope.launch {
+                _isLoading.value = true
+
+                val result = repository.updateProduct(product)
+
+                if (result is Resource.Success) {
+                    val message = if (!NetworkUtils.isNetworkAvailable(context)) {
+                        "✅ Changes saved locally. Will sync when online."
+                    } else {
+                        "✅ Product updated successfully"
+                    }
+                    _successMessage.value = message
+                    _syncPending.value = true
+
+                    // Update local list
+                    val currentProducts = _products.value?.toMutableList() ?: mutableListOf()
+                    val index = currentProducts.indexOfFirst { it.id == product.id }
+                    if (index != -1) {
+                        currentProducts[index] = product
+                        _products.value = currentProducts
+                    }
+
+                    continuation.resume(true)
+                } else if (result is Resource.Error) {
+                    _errorMessage.value = result.message
+                    continuation.resume(false)
+                } else {
+                    continuation.resume(false)
+                }
+
+                loadStats()
+                _isLoading.value = false
+            }
+        }
+    }
+
+
 
     fun updateProduct(product: Product) {
         viewModelScope.launch {
@@ -226,4 +269,5 @@ class InventoryViewModel @Inject constructor(
                 !NetworkUtils.isMeteredConnection(context)
     }
 }
+
 

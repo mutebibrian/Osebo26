@@ -61,15 +61,15 @@
     <color name="yellow">#FFEB3B</color>
     <color name="green_success">#4CAF50</color>
     <color name="red_error">#F44336</color>
-    <color name="blue_info">#2196F3</color>
+    <color name="blue_info">#0074ba</color>
     <color name="orange_warning">#FF9800</color>
     <color name="yellow_warning">#FFC107</color>
-    <color name="info_blue">#2196F3</color>
+    <color name="info_blue">#0074ba</color>
     <color name="info_blue_light">#BBDEFB</color>
 
     <!-- Material Colors -->
-    <color name="colorPrimary">#6200EE</color>
-    <color name="colorPrimaryDark">#3700B3</color>
+    <color name="colorPrimary">#0074ba</color>
+    <color name="colorPrimaryDark">#0074ba</color>
     <color name="colorAccent">#03DAC5</color>
     <color name="colorPrimaryLight">#F3E5F5</color>
 
@@ -118,13 +118,13 @@
     <color name="grey_900">#212121</color>
 
     <!-- Avatar Colors -->
-    <color name="avatar_blue">#2196F3</color>
+    <color name="avatar_blue">#0074ba</color>
     <color name="avatar_green">#4CAF50</color>
     <color name="avatar_orange">#FF9800</color>
     <color name="avatar_purple">#9C27B0</color>
     <color name="avatar_red">#F44336</color>
     <color name="avatar_teal">#009688</color>
-    <color name="avatar_indigo">#3F51B5</color>
+    <color name="avatar_indigo">#0074ba</color>
     <color name="avatar_pink">#E91E63</color>
     <color name="avatar_brown">#795548</color>
 
@@ -141,7 +141,7 @@
     <color name="customer_active">#4CAF50</color>
     <color name="customer_inactive">#FF9800</color>
     <color name="customer_blocked">#F44336</color>
-    <color name="customer_regular">#2196F3</color>
+    <color name="customer_regular">#0074ba</color>
     <color name="customer_premium">#9C27B0</color>
 
     <color name="success_green">#2E7D32</color>  <!-- green 800 -->
@@ -181,6 +181,11 @@
     <color name="transaction_expense">#F44336</color>
     <color name="transaction_transfer">#2196F3</color>
 
+    <!-- Bottom Navigation Colors -->
+    <color name="bottom_nav_color">#757575</color>
+    <color name="bottom_nav_color_active">#0074ba</color>
+    <color name="bottom_nav_color_inactive">#9E9E9E</color>
+
     <!-- Inventory Colors -->
     <color name="stock_low">#FFEBEE</color>
     <color name="stock_medium">#FFF3E0</color>
@@ -192,13 +197,13 @@
     <color name="high_value_product">#9C27B0</color>
 
     <!-- Product Category Colors -->
-    <color name="category_electronics">#2196F3</color>
+    <color name="category_electronics">#0074ba</color>
     <color name="category_clothing">#E91E63</color>
     <color name="category_food">#4CAF50</color>
     <color name="category_beverages">#FF9800</color>
     <color name="category_office">#9C27B0</color>
     <color name="category_furniture">#795548</color>
-    <color name="category_default">#6200EE</color>
+    <color name="category_default">#0074ba</color>
 
     <!-- Employee Colors -->
     <color name="employee_active">#E8F5E9</color>
@@ -219,7 +224,7 @@
 
     <!-- Employee Role Colors -->
     <color name="role_manager">#9C27B0</color>
-    <color name="role_supervisor">#2196F3</color>
+    <color name="role_supervisor">#0074ba</color>
     <color name="role_staff">#757575</color>
     <color name="role_cashier">#4CAF50</color>
     <color name="role_sales">#FF9800</color>
@@ -230,7 +235,7 @@
     <color name="department_sales">#FF9800</color>
     <color name="department_inventory">#E91E63</color>
     <color name="department_finance">#4CAF50</color>
-    <color name="department_hr">#2196F3</color>
+    <color name="department_hr">#0074ba</color>
     <color name="department_it">#009688</color>
 
     <!-- Performance Colors -->
@@ -251,7 +256,7 @@
     <color name="notification_success">#4CAF50</color>
     <color name="notification_warning">#FF9800</color>
     <color name="notification_error">#F44336</color>
-    <color name="notification_info">#2196F3</color>
+    <color name="notification_info">#0074ba</color>
 
     <!-- Chart Colors -->
     <color name="chart_primary">#6200EE</color>
@@ -259,7 +264,7 @@
     <color name="chart_success">#4CAF50</color>
     <color name="chart_warning">#FF9800</color>
     <color name="chart_error">#F44336</color>
-    <color name="chart_blue">#3498DB</color>
+    <color name="chart_blue">#0074ba</color>
     <color name="chart_green">#2ECC71</color>
     <color name="chart_orange">#E67E22</color>
     <color name="chart_red">#E74C3C</color>
@@ -267,7 +272,7 @@
     <color name="chart_yellow">#F1C40F</color>
 
     <!-- Gradient Colors -->
-    <color name="gradient_start">#6200EE</color>
+    <color name="gradient_start">#0074ba</color>
     <color name="gradient_end">#03DAC5</color>
 
     <!-- Navigation drawer -->
@@ -275,7 +280,7 @@
     <color name="nav_item_text">@android:color/black</color>
 
     <!-- Primary Colors - Consolidated -->
-    <color name="primary_color">#2196F3</color>
+    <color name="primary_color">#0074ba</color>
     <color name="primary_blue">#2C3E50</color>
     <color name="primary_green">#27AE60</color>
     <color name="primary_orange">#E67E22</color>

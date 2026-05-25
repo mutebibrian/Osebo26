@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -31,6 +30,7 @@
                 android:padding="16dp"
                 android:visibility="gone">
 
+                <!-- Your shimmer content here -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -115,6 +115,7 @@
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
                     android:padding="16dp"
+                    android:paddingBottom="80dp"
                     android:visibility="gone">
 
                     <!-- Last Updated -->
@@ -210,7 +211,7 @@
                         </androidx.cardview.widget.CardView>
                     </LinearLayout>
 
-                    <!-- Stats Row 2 - UPDATED Total Sales Card -->
+                    <!-- Stats Row 2 -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -255,7 +256,6 @@
                             </LinearLayout>
                         </androidx.cardview.widget.CardView>
 
-                        <!-- UPDATED Total Sales Card - More Compact Design -->
                         <androidx.cardview.widget.CardView
                             android:id="@+id/cardSales"
                             android:layout_width="0dp"
@@ -282,26 +282,17 @@
                                     android:textColor="@color/text_secondary"
                                     android:maxLines="1" />
 
-                                <LinearLayout
+                                <TextView
+                                    android:id="@+id/tvTotalSales"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:orientation="horizontal"
-                                    android:gravity="center"
-                                    android:layout_marginTop="4dp">
-
-
-
-                                    <TextView
-                                        android:id="@+id/tvTotalSales"
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="126.0K"
-                                        android:textSize="24sp"
-                                        android:textColor="@color/green_success"
-                                        android:textStyle="bold"
-                                        android:maxLines="1"
-                                        android:ellipsize="end" />
-                                </LinearLayout>
+                                    android:text="0"
+                                    android:textSize="24sp"
+                                    android:textColor="@color/green_success"
+                                    android:textStyle="bold"
+                                    android:maxLines="1"
+                                    android:ellipsize="end"
+                                    android:layout_marginTop="4dp" />
                             </LinearLayout>
                         </androidx.cardview.widget.CardView>
                     </LinearLayout>
@@ -513,7 +504,6 @@
                         android:layout_marginBottom="16dp"
                         android:visibility="gone">
 
-                        <!-- Header row -->
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
@@ -590,4 +580,24 @@
 
         </FrameLayout>
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+    <!-- IMPROVED BOTTOM NAVIGATION - BETTER ICON VISIBILITY -->
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottomNavigation"
+        android:layout_width="match_parent"
+        android:layout_height="80dp"
+        android:layout_gravity="bottom"
+        app:menu="@menu/bottom_nav_menu"
+        android:background="@drawable/bottom_nav_background"
+        app:elevation="8dp"
+        app:itemIconTint="@color/bottom_nav_selector"
+        app:itemTextColor="@color/bottom_nav_selector"
+        app:itemActiveIndicatorStyle="@style/Widget.Material3.BottomNavigationView.ActiveIndicator"
+        app:itemIconSize="24dp"
+        app:itemTextAppearanceActive="@style/BottomNavTextActive"
+        app:itemTextAppearanceInactive="@style/BottomNavTextInactive"
+        android:paddingTop="8dp"
+        android:paddingBottom="12dp"
+        app:labelVisibilityMode="auto" />
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

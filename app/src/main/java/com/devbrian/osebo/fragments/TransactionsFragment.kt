@@ -239,7 +239,7 @@ class TransactionsFragment : Fragment() {
     }
 
     private fun showSearch() {
-        // TODO: Implement search
+        
         Toast.makeText(requireContext(), "Search coming soon", Toast.LENGTH_SHORT).show()
     }
 

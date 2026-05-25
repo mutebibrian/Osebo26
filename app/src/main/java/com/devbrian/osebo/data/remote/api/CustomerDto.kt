@@ -26,3 +26,4 @@ data class CustomerDto(
     val totalPurchases: Double
 )
 
+

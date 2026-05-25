@@ -3,7 +3,7 @@ package com.devbrian.osebo.ui
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.devbrian.osebo.models.UserRole
+import com.devbrian.osebo.data.models.UserRole
 
 class UserRolesViewModel : ViewModel() {
 
@@ -19,4 +19,5 @@ class UserRolesViewModel : ViewModel() {
         )
     }
 }
+
 

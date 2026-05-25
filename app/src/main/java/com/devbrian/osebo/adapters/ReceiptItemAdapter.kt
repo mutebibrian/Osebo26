@@ -11,13 +11,20 @@ import com.devbrian.osebo.utils.CurrencyFormatter
 
 class ReceiptItemAdapter : ListAdapter<CartItem, ReceiptItemAdapter.ViewHolder>(DiffCallback()) {
 
+    
+    var isCompactMode: Boolean = true
+        set(value) {
+            field = value
+            notifyDataSetChanged()
+        }
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val binding = ItemReceiptBinding.inflate(
             LayoutInflater.from(parent.context),
             parent,
             false
         )
-        return ViewHolder(binding)
+        return ViewHolder(binding, isCompactMode)
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
@@ -25,37 +32,59 @@ class ReceiptItemAdapter : ListAdapter<CartItem, ReceiptItemAdapter.ViewHolder>(
     }
 
     class ViewHolder(
-        private val binding: ItemReceiptBinding
+        private val binding: ItemReceiptBinding,
+        private val isCompactMode: Boolean
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(item: CartItem) {
             binding.apply {
-                // Item name
-                tvItemName.text = item.product.name
+                
+                val itemName = if (isCompactMode && item.product.name.length > 12) {
+                    item.product.name.substring(0, 9) + "..."
+                } else {
+                    item.product.name
+                }
+                tvItemName.text = itemName
 
-                // Quantity
+                
                 tvItemQuantity.text = item.quantity.toString()
 
-                // Unit price - show original and discounted if applicable
-                val unitPrice = CurrencyFormatter.formatShort(item.unitPrice)
-                tvItemPrice.text = if (item.discount > 0) {
+                
+                val unitPrice = if (isCompactMode) {
+                    formatCompactCurrencyShort(item.unitPrice)
+                } else {
+                    CurrencyFormatter.formatShort(item.unitPrice)
+                }
+
+                
+                tvItemPrice.text = if (item.discount > 0 && !isCompactMode) {
                     "$unitPrice (-${item.discount}%)"
                 } else {
                     unitPrice
                 }
 
-                // Item total - calculate with discount
+                
                 val itemTotal = item.unitPrice * item.quantity * (1 - item.discount / 100)
-                tvItemTotal.text = CurrencyFormatter.formatFull(itemTotal)
+                tvItemTotal.text = if (isCompactMode) {
+                    formatCompactCurrencyShort(itemTotal)
+                } else {
+                    CurrencyFormatter.formatFull(itemTotal)
+                }
 
-                // If discount exists, show original price crossed out (optional - uncomment if you want this)
-                // if (item.discount > 0) {
-                //     val originalTotal = item.unitPrice * item.quantity
-                //     tvItemOriginalTotal.text = CurrencyFormatter.formatFull(originalTotal)
-                //     tvItemOriginalTotal.visibility = View.VISIBLE
-                // } else {
-                //     tvItemOriginalTotal.visibility = View.GONE
-                // }
+                
+                if (isCompactMode) {
+                    tvItemPrice.visibility = android.view.View.GONE
+                } else {
+                    tvItemPrice.visibility = android.view.View.VISIBLE
+                }
+            }
+        }
+
+        private fun formatCompactCurrencyShort(amount: Double): String {
+            return when {
+                amount >= 1000000 -> String.format("%.1fM", amount / 1000000)
+                amount >= 1000 -> String.format("%.1fK", amount / 1000)
+                else -> String.format("%.0f", amount)
             }
         }
     }
@@ -70,32 +99,25 @@ class ReceiptItemAdapter : ListAdapter<CartItem, ReceiptItemAdapter.ViewHolder>(
         }
     }
 
-    /**
-     * Get the total amount for all items in the receipt
-     */
+    
     fun getTotalAmount(): Double {
         return currentList.sumOf {
             it.unitPrice * it.quantity * (1 - it.discount / 100)
         }
     }
 
-    /**
-     * Get the count of items in the receipt
-     */
+    
     fun getItemCountValue(): Int {
         return currentList.size
     }
 
-    /**
-     * Get formatted items for printing with proper columns
-     */
+    
     fun getFormattedItemsForPrinting(): List<String> {
         return currentList.map { item ->
             val itemTotal = item.unitPrice * item.quantity * (1 - item.discount / 100)
-            val formattedItem = formatItemForPrinting(
+            val formattedItem = formatItemForPrinting40mm(
                 name = item.product.name,
                 quantity = item.quantity,
-                unitPrice = item.unitPrice,
                 total = itemTotal,
                 discount = item.discount
             )
@@ -103,37 +125,59 @@ class ReceiptItemAdapter : ListAdapter<CartItem, ReceiptItemAdapter.ViewHolder>(
         }
     }
 
-    /**
-     * Get detailed formatted items for printing with discount info
-     */
+    
     fun getDetailedFormattedItemsForPrinting(): List<String> {
         val result = mutableListOf<String>()
 
         currentList.forEach { item ->
             val name = item.product.name
             val qty = item.quantity
-            val unitPrice = item.unitPrice
             val discount = item.discount
-            val itemTotal = unitPrice * qty * (1 - discount / 100)
+            val itemTotal = item.unitPrice * qty * (1 - discount / 100)
 
-            // Main item line
-            val itemLine = formatItemForPrinting(name, qty, unitPrice, itemTotal, discount)
+            
+            val itemLine = formatItemForPrinting40mm(name, qty, itemTotal, discount)
             result.add(itemLine)
 
-            // If discount exists, add discount line
+            
             if (discount > 0) {
-                val discountAmount = unitPrice * qty * discount / 100
-                result.add("  Discount (${discount}%): -${CurrencyFormatter.formatFull(discountAmount)}")
+                val discountAmount = item.unitPrice * qty * discount / 100
+                result.add("  Disc ${discount}%: -${formatCompactCurrencyShort(discountAmount)}")
             }
         }
 
         return result
     }
 
-    /**
-     * Format a single item for thermal printer with proper column alignment
-     */
-    private fun formatItemForPrinting(
+    
+    private fun formatItemForPrinting40mm(
+        name: String,
+        quantity: Int,
+        total: Double,
+        discount: Double
+    ): String {
+        
+        val nameMax = 16
+        val qtyMax = 3
+        val totalMax = 7
+
+        
+        var itemName = name
+        if (itemName.length > nameMax) {
+            itemName = itemName.substring(0, nameMax - 2) + ".."
+        }
+
+        
+        val namePadded = itemName.padEnd(nameMax, ' ')
+        val qtyPadded = quantity.toString().padStart(qtyMax, ' ')
+        val totalFormatted = formatCompactCurrencyShort(total)
+        val totalPadded = totalFormatted.padStart(totalMax, ' ')
+
+        return "$namePadded$qtyPadded $totalPadded"
+    }
+
+    
+    private fun formatItemForPrinting32mm(
         name: String,
         quantity: Int,
         unitPrice: Double,
@@ -142,54 +186,93 @@ class ReceiptItemAdapter : ListAdapter<CartItem, ReceiptItemAdapter.ViewHolder>(
     ): String {
         val nameMax = 16
         val qtyMax = 4
-        val priceMax = 8
-        val totalMax = 8
+        val priceMax = 7
+        val totalMax = 7
 
-        // Truncate name if too long
+        
         val itemName = if (name.length > nameMax) {
             name.substring(0, nameMax - 3) + "..."
         } else {
             name
         }
 
-        // Format with proper spacing
+        
         val namePadded = itemName.padEnd(nameMax, ' ')
         val qtyPadded = quantity.toString().padStart(qtyMax, ' ')
-        val priceFormatted = CurrencyFormatter.formatShort(unitPrice)
+        val priceFormatted = formatCompactCurrencyShort(unitPrice)
         val pricePadded = priceFormatted.padStart(priceMax, ' ')
-        val totalFormatted = CurrencyFormatter.formatShort(total)
+        val totalFormatted = formatCompactCurrencyShort(total)
         val totalPadded = totalFormatted.padStart(totalMax, ' ')
 
-        return namePadded + qtyPadded + " " + pricePadded + " " + totalPadded
+        return "$namePadded$qtyPadded $pricePadded $totalPadded"
     }
 
-    /**
-     * Get subtotal before discounts
-     */
+    private fun formatCompactCurrencyShort(amount: Double): String {
+        return when {
+            amount >= 1000000 -> String.format("%.1fM", amount / 1000000)
+            amount >= 1000 -> String.format("%.1fK", amount / 1000)
+            else -> String.format("%.0f", amount)
+        }
+    }
+
+    
     fun getSubtotal(): Double {
         return currentList.sumOf { it.unitPrice * it.quantity }
     }
 
-    /**
-     * Get total discount amount
-     */
+    
     fun getTotalDiscount(): Double {
         return currentList.sumOf {
             it.unitPrice * it.quantity * it.discount / 100
         }
     }
 
-    /**
-     * Check if any items have discounts
-     */
+    
     fun hasDiscounts(): Boolean {
         return currentList.any { it.discount > 0 }
     }
 
-    /**
-     * Get all items in the receipt
-     */
+    
     fun getAllItems(): List<CartItem> {
         return currentList
+    }
+
+    
+    fun getFormattedSummary(
+        subtotal: Double,
+        discount: Double,
+        tax: Double,
+        total: Double,
+        paid: Double,
+        change: Double,
+        paymentMethod: String
+    ): List<String> {
+        val result = mutableListOf<String>()
+        result.add("")
+        result.add(repeatChar('-', 24))
+        result.add(formatTwoColumns("Subtotal:", formatCompactCurrencyShort(subtotal), 24))
+        if (discount > 0) {
+            result.add(formatTwoColumns("Discount:", "-${formatCompactCurrencyShort(discount)}", 24))
+        }
+        if (tax > 0) {
+            result.add(formatTwoColumns("Tax:", formatCompactCurrencyShort(tax), 24))
+        }
+        result.add(repeatChar('=', 24))
+        result.add(formatTwoColumns("TOTAL:", formatCompactCurrencyShort(total), 24))
+        result.add(repeatChar('=', 24))
+        result.add(formatTwoColumns("Paid:", formatCompactCurrencyShort(paid), 24))
+        result.add(formatTwoColumns("Change:", formatCompactCurrencyShort(change), 24))
+        result.add(formatTwoColumns("Pay:", paymentMethod, 24))
+        result.add(repeatChar('=', 24))
+        return result
+    }
+
+    private fun formatTwoColumns(left: String, right: String, width: Int): String {
+        val availableWidth = width - left.length
+        return left + " ".repeat(availableWidth - right.length) + right
+    }
+
+    private fun repeatChar(char: Char, count: Int): String {
+        return char.toString().repeat(count)
     }
 }

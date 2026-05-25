@@ -21,7 +21,7 @@ class FilterDialogFragment : DialogFragment() {
     private var startDate: String? = null
     private var endDate: String? = null
 
-    // View references
+    
     private lateinit var btnStartDate: Button
     private lateinit var btnEndDate: Button
     private lateinit var etMinAmount: EditText
@@ -37,7 +37,7 @@ class FilterDialogFragment : DialogFragment() {
     ): View {
         val view = inflater.inflate(R.layout.filter_dialog_fragment, container, false)
 
-        // Initialize views
+        
         btnStartDate = view.findViewById(R.id.btnStartDate)
         btnEndDate = view.findViewById(R.id.btnEndDate)
         etMinAmount = view.findViewById(R.id.etMinAmount)
@@ -56,7 +56,7 @@ class FilterDialogFragment : DialogFragment() {
         setupDatePickers()
         setupClickListeners()
 
-        // Set dialog title
+        
         dialog?.setTitle("Filter Transactions")
     }
 

@@ -312,20 +312,21 @@
         app:layout_constraintEnd_toEndOf="parent"
         tools:text="Invalid phone number" />
 
-    <!-- Progress Bar (Centered on Pay Now button) -->
+    <!-- Progress Bar - FIXED -->
     <ProgressBar
         android:id="@+id/progressBar"
         android:layout_width="32dp"
         android:layout_height="32dp"
         android:visibility="gone"
-        app:layout_constraintTop_toTopOf="@id/btnPayNow"
-        app:layout_constraintBottom_toBottomOf="@id/btnPayNow"
-        app:layout_constraintEnd_toEndOf="@id/btnPayNow"
-        app:layout_constraintStart_toStartOf="@id/btnPayNow"
+        android:layout_marginTop="16dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
         tools:visibility="gone" />
 
     <!-- Action Buttons -->
     <LinearLayout
+        android:id="@+id/buttonLayout"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
@@ -360,7 +361,7 @@
 
     </LinearLayout>
 
-    <!-- Secure Payment Note - Updated -->
+    <!-- Secure Payment Note - FINAL FIX -->
     <TextView
         android:layout_width="0dp"
         android:layout_height="wrap_content"
@@ -370,7 +371,7 @@
         android:gravity="center"
         android:layout_marginTop="16dp"
         android:layout_marginBottom="8dp"
-        app:layout_constraintTop_toBottomOf="@id/btnCancel"
+        app:layout_constraintTop_toBottomOf="@id/buttonLayout"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 

@@ -342,3 +342,4 @@ interface OseboApiService {
     suspend fun getSystemVersion(): Response<ApiResponse<SystemVersionDto>>  
 }
 
+

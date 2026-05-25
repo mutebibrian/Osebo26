@@ -42,3 +42,4 @@ data class ShopSubscriptionStatusResponse(
     val subscription: Subscription?
 )
 
+

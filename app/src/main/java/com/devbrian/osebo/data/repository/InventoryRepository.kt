@@ -4,17 +4,12 @@ import com.devbrian.osebo.data.ApiService
 import com.devbrian.osebo.data.PreferenceManager
 import com.devbrian.osebo.data.local.AppDatabase
 import com.devbrian.osebo.data.local.entity.ProductEntity
-import com.devbrian.osebo.data.local.entity.SyncQueueEntity
-import com.devbrian.osebo.data.remote.dto.request.CreateProductRequest
-import com.devbrian.osebo.data.remote.dto.request.UpdateProductRequest
+import com.devbrian.osebo.data.remote.dto.response.ProductDto
 import com.devbrian.osebo.models.Product
 import com.devbrian.osebo.utils.NetworkUtils
 import com.devbrian.osebo.utils.Resource
-import com.google.gson.Gson
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.RequestBody.Companion.toRequestBody
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -22,58 +17,46 @@ import javax.inject.Singleton
 class InventoryRepository @Inject constructor(
     private val database: AppDatabase,
     private val apiService: ApiService,
-    private val preferenceManager: PreferenceManager,
-    private val gson: Gson
+    private val preferenceManager: PreferenceManager
 ) {
 
-    
-
+    // Get all products as Flow
     fun getProducts(): Flow<List<Product>> {
-        val shopId = preferenceManager.getCurrentShopId()
-        return database.productDao().getAllProducts(shopId)
+        return database.productDao().getAllProducts()
             .map { entities ->
-                entities.map { entity ->
-                    entity.toProduct()
-                }
+                entities.map { it.toProduct() }
             }
     }
 
-    fun getActiveProducts(): Flow<List<Product>> {
-        val shopId = preferenceManager.getCurrentShopId()
-        return database.productDao().getActiveProducts(shopId)
+    // Get low stock products
+    fun getLowStockProducts(threshold: Int = 10): Flow<List<Product>> {
+        return database.productDao().getAllProducts()
             .map { entities ->
-                entities.map { entity ->
-                    entity.toProduct()
-                }
+                entities.filter { it.stock <= threshold }
+                    .map { it.toProduct() }
             }
     }
 
-    fun searchProducts(query: String): Flow<List<Product>> {
-        val shopId = preferenceManager.getCurrentShopId()
-        return database.productDao().searchProducts(shopId, query)
-            .map { entities ->
-                entities.map { entity ->
-                    entity.toProduct()
-                }
-            }
+    // Search products
+    suspend fun searchProducts(query: String): List<Product> {
+        val entities = database.productDao().searchProducts(query)
+        return entities.map { it.toProduct() }
     }
 
-    fun getLowStockProducts(): Flow<List<Product>> {
-        val shopId = preferenceManager.getCurrentShopId()
-        return database.productDao().getLowStockProducts(shopId)
-            .map { entities ->
-                entities.map { entity ->
-                    entity.toProduct()
-                }
-            }
-    }
-
+    // Get product by ID
     suspend fun getProductById(productId: String): Product? {
         return database.productDao().getProductById(productId)?.toProduct()
     }
 
-    
+    // Get products by shop
+    fun getProductsByShop(shopId: String): Flow<List<Product>> {
+        return database.productDao().getProductsByShop(shopId)
+            .map { entities ->
+                entities.map { it.toProduct() }
+            }
+    }
 
+    // Refresh products from API
     suspend fun refreshProducts(): Resource<Boolean> {
         val shopId = preferenceManager.getCurrentShopId()
         if (shopId.isEmpty()) {
@@ -94,16 +77,12 @@ class InventoryRepository @Inject constructor(
                     val productDtos = apiResponse.data ?: emptyList()
                     println("📦 InventoryRepository - Received ${productDtos.size} products from API")
 
-                    
+                    // Convert DTOs to entities
                     val entities = productDtos.map { dto ->
-                        ProductEntity.fromProduct(
-                            product = dto.toProduct(),
-                            shopId = shopId,
-                            isPendingSync = false
-                        )
+                        ProductEntity.fromDto(dto, shopId)
                     }
 
-                    
+                    // Save to database
                     database.productDao().syncProducts(entities, shopId)
                     println("📦 InventoryRepository - Saved ${entities.size} products to local DB")
 
@@ -123,324 +102,129 @@ class InventoryRepository @Inject constructor(
         }
     }
 
-    
-
+    // Create product
     suspend fun createProduct(product: Product): Resource<String> {
         val shopId = preferenceManager.getCurrentShopId()
         if (shopId.isEmpty()) {
             return Resource.Error("No shop selected")
         }
 
-        
-        val tempId = "temp_${System.currentTimeMillis()}"
-        val productWithTempId = product.copy(id = tempId)
-
-        
-        val entity = ProductEntity.fromProduct(
-            product = productWithTempId,
-            shopId = shopId,
-            isPendingSync = true,
-            syncAction = "CREATE"
-        )
-
-        database.productDao().insertProduct(entity)
-        println("📦 InventoryRepository - Created product locally with temp ID: $tempId")
-
-        if (NetworkUtils.isNetworkAvailable(preferenceManager.getContext())) {
-            syncCreateProduct(entity)
-        } else {
-            
-            queueForSync(entity, "CREATE")
-            println("📦 InventoryRepository - Queued for sync (offline)")
-        }
-
-        return Resource.Success(tempId)
-    }
-
-    
-
-    suspend fun updateProduct(product: Product): Resource<Boolean> {
-        val shopId = preferenceManager.getCurrentShopId()
-        if (shopId.isEmpty()) {
-            return Resource.Error("No shop selected")
-        }
-
-        
-        val existing = database.productDao().getProductById(product.id)
-        if (existing == null) {
-            return Resource.Error("Product not found")
-        }
-
-        
-        val entity = ProductEntity.fromProduct(
-            product = product,
-            shopId = shopId,
-            isPendingSync = true,
-            syncAction = "UPDATE"
-        )
-
-        database.productDao().updateProduct(entity)
-        println("📦 InventoryRepository - Updated product locally: ${product.id}")
-
-        if (NetworkUtils.isNetworkAvailable(preferenceManager.getContext())) {
-            syncUpdateProduct(entity)
-        } else {
-            
-            queueForSync(entity, "UPDATE")
-            println("📦 InventoryRepository - Queued for sync (offline)")
-        }
-
-        return Resource.Success(true)
-    }
-
-    
-
-    suspend fun deleteProduct(productId: String): Resource<Boolean> {
-        val product = database.productDao().getProductById(productId)
-        if (product == null) {
-            return Resource.Error("Product not found")
-        }
-
-        
-        if (product.id.startsWith("temp_")) {
-            database.productDao().deleteProduct(product)
-            println("📦 InventoryRepository - Deleted temp product: $productId")
-            return Resource.Success(true)
-        }
-
-        
-        val updatedProduct = product.copy(isPendingSync = true, syncAction = "DELETE")
-        database.productDao().updateProduct(updatedProduct)
-        println("📦 InventoryRepository - Marked product for deletion: $productId")
-
-        if (NetworkUtils.isNetworkAvailable(preferenceManager.getContext())) {
-            syncDeleteProduct(updatedProduct)
-        } else {
-            
-            queueForSync(updatedProduct, "DELETE")
-            println("📦 InventoryRepository - Queued for deletion sync (offline)")
-        }
-
-        return Resource.Success(true)
-    }
-
-    
-
-    private suspend fun syncCreateProduct(entity: ProductEntity) {
-        try {
-            println("📦 InventoryRepository - Syncing create product: ${entity.id}")
-
-            
-            val categoryId = getDefaultCategoryId()
-
-            val name = entity.name.toRequestBody("text/plain".toMediaType())
-            val sku = entity.sku.toRequestBody("text/plain".toMediaType())
-            val description = entity.description?.toRequestBody("text/plain".toMediaType())
-            val lowQuantityMark = entity.lowStockThreshold.toString().toRequestBody("text/plain".toMediaType())
-            val purchasePrice = (entity.cost ?: 0.0).toString().toRequestBody("text/plain".toMediaType())
-            val sellingPrice = entity.price.toString().toRequestBody("text/plain".toMediaType())
-            val maxDiscount = "0".toRequestBody("text/plain".toMediaType())
-            val quantity = entity.stock.toString().toRequestBody("text/plain".toMediaType())
-            
-            val unitMeasure = "pcs".toRequestBody("text/plain".toMediaType())
-            val stockCategoryId = categoryId.toRequestBody("text/plain".toMediaType())
-
-            val response = apiService.createProduct(
-                shopId = entity.shopId,
-                name = name,
-                sku = sku,
-                description = description,
-                lowQuantityMark = lowQuantityMark,
-                purchasePrice = purchasePrice,
-                sellingPrice = sellingPrice,
-                maxDiscount = maxDiscount,
-                quantity = quantity,
-                unitMeasure = unitMeasure,
-                stockCategoryId = stockCategoryId,
-                photo = null
-            )
-
-            if (response.isSuccessful) {
-                val apiResponse = response.body()
-                if (apiResponse?.success == true) {
-                    val createdProduct = apiResponse.data
-                    if (createdProduct != null) {
-                        println("📦 InventoryRepository - Sync successful, real ID: ${createdProduct.id}")
-
-                        val updatedEntity = ProductEntity.fromProduct(
-                            product = createdProduct.toProduct(),
-                            shopId = entity.shopId,
-                            isPendingSync = false
-                        )
-                        database.productDao().insertProduct(updatedEntity)
-
-                        if (entity.id.startsWith("temp_")) {
-                            database.productDao().deleteProduct(entity)
-                        }
-                    }
-                } else {
-                    println("📦 InventoryRepository - Sync failed: ${apiResponse?.message}")
-                    queueForSync(entity, "CREATE")
-                }
-            } else {
-                println("📦 InventoryRepository - Sync failed with code: ${response.code()}")
-                
-                val errorBody = response.errorBody()?.string()
-                println("❌ Error body: $errorBody")
-                queueForSync(entity, "CREATE")
-            }
-        } catch (e: Exception) {
-            println("❌ InventoryRepository - Sync error: ${e.message}")
-            e.printStackTrace()
-            queueForSync(entity, "CREATE")
-        }
-    }
-
-    
-    private suspend fun getDefaultCategoryId(): String {
         return try {
-            
+            // For now, just save to local database
+            // API creation would require category ID, etc.
+            val entity = ProductEntity.fromProduct(product, shopId)
+            database.productDao().insertProduct(entity)
+            println("📦 InventoryRepository - Product saved locally: ${product.id}")
+
+            Resource.Success(product.id)
+        } catch (e: Exception) {
+            println("❌ InventoryRepository - Error creating product: ${e.message}")
+            Resource.Error(e.message ?: "Failed to create product")
+        }
+    }
+
+    // Update product
+    // Update product - sync with server
+    suspend fun updateProduct(product: Product): Resource<Boolean> {
+        return try {
+            val existing = database.productDao().getProductById(product.id)
+            if (existing == null) {
+                return Resource.Error("Product not found")
+            }
+
             val shopId = preferenceManager.getCurrentShopId()
-            val response = apiService.getCategories(shopId)
-
-            if (response.isSuccessful) {
-                val apiResponse = response.body()
-                if (apiResponse?.success == true) {
-                    val categories = apiResponse.data
-                    if (!categories.isNullOrEmpty()) {
-                        
-                        println("📦 Using category: ${categories.first().id}")
-                        return categories.first().id
-                    }
-                }
+            if (shopId.isEmpty()) {
+                return Resource.Error("No shop selected")
             }
 
-            
-            
-            println("⚠️ No categories found, using fallback")
-            return "00000000-0000-0000-0000-000000000000" 
+            // First, update on server if network is available
+            if (NetworkUtils.isNetworkAvailable(preferenceManager.getContext())) {
+                try {
+                    println("📦 InventoryRepository - Syncing product update to server for: ${product.name}")
 
-        } catch (e: Exception) {
-            println("❌ Error fetching categories: ${e.message}")
-            
-            return "00000000-0000-0000-0000-000000000000"
-        }
-    }
-    private suspend fun syncUpdateProduct(entity: ProductEntity) {
-        try {
-            println("📦 InventoryRepository - Syncing update product: ${entity.id}")
-
-            
-            val request = UpdateProductRequest(
-                name = entity.name,
-                price = entity.price,
-                cost = entity.cost,
-                stock = entity.stock,
-                lowStockThreshold = entity.lowStockThreshold,
-                description = entity.description,
-                barcode = entity.barcode,
-                imageUrl = entity.imageUrl,
-                taxRate = entity.taxRate
-            )
-
-            val response = apiService.updateProduct(
-                shopId = entity.shopId,
-                productId = entity.id,
-                request = request
-            )
-
-            if (response.isSuccessful) {
-                val apiResponse = response.body()
-                if (apiResponse?.success == true) {
-                    println("📦 InventoryRepository - Update sync successful")
-
-                    val updatedEntity = entity.copy(
-                        isPendingSync = false,
-                        syncAction = null
+                    // Create update request with new stock quantity
+                    val request = com.devbrian.osebo.data.remote.dto.request.UpdateProductRequest(
+                        name = product.name,
+                        description = product.description,
+                        sellingPrice = product.price,
+                        quantity = product.stock,  // This is the key - update stock quantity
+                        lowQuantityMark = product.lowStockThreshold,
+                        unitMeasure = product.unit,
+                        maxDiscount = product.maxDiscount,
+                        // Add other fields as needed
                     )
-                    database.productDao().updateProduct(updatedEntity)
 
-                    
-                    removeFromSyncQueue(entity.id)
-                } else {
-                    println("📦 InventoryRepository - Update failed: ${apiResponse?.message}")
-                    queueForSync(entity, "UPDATE")
+                    val response = apiService.updateProduct(shopId, product.id, request)
+
+                    if (response.isSuccessful && response.body()?.success == true) {
+                        println("✅ Product updated on server successfully - New stock: ${product.stock}")
+                    } else {
+                        println("⚠️ Failed to update product on server: ${response.body()?.message}")
+                        // Still update locally and mark for sync
+                    }
+                } catch (e: Exception) {
+                    println("❌ Error syncing product to server: ${e.message}")
+                    // Continue to update locally
                 }
-            } else {
-                println("📦 InventoryRepository - Update failed with code: ${response.code()}")
-                queueForSync(entity, "UPDATE")
             }
+
+            // Update local database
+            val entity = ProductEntity.fromProduct(product, existing.shopId ?: shopId)
+            database.productDao().updateProduct(entity)
+            println("📦 InventoryRepository - Product updated locally: ${product.id}, New stock: ${product.stock}")
+
+            Resource.Success(true)
         } catch (e: Exception) {
-            println("❌ InventoryRepository - Update error: ${e.message}")
+            println("❌ InventoryRepository - Error updating product: ${e.message}")
             e.printStackTrace()
-            queueForSync(entity, "UPDATE")
+            Resource.Error(e.message ?: "Failed to update product")
         }
     }
 
-    private suspend fun syncDeleteProduct(entity: ProductEntity) {
-        try {
-            println("📦 InventoryRepository - Syncing delete product: ${entity.id}")
-
-            val response = apiService.deleteProduct(
-                shopId = entity.shopId,
-                productId = entity.id
-            )
-
-            if (response.isSuccessful) {
-                val apiResponse = response.body()
-                if (apiResponse?.success == true) {
-                    println("📦 InventoryRepository - Delete sync successful")
-
-                    database.productDao().deleteProduct(entity)
-
-                    
-                    removeFromSyncQueue(entity.id)
-                } else {
-                    println("📦 InventoryRepository - Delete failed: ${apiResponse?.message}")
-                    queueForSync(entity, "DELETE")
-                }
-            } else {
-                println("📦 InventoryRepository - Delete failed with code: ${response.code()}")
-                queueForSync(entity, "DELETE")
+    // Delete product
+    suspend fun deleteProduct(productId: String): Resource<Boolean> {
+        return try {
+            val product = database.productDao().getProductById(productId)
+            if (product == null) {
+                return Resource.Error("Product not found")
             }
+
+            database.productDao().deleteProductById(productId)
+            println("📦 InventoryRepository - Product deleted: $productId")
+
+            Resource.Success(true)
         } catch (e: Exception) {
-            println("❌ InventoryRepository - Delete error: ${e.message}")
-            e.printStackTrace()
-            queueForSync(entity, "DELETE")
+            println("❌ InventoryRepository - Error deleting product: ${e.message}")
+            Resource.Error(e.message ?: "Failed to delete product")
         }
     }
 
-    private suspend fun queueForSync(entity: ProductEntity, action: String) {
-        val syncItem = SyncQueueEntity(
-            entityType = "PRODUCT",
-            entityId = entity.id,
-            action = action,
-            data = gson.toJson(entity),
-            shopId = entity.shopId,
-            status = "PENDING",
-            retryCount = 0,
-            createdAt = System.currentTimeMillis()
-        )
-        database.syncQueueDao().insertSyncItem(syncItem)
-        println("📦 InventoryRepository - Queued for sync: $action - ${entity.id}")
-    }
-
-    private suspend fun removeFromSyncQueue(entityId: String) {
-        
-        
-        
-        println("📦 InventoryRepository - Sync complete for: $entityId")
-    }
-
-    
-
+    // Get inventory statistics
     suspend fun getInventoryStats(): InventoryStats {
-        val shopId = preferenceManager.getCurrentShopId()
-        val totalItems = database.productDao().getProductCount(shopId)
-        val lowStock = database.productDao().getLowStockCount(shopId)
-        val totalValue = database.productDao().getTotalInventoryValue(shopId) ?: 0.0
+        val totalItems = database.productDao().getProductCount()
+        val lowStockCount = database.productDao().getLowStockCount(10.0)
+        val totalValue = database.productDao().getTotalInventoryValue() ?: 0.0
 
-        return InventoryStats(totalItems, lowStock, totalValue)
+        return InventoryStats(
+            totalItems = totalItems,
+            lowStock = lowStockCount,
+            totalValue = totalValue
+        )
+    }
+
+    // Get total inventory value
+    suspend fun getTotalInventoryValue(): Double {
+        return database.productDao().getTotalInventoryValue() ?: 0.0
+    }
+
+    // Get product count
+    suspend fun getProductCount(): Int {
+        return database.productDao().getProductCount()
+    }
+
+    // Get low stock count
+    suspend fun getLowStockCount(threshold: Double = 10.0): Int {
+        return database.productDao().getLowStockCount(threshold)
     }
 
     data class InventoryStats(
@@ -448,27 +232,37 @@ class InventoryRepository @Inject constructor(
         val lowStock: Int,
         val totalValue: Double
     )
-
-    
-
-    fun getNetworkStatusMessage(): String {
-        return when {
-            !NetworkUtils.isNetworkAvailable(preferenceManager.getContext()) ->
-                "📴 You're offline. Changes will sync when online."
-            NetworkUtils.isMeteredConnection(preferenceManager.getContext()) ->
-                "📱 Using mobile data. Large syncs may use data."
-            else ->
-                "🌐 Online. All changes syncing in real-time."
-        }
-    }
-
-    fun getConnectionType(): String {
-        return NetworkUtils.getConnectionType(preferenceManager.getContext())
-    }
-
-    fun canPerformLargeSync(): Boolean {
-        return NetworkUtils.isNetworkAvailable(preferenceManager.getContext()) &&
-                !NetworkUtils.isMeteredConnection(preferenceManager.getContext())
-    }
 }
 
+// Extension function to convert ProductDto to Product
+fun ProductDto.toProduct(): Product {
+    return Product(
+        id = this.id,
+        name = this.name,
+        sku = this.sku,
+        category = this.stockCategory.name,
+        categoryId = this.stockCategory.id,
+        price = this.sellingPrice,
+        cost = null,
+        stock = this.quantity,
+        lowStockThreshold = this.lowQuantityMark,
+        imageUrl = this.photos?.firstOrNull(),
+        description = this.description,
+        barcode = this.barcode,
+        supplierId = null,
+        supplierName = null,
+        taxRate = null,
+        weight = null,
+        dimensions = null,
+        location = null,
+        isActive = true,
+        createdAt = this.createdAt,
+        updatedAt = this.updatedAt,
+        maxDiscount = this.maxDiscount,
+        unit = this.unitMeasure,
+        allowsFloatQuantity = this.allowsFloatQuantity,
+        shopId = this.shop.id,
+        shopName = this.shop.name,
+        photos = this.photos
+    )
+}

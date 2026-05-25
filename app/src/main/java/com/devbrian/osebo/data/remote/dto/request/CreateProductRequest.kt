@@ -16,3 +16,4 @@ data class CreateProductRequest(
     @SerializedName("stock_category_id") val stockCategoryId: String
 )
 
+

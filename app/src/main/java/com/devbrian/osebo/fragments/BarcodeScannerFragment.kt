@@ -11,18 +11,15 @@ import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.view.PreviewView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.DialogFragment
-import androidx.fragment.app.Fragment
 import com.devbrian.osebo.R
 import com.devbrian.osebo.databinding.FragmentBarcodeScannerBinding
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
-import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 class BarcodeScannerFragment : DialogFragment() {
@@ -30,7 +27,6 @@ class BarcodeScannerFragment : DialogFragment() {
     private var _binding: FragmentBarcodeScannerBinding? = null
     private val binding get() = _binding!!
 
-    private var cameraExecutor: ExecutorService? = null
     private var onBarcodeScannedListener: ((String) -> Unit)? = null
 
     companion object {
@@ -53,9 +49,15 @@ class BarcodeScannerFragment : DialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        
+        dialog?.window?.setLayout(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT
+        )
+
         setupClickListeners()
 
-        // Check camera permission
+        
         if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA)
             == PackageManager.PERMISSION_GRANTED) {
             startCamera()
@@ -88,29 +90,23 @@ class BarcodeScannerFragment : DialogFragment() {
         cameraProviderFuture.addListener({
             val cameraProvider = cameraProviderFuture.get()
 
-            // Preview
+            
             val preview = Preview.Builder()
                 .build()
                 .also {
                     it.setSurfaceProvider(binding.previewView.surfaceProvider)
                 }
 
-            // Barcode scanner options
+            
             val options = BarcodeScannerOptions.Builder()
                 .setBarcodeFormats(
-                    Barcode.FORMAT_CODE_128,
-                    Barcode.FORMAT_CODE_39,
-                    Barcode.FORMAT_EAN_13,
-                    Barcode.FORMAT_EAN_8,
-                    Barcode.FORMAT_UPC_A,
-                    Barcode.FORMAT_UPC_E,
-                    Barcode.FORMAT_QR_CODE
+                    Barcode.FORMAT_ALL_FORMATS  
                 )
                 .build()
 
             val scanner = BarcodeScanning.getClient(options)
 
-            // Image analysis
+            
             val imageAnalysis = ImageAnalysis.Builder()
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .build()
@@ -129,15 +125,24 @@ class BarcodeScannerFragment : DialogFragment() {
                         .addOnSuccessListener { barcodes ->
                             for (barcode in barcodes) {
                                 val rawValue = barcode.rawValue
-                                if (!rawValue.isNullOrEmpty()) {
+                                val displayValue = barcode.displayValue
+
+                                println("🔍 Barcode detected:")
+                                println("   Raw value: $rawValue")
+                                println("   Display value: $displayValue")
+                                println("   Format: ${barcode.format}")
+
+                                val barcodeValue = rawValue ?: displayValue
+                                if (!barcodeValue.isNullOrEmpty()) {
                                     imageProxy.close()
-                                    onBarcodeScanned(rawValue)
+                                    onBarcodeScanned(barcodeValue)
                                     return@addOnSuccessListener
                                 }
                             }
                         }
-                        .addOnFailureListener {
-                            println("❌ Barcode scanning failed: ${it.message}")
+                        .addOnFailureListener { exception ->
+                            println("❌ Barcode scanning failed: ${exception.message}")
+                            exception.printStackTrace()
                         }
                         .addOnCompleteListener {
                             imageProxy.close()
@@ -147,7 +152,7 @@ class BarcodeScannerFragment : DialogFragment() {
                 }
             }
 
-            // Select back camera
+            
             val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
 
             try {
@@ -158,8 +163,12 @@ class BarcodeScannerFragment : DialogFragment() {
                     preview,
                     imageAnalysis
                 )
+                println("✅ Camera started successfully")
+                binding.tvScannerStatus.text = "Camera ready - Point at barcode"
+                binding.tvScannerStatus.visibility = View.VISIBLE
             } catch (e: Exception) {
                 println("❌ Camera initialization failed: ${e.message}")
+                e.printStackTrace()
                 Toast.makeText(requireContext(), "Camera failed: ${e.message}", Toast.LENGTH_SHORT).show()
                 dismiss()
             }
@@ -168,24 +177,27 @@ class BarcodeScannerFragment : DialogFragment() {
     }
 
     private fun toggleFlash() {
-        // Flash toggle implementation
         binding.btnToggleFlash.isSelected = !binding.btnToggleFlash.isSelected
-        // You'll need to get the camera and toggle flash
-        Toast.makeText(requireContext(), "Flash toggled", Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireContext(),
+            if (binding.btnToggleFlash.isSelected) "Flash on" else "Flash off",
+            Toast.LENGTH_SHORT).show()
+        
     }
 
     private fun showManualEntryDialog() {
         val input = android.widget.EditText(requireContext()).apply {
             hint = "Enter barcode number"
-            inputType = android.text.InputType.TYPE_CLASS_NUMBER
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER or
+                    android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
         }
 
         android.app.AlertDialog.Builder(requireContext())
             .setTitle("Enter Barcode Manually")
             .setView(input)
             .setPositiveButton("Search") { _, _ ->
-                val barcode = input.text.toString()
+                val barcode = input.text.toString().trim()
                 if (barcode.isNotEmpty()) {
+                    println("🔍 Manual barcode entry: $barcode")
                     onBarcodeScanned(barcode)
                 } else {
                     Toast.makeText(requireContext(), "Please enter a barcode", Toast.LENGTH_SHORT).show()
@@ -201,7 +213,8 @@ class BarcodeScannerFragment : DialogFragment() {
 
     private fun onBarcodeScanned(barcode: String) {
         activity?.runOnUiThread {
-            Toast.makeText(requireContext(), "Scanned: $barcode", Toast.LENGTH_SHORT).show()
+            println("✅ Barcode scanned: $barcode")
+            Toast.makeText(requireContext(), "Scanned: $barcode\nSearching for product...", Toast.LENGTH_SHORT).show()
             onBarcodeScannedListener?.invoke(barcode)
             dismiss()
         }
@@ -217,7 +230,7 @@ class BarcodeScannerFragment : DialogFragment() {
             if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 startCamera()
             } else {
-                Toast.makeText(requireContext(), "Camera permission required", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "Camera permission required to scan barcodes", Toast.LENGTH_LONG).show()
                 dismiss()
             }
         }
@@ -225,7 +238,6 @@ class BarcodeScannerFragment : DialogFragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        cameraExecutor?.shutdown()
         _binding = null
     }
 }

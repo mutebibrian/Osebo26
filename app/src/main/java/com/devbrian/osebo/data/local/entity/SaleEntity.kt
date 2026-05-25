@@ -23,7 +23,10 @@ data class SaleEntity(
     val createdAt: String,
     val shopId: String,
     val isPendingSync: Boolean = false,
-    val syncAction: String? = null
+    val syncAction: String? = null,
+    val employeeId: String? = null,
+    val employeeName: String? = null,
+    val servedBy: String? = null
 ) {
     fun toSale(): Sale {
         
@@ -64,8 +67,10 @@ data class SaleEntity(
             status = displayStatus,
             paymentMethod = this.paymentMethod,
             discount = null,
-            tax = null
+            tax = null,
+            employeeName = this.employeeName ?: this.servedBy
         )
     }
 }
+
 

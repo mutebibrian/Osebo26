@@ -16,15 +16,14 @@ import com.devbrian.osebo.R
 import com.devbrian.osebo.adapters.PermissionCategoryAdapter
 import com.devbrian.osebo.data.ApiService
 import com.devbrian.osebo.data.PreferenceManager
+import com.devbrian.osebo.data.models.UserRole
 import com.devbrian.osebo.databinding.DialogEditPermissionsBinding
 import com.devbrian.osebo.databinding.FragmentUserRolesBinding
 import com.devbrian.osebo.databinding.ItemRoleBinding
 import com.devbrian.osebo.models.*
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.util.UUID
 import javax.inject.Inject
 
@@ -97,8 +96,8 @@ class UserRolesFragment : Fragment() {
                     return@launch
                 }
 
-                // TODO: Replace with actual API call
-                // For now, create sample roles
+                
+                
                 val sampleRoles = createSampleRoles()
                 handleRolesResponse(sampleRoles)
 
@@ -146,12 +145,12 @@ class UserRolesFragment : Fragment() {
     private fun showEditPermissionsDialog(role: UserRole) {
         val dialogBinding = DialogEditPermissionsBinding.inflate(LayoutInflater.from(requireContext()))
 
-        // Set dialog title
+        
         dialogBinding.tvDialogTitle.text = "Edit Permissions - ${role.name}"
 
-        // Setup RecyclerView for permissions
+        
         val permissionAdapter = PermissionCategoryAdapter { permission, isChecked ->
-            // Handle permission check/uncheck
+            
             println("${permission.displayName} is now $isChecked")
         }
 
@@ -160,10 +159,10 @@ class UserRolesFragment : Fragment() {
             adapter = permissionAdapter
         }
 
-        // Load permissions
+        
         loadPermissions(role, permissionAdapter)
 
-        // Setup search
+        
         dialogBinding.etSearchPermissions.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
@@ -172,12 +171,12 @@ class UserRolesFragment : Fragment() {
             }
         })
 
-        // Create dialog
+        
         val dialog = AlertDialog.Builder(requireContext())
             .setView(dialogBinding.root)
             .create()
 
-        // Setup buttons
+        
         dialogBinding.btnClose.setOnClickListener { dialog.dismiss() }
         dialogBinding.btnCloseDialog.setOnClickListener { dialog.dismiss() }
 
@@ -193,7 +192,7 @@ class UserRolesFragment : Fragment() {
     }
 
     private fun loadPermissions(role: UserRole, adapter: PermissionCategoryAdapter) {
-        // Create sample permission categories based on your image
+        
         val permissionCategories = listOf(
             PermissionCategory(
                 name = "Customers",
@@ -278,7 +277,7 @@ class UserRolesFragment : Fragment() {
                 dialog.findViewById<View>(R.id.progressBar)?.visibility = View.VISIBLE
                 dialog.findViewById<View>(R.id.btnSaveChanges)?.isEnabled = false
 
-                // TODO: Replace with actual API call
+                
                 delay(1000)
 
                 val permissionNames = selectedPermissions.map { it.name }

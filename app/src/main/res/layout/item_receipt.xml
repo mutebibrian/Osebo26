@@ -3,21 +3,22 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
-    android:paddingVertical="8dp"
-    android:minHeight="48dp">
+    android:paddingVertical="2dp"
+    android:minHeight="24dp">
 
-    <!-- Item Name -->
+    <!-- Item Name - Truncated for 40mm -->
     <TextView
         android:id="@+id/tv_item_name"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="3"
         android:text="Product Name"
-        android:textSize="14sp"
-        android:maxLines="2"
+        android:textSize="8sp"
+        android:maxLines="1"
         android:ellipsize="end"
-        android:paddingStart="8dp"
-        android:paddingEnd="4dp" />
+        android:paddingStart="2dp"
+        android:paddingEnd="2dp"
+        android:textColor="@color/text_primary" />
 
     <!-- Quantity - Centered -->
     <TextView
@@ -26,48 +27,35 @@
         android:layout_height="wrap_content"
         android:layout_weight="1"
         android:text="1"
-        android:textSize="14sp"
+        android:textSize="8sp"
         android:gravity="center"
-        android:textStyle="bold" />
+        android:textStyle="bold"
+        android:textColor="@color/text_primary" />
 
-    <!-- Unit Price with Discount - Right Aligned -->
+    <!-- Unit Price with Discount - Right Aligned (Hidden in compact mode) -->
     <TextView
         android:id="@+id/tv_item_price"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_weight="1.2"
+        android:layout_weight="1"
         android:text="UGX 0"
-        android:textSize="12sp"
+        android:textSize="7sp"
         android:gravity="end"
-        android:paddingEnd="8dp"
-        android:textColor="@color/text_secondary" />
+        android:paddingEnd="2dp"
+        android:textColor="@color/text_secondary"
+        android:visibility="gone" />
 
     <!-- Total Price - Right Aligned, Bold -->
     <TextView
         android:id="@+id/tv_item_total"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_weight="1.2"
-        android:text="UGX 0"
-        android:textSize="14sp"
+        android:layout_weight="1"
+        android:text="0"
+        android:textSize="8sp"
         android:textStyle="bold"
         android:gravity="end"
-        android:paddingEnd="8dp"
+        android:paddingEnd="2dp"
         android:textColor="@color/colorPrimary" />
-
-    <!-- Optional: Original total for discounted items (strikethrough) - Add if needed -->
-    <!--
-    <TextView
-        android:id="@+id/tv_item_original_total"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_weight="1.2"
-        android:text="UGX 0"
-        android:textSize="12sp"
-        android:gravity="end"
-        android:paddingEnd="8dp"
-        android:textColor="@color/text_secondary"
-        android:visibility="gone" />
-    -->
 
 </LinearLayout>

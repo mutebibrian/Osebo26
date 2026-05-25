@@ -13,6 +13,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.devbrian.osebo.R
+import com.devbrian.osebo.data.remote.dto.request.VerifyOtpRequest
 import com.devbrian.osebo.data.repository.AuthRepository
 import com.devbrian.osebo.utils.NetworkUtils
 import kotlinx.coroutines.CoroutineScope
@@ -40,11 +41,9 @@ class OtpVerificationActivity : AppCompatActivity() {
     private var firstName: String = ""
     private var lastName: String = ""
 
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_otp_verification)
-
 
         email = intent.getStringExtra("EMAIL") ?: ""
         phone = intent.getStringExtra("PHONE") ?: ""
@@ -69,41 +68,24 @@ class OtpVerificationActivity : AppCompatActivity() {
         tvTimer = findViewById(R.id.tvTimer)
         progressBar = findViewById(R.id.progressBar)
 
-
         val tvPhone = findViewById<TextView>(R.id.tvPhoneNumber)
         tvPhone.text = "Code sent to $phone"
-
 
         etOtp1.requestFocus()
     }
 
     private fun setupListeners() {
-        btnVerifyOtp.setOnClickListener {
-            verifyOtp()
-        }
-
-        tvResendOtp.setOnClickListener {
-            resendOtp()
-        }
-
+        btnVerifyOtp.setOnClickListener { verifyOtp() }
+        tvResendOtp.setOnClickListener { resendOtp() }
         setupOtpAutoMove()
     }
 
     private fun verifyOtp() {
         val otp = "${etOtp1.text}${etOtp2.text}${etOtp3.text}${etOtp4.text}${etOtp5.text}${etOtp6.text}"
-        println("DEBUG: OTP entered: $otp")
-        println("DEBUG: Email: $email")
-        println("DEBUG: Phone: $phone")
-        println("DEBUG: Received userId: $userId")
-        println("DEBUG: First Name: $firstName")
-        println("DEBUG: Last Name: $lastName")
-
-
         if (otp.length != 6) {
             Toast.makeText(this, "Please enter the 6-digit OTP", Toast.LENGTH_SHORT).show()
             return
         }
-
         if (!NetworkUtils.isNetworkAvailable(this)) {
             Toast.makeText(this, "No internet connection", Toast.LENGTH_LONG).show()
             return
@@ -113,49 +95,29 @@ class OtpVerificationActivity : AppCompatActivity() {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-
-                val result = authRepository.verifyOtp(userId, otp)
+                // Use the correct VerifyOtpRequest (assumes backend expects phone or userId; we'll use userId as phone number)
+                // If your backend expects phone, change to userId = phone (the phone number).
+                val request = VerifyOtpRequest(userId = userId, otp = otp)
+                val result = authRepository.verifyOtp(request)
 
                 withContext(Dispatchers.Main) {
                     showLoading(false)
-
                     if (result.isSuccess) {
-                        val response = result.getOrNull()
-                        if (response != null && response.success) {
-
-                            Toast.makeText(
-                                this@OtpVerificationActivity,
-                                "Account verified successfully!",
-                                Toast.LENGTH_LONG
-                            ).show()
-
-
-                            navigateToShopCreation()
-                        } else {
-                            Toast.makeText(
-                                this@OtpVerificationActivity,
-                                response?.message ?: "Invalid OTP",
-                                Toast.LENGTH_LONG
-                            ).show()
-                        }
-                    } else {
-                        val errorMessage =
-                            result.exceptionOrNull()?.message ?: "Verification failed"
                         Toast.makeText(
                             this@OtpVerificationActivity,
-                            errorMessage,
+                            "Account verified successfully!",
                             Toast.LENGTH_LONG
                         ).show()
+                        navigateToShopCreation()
+                    } else {
+                        val errorMessage = result.exceptionOrNull()?.message ?: "Invalid OTP"
+                        Toast.makeText(this@OtpVerificationActivity, errorMessage, Toast.LENGTH_LONG).show()
                     }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     showLoading(false)
-                    Toast.makeText(
-                        this@OtpVerificationActivity,
-                        "Error: ${e.message}",
-                        Toast.LENGTH_LONG
-                    ).show()
+                    Toast.makeText(this@OtpVerificationActivity, "Error: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             }
         }
@@ -171,47 +133,28 @@ class OtpVerificationActivity : AppCompatActivity() {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-
-                val result = authRepository.resendOtp(email)
+                // resendOtp now expects userId (string)
+                val result = authRepository.resendOtp(userId)
 
                 withContext(Dispatchers.Main) {
                     showLoading(false)
-
                     if (result.isSuccess) {
-                        val response = result.getOrNull()
-                        if (response != null && response.success) {
-                            Toast.makeText(
-                                this@OtpVerificationActivity,
-                                "OTP resent successfully!",
-                                Toast.LENGTH_LONG
-                            ).show()
-                            startOtpTimer()
-                            clearOtpFields()
-                        } else {
-                            Toast.makeText(
-                                this@OtpVerificationActivity,
-                                response?.message ?: "Failed to resend OTP",
-                                Toast.LENGTH_LONG
-                            ).show()
-                        }
-                    } else {
-                        val errorMessage =
-                            result.exceptionOrNull()?.message ?: "Failed to resend OTP"
                         Toast.makeText(
                             this@OtpVerificationActivity,
-                            errorMessage,
+                            "OTP resent successfully!",
                             Toast.LENGTH_LONG
                         ).show()
+                        startOtpTimer()
+                        clearOtpFields()
+                    } else {
+                        val errorMessage = result.exceptionOrNull()?.message ?: "Failed to resend OTP"
+                        Toast.makeText(this@OtpVerificationActivity, errorMessage, Toast.LENGTH_LONG).show()
                     }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     showLoading(false)
-                    Toast.makeText(
-                        this@OtpVerificationActivity,
-                        "Error: ${e.message}",
-                        Toast.LENGTH_LONG
-                    ).show()
+                    Toast.makeText(this@OtpVerificationActivity, "Error: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             }
         }
@@ -230,7 +173,6 @@ class OtpVerificationActivity : AppCompatActivity() {
                     } else if (s?.length == 0 && index > 0) {
                         otpFields[index - 1].requestFocus()
                     }
-
 
                     if (otpFields.all { it.text.isNotEmpty() }) {
                         btnVerifyOtp.performClick()
@@ -251,13 +193,11 @@ class OtpVerificationActivity : AppCompatActivity() {
     }
 
     private fun startOtpTimer() {
-
         tvResendOtp.isEnabled = false
         tvTimer.visibility = View.VISIBLE
 
-        var secondsRemaining = 60
-
-        val timer = object : CountDownTimer(60000, 1000) {
+        object : CountDownTimer(60000, 1000) {
+            var secondsRemaining = 60
             override fun onTick(millisUntilFinished: Long) {
                 secondsRemaining--
                 tvTimer.text = "Resend in $secondsRemaining seconds"
@@ -268,12 +208,10 @@ class OtpVerificationActivity : AppCompatActivity() {
                 tvTimer.visibility = View.GONE
                 tvTimer.text = ""
             }
-        }
-        timer.start()
+        }.start()
     }
 
     private fun navigateToShopCreation() {
-        // Navigate to ShopCreationActivity with user data
         val intent = Intent(this, ShopCreationActivity::class.java).apply {
             putExtra("USER_ID", userId)
             putExtra("EMAIL", email)

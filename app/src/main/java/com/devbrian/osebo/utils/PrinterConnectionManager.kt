@@ -21,10 +21,10 @@ class PrinterConnectionManager(private val context: Context) {
     private var outputStream: OutputStream? = null
     private val bluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
 
-    // PM200 specific UUID - Standard SPP UUID
+    
     private val SPP_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
 
-    // Common PM200 device names
+    
     private val PRINTER_NAME_PATTERNS = listOf(
         "PM200", "Pegasus", "PRINTER", "POS", "Thermal", "MPOS",
         "BLUETOOTH PRINTER", "58MM", "80MM"
@@ -32,16 +32,16 @@ class PrinterConnectionManager(private val context: Context) {
 
     data class PrintResult(val isSuccess: Boolean, val errorMessage: String = "")
 
-    // Store last connected device MAC
+    
     private val prefs: SharedPreferences = context.getSharedPreferences("printer_prefs", Context.MODE_PRIVATE)
 
     suspend fun isPrinterConnected(): Boolean {
         return withContext(Dispatchers.IO) {
             try {
                 if (bluetoothSocket?.isConnected == true) {
-                    // Test if connection is still alive
+                    
                     try {
-                        outputStream?.write(byteArrayOf(0x0A)) // LF test
+                        outputStream?.write(byteArrayOf(0x0A)) 
                         outputStream?.flush()
                         return@withContext true
                     } catch (e: Exception) {
@@ -49,7 +49,7 @@ class PrinterConnectionManager(private val context: Context) {
                     }
                 }
 
-                // Try to reconnect to last used printer
+                
                 val lastPrinterMac = prefs.getString("last_printer_mac", null)
                 if (lastPrinterMac != null) {
                     val device = bluetoothAdapter?.getRemoteDevice(lastPrinterMac)
@@ -135,11 +135,11 @@ class PrinterConnectionManager(private val context: Context) {
                 var connected = false
                 var lastError: Exception? = null
 
-                // Cancel discovery to speed up connection
+                
                 bluetoothAdapter?.cancelDiscovery()
                 delay(500)
 
-                // Method 1: Standard SPP
+                
                 try {
                     bluetoothSocket = device.createRfcommSocketToServiceRecord(SPP_UUID)
                     bluetoothSocket?.connect()
@@ -148,7 +148,7 @@ class PrinterConnectionManager(private val context: Context) {
                     lastError = e
                     e.printStackTrace()
 
-                    // Method 2: Fallback method with port 1
+                    
                     try {
                         delay(500)
                         val method = device.javaClass.getMethod("createRfcommSocket", Int::class.java)
@@ -164,11 +164,11 @@ class PrinterConnectionManager(private val context: Context) {
                 if (connected && bluetoothSocket?.isConnected == true) {
                     outputStream = bluetoothSocket?.outputStream
 
-                    // Initialize printer with ESC/POS commands
+                    
                     delay(500)
                     initializePrinter()
 
-                    // Save printer MAC
+                    
                     prefs.edit().putString("last_printer_mac", device.address).apply()
 
                     withContext(Dispatchers.Main) {
@@ -196,11 +196,11 @@ class PrinterConnectionManager(private val context: Context) {
 
     private fun initializePrinter() {
         try {
-            // ESC/POS initialization commands for PM200
-            val initPrinter = byteArrayOf(0x1B, 0x40) // ESC @ - Initialize printer
-            val lineSpacing = byteArrayOf(0x1B, 0x32) // ESC 2 - Set line spacing
-            val alignCenter = byteArrayOf(0x1B, 0x61, 0x01) // ESC a 1 - Center alignment
-            val alignLeft = byteArrayOf(0x1B, 0x61, 0x00) // ESC a 0 - Left alignment
+            
+            val initPrinter = byteArrayOf(0x1B, 0x40) 
+            val lineSpacing = byteArrayOf(0x1B, 0x32) 
+            val alignCenter = byteArrayOf(0x1B, 0x61, 0x01) 
+            val alignLeft = byteArrayOf(0x1B, 0x61, 0x00) 
 
             outputStream?.write(initPrinter)
             outputStream?.flush()
@@ -225,56 +225,56 @@ class PrinterConnectionManager(private val context: Context) {
                     }
                 }
 
-                // First, initialize printer
+                
                 initializePrinter()
                 delay(200)
 
-                // Convert receipt text to proper format for PM200
+                
                 val printData = buildPM200PrintData(receiptText)
 
-                // Try different encodings
+                
                 val bytes = try {
-                    // First try GBK (common for thermal printers)
+                    
                     printData.toByteArray(charset("GBK"))
                 } catch (e: Exception) {
                     try {
-                        // Fallback to UTF-8
+                        
                         printData.toByteArray(charset("UTF-8"))
                     } catch (e2: Exception) {
-                        // Last resort - US-ASCII
+                        
                         printData.toByteArray(charset("US-ASCII"))
                     }
                 }
 
-                // Send data in chunks with proper delays
+                
                 var offset = 0
                 while (offset < bytes.size) {
                     val length = minOf(64, bytes.size - offset) 
                     outputStream?.write(bytes, offset, length)
                     outputStream?.flush()
                     offset += length
-                    delay(150) // Delay between chunks
+                    delay(150) 
                 }
 
-                // Feed paper and cut
+                
                 delay(500)
 
-                // Line feeds
-                outputStream?.write(byteArrayOf(0x0A, 0x0A, 0x0A)) // Three line feeds
+                
+                outputStream?.write(byteArrayOf(0x0A, 0x0A, 0x0A)) 
                 outputStream?.flush()
                 delay(200)
 
-                // Cut paper (GS V m)
+                
                 try {
-                    outputStream?.write(byteArrayOf(0x1D, 0x56, 0x01)) // Full cut
+                    outputStream?.write(byteArrayOf(0x1D, 0x56, 0x01)) 
                     outputStream?.flush()
                 } catch (e: Exception) {
-                    // Try partial cut if full cut fails
+                    
                     try {
-                        outputStream?.write(byteArrayOf(0x1D, 0x56, 0x00)) // Partial cut
+                        outputStream?.write(byteArrayOf(0x1D, 0x56, 0x00)) 
                         outputStream?.flush()
                     } catch (e2: Exception) {
-                        // Paper cut not supported, ignore
+                        
                     }
                 }
 
@@ -290,27 +290,27 @@ class PrinterConnectionManager(private val context: Context) {
     private fun buildPM200PrintData(text: String): String {
         val sb = StringBuilder()
 
-        // Add some line feeds at the beginning
+        
         sb.append("\n")
 
         val lines = text.split("\n")
         lines.forEach { line ->
             when {
                 line.contains("=") || line.contains("-") -> {
-                    // Keep separator lines
+                    
                     sb.append(line).append("\n")
                 }
                 line.contains("THANK YOU") || line.contains("Visit us") -> {
-                    // Center these lines and add extra spacing
+                    
                     sb.append(centerText(line, 32)).append("\n")
                     sb.append("\n")
                 }
                 line.contains("PRINTER TEST") || line.contains("OSEBO POS") -> {
-                    // Bold/emphasized text
+                    
                     sb.append(line).append("\n")
                 }
                 else -> {
-                    // Regular lines - wrap if too long
+                    
                     if (line.length > 32) {
                         var start = 0
                         while (start < line.length) {
@@ -325,7 +325,7 @@ class PrinterConnectionManager(private val context: Context) {
             }
         }
 
-        // Add enough paper feed to clear the printer
+        
         sb.append("\n\n\n\n")
 
         return sb.toString()

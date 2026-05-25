@@ -1,43 +1,43 @@
 package com.devbrian.osebo.data.repository
 
 import com.devbrian.osebo.data.remote.dto.request.SignUpRequest
-import com.devbrian.osebo.data.remote.dto.response.SignUpResponse
+import com.devbrian.osebo.data.remote.dto.request.VerifyOtpRequest
+import com.devbrian.osebo.data.remote.dto.response.*
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import okio.IOException
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import retrofit2.http.Body
-import retrofit2.http.POST
+import retrofit2.http.*
 import java.util.concurrent.TimeUnit
 
 class AuthRepository {
 
-
     private interface LocalApiService {
-        // FIXED: Added /api/ prefix to all endpoints
         @POST("api/auth/signup")
-        suspend fun signUp(@Body request: SignUpRequest): Response<SignUpResponse>
+        suspend fun signUp(@Body request: SignUpRequest): Response<BaseResponse<SignUpResponse>>
 
         @POST("api/auth/signin")
-        suspend fun login(@Body request: Map<String, String>): Response<SignUpResponse>
+        suspend fun requestOtp(@Body request: Map<String, String>): Response<BaseResponse<SigninResponse>>
 
-        @POST("api/auth/verify-otp")
-        suspend fun verifyOtp(@Body request: Map<String, String>): Response<SignUpResponse>
+        // Step 2: Verify OTP – returns preAuthToken + accounts
+        @POST("api/auth/verify-2fa")
+        suspend fun verify2fa(@Body request: Map<String, String>): Response<BaseResponse<PreAuthData>>
+
+        // Step 3: Select account – returns final tokens (SigninData)
+        @POST("api/auth/select-account")
+        suspend fun selectAccount(@Body request: Map<String, String>): Response<BaseResponse<SigninData>>
+
 
         @POST("api/auth/resend-otp")
-        suspend fun resendOtp(@Body request: Map<String, String>): Response<SignUpResponse>
-
-
-        @POST("api/auth/generate-otp")
-        suspend fun generateOtp(@Body request: Map<String, String>): Response<SignUpResponse>
+        suspend fun resendOtp(@Body request: Map<String, String>): Response<BaseResponse<Unit>>
+        @POST("api/auth/signin/password")
+        suspend fun signInWithPassword(@Body request: Map<String, String>): Response<BaseResponse<PreAuthData>>
     }
 
-
     private val apiService: LocalApiService by lazy {
-        // FIXED: Added trailing slash to base URL
-        val BASE_URL = "https://dev-api.osebo.ai/"
+        val BASE_URL = "https://prod-api.osebo.ai"
 
         val loggingInterceptor = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
@@ -59,149 +59,145 @@ class AuthRepository {
             .build()
 
         Retrofit.Builder()
-            .baseUrl(BASE_URL)  // Now ends with /
+            .baseUrl(BASE_URL)
             .client(client)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(LocalApiService::class.java)
     }
 
-    // Rest of your code remains exactly the same...
-    suspend fun signUp(signUpRequest: SignUpRequest): Result<SignUpResponse> {
+    // ---------- OTP FLOW ----------
+    suspend fun requestOtp(identifier: String): Result<SigninResponse> {
         return try {
-            val response: Response<SignUpResponse> = apiService.signUp(signUpRequest)
-
-            if (response.isSuccessful) {
-                response.body()?.let { body ->
-                    Result.success(body)
-                } ?: Result.failure(Exception("Empty response from server"))
+            val response = apiService.requestOtp(mapOf("username" to identifier))
+            if (response.isSuccessful && response.body()?.success == true) {
+                val data = response.body()?.data
+                if (data != null && data.userId.isNotEmpty()) {
+                    Result.success(data)
+                } else {
+                    Result.failure(Exception("Invalid response: missing user ID"))
+                }
             } else {
-                val errorMessage = parseErrorMessage(response)
-                Result.failure(Exception(errorMessage))
+                Result.failure(Exception(extractErrorMessage(response)))
             }
-        } catch (e: IOException) {
-            Result.failure(Exception("Network error: ${e.message}"))
         } catch (e: Exception) {
-            Result.failure(Exception("Sign up failed: ${e.message}"))
+            Result.failure(Exception("Request failed: ${e.message}"))
         }
     }
 
-    suspend fun verifyOtp(userId: String, otp: String): Result<SignUpResponse> {
+    // Returns PreAuthData (preAuthToken + accounts) – NOT final tokens
+    suspend fun verify2fa(userId: String, otp: String): Result<PreAuthData> {
         return try {
-            val request = mapOf(
-                "userId" to userId,
-                "otp" to otp
-            )
-
-            println("DEBUG: Calling verify-otp with userId: $userId, otp: $otp")
-
-            val response: Response<SignUpResponse> = apiService.verifyOtp(request)
-
-            println("DEBUG: Verify OTP response code: ${response.code()}")
-            println("DEBUG: Verify OTP response body: ${response.body()}")
-            println("DEBUG: Verify OTP error body: ${response.errorBody()?.string()}")
-
-            if (response.isSuccessful) {
-                response.body()?.let { body ->
-                    println("DEBUG: OTP verification successful: $body")
-                    Result.success(body)
-                } ?: Result.failure(Exception("Empty response from server"))
+            val response = apiService.verify2fa(mapOf("userId" to userId, "otp" to otp))
+            if (response.isSuccessful && response.body()?.success == true) {
+                val data = response.body()?.data
+                if (data != null && data.preAuthToken.isNotEmpty() && data.accounts.isNotEmpty()) {
+                    Result.success(data)
+                } else {
+                    Result.failure(Exception("Invalid response: missing preAuthToken or accounts"))
+                }
             } else {
-                val errorMessage = parseErrorMessage(response)
-                println("DEBUG: OTP verification failed: $errorMessage")
-                Result.failure(Exception(errorMessage))
+                val errorMsg = extractErrorMessage(response)
+                Result.failure(Exception(errorMsg))
             }
-        } catch (e: IOException) {
-            println("DEBUG: OTP verification network error: ${e.message}")
-            Result.failure(Exception("Network error: ${e.message}"))
         } catch (e: Exception) {
-            println("DEBUG: OTP verification exception: ${e.message}")
-            Result.failure(Exception("OTP verification failed: ${e.message}"))
+            Result.failure(Exception("Verification error: ${e.message}"))
         }
     }
 
-    suspend fun resendOtp(userId: String): Result<SignUpResponse> {
+    // Exchange preAuthToken + accountId for final tokens (SigninData)
+    suspend fun selectAccount(preAuthToken: String, accountId: String): Result<SigninData> {
         return try {
-            val request = mapOf("userId" to userId)
-
-            println("DEBUG: Calling resend-otp with userId: $userId")
-
-            val response: Response<SignUpResponse> = apiService.resendOtp(request)
-
-            println("DEBUG: Resend OTP response code: ${response.code()}")
-
-            if (response.isSuccessful) {
-                response.body()?.let { body ->
-                    println("DEBUG: OTP resent successfully")
-                    Result.success(body)
-                } ?: Result.failure(Exception("Empty response from server"))
+            val response = apiService.selectAccount(mapOf("preAuthToken" to preAuthToken, "accountId" to accountId))
+            if (response.isSuccessful && response.body()?.success == true) {
+                val data = response.body()?.data
+                if (data != null && data.accessToken.isNotEmpty()) {
+                    Result.success(data)
+                } else {
+                    Result.failure(Exception("Invalid response: missing tokens"))
+                }
             } else {
-                val errorMessage = parseErrorMessage(response)
-                println("DEBUG: Resend OTP failed: $errorMessage")
-                Result.failure(Exception(errorMessage))
+                Result.failure(Exception(extractErrorMessage(response)))
             }
-        } catch (e: IOException) {
-            println("DEBUG: Resend OTP network error: ${e.message}")
-            Result.failure(Exception("Network error: ${e.message}"))
         } catch (e: Exception) {
-            println("DEBUG: Resend OTP exception: ${e.message}")
-            Result.failure(Exception("Failed to resend OTP: ${e.message}"))
+            Result.failure(Exception("Account selection error: ${e.message}"))
         }
     }
 
+    suspend fun resendOtp(userId: String): Result<Unit> {
+        return try {
+            val response = apiService.resendOtp(mapOf("userId" to userId))
+            if (response.isSuccessful && response.body()?.success == true) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception(extractErrorMessage(response)))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception("Resend failed: ${e.message}"))
+        }
+    }
 
-    private fun parseErrorMessage(response: Response<SignUpResponse>): String {
+    // ---------- PASSWORD LOGIN (direct tokens) ----------
+    suspend fun loginWithPassword(email: String, password: String): Result<PreAuthData> {
+        return try {
+            val response = apiService.signInWithPassword(mapOf("username" to email, "password" to password))
+            if (response.isSuccessful && response.body()?.success == true) {
+                val data = response.body()?.data
+                if (data != null && data.preAuthToken.isNotEmpty() && data.accounts.isNotEmpty()) {
+                    Result.success(data)
+                } else {
+                    Result.failure(Exception("Invalid response: missing preAuthToken or accounts"))
+                }
+            } else {
+                Result.failure(Exception(extractErrorMessage(response)))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception("Login error: ${e.message}"))
+        }
+    }
+
+    // ---------- SIGNUP ----------
+    suspend fun signUp(request: SignUpRequest): Result<SignUpResponse> {
+        return try {
+            val response = apiService.signUp(request)
+            if (response.isSuccessful && response.body()?.success == true) {
+                response.body()?.data?.let { Result.success(it) }
+                    ?: Result.failure(Exception("Empty response"))
+            } else {
+                Result.failure(Exception(extractErrorMessage(response)))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception("Signup error: ${e.message}"))
+        }
+    }
+
+    // ---------- LEGACY ----------
+    suspend fun verifyOtp(request: VerifyOtpRequest): Result<Unit> {
+        return try {
+            val response = apiService.verify2fa(mapOf("userId" to request.userId, "otp" to request.otp))
+            if (response.isSuccessful && response.body()?.success == true) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception(extractErrorMessage(response)))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception("Verification error: ${e.message}"))
+        }
+    }
+
+    // ---------- HELPER ----------
+    private fun extractErrorMessage(response: Response<*>): String {
         return try {
             val errorBody = response.errorBody()?.string()
             if (!errorBody.isNullOrEmpty()) {
-                println("DEBUG: Error body raw: $errorBody")
-
-
-                if (errorBody.contains("\"message\"")) {
-                    val messagePattern = "\"message\"\\s*:\\s*\"([^\"]+)\"".toRegex()
-                    val match = messagePattern.find(errorBody)
-                    val extractedMessage = match?.groupValues?.get(1) ?: errorBody
-                    println("DEBUG: Extracted message: $extractedMessage")
-                    extractedMessage
-                } else if (errorBody.contains("message")) {
-
-                    val altPattern = "message\\s*[=:]\\s*\"?([^\",}]+)\"?".toRegex()
-                    val altMatch = altPattern.find(errorBody)
-                    altMatch?.groupValues?.get(1)?.trim() ?: errorBody
-                } else {
-                    errorBody
-                }
+                val messagePattern = "\"message\"\\s*:\\s*\"([^\"]+)\"".toRegex()
+                val match = messagePattern.find(errorBody)
+                match?.groupValues?.get(1) ?: errorBody
             } else {
                 response.message().takeIf { it.isNotEmpty() } ?: "Error ${response.code()}"
             }
         } catch (e: Exception) {
-            println("DEBUG: Error parsing error message: ${e.message}")
             response.message().takeIf { it.isNotEmpty() } ?: "Error ${response.code()}"
-        }
-    }
-
-
-    suspend fun login(email: String, password: String): Result<SignUpResponse> {
-        return try {
-            val loginRequest = mapOf(
-                "email" to email,
-                "password" to password
-            )
-
-            val response: Response<SignUpResponse> = apiService.login(loginRequest)
-
-            if (response.isSuccessful) {
-                response.body()?.let { body ->
-                    Result.success(body)
-                } ?: Result.failure(Exception("Empty response from server"))
-            } else {
-                val errorMessage = parseErrorMessage(response)
-                Result.failure(Exception(errorMessage))
-            }
-        } catch (e: IOException) {
-            Result.failure(Exception("Network error: ${e.message}"))
-        } catch (e: Exception) {
-            Result.failure(Exception("Login failed: ${e.message}"))
         }
     }
 }

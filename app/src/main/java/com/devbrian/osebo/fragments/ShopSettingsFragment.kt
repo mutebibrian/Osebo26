@@ -96,7 +96,7 @@ class ShopSettingsFragment : Fragment() {
     }
 
     private fun setupClickListeners() {
-        // General Settings
+        
         binding.btnEditShopInfo.setOnClickListener {
             expandSection(binding.layoutShopInfoExpanded)
         }
@@ -107,10 +107,10 @@ class ShopSettingsFragment : Fragment() {
 
         binding.btnCancelShopInfo.setOnClickListener {
             collapseSection(binding.layoutShopInfoExpanded)
-            loadShopData() // Reset to original values
+            loadShopData() 
         }
 
-        // Business Settings
+        
         binding.btnEditBusinessSettings.setOnClickListener {
             expandSection(binding.layoutBusinessSettingsExpanded)
         }
@@ -124,7 +124,7 @@ class ShopSettingsFragment : Fragment() {
             loadShopData()
         }
 
-        // Tax Settings
+        
         binding.btnEditTaxSettings.setOnClickListener {
             expandSection(binding.layoutTaxSettingsExpanded)
         }
@@ -138,7 +138,7 @@ class ShopSettingsFragment : Fragment() {
             loadShopData()
         }
 
-        // Notification Settings
+        
         binding.btnEditNotificationSettings.setOnClickListener {
             expandSection(binding.layoutNotificationSettingsExpanded)
         }
@@ -152,7 +152,7 @@ class ShopSettingsFragment : Fragment() {
             loadNotificationSettings()
         }
 
-        // Actions
+        
         binding.btnExportData.setOnClickListener {
             showExportDataDialog()
         }
@@ -179,7 +179,7 @@ class ShopSettingsFragment : Fragment() {
     }
 
     private fun setupSwitches() {
-        // Notification Switches
+        
         binding.switchEmailNotifications.setOnCheckedChangeListener { _, isChecked ->
             if (isEditMode) {
                 binding.tvEmailNotificationsStatus.text = if (isChecked) "Enabled" else "Disabled"
@@ -228,7 +228,7 @@ class ShopSettingsFragment : Fragment() {
         binding.toolbar.menu.findItem(R.id.action_edit).isVisible = false
         binding.toolbar.menu.findItem(R.id.action_save).isVisible = true
 
-        // Show edit buttons
+        
         binding.btnEditShopInfo.visibility = View.VISIBLE
         binding.btnEditBusinessSettings.visibility = View.VISIBLE
         binding.btnEditTaxSettings.visibility = View.VISIBLE
@@ -242,13 +242,13 @@ class ShopSettingsFragment : Fragment() {
         binding.toolbar.menu.findItem(R.id.action_edit).isVisible = true
         binding.toolbar.menu.findItem(R.id.action_save).isVisible = false
 
-        // Hide edit buttons
+        
         binding.btnEditShopInfo.visibility = View.GONE
         binding.btnEditBusinessSettings.visibility = View.GONE
         binding.btnEditTaxSettings.visibility = View.GONE
         binding.btnEditNotificationSettings.visibility = View.GONE
 
-        // Collapse all expanded sections
+        
         binding.layoutShopInfoExpanded.visibility = View.GONE
         binding.layoutBusinessSettingsExpanded.visibility = View.GONE
         binding.layoutTaxSettingsExpanded.visibility = View.GONE
@@ -262,7 +262,7 @@ class ShopSettingsFragment : Fragment() {
     }
 
     private fun loadNotificationSettings() {
-        // Load from SharedPreferences or local database
+        
         val prefs = requireContext().getSharedPreferences("shop_prefs_$shopId", android.content.Context.MODE_PRIVATE)
 
         binding.switchEmailNotifications.isChecked = prefs.getBoolean("email_notifications", true)
@@ -291,35 +291,35 @@ class ShopSettingsFragment : Fragment() {
                     Toast.makeText(requireContext(), resource.message, Toast.LENGTH_SHORT).show()
                 }
                 is Resource.Loading -> {
-                    // Show loading
+                    
                 }
             }
         }
     }
 
     private fun displayShopInfo(shop: Shop) {
-        // General Info
+        
         binding.tvShopNameValue.text = shop.name
         binding.tvShopAddressValue.text = shop.fullAddress.ifEmpty { "Not set" }
         binding.tvShopPhoneValue.text = shop.phone ?: "Not set"
         binding.tvShopEmailValue.text = shop.email ?: "Not set"
         binding.tvShopWebsiteValue.text = shop.website ?: "Not set"
 
-        // Edit fields
+        
         binding.etShopName.setText(shop.name)
         binding.etShopAddress.setText(shop.address)
         binding.etShopPhone.setText(shop.phone)
         binding.etShopEmail.setText(shop.email)
         binding.etShopWebsite.setText(shop.website)
 
-        // Business Settings
+        
         binding.tvBusinessTypeValue.text = shop.shopTypeDisplay
-        binding.tvCurrencyValue.text = "UGX" // Default or from settings
-        binding.tvTimeZoneValue.text = "Africa/Kampala" // Default or from settings
+        binding.tvCurrencyValue.text = "UGX" 
+        binding.tvTimeZoneValue.text = "Africa/Kampala" 
 
         binding.spinnerBusinessType.setSelection(getBusinessTypePosition(shop.shopType))
 
-        // Tax Settings
+        
         binding.tvTaxRateValue.text = "${shop.taxIdentificationNumber ?: "0"}%"
         binding.tvTaxNumberValue.text = shop.taxIdentificationNumber ?: "Not set"
         binding.tvRegistrationNumberValue.text = shop.registrationNumber ?: "Not set"
@@ -328,7 +328,7 @@ class ShopSettingsFragment : Fragment() {
         binding.etTaxNumber.setText(shop.taxIdentificationNumber)
         binding.etRegistrationNumber.setText(shop.registrationNumber)
 
-        // Subscription Info
+        
         val hasSubscription = shop.isSubscriptionActive ||
                 shop.subscriptionStatus.equals("active", ignoreCase = true) ||
                 shop.subscriptionStatus.equals("trial", ignoreCase = true)
@@ -355,7 +355,7 @@ class ShopSettingsFragment : Fragment() {
     }
 
     private fun saveSettings() {
-        // Save all settings
+        
         saveShopInfo()
         saveBusinessSettings()
         saveTaxSettings()
@@ -366,14 +366,14 @@ class ShopSettingsFragment : Fragment() {
     }
 
     private fun saveShopInfo() {
-        // Implement API call to save shop info
+        
         val updatedName = binding.etShopName.text.toString()
         val updatedAddress = binding.etShopAddress.text.toString()
         val updatedPhone = binding.etShopPhone.text.toString()
         val updatedEmail = binding.etShopEmail.text.toString()
         val updatedWebsite = binding.etShopWebsite.text.toString()
 
-        // Update UI
+        
         binding.tvShopNameValue.text = updatedName
         binding.tvShopAddressValue.text = updatedAddress.ifEmpty { "Not set" }
         binding.tvShopPhoneValue.text = updatedPhone.ifEmpty { "Not set" }
@@ -429,7 +429,7 @@ class ShopSettingsFragment : Fragment() {
             .setItems(options) { _, which ->
                 val format = options[which]
                 Toast.makeText(requireContext(), "Exporting as $format...", Toast.LENGTH_SHORT).show()
-                // Implement export logic
+                
             }
             .setNegativeButton("Cancel", null)
             .show()
@@ -441,7 +441,7 @@ class ShopSettingsFragment : Fragment() {
             .setMessage("Create a backup of all your shop data?")
             .setPositiveButton("Backup Now") { _, _ ->
                 Toast.makeText(requireContext(), "Creating backup...", Toast.LENGTH_SHORT).show()
-                // Implement backup logic
+                
             }
             .setNegativeButton("Cancel", null)
             .show()
@@ -453,7 +453,7 @@ class ShopSettingsFragment : Fragment() {
             .setMessage("Restore from a previous backup? This will overwrite current data.")
             .setPositiveButton("Restore") { _, _ ->
                 Toast.makeText(requireContext(), "Restoring data...", Toast.LENGTH_SHORT).show()
-                // Implement restore logic
+                
             }
             .setNegativeButton("Cancel", null)
             .show()
@@ -480,12 +480,12 @@ class ShopSettingsFragment : Fragment() {
 
     private fun navigateToUserManagement() {
         Toast.makeText(requireContext(), "User Management", Toast.LENGTH_SHORT).show()
-        // Navigate to user management fragment
+        
     }
 
     private fun navigateToSubscriptionDetails() {
         Toast.makeText(requireContext(), "Subscription Details", Toast.LENGTH_SHORT).show()
-        // Navigate to subscription details
+        
     }
 
     private fun refreshData() {

@@ -342,3 +342,4 @@ sealed class CustomerUpdatePayload {
     data class Status(val newStatus: String) : CustomerUpdatePayload()
 }
 
+
