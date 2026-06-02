@@ -112,6 +112,8 @@ dependencies {
     implementation("androidx.cardview:cardview:1.0.0")
     implementation("androidx.viewpager2:viewpager2:1.0.0")
     implementation(libs.play.services.games)
+    //country code picker
+    implementation("com.hbb20:ccp:2.7.3")
 
     // Force Kotlin standard library version
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.22")
