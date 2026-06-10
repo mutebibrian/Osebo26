@@ -38,9 +38,22 @@ class AddProductFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         setupToolbar()
+        setupDropdowns()
         setupClickListeners()
         setupObservers()
         checkEditMode()
+    }
+
+    private fun setupDropdowns() {
+        // Setup Categories
+        val categories = arrayOf("Electronics", "Clothing", "Food & Beverages", "Home & Garden", "Health & Beauty", "Sports", "Other")
+        val categoryAdapter = android.widget.ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, categories)
+        binding.spinnerCategory.setAdapter(categoryAdapter)
+
+        // Setup Units
+        val units = arrayOf("Piece", "kg", "g", "Litre", "ml", "Meter", "Box", "Pack")
+        val unitAdapter = android.widget.ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, units)
+        binding.spinnerUnit.setAdapter(unitAdapter)
     }
 
     private fun setupToolbar() {
@@ -119,7 +132,8 @@ class AddProductFragment : Fragment() {
         binding.etProductName.setText(product.name)
         binding.etSku.setText(product.sku)
         binding.etBarcode.setText(product.barcode ?: "")
-        binding.etCategory.setText(product.category)
+        binding.spinnerCategory.setText(product.category, false)
+        binding.spinnerUnit.setText(product.unit ?: "", false)
         binding.etSupplier.setText(product.supplierName ?: "")
         binding.etDescription.setText(product.description ?: "")
         binding.etPrice.setText(product.price.toString())
@@ -144,6 +158,7 @@ class AddProductFragment : Fragment() {
         binding.etPrice.error = null
         binding.etStock.error = null
         binding.etLowStockThreshold.error = null
+        binding.spinnerCategory.error = null
 
         val name = binding.etProductName.text.toString().trim()
         if (TextUtils.isEmpty(name)) {
@@ -154,6 +169,12 @@ class AddProductFragment : Fragment() {
         val sku = binding.etSku.text.toString().trim()
         if (TextUtils.isEmpty(sku)) {
             binding.etSku.error = "SKU is required"
+            isValid = false
+        }
+
+        val category = binding.spinnerCategory.text.toString().trim()
+        if (TextUtils.isEmpty(category)) {
+            binding.spinnerCategory.error = "Category is required"
             isValid = false
         }
 
@@ -207,7 +228,7 @@ class AddProductFragment : Fragment() {
             id = productId ?: "",
             name = binding.etProductName.text.toString().trim(),
             sku = binding.etSku.text.toString().trim(),
-            category = binding.etCategory.text.toString().trim(),
+            category = binding.spinnerCategory.text.toString().trim(),
             categoryId = null,
             price = binding.etPrice.text.toString().toDouble(),
             cost = binding.etCost.text.toString().trim().takeIf { it.isNotEmpty() }?.toDouble(),
@@ -226,7 +247,7 @@ class AddProductFragment : Fragment() {
             createdAt = null,
             updatedAt = null,
             maxDiscount = null,
-            unit = null,
+            unit = binding.spinnerUnit.text.toString().trim().takeIf { it.isNotEmpty() },
             allowsFloatQuantity = null,
             shopId = null,
             shopName = null,
