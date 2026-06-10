@@ -8,39 +8,44 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.devbrian.osebo.R
 import com.devbrian.osebo.data.PreferenceManager
-import com.devbrian.osebo.data.remote.dto.response.AccountInfo
 import com.devbrian.osebo.data.remote.dto.response.PreAuthData
 import com.devbrian.osebo.data.remote.dto.response.SigninData
 import com.devbrian.osebo.data.repository.AuthRepository
 import com.devbrian.osebo.utils.NetworkUtils
+import com.hbb20.CountryCodePicker
 import kotlinx.coroutines.*
 
 class LoginActivity : AppCompatActivity() {
 
+    // UI
     private lateinit var rgLoginMethod: RadioGroup
     private lateinit var rbPhone: RadioButton
     private lateinit var rbEmail: RadioButton
+
     private lateinit var emailLayout: LinearLayout
     private lateinit var phoneLayout: LinearLayout
+    private lateinit var otpLayout: LinearLayout
+
     private lateinit var etEmail: EditText
     private lateinit var etPhone: EditText
     private lateinit var etPassword: EditText
     private lateinit var etOtpCode: EditText
+
     private lateinit var btnSignIn: Button
     private lateinit var tvSignUp: TextView
     private lateinit var tvForgotPassword: TextView
     private lateinit var tvResendOtp: TextView
-    private lateinit var progressBar: ProgressBar
-    private lateinit var otpLayout: LinearLayout
     private lateinit var tvError: TextView
+    private lateinit var progressBar: ProgressBar
 
+    private lateinit var ccp: CountryCodePicker
+
+    // Logic
     private val authRepository = AuthRepository()
     private lateinit var preferenceManager: PreferenceManager
 
-    private var currentPhoneNumber: String = ""
+    private var currentPhoneNumber = ""
     private var currentUserId: String? = null
-    private var currentPreAuthToken: String? = null
-    private var currentAccounts: List<AccountInfo>? = null
     private var isOtpMode = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -51,7 +56,7 @@ class LoginActivity : AppCompatActivity() {
 
         initViews()
         setupListeners()
-        // Initially select phone (default)
+
         rbPhone.isChecked = true
         showPhoneLayout()
     }
@@ -60,92 +65,88 @@ class LoginActivity : AppCompatActivity() {
         rgLoginMethod = findViewById(R.id.rgLoginMethod)
         rbPhone = findViewById(R.id.rbPhone)
         rbEmail = findViewById(R.id.rbEmail)
+
         emailLayout = findViewById(R.id.emailLayout)
         phoneLayout = findViewById(R.id.phoneLayout)
+        otpLayout = findViewById(R.id.otpLayout)
+
         etEmail = findViewById(R.id.etEmail)
         etPhone = findViewById(R.id.etPhone)
         etPassword = findViewById(R.id.etPassword)
         etOtpCode = findViewById(R.id.etOtpCode)
+
         btnSignIn = findViewById(R.id.btnSignIn)
         tvSignUp = findViewById(R.id.tvSignUp)
         tvForgotPassword = findViewById(R.id.tvForgotPassword)
         tvResendOtp = findViewById(R.id.tvResendOtp)
-        progressBar = findViewById(R.id.progressBar)
-        otpLayout = findViewById(R.id.otpLayout)
         tvError = findViewById(R.id.tvError)
+        progressBar = findViewById(R.id.progressBar)
+
+        ccp = findViewById(R.id.ccp)
     }
 
     private fun setupListeners() {
-        rgLoginMethod.setOnCheckedChangeListener { _, checkedId ->
-            when (checkedId) {
+        rgLoginMethod.setOnCheckedChangeListener { _, id ->
+            when (id) {
                 R.id.rbPhone -> showPhoneLayout()
                 R.id.rbEmail -> showEmailLayout()
             }
         }
+
         btnSignIn.setOnClickListener { attemptLogin() }
+
         tvSignUp.setOnClickListener {
             startActivity(Intent(this, SignUpActivity::class.java))
-            finish()
         }
+
         tvForgotPassword.setOnClickListener {
-            Toast.makeText(this, "Password reset coming soon", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Reset coming soon", Toast.LENGTH_SHORT).show()
         }
+
         tvResendOtp.setOnClickListener { resendOtp() }
     }
 
+    // ---------------- UI MODES ----------------
+
     private fun showPhoneLayout() {
-        emailLayout.visibility = View.GONE
         phoneLayout.visibility = View.VISIBLE
+        emailLayout.visibility = View.GONE
         otpLayout.visibility = View.GONE
-        etPassword.hint = "Password (optional)"
-        btnSignIn.text = "Sign In"
         isOtpMode = false
+        btnSignIn.text = "Sign In"
         clearErrors()
     }
 
     private fun showEmailLayout() {
-        emailLayout.visibility = View.VISIBLE
         phoneLayout.visibility = View.GONE
+        emailLayout.visibility = View.VISIBLE
         otpLayout.visibility = View.GONE
-        etPassword.hint = "Password"
-        btnSignIn.text = "Sign In"
         isOtpMode = false
+        btnSignIn.text = "Sign In"
         clearErrors()
     }
 
+    // ---------------- LOGIN ENTRY ----------------
+
     private fun attemptLogin() {
-        if (rbPhone.isChecked) {
-            attemptPhoneLogin()
-        } else {
-            attemptEmailLogin()
-        }
+        if (rbPhone.isChecked) attemptPhoneLogin()
+        else attemptEmailLogin()
     }
 
-    // ---------- PHONE LOGIN (OTP) ----------
+    // ---------------- PHONE OTP LOGIN ----------------
+
     private fun attemptPhoneLogin() {
         val phoneRaw = etPhone.text.toString().trim()
-        if (phoneRaw.isEmpty()) {
-            etPhone.error = "Phone number required"
+
+        if (phoneRaw.isBlank()) {
+            etPhone.error = "Phone required"
             return
         }
-        val phone = formatUgandanPhone(phoneRaw)
-        if (!isValidUgandanPhone(phone)) {
-            etPhone.error = "Invalid Ugandan phone number"
-            return
-        }
-        currentPhoneNumber = phone
 
-        val password = etPassword.text.toString().trim()
-        if (password.isNotEmpty()) {
-            // Phone+password not supported – just ignore
-            Toast.makeText(this, "Phone login uses OTP only. Password ignored.", Toast.LENGTH_SHORT).show()
-        }
+        currentPhoneNumber = ccp.selectedCountryCodeWithPlus + phoneRaw
 
-        if (isOtpMode) {
-            verifyOtp()
-        } else {
-            requestOtp()
-        }
+        if (isOtpMode) verifyOtp()
+        else requestOtp()
     }
 
     private fun requestOtp() {
@@ -153,19 +154,29 @@ class LoginActivity : AppCompatActivity() {
             showError("No internet")
             return
         }
+
         showLoading(true)
+
         CoroutineScope(Dispatchers.IO).launch {
             val result = authRepository.requestOtp(currentPhoneNumber)
+
             withContext(Dispatchers.Main) {
                 showLoading(false)
+
                 if (result.isSuccess) {
                     currentUserId = result.getOrNull()?.userId
                     isOtpMode = true
+
                     otpLayout.visibility = View.VISIBLE
-                    btnSignIn.text = "Verify & Sign In"
-                    Toast.makeText(this@LoginActivity, "OTP sent to $currentPhoneNumber", Toast.LENGTH_SHORT).show()
+                    btnSignIn.text = "Verify OTP"
+
+                    Toast.makeText(
+                        this@LoginActivity,
+                        "OTP sent to $currentPhoneNumber",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 } else {
-                    showError(result.exceptionOrNull()?.message ?: "Failed to request OTP")
+                    showError(result.exceptionOrNull()?.message ?: "OTP failed")
                 }
             }
         }
@@ -173,117 +184,125 @@ class LoginActivity : AppCompatActivity() {
 
     private fun verifyOtp() {
         val otp = etOtpCode.text.toString().trim()
-        if (otp.isEmpty() || otp.length != 6) {
-            etOtpCode.error = "Enter 6-digit code"
+
+        if (otp.length != 6) {
+            etOtpCode.error = "Enter 6-digit OTP"
             return
         }
+
         if (currentUserId == null) {
-            showError("Session expired. Please try again.")
-            resetOtpMode()
+            showError("Session expired")
+            resetOtp()
             return
         }
-        if (!NetworkUtils.isNetworkAvailable(this)) {
-            showError("No internet")
-            return
-        }
+
         showLoading(true)
+
         CoroutineScope(Dispatchers.IO).launch {
             val result = authRepository.verify2fa(currentUserId!!, otp)
+
             withContext(Dispatchers.Main) {
                 showLoading(false)
+
                 if (result.isSuccess) {
-                    val preAuthData = result.getOrNull()!!
-                    currentPreAuthToken = preAuthData.preAuthToken
-                    currentAccounts = preAuthData.accounts
-                    handleAccounts(preAuthData)
+                    val preAuth = result.getOrNull()!!
+                    handleAccounts(preAuth)
                 } else {
-                    val errorMsg = result.exceptionOrNull()?.message ?: "Verification failed"
-                    if (errorMsg.contains("already verified", ignoreCase = true)) {
-                        showAlreadyVerifiedDialog()
-                    } else {
-                        showError(errorMsg)
-                    }
+                    showError(result.exceptionOrNull()?.message ?: "Invalid OTP")
                 }
             }
         }
     }
 
-    private fun handleAccounts(preAuthData: PreAuthData) {
-        if (preAuthData.accounts.isEmpty()) {
-            showError("No accounts found for this user")
-            return
-        }
-        if (preAuthData.accounts.size == 1) {
-            // Single account: select automatically
-            selectAccount(preAuthData.preAuthToken, preAuthData.accounts[0].accountId)
-        } else {
-            // Multiple accounts: show picker
-            showAccountPicker(preAuthData.preAuthToken, preAuthData.accounts)
-        }
-    }
+    // ---------------- EMAIL LOGIN ----------------
 
-    private fun selectAccount(preAuthToken: String, accountId: String) {
-        if (!NetworkUtils.isNetworkAvailable(this)) {
-            showError("No internet")
+    private fun attemptEmailLogin() {
+        val email = etEmail.text.toString().trim()
+        val password = etPassword.text.toString().trim()
+
+        if (email.isBlank()) {
+            etEmail.error = "Email required"
             return
         }
+
+        if (password.isBlank()) {
+            etPassword.error = "Password required"
+            return
+        }
+
         showLoading(true)
+
         CoroutineScope(Dispatchers.IO).launch {
-            val result = authRepository.selectAccount(preAuthToken, accountId)
+            val result = authRepository.loginWithPassword(email, password)
+
             withContext(Dispatchers.Main) {
                 showLoading(false)
+
                 if (result.isSuccess) {
-                    val signinData = result.getOrNull()!!
-                    // ✅ IMPORTANT: Save tokens and user data before navigating
-                    saveAuthData(signinData)
-                    startActivity(Intent(this@LoginActivity, MainActivity::class.java))
-                    finish()
+                    val data = result.getOrNull()!!
+                    handleAccounts(data)
                 } else {
-                    showError(result.exceptionOrNull()?.message ?: "Account selection failed")
+                    showError("Login failed")
                 }
             }
         }
     }
 
-    private fun showAccountPicker(preAuthToken: String, accounts: List<AccountInfo>) {
-        val accountNames = accounts.map { "${it.ownerFirstName} ${it.ownerLastName}" }
+    // ---------------- ACCOUNT HANDLING ----------------
+
+    private fun handleAccounts(data: PreAuthData) {
+        if (data.accounts.size == 1) {
+            selectAccount(data.preAuthToken, data.accounts[0].accountId)
+        } else {
+            showAccountDialog(data)
+        }
+    }
+
+    private fun showAccountDialog(data: PreAuthData) {
+        val names = data.accounts.map { it.ownerFirstName }
+
         AlertDialog.Builder(this)
             .setTitle("Select Account")
-            .setItems(accountNames.toTypedArray()) { _, which ->
-                val selectedAccount = accounts[which]
-                selectAccount(preAuthToken, selectedAccount.accountId)
-            }
-            .setCancelable(false)
-            .setNegativeButton("Cancel") { _, _ ->
-                resetOtpMode()
+            .setItems(names.toTypedArray()) { _, i ->
+                selectAccount(data.preAuthToken, data.accounts[i].accountId)
             }
             .show()
     }
 
-    private fun resendOtp() {
-        if (currentUserId == null) {
-            requestOtp()
-            return
-        }
-        if (!NetworkUtils.isNetworkAvailable(this)) {
-            showError("No internet")
-            return
-        }
-        showLoading(true)
+    private fun selectAccount(token: String, accountId: String) {
         CoroutineScope(Dispatchers.IO).launch {
-            val result = authRepository.resendOtp(currentUserId!!)
+            val result = authRepository.selectAccount(token, accountId)
+
             withContext(Dispatchers.Main) {
-                showLoading(false)
                 if (result.isSuccess) {
-                    Toast.makeText(this@LoginActivity, "OTP resent", Toast.LENGTH_SHORT).show()
+                    saveAuth(result.getOrNull()!!)
+                    startActivity(Intent(this@LoginActivity, MainActivity::class.java))
+                    finish()
                 } else {
-                    showError(result.exceptionOrNull()?.message ?: "Resend failed")
+                    showError("Account selection failed")
                 }
             }
         }
     }
 
-    private fun resetOtpMode() {
+    // ---------------- UTIL ----------------
+
+    private fun saveAuth(data: SigninData) {
+        preferenceManager.saveAuthToken(data.accessToken)
+        preferenceManager.saveRefreshToken(data.refreshToken)
+        preferenceManager.saveUserId(data.user.id)
+        preferenceManager.setUserLoggedIn(true)
+    }
+
+    private fun resendOtp() {
+        if (currentUserId == null) return requestOtp()
+
+        CoroutineScope(Dispatchers.IO).launch {
+            authRepository.resendOtp(currentUserId!!)
+        }
+    }
+
+    private fun resetOtp() {
         isOtpMode = false
         currentUserId = null
         otpLayout.visibility = View.GONE
@@ -291,114 +310,17 @@ class LoginActivity : AppCompatActivity() {
         etOtpCode.text.clear()
     }
 
-    // ---------- EMAIL LOGIN (password) ----------
-    private fun attemptEmailLogin() {
-        val email = etEmail.text.toString().trim()
-        if (email.isEmpty()) {
-            etEmail.error = "Email required"
-            return
-        }
-        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            etEmail.error = "Invalid email address"
-            return
-        }
-        val password = etPassword.text.toString().trim()
-        if (password.isEmpty()) {
-            etPassword.error = "Password required"
-            return
-        }
-        if (!NetworkUtils.isNetworkAvailable(this)) {
-            showError("No internet")
-            return
-        }
-        showLoading(true)
-        CoroutineScope(Dispatchers.IO).launch {
-            val result = authRepository.loginWithPassword(email, password)
-            withContext(Dispatchers.Main) {
-                showLoading(false)
-                if (result.isSuccess) {
-                    val preAuthData = result.getOrNull()!!
-                    currentPreAuthToken = preAuthData.preAuthToken
-                    currentAccounts = preAuthData.accounts
-                    handleAccounts(preAuthData)
-                } else {
-                    showError(result.exceptionOrNull()?.message ?: "Login failed")
-                }
-            }
-        }
-    }
-
-    // ---------- SAVE AUTH DATA (CRITICAL) ----------
-    private fun saveAuthData(signinData: SigninData) {
-        with(preferenceManager) {
-            saveAuthToken(signinData.accessToken)
-            saveRefreshToken(signinData.refreshToken)
-            saveUserId(signinData.user.id)
-            saveUserEmail(signinData.user.email ?: "")
-            saveUserName("${signinData.user.firstName ?: ""} ${signinData.user.lastName ?: ""}".trim())
-            saveUserPhone(signinData.user.phone ?: "")
-            saveUserRole(signinData.user.role ?: "")
-            setUserLoggedIn(true)
-            setLastLoginTimestamp(System.currentTimeMillis())
-        }
-        // Debug log to verify
-        println("✅ Auth tokens saved - Token: ${preferenceManager.getAuthToken().take(20)}...")
-        println("✅ User ID: ${preferenceManager.getUserId()}")
-    }
-
-    // ---------- HELPERS ----------
-    private fun showAlreadyVerifiedDialog() {
-        AlertDialog.Builder(this)
-            .setTitle("Account Already Verified")
-            .setMessage("Your account is already verified. Please login with your password.")
-            .setPositiveButton("Login with Password") { _, _ ->
-                rbEmail.isChecked = true
-                showEmailLayout()
-                resetOtpMode()
-                etEmail.requestFocus()
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
-    }
-
     private fun showLoading(show: Boolean) {
         progressBar.visibility = if (show) View.VISIBLE else View.GONE
         btnSignIn.isEnabled = !show
-        etEmail.isEnabled = !show
-        etPhone.isEnabled = !show
-        etPassword.isEnabled = !show
-        etOtpCode.isEnabled = !show
-        tvResendOtp.isEnabled = !show
-        rgLoginMethod.isEnabled = !show
     }
 
     private fun showError(msg: String) {
         tvError.text = msg
         tvError.visibility = View.VISIBLE
-        tvError.postDelayed({ tvError.visibility = View.GONE }, 5000)
     }
 
     private fun clearErrors() {
         tvError.visibility = View.GONE
-        etEmail.error = null
-        etPhone.error = null
-        etPassword.error = null
-        etOtpCode.error = null
-    }
-
-    private fun isValidUgandanPhone(phone: String): Boolean {
-        val clean = phone.replace(Regex("[\\s-()]"), "")
-        return clean.startsWith("+2567") && clean.length == 13
-    }
-
-    private fun formatUgandanPhone(phone: String): String {
-        var clean = phone.trim().replace(Regex("[\\s-()]"), "")
-        return when {
-            clean.startsWith("07") && clean.length == 10 -> "+256${clean.substring(1)}"
-            clean.startsWith("7") && clean.length == 9 -> "+256$clean"
-            clean.startsWith("256") && clean.length == 12 -> "+$clean"
-            clean.startsWith("+2567") && clean.length == 13 -> clean
-            else -> clean
-        }
     }
 }
