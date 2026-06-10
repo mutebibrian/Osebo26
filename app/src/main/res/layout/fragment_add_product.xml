@@ -143,23 +143,25 @@
                 android:orientation="horizontal"
                 android:layout_marginBottom="12dp">
 
+                <!-- CATEGORY DROPDOWN -->
                 <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:layout_marginEnd="8dp"
-                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                     app:startIconDrawable="@drawable/ic_category"
                     app:startIconTint="@color/colorPrimary">
 
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/et_category"
+                    <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                        android:id="@+id/spinner_category"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:hint="Category"
-                        android:inputType="text" />
+                        android:inputType="none" />
                 </com.google.android.material.textfield.TextInputLayout>
 
+                <!-- SUPPLIER -->
                 <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
@@ -176,7 +178,25 @@
                         android:hint="Supplier"
                         android:inputType="text" />
                 </com.google.android.material.textfield.TextInputLayout>
+
             </LinearLayout>
+
+            <!-- Unit Dropdown -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                app:startIconDrawable="@drawable/ic_unit"
+                app:startIconTint="@color/colorPrimary">
+
+                <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                    android:id="@+id/spinner_unit"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Unit of Measurement"
+                    android:inputType="none" />
+            </com.google.android.material.textfield.TextInputLayout>
 
             <!-- Description -->
             <com.google.android.material.textfield.TextInputLayout
