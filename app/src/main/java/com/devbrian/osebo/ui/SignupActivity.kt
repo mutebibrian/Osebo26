@@ -10,6 +10,7 @@ import com.devbrian.osebo.R
 import com.devbrian.osebo.data.remote.dto.request.SignUpRequest
 import com.devbrian.osebo.data.repository.AuthRepository
 import com.devbrian.osebo.utils.NetworkUtils
+import com.hbb20.CountryCodePicker
 import kotlinx.coroutines.*
 
 class SignUpActivity : AppCompatActivity() {
@@ -29,9 +30,11 @@ class SignUpActivity : AppCompatActivity() {
     private lateinit var otpLayout: LinearLayout
     private lateinit var tvPhoneHint: TextView
 
+    private lateinit var ccp: CountryCodePicker
+
     private val authRepository = AuthRepository()
     private var currentPhoneNumber: String = ""
-    private var currentUserId: String? = null   // userId from OTP request
+    private var currentUserId: String? = null
     private var isOtpMode = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -57,31 +60,40 @@ class SignUpActivity : AppCompatActivity() {
         progressBar = findViewById(R.id.progressBar)
         otpLayout = findViewById(R.id.otpLayout)
         tvPhoneHint = findViewById(R.id.tvPhoneHint)
-        tvPhoneHint.text = "Format: 7XXXXXXXX (9 digits)"
+
+        ccp = findViewById(R.id.ccp)
+
+        tvPhoneHint.text = "Enter phone number"
     }
 
     private fun setupListeners() {
         btnSendOtp.setOnClickListener { requestOtp() }
         btnVerifyAndSignup.setOnClickListener { verifyAndSignup() }
+
         tvLogin.setOnClickListener {
             startActivity(Intent(this, LoginActivity::class.java))
             finish()
         }
+
         tvResendOtp.setOnClickListener { requestOtp() }
     }
 
     private fun requestOtp() {
         val phoneRaw = etPhone.text.toString().trim()
+
         if (phoneRaw.isEmpty()) {
             etPhone.error = "Phone number required"
             return
         }
-        val phone = formatUgandanPhone(phoneRaw)
-        if (!isValidUgandanPhone(phone)) {
-            etPhone.error = "Invalid Ugandan phone number"
-            tvPhoneHint.visibility = View.VISIBLE
+
+        val phoneClean = phoneRaw.replace(" ", "")
+        val fullPhone = ccp.selectedCountryCodeWithPlus + phoneClean
+
+        if (phoneClean.length < 6) {
+            etPhone.error = "Invalid phone number"
             return
         }
+
         tvPhoneHint.visibility = View.GONE
 
         if (!NetworkUtils.isNetworkAvailable(this)) {
@@ -90,26 +102,37 @@ class SignUpActivity : AppCompatActivity() {
         }
 
         showLoading(true)
-        currentPhoneNumber = phone
+
+        currentPhoneNumber = fullPhone
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val result = authRepository.requestOtp(phone)   // phone as identifier
+                val result = authRepository.requestOtp(fullPhone)
+
                 withContext(Dispatchers.Main) {
                     showLoading(false)
+
                     if (result.isSuccess) {
-                        val signinResponse = result.getOrNull()!!
-                        currentUserId = signinResponse.userId
+                        val response = result.getOrNull()!!
+                        currentUserId = response.userId
                         isOtpMode = true
+
                         otpLayout.visibility = View.VISIBLE
                         btnSendOtp.visibility = View.GONE
                         btnVerifyAndSignup.visibility = View.VISIBLE
-                        Toast.makeText(this@SignUpActivity, "OTP sent to $phone", Toast.LENGTH_SHORT).show()
+
+                        Toast.makeText(
+                            this@SignUpActivity,
+                            "OTP sent to $fullPhone",
+                            Toast.LENGTH_SHORT
+                        ).show()
+
                     } else {
                         val error = result.exceptionOrNull()?.message ?: "Failed to send OTP"
                         Toast.makeText(this@SignUpActivity, error, Toast.LENGTH_LONG).show()
                     }
                 }
+
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     showLoading(false)
@@ -121,12 +144,14 @@ class SignUpActivity : AppCompatActivity() {
 
     private fun verifyAndSignup() {
         val otp = etOtpCode.text.toString().trim()
+
         if (otp.isEmpty() || otp.length != 6) {
             etOtpCode.error = "Enter 6-digit code"
             return
         }
+
         if (currentUserId == null) {
-            Toast.makeText(this, "Session expired. Please try again.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Session expired. Try again.", Toast.LENGTH_SHORT).show()
             resetOtpMode()
             return
         }
@@ -140,10 +165,12 @@ class SignUpActivity : AppCompatActivity() {
             Toast.makeText(this, "First and last name required", Toast.LENGTH_SHORT).show()
             return
         }
+
         if (!cbTerms.isChecked) {
             Toast.makeText(this, "Accept Terms and Conditions", Toast.LENGTH_SHORT).show()
             return
         }
+
         if (email.isNotEmpty() && !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
             etEmail.error = "Invalid email"
             return
@@ -153,8 +180,8 @@ class SignUpActivity : AppCompatActivity() {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                // Step 1: Verify OTP
                 val verifyResult = authRepository.verify2fa(currentUserId!!, otp)
+
                 if (verifyResult.isFailure) {
                     withContext(Dispatchers.Main) {
                         showLoading(false)
@@ -163,27 +190,36 @@ class SignUpActivity : AppCompatActivity() {
                     return@launch
                 }
 
-                // Step 2: Create account (signup) – NO password field
                 val signupRequest = SignUpRequest(
                     firstName = firstName,
                     lastName = lastName,
                     email = email,
                     phone = currentPhoneNumber,
                     title = title,
-                    otp = otp   // OTP is already verified, but backend may still require it
+                    otp = otp
                 )
+
                 val signupResult = authRepository.signUp(signupRequest)
+
                 withContext(Dispatchers.Main) {
                     showLoading(false)
+
                     if (signupResult.isSuccess) {
-                        Toast.makeText(this@SignUpActivity, "Account created! Please login.", Toast.LENGTH_LONG).show()
+                        Toast.makeText(
+                            this@SignUpActivity,
+                            "Account created successfully!",
+                            Toast.LENGTH_LONG
+                        ).show()
+
                         startActivity(Intent(this@SignUpActivity, LoginActivity::class.java))
                         finish()
+
                     } else {
                         val msg = signupResult.exceptionOrNull()?.message ?: "Signup failed"
                         Toast.makeText(this@SignUpActivity, msg, Toast.LENGTH_LONG).show()
                     }
                 }
+
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     showLoading(false)
@@ -196,16 +232,20 @@ class SignUpActivity : AppCompatActivity() {
     private fun resetOtpMode() {
         isOtpMode = false
         currentUserId = null
+
         otpLayout.visibility = View.GONE
         btnSendOtp.visibility = View.VISIBLE
         btnVerifyAndSignup.visibility = View.GONE
+
         etOtpCode.text.clear()
     }
 
     private fun showLoading(show: Boolean) {
         progressBar.visibility = if (show) View.VISIBLE else View.GONE
+
         btnSendOtp.isEnabled = !show
         btnVerifyAndSignup.isEnabled = !show
+
         etPhone.isEnabled = !show
         etFirstName.isEnabled = !show
         etLastName.isEnabled = !show
@@ -213,21 +253,5 @@ class SignUpActivity : AppCompatActivity() {
         etOtpCode.isEnabled = !show
         spinnerTitle.isEnabled = !show
         cbTerms.isEnabled = !show
-    }
-
-    private fun isValidUgandanPhone(phone: String): Boolean {
-        val clean = phone.replace(Regex("[\\s-()]"), "")
-        return clean.startsWith("+2567") && clean.length == 13
-    }
-
-    private fun formatUgandanPhone(phone: String): String {
-        var clean = phone.trim().replace(Regex("[\\s-()]"), "")
-        return when {
-            clean.startsWith("07") && clean.length == 10 -> "+256${clean.substring(1)}"
-            clean.startsWith("7") && clean.length == 9 -> "+256$clean"
-            clean.startsWith("256") && clean.length == 12 -> "+$clean"
-            clean.startsWith("+2567") && clean.length == 13 -> clean
-            else -> clean
-        }
     }
 }
