@@ -117,16 +117,26 @@
                     android:textSize="14sp"
                     android:layout_marginTop="12dp"
                     android:layout_marginBottom="4dp"/>
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal">
-                    <TextView
-                        android:layout_width="80dp"
-                        android:layout_height="50dp"
-                        android:text="@string/country_code_ug"
-                        android:gravity="center"
-                        android:background="@drawable/bg_input_country_code"/>
+                    <com.hbb20.CountryCodePicker
+                        android:id="@+id/ccp"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:ccp_autoDetectCountry="true"
+                        app:ccp_defaultNameCode="UG"
+                        app:ccp_showFlag="true"
+
+                        app:ccp_showPhoneCode="true" />
+<!--                    <TextView-->
+<!--                        android:layout_width="80dp"-->
+<!--                        android:layout_height="50dp"-->
+<!--                        android:text="@string/country_code_ug"-->
+<!--                        android:gravity="center"-->
+<!--                        android:background="@drawable/bg_input_country_code"/>-->
                     <EditText
                         android:id="@+id/etPhone"
                         android:layout_width="0dp"
@@ -135,7 +145,7 @@
                         android:layout_marginStart="8dp"
                         android:hint="@string/enter_phone_number"
                         android:inputType="phone"
-                        android:background="@drawable/bg_input"
+                        android:background="@drawable/bg_input_country_code"
                         android:maxLength="9"/>
                 </LinearLayout>
                 <TextView
