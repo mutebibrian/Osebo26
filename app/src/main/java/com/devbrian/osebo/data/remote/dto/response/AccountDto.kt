@@ -1,7 +1,10 @@
 package com.devbrian.osebo.data.remote.dto.response
 
+import android.os.Parcelable
 import com.google.gson.annotations.SerializedName
+import kotlinx.parcelize.Parcelize
 
+@Parcelize
 data class AccountDto(
     @SerializedName("id")
     val id: String,
@@ -44,6 +47,4 @@ data class AccountDto(
 
     @SerializedName("updated_at")
     val updatedAt: String
-)
-
-
+) : Parcelable

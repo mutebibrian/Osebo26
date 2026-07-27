@@ -28,16 +28,4 @@ data class AuthData(
     val accounts: List<AccountInfo>? = null
 )
 
-data class AccountInfo(
-    @SerializedName("accountId")
-    val accountId: String,
 
-    @SerializedName("ownerFirstName")
-    val ownerFirstName: String?,
-
-    @SerializedName("ownerLastName")
-    val ownerLastName: String?,
-
-    @SerializedName("isOwner")
-    val isOwner: Boolean
-)
