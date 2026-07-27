@@ -4,7 +4,6 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.*
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.devbrian.osebo.R
 import com.devbrian.osebo.data.PreferenceManager
@@ -253,20 +252,10 @@ class LoginActivity : AppCompatActivity() {
     private fun handleAccounts(data: PreAuthData) {
         if (data.accounts.size == 1) {
             selectAccount(data.preAuthToken, data.accounts[0].accountId)
-        } else {
-            showAccountDialog(data)
+            val intent = Intent(this, SelectAccountActivity::class.java)
+            intent.putExtra(SelectAccountActivity.EXTRA_PRE_AUTH_DATA, data)
+            startActivity(intent)
         }
-    }
-
-    private fun showAccountDialog(data: PreAuthData) {
-        val names = data.accounts.map { it.ownerFirstName }
-
-        AlertDialog.Builder(this)
-            .setTitle("Select Account")
-            .setItems(names.toTypedArray()) { _, i ->
-                selectAccount(data.preAuthToken, data.accounts[i].accountId)
-            }
-            .show()
     }
 
     private fun selectAccount(token: String, accountId: String) {
