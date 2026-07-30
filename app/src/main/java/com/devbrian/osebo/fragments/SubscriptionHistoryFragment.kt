@@ -82,8 +82,8 @@ class SubscriptionHistoryFragment : Fragment() {
 
                     subscriptionId = sub.id
 
-                    if (shopId.isNotEmpty() && subscriptionId.isNotEmpty()) {
-                        viewModel.getPaymentHistory(shopId, subscriptionId)
+                    if (shopId.isNotEmpty()) {
+                        viewModel.getPaymentHistory(shopId)
                     } else {
                         showEmptyState()
                     }

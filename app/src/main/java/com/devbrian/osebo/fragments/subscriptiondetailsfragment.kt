@@ -163,7 +163,7 @@ class SubscriptionDetailsFragment : Fragment() {
         }
 
         lifecycleScope.launch {
-            
+
             val shopId = args.shopId
             if (shopId.isNullOrEmpty()) {
                 showErrorState("Missing shop id")
@@ -172,7 +172,7 @@ class SubscriptionDetailsFragment : Fragment() {
 
             val subscriptionId = args.subscriptionId
             if (!subscriptionId.isNullOrEmpty()) {
-                viewModel.getSubscriptionDetails(shopId, subscriptionId)
+                viewModel.getSubscriptionDetails(subscriptionId)
             } else {
                 viewModel.getShopActiveSubscription(shopId)
             }

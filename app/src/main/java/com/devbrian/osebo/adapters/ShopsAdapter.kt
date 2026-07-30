@@ -11,13 +11,13 @@ import com.devbrian.osebo.R
 import com.devbrian.osebo.data.PreferencesManager
 import com.devbrian.osebo.databinding.ItemShopBinding
 import com.devbrian.osebo.models.Shop
-import com.devbrian.osebo.utils.SharedPreferencesManager
 
 interface OnShopClickListener {
     fun onShopClick(shop: Shop)
     fun onEditClick(shop: Shop)
     fun onDeleteClick(shop: Shop)
     fun onSetActiveClick(shop: Shop)
+    fun onSubscribeClick(shop: Shop) // NEW — fired when subscription is needed
 }
 
 class ShopsAdapter(
@@ -77,6 +77,19 @@ class ShopsAdapter(
                     listener.onSetActiveClick(getItem(position))
                 }
             }
+
+            // NEW — toggles between "View Shop" and "Activate Shop Subscription"
+            binding.btnSubscriptionAction.setOnClickListener {
+                val position = adapterPosition
+                if (position != RecyclerView.NO_POSITION) {
+                    val shop = getItem(position)
+                    if (shop.isSubscriptionActive) {
+                        listener.onShopClick(shop)
+                    } else {
+                        listener.onSubscribeClick(shop)
+                    }
+                }
+            }
         }
 
         fun bind(shop: Shop) {
@@ -86,10 +99,6 @@ class ShopsAdapter(
                 tvShopLocation.text = shop.location
                 tvShopCategory.text = shop.category
 
-                
-
-
-                
                 if (!shop.logoUrl.isNullOrEmpty()) {
                     Glide.with(root.context)
                         .load(shop.logoUrl)
@@ -99,7 +108,6 @@ class ShopsAdapter(
                     ivShopLogo.setImageResource(R.drawable.ic_shop_placeholder)
                 }
 
-                
                 val isActive = shop.id == activeShopId
                 if (isActive) {
                     root.setBackgroundResource(R.drawable.bg_active_shop)
@@ -111,9 +119,15 @@ class ShopsAdapter(
                     btnSetActive.visibility = View.VISIBLE
                 }
 
-                
                 val showActions = PreferencesManager(root.context).getShopId() == shop.id
                 layoutActions.visibility = if (showActions) View.VISIBLE else View.GONE
+
+                // NEW — toggle button text based on real subscription status
+                if (shop.isSubscriptionActive) {
+                    btnSubscriptionAction.text = "View Shop"
+                } else {
+                    btnSubscriptionAction.text = "Activate Shop Subscription"
+                }
             }
         }
     }
@@ -128,5 +142,3 @@ class ShopsAdapter(
         }
     }
 }
-
-

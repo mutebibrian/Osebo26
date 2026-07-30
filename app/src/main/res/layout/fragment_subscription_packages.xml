@@ -18,7 +18,7 @@
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            app:title="Choose a Plan"
+            app:title="Choose Bundles"
             app:titleTextColor="@color/on_surface"
             app:navigationIcon="@drawable/ic_arrow_back"
             app:background="@android:color/transparent"
@@ -103,9 +103,9 @@
                     android:nestedScrollingEnabled="false"
                     android:layout_marginBottom="32dp" />
 
-                <!-- Selected Package Details -->
+                <!-- Checkout Summary (multi-bundle selection) -->
                 <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/cardSelectedPackage"
+                    android:id="@+id/cardCheckoutSummary"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     app:cardCornerRadius="12dp"
@@ -120,76 +120,54 @@
                         android:padding="20dp">
 
                         <TextView
-                            android:id="@+id/tvSelectedPackageName"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Pro Plan"
-                            android:textSize="18sp"
+                            android:text="Checkout Summary"
+                            android:textSize="14sp"
                             android:textStyle="bold"
-                            android:textColor="@color/on_surface"
-                            android:layout_marginBottom="8dp" />
-
-                        <TextView
-                            android:id="@+id/tvSelectedPackagePrice"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="UGX 50,000/month"
-                            android:textSize="16sp"
-                            android:textColor="@color/primary"
+                            android:textColor="@color/on_surface_variant"
                             android:layout_marginBottom="12dp" />
 
                         <TextView
-                            android:id="@+id/tvSelectedPackageDescription"
+                            android:id="@+id/tvSelectedBundlesList"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Advanced features for growing businesses"
                             android:textSize="14sp"
-                            android:textColor="@color/on_surface_variant"
-                            android:lineSpacingExtra="4dp"
-                            android:layout_marginBottom="16dp" />
+                            android:textColor="@color/on_surface"
+                            android:layout_marginBottom="12dp"
+                            tools:text="Basic, Employees" />
 
-                        <!-- Trial Info -->
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:background="@android:color/darker_gray"
+                            android:layout_marginBottom="12dp" />
+
                         <LinearLayout
-                            android:id="@+id/layoutTrialInfo"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:layout_marginBottom="16dp"
-                            android:visibility="gone">
-
-                            <ImageView
-                                android:layout_width="20dp"
-                                android:layout_height="20dp"
-                                android:src="@drawable/ic_trial"
-                                android:contentDescription="Trial"
-                                android:layout_marginEnd="8dp"
-                                app:tint="@color/blue_500" />
+                            android:orientation="horizontal">
 
                             <TextView
-                                android:id="@+id/tvTrialDays"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="Estimated Total"
+                                android:textSize="16sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/on_surface" />
+
+                            <TextView
+                                android:id="@+id/tvEstimatedTotal"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="30 days free trial"
-                                android:textSize="14sp"
-                                android:textColor="@color/blue_500" />
+                                android:text="UGX 0"
+                                android:textSize="16sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/primary"
+                                tools:text="UGX 40,000" />
 
                         </LinearLayout>
-
-                        <!-- Features List -->
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Features:"
-                            android:textSize="14sp"
-                            android:textStyle="bold"
-                            android:textColor="@color/on_surface"
-                            android:layout_marginBottom="8dp" />
-
-                        <LinearLayout
-                            android:id="@+id/layoutFeatures"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="vertical" />
 
                     </LinearLayout>
 
@@ -205,7 +183,7 @@
                         android:id="@+id/btnContinue"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="SELECT A PLAN TO CONTINUE"
+                        android:text="SELECT BUNDLES TO CONTINUE"
                         android:enabled="false"
                         style="@style/Widget.Material3.Button"
                         android:layout_marginBottom="12dp" />
@@ -216,8 +194,6 @@
                         android:layout_height="wrap_content"
                         android:text="SKIP FOR NOW"
                         style="@style/Widget.Material3.Button.TextButton" />
-
-                    <!-- REMOVED: progressBarCreate - removed completely -->
 
                 </LinearLayout>
 

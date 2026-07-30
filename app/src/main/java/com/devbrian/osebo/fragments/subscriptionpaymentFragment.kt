@@ -173,13 +173,11 @@ class SubscriptionPaymentFragment : Fragment() {
                 appendLine("\nYou will receive a payment prompt on your phone.")
             })
             .setPositiveButton("Confirm") { _, _ ->
-                // FIXED: Pass the amount (packagePrice) as the last parameter
                 viewModel.createSubscription(
                     shopId = shop?.id ?: "",
-                    packageId = packageId,
+                    packageIds = listOf(packageId),
                     phoneNumber = phoneNumber,
-                    months = 1,
-                    amount = packagePrice.toDouble()  // Add the amount parameter
+                    months = 1
                 )
             }
             .setNegativeButton("Cancel", null)

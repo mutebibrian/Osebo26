@@ -19,6 +19,9 @@ data class SubscriptionPackage(
     @SerializedName("type")
     val type: String = "monthly",
 
+    @SerializedName("kind")
+    val kind: String = "base",
+
     @SerializedName("description")
     val description: String = "",
 
@@ -30,6 +33,9 @@ data class SubscriptionPackage(
 
     @SerializedName("is_active")
     val isActive: Boolean = true,
+
+    @SerializedName("canTry")
+    val canTry: Boolean = false,
 
     @SerializedName("code")
     val code: String? = null,
@@ -150,11 +156,17 @@ data class SubscriptionPackage(
     val isPopular: Boolean
         get() = isPopularFromApi || tier.lowercase() == "pro"
 
+    // "Custom pricing / contact sales" is now about price, not tier or kind —
+    // add-on packages (kind == "custom") can still have a real, fixed price.
     val isCustom: Boolean
-        get() = isCustomFromApi || tier.lowercase() == "custom"
+        get() = isCustomFromApi || price <= 0
+
+    // Whether this is an add-on package vs. a base plan — separate concept from pricing.
+    val isAddOn: Boolean
+        get() = kind.equals("custom", ignoreCase = true)
 
     val hasFreeTrial: Boolean
-        get() = hasTrial || trialPeriodDays > 0
+        get() = canTry || hasTrial || trialPeriodDays > 0
 
     val freeTrialDays: Int
         get() = if (trialPeriodDays > 0) trialPeriodDays else 30
@@ -164,11 +176,11 @@ data class SubscriptionPackage(
             features.filter { it.included }.map { it.name }
         } else {
             buildList {
-                add("✓ Up to $maxEmployees employees")
-                add("✓ Up to $maxProducts products")
-                add("✓ Up to $maxCustomers customers")
-                add("✓ ${supportLevel.replaceFirstChar { it.uppercase() }} Support")
-                add("✓ Inventory Management")
+                if (maxEmployees > 0) add("✓ Up to $maxEmployees employees")
+                if (maxProducts > 0) add("✓ Up to $maxProducts products")
+                if (maxCustomers > 0) add("✓ Up to $maxCustomers customers")
+                if (supportLevel.isNotBlank()) add("✓ ${supportLevel.replaceFirstChar { it.uppercase() }} Support")
+                if (inventoryManagement) add("✓ Inventory Management")
 
                 if (posIntegration) add("✓ POS Integration")
                 if (ecommerce) add("✓ E-commerce Integration")
@@ -205,6 +217,7 @@ data class SubscriptionPackage(
             id = "basic_123",
             name = "Basic",
             tier = "basic",
+            kind = "base",
             description = "Perfect for small businesses just getting started",
             unitMonthlyAmount = "50000",
             isPopularFromApi = false,
@@ -219,6 +232,7 @@ data class SubscriptionPackage(
             id = "pro_123",
             name = "Pro",
             tier = "pro",
+            kind = "base",
             description = "Advanced features for growing businesses",
             unitMonthlyAmount = "100000",
             isPopularFromApi = true,
@@ -236,6 +250,7 @@ data class SubscriptionPackage(
             id = "enterprise_123",
             name = "Enterprise",
             tier = "custom",
+            kind = "custom",
             description = "Custom solutions for large organizations",
             unitMonthlyAmount = "0",
             isPopularFromApi = false,
