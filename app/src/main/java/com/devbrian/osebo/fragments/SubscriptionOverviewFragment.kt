@@ -9,7 +9,6 @@ import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
-import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.devbrian.osebo.R
 import com.devbrian.osebo.adapters.SubscriptionPackageAdapter
@@ -33,6 +32,7 @@ class SubscriptionOverviewFragment : Fragment() {
     private lateinit var packageAdapter: SubscriptionPackageAdapter
     private var shopId: String = ""
     private var currentSubscription: Subscription? = null
+    private var selectedPackages: List<SubscriptionPackage> = emptyList()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -51,13 +51,13 @@ class SubscriptionOverviewFragment : Fragment() {
         setupObservers()
         setupClickListeners()
 
-        
         loadSubscriptionData()
     }
 
     private fun setupRecyclerView() {
-        packageAdapter = SubscriptionPackageAdapter { packageItem ->
-            showPackageSelectionDialog(packageItem)
+        // Adapter now supports multi-select bundles — callback receives the full selection.
+        packageAdapter = SubscriptionPackageAdapter { selected ->
+            selectedPackages = selected
         }
 
         binding.plansRecyclerView.apply {
@@ -114,37 +114,50 @@ class SubscriptionOverviewFragment : Fragment() {
             }
         }
 
+        viewModel.subscriptionResult.observe(viewLifecycleOwner) { resource ->
+            when (resource) {
+                is Resource.Success -> {
+                    val response = resource.data
+                    if (!response?.paymentId.isNullOrBlank()) {
+                        showSnackbar("Payment initiated! Please check your phone.")
+                    } else {
+                        showSnackbar(response?.message ?: "Subscription created successfully")
+                    }
+                    loadSubscriptionData()
+                }
+                is Resource.Error -> {
+                    showSnackbar(resource.message ?: "Failed to create subscription")
+                }
+                is Resource.Loading -> {}
+            }
+        }
+
         viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
             binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
         }
     }
 
     private fun displaySubscriptionData(subscription: Subscription) {
-        
+
         binding.tvShopName.text = getCurrentShopName()
 
-        
         binding.planNameTextView.text = subscription.displayPackage ?: subscription.packageType
 
-        
         binding.priceTextView.text = if (subscription.isTrial) {
             "Free Trial"
         } else {
             subscription.formattedAmount
         }
 
-        
         val expiryDate = formatDateForDisplay(subscription.endDate)
         binding.expiresValue.text = expiryDate
         binding.endDateTextView.text = expiryDate
 
         binding.startDateTextView.text = formatDateForDisplay(subscription.startDate)
 
-        
         val daysLeft = subscription.daysRemaining
         binding.daysLeftValue.text = daysLeft.toString()
 
-        
         val daysColor = when {
             daysLeft < 3 -> R.color.error_red
             daysLeft < 7 -> R.color.warning_orange
@@ -154,11 +167,9 @@ class SubscriptionOverviewFragment : Fragment() {
         binding.daysLeftTextView.text = "$daysLeft days"
         binding.daysLeftTextView.setTextColor(ContextCompat.getColor(requireContext(), daysColor))
 
-        
         binding.statusTextView.text = subscription.displayStatus
         binding.statusChip.text = subscription.displayStatus
 
-        
         val statusColor = when {
             subscription.isTrialActive -> R.color.info_blue
             subscription.isActiveStatus -> R.color.success_green
@@ -169,10 +180,8 @@ class SubscriptionOverviewFragment : Fragment() {
         binding.statusTextView.setTextColor(ContextCompat.getColor(requireContext(), statusColor))
         binding.statusChip.setChipBackgroundColorResource(statusColor)
 
-        
         binding.autoRenewTextView.text = if (subscription.autoRenew) "Enabled" else "Disabled"
 
-        
         binding.paymentMethodTextView.text = subscription.paymentMethod?.let {
             when (it.uppercase()) {
                 "MOBILE_MONEY" -> "Mobile Money"
@@ -182,7 +191,6 @@ class SubscriptionOverviewFragment : Fragment() {
             }
         } ?: "Not set"
 
-        
         binding.renewButton.visibility = if (subscription.isActiveStatus || subscription.isTrialActive) {
             View.VISIBLE
         } else {
@@ -208,7 +216,6 @@ class SubscriptionOverviewFragment : Fragment() {
 
     private fun setupClickListeners() {
         binding.upgradePlanButton.setOnClickListener {
-            
             binding.plansRecyclerView.smoothScrollToPosition(0)
         }
 
@@ -229,7 +236,6 @@ class SubscriptionOverviewFragment : Fragment() {
         }
 
         binding.subscribeNowButton.setOnClickListener {
-            
             binding.plansRecyclerView.smoothScrollToPosition(0)
         }
 
@@ -240,6 +246,30 @@ class SubscriptionOverviewFragment : Fragment() {
         binding.retryButton?.setOnClickListener {
             loadSubscriptionData()
         }
+
+        // NOTE: if your layout has a dedicated "continue with selected bundles" button
+        // (e.g. binding.btnSubscribeSelected), wire it here to call proceedWithSelection().
+        // Not present in the layout shown so far — add it if you have one.
+    }
+
+    private fun proceedWithSelection() {
+        if (shopId.isEmpty()) {
+            Toast.makeText(requireContext(), "No shop selected", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (selectedPackages.isEmpty()) {
+            Toast.makeText(requireContext(), "Please select at least one bundle", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val customOnly = selectedPackages.any { it.isCustom }
+        if (customOnly) {
+            openContactSales()
+            return
+        }
+
+        showPaymentDialog(selectedPackages)
     }
 
     private fun showRenewDialog(subscription: Subscription) {
@@ -247,49 +277,29 @@ class SubscriptionOverviewFragment : Fragment() {
             .setTitle("Renew Subscription")
             .setMessage("Do you want to renew your ${subscription.displayPackage}?")
             .setPositiveButton("Renew Now") { _, _ ->
-                
                 binding.plansRecyclerView.smoothScrollToPosition(0)
             }
             .setNegativeButton("Cancel", null)
             .show()
     }
 
-    private fun showPackageSelectionDialog(packageItem: SubscriptionPackage) {
-        if (shopId.isEmpty()) {
-            Toast.makeText(requireContext(), "No shop selected", Toast.LENGTH_SHORT).show()
-            return
-        }
+    private fun showPaymentDialog(packages: List<SubscriptionPackage>) {
+        val totalAmount = packages.sumOf { it.price }
+        println("💰 Payment amount: $totalAmount")
 
-        
-        if (packageItem.tier.equals("custom", ignoreCase = true) || packageItem.isCustom) {
-            openContactSales()
-            return
-        }
-
-        
-        showPaymentDialog(packageItem)
-    }
-
-    private fun showPaymentDialog(packageItem: SubscriptionPackage) {
-        // Get the amount from the package
-        val amount = packageItem.unitMonthlyAmount?.toDoubleOrNull() ?: 0.0
-        println("💰 Payment amount: $amount")
-
-        val dialog = com.devbrian.osebo.fragments.PaymentDialogFragment.newInstance(
+        val dialog = PaymentDialogFragment.newInstance(
             shopId = shopId,
-            packageId = packageItem.id,
-            packageName = packageItem.displayName,
-            amount = amount
+            packageId = packages.joinToString(",") { it.id },
+            packageName = packages.joinToString(", ") { it.displayName },
+            amount = totalAmount
         )
 
-        // FIXED: Update listener to include the amount parameter
-        dialog.setPaymentListener { phoneNumber, packageId, months, totalAmount ->
+        dialog.setPaymentListener { phoneNumber, _, months, _ ->
             viewModel.createSubscription(
                 shopId = shopId,
-                packageId = packageId,
+                packageIds = packages.map { it.id },
                 phoneNumber = phoneNumber,
-                months = months,
-                amount = totalAmount
+                months = months
             )
         }
 

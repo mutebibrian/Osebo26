@@ -62,7 +62,6 @@ class PaymentStatusFragment : Fragment() {
         binding.tvTransactionId.text = "Transaction ID: ${args.transactionId.take(12)}..."
         binding.tvAmount.text = "Amount: ${args.currency} ${String.format("%,.0f", args.amount)}"
 
-        // Show initial status
         updateStatus("Payment Pending", R.color.yellow_500)
         binding.tvStatusMessage.text = "Please check your phone and enter your PIN when prompted"
         binding.tvPollingMessage.text = "Waiting for payment confirmation..."
@@ -81,7 +80,7 @@ class PaymentStatusFragment : Fragment() {
     }
 
     private fun observeViewModel() {
-        // Observe payment polling status
+        // Observe payment polling status — now a Subscription?, not a payment-status response
         viewModel.paymentPollingStatus.observe(viewLifecycleOwner) { resource ->
             println("🔔 PaymentStatus: paymentPollingStatus = $resource")
 
@@ -90,14 +89,13 @@ class PaymentStatusFragment : Fragment() {
                     updateStatus("Processing...", R.color.yellow_500)
                 }
                 is Resource.Success -> {
-                    val response = resource.data
-                    println("🔔 PaymentStatus: Success response = $response")
-                    println("🔔 PaymentStatus: status = ${response?.status}")
-                    println("🔔 PaymentStatus: success = ${response?.success}")
+                    val subscription = resource.data
+                    println("🔔 PaymentStatus: Subscription = $subscription")
+                    println("🔔 PaymentStatus: status = ${subscription?.status}")
 
-                    if (response?.success == true) {
-                        when (response.status.lowercase()) {
-                            "completed", "success" -> {
+                    if (subscription != null) {
+                        when (subscription.status?.lowercase()) {
+                            "active", "completed", "success" -> {
                                 println("✅ PaymentStatus: Payment COMPLETED!")
                                 updateStatus("Payment Completed!", R.color.green_500)
                                 binding.ivStatusIcon.setImageResource(R.drawable.ic_check_circle)
@@ -106,46 +104,39 @@ class PaymentStatusFragment : Fragment() {
                                 showSuccessButtons()
                                 stopPolling()
 
-                                // Refresh subscription status
                                 refreshShopSubscription(args.shopId)
                             }
                             "pending" -> {
                                 println("⏳ PaymentStatus: Payment PENDING (poll #$pollCount)")
                                 updateStatus("Payment Pending", R.color.yellow_500)
-                                binding.tvStatusMessage.text = response.message ?: "Please complete payment on your phone"
-                                val nextSeconds = response.nextPollSeconds
-                                binding.tvNextCheck.text = "Next check in $nextSeconds seconds"
+                                binding.tvStatusMessage.text = "Please complete payment on your phone"
+                                binding.tvNextCheck.text = "Checking... ($pollCount/60)"
                                 binding.tvPollingMessage.text = "Waiting for payment confirmation..."
                             }
                             "failed", "cancelled" -> {
-                                println("❌ PaymentStatus: Payment ${response.status}")
-                                updateStatus("Payment ${response.status.replaceFirstChar { it.uppercase() }}", R.color.red_500)
+                                println("❌ PaymentStatus: Payment ${subscription.status}")
+                                updateStatus(
+                                    "Payment ${subscription.status.replaceFirstChar { it.uppercase() }}",
+                                    R.color.red_500
+                                )
                                 binding.ivStatusIcon.setImageResource(R.drawable.ic_error)
-                                binding.tvStatusMessage.text = response.message ?: "Payment failed. Please try again."
-                                showRetryButton()
-                                stopPolling()
-                            }
-                            "timeout" -> {
-                                println("⏰ PaymentStatus: Payment TIMEOUT")
-                                updateStatus("Payment Timeout", R.color.red_500)
-                                binding.tvStatusMessage.text = "Payment took too long. Please try again."
+                                binding.tvStatusMessage.text = "Payment failed. Please try again."
                                 showRetryButton()
                                 stopPolling()
                             }
                             else -> {
-                                println("❓ PaymentStatus: Unknown status = ${response.status}")
+                                println("❓ PaymentStatus: Unknown status = ${subscription.status}")
                                 updateStatus("Unknown Status", R.color.gray_500)
-                                binding.tvStatusMessage.text = response.message ?: "Unknown payment status"
+                                binding.tvStatusMessage.text = "Unknown payment status"
                                 showRetryButton()
                                 stopPolling()
                             }
                         }
                     } else {
-                        println("❌ PaymentStatus: API returned success=false - ${response?.message}")
-                        updateStatus("Error", R.color.red_500)
-                        binding.tvStatusMessage.text = response?.message ?: "Payment verification failed"
-                        showRetryButton()
-                        stopPolling()
+                        println("❌ PaymentStatus: No subscription found for this payment yet")
+                        // Keep waiting — subscription may not exist until payment is confirmed
+                        updateStatus("Payment Pending", R.color.yellow_500)
+                        binding.tvStatusMessage.text = "Please complete payment on your phone"
                     }
                 }
                 is Resource.Error -> {
@@ -176,7 +167,6 @@ class PaymentStatusFragment : Fragment() {
                         if (statusResponse.isActive == true) {
                             binding.tvStatusMessage.text = "Subscription activated! Redirecting..."
 
-                            // Save subscription details to preferences
                             val subscriptionStatus = when {
                                 statusResponse.type.equals("trial", ignoreCase = true) -> "TRIAL"
                                 statusResponse.isActive -> "ACTIVE"
@@ -195,7 +185,6 @@ class PaymentStatusFragment : Fragment() {
                             println("✅ Saved subscription to preferences: $subscriptionStatus")
                             preferenceManager.debugSubscriptionInfo()
 
-                            // Navigate to dashboard after delay
                             binding.btnViewSubscription.postDelayed({
                                 navigateToDashboard()
                             }, 1500)
@@ -260,11 +249,7 @@ class PaymentStatusFragment : Fragment() {
 
     private fun refreshShopSubscription(shopId: String) {
         println("🔄 Refreshing shop subscription for shop: $shopId")
-
-        // Check subscription status
         viewModel.checkShopSubscription(shopId)
-
-        // Also get active subscription
         viewModel.getShopActiveSubscription(shopId)
     }
 
@@ -280,7 +265,6 @@ class PaymentStatusFragment : Fragment() {
             println("❌ NAVIGATION: Error - ${e.message}")
             e.printStackTrace()
 
-            // Fallback: pop back to main
             try {
                 findNavController().popBackStack(R.id.mainDashboardFragment, false)
             } catch (e2: Exception) {
@@ -300,17 +284,14 @@ class PaymentStatusFragment : Fragment() {
         isPollingActive = true
         pollCount = 0
 
-        // Start ViewModel polling
         viewModel.startPaymentPolling(args.transactionId, args.shopId)
-
-        // Also start manual polling as backup
         startManualPolling()
     }
 
     private fun startManualPolling() {
         CoroutineScope(Dispatchers.Main).launch {
-            while (isPollingActive && pollCount < 60) { // Max 60 attempts (about 5 minutes)
-                delay(5000) // Check every 5 seconds
+            while (isPollingActive && pollCount < 60) {
+                delay(5000)
                 pollCount++
 
                 if (!isPollingActive) break
@@ -318,7 +299,6 @@ class PaymentStatusFragment : Fragment() {
                 binding.tvNextCheck.text = "Checking... ($pollCount/60)"
                 println("🔄 Manual poll #$pollCount for transaction: ${args.transactionId}")
 
-                // Call API to check payment status
                 viewModel.checkPaymentStatus(args.transactionId)
             }
 

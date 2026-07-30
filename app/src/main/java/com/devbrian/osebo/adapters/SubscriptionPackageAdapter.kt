@@ -10,88 +10,92 @@ import com.devbrian.osebo.databinding.ItemSubscriptionPackageBinding
 import com.devbrian.osebo.models.SubscriptionPackage
 
 class SubscriptionPackageAdapter(
-    private val onPackageClick: (SubscriptionPackage) -> Unit
+    private val onSelectionChanged: (List<SubscriptionPackage>) -> Unit
 ) : ListAdapter<SubscriptionPackage, SubscriptionPackageAdapter.ViewHolder>(
     PackageDiffCallback()
 ) {
 
-    private var selectedPosition = -1
-    private var selectedPackage: SubscriptionPackage? = null
+    private val selectedIds = mutableSetOf<String>()
 
     inner class ViewHolder(
         private val binding: ItemSubscriptionPackageBinding
     ) : RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(packageItem: SubscriptionPackage, position: Int) {
+        fun bind(packageItem: SubscriptionPackage) {
             binding.apply {
-                
-                tvPackageName.text = when (packageItem.tier.lowercase()) {
-                    "basic" -> "Basic Plan"
-                    "pro" -> "Pro Plan"
-                    "custom" -> "Enterprise Plan"
-                    else -> packageItem.name
-                }
 
-                
-                tvPackagePrice.text = if (packageItem.price > 0) {
-                    "UGX ${String.format("%,.0f", packageItem.price)}/month"
-                } else {
-                    "Contact Sales"
-                }
-
-                
+                tvPackageName.text = packageItem.displayName
                 tvPackageDescription.text = packageItem.description
 
-                
                 val featuresText = packageItem.featureList.joinToString(" • ")
                 tvFeatures.text = featuresText
 
-                
-                if (packageItem.tier.lowercase() == "pro") {
+                if (packageItem.isPopular) {
                     tvPopularTag.visibility = View.VISIBLE
                     tvPopularTag.text = "POPULAR"
                 } else {
                     tvPopularTag.visibility = View.GONE
                 }
 
-                
-                if (packageItem.tier.lowercase() == "custom") {
+                if (packageItem.isAddOn) {
                     tvCustomTag.visibility = View.VISIBLE
                     tvCustomTag.text = "CUSTOM"
                 } else {
                     tvCustomTag.visibility = View.GONE
                 }
 
-                
-                tvTrialInfo.visibility = View.GONE
-
-                
-                (binding.cardPackage as? com.google.android.material.card.MaterialCardView)?.isChecked =
-                    position == selectedPosition
-
-                
-                root.isEnabled = packageItem.isActive
-                root.alpha = if (packageItem.isActive) 1.0f else 0.5f
-
-                
-                root.setOnClickListener {
-                    if (packageItem.isActive) {
-                        selectPackage(packageItem)
-                        onPackageClick(packageItem)
-                    }
+                if (packageItem.hasFreeTrial) {
+                    tvTrialInfo.visibility = View.VISIBLE
+                    tvTrialInfo.text = "Trial Available"
+                } else {
+                    tvTrialInfo.visibility = View.GONE
                 }
 
-                
-                if (packageItem.tier.lowercase() == "custom") {
+                if (packageItem.price > 0) {
+                    tvPackagePrice.visibility = View.VISIBLE
+                    tvPackagePrice.text = "UGX ${String.format("%,.0f", packageItem.price)}/mo"
+                    tvContactSales.visibility = View.GONE
+                } else {
                     tvPackagePrice.visibility = View.GONE
                     tvContactSales.visibility = View.VISIBLE
                     tvContactSales.text = "Contact Sales"
-                } else {
-                    tvPackagePrice.visibility = View.VISIBLE
-                    tvContactSales.visibility = View.GONE
+                }
+
+                checkboxSelect.setOnCheckedChangeListener(null)
+                checkboxSelect.isChecked = selectedIds.contains(packageItem.id)
+                checkboxSelect.setOnCheckedChangeListener { _, isChecked ->
+                    toggleSelection(packageItem.id, isChecked)
+                }
+
+                (binding.cardPackage as? com.google.android.material.card.MaterialCardView)?.isChecked =
+                    selectedIds.contains(packageItem.id)
+
+                root.isEnabled = packageItem.isActive
+                root.alpha = if (packageItem.isActive) 1.0f else 0.5f
+
+                root.setOnClickListener {
+                    if (packageItem.isActive) {
+                        checkboxSelect.isChecked = !checkboxSelect.isChecked
+                    }
                 }
             }
         }
+    }
+
+    private fun toggleSelection(id: String, isChecked: Boolean) {
+        if (isChecked) selectedIds.add(id) else selectedIds.remove(id)
+        notifyDataSetChanged()
+        onSelectionChanged(getSelectedPackages())
+    }
+
+    fun getSelectedPackages(): List<SubscriptionPackage> {
+        return currentList.filter { selectedIds.contains(it.id) }
+    }
+
+    fun clearSelection() {
+        selectedIds.clear()
+        notifyDataSetChanged()
+        onSelectionChanged(emptyList())
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -104,56 +108,20 @@ class SubscriptionPackageAdapter(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.bind(getItem(position), position)
-    }
-
-    fun selectPackage(packageItem: SubscriptionPackage) {
-        val position = currentList.indexOfFirst { it.id == packageItem.id }
-        if (position != -1) {
-            val previousPosition = selectedPosition
-            selectedPosition = position
-            selectedPackage = packageItem
-
-            if (previousPosition != -1) {
-                notifyItemChanged(previousPosition)
-            }
-            notifyItemChanged(position)
-        }
-    }
-
-    fun getSelectedPackage(): SubscriptionPackage? {
-        return selectedPackage
-    }
-
-    fun clearSelection() {
-        val previousPosition = selectedPosition
-        selectedPosition = -1
-        selectedPackage = null
-        if (previousPosition != -1) {
-            notifyItemChanged(previousPosition)
-        }
+        holder.bind(getItem(position))
     }
 }
 
 class PackageDiffCallback : DiffUtil.ItemCallback<SubscriptionPackage>() {
-    override fun areItemsTheSame(
-        oldItem: SubscriptionPackage,
-        newItem: SubscriptionPackage
-    ): Boolean {
-        return oldItem.id == newItem.id
-    }
+    override fun areItemsTheSame(oldItem: SubscriptionPackage, newItem: SubscriptionPackage) =
+        oldItem.id == newItem.id
 
-    override fun areContentsTheSame(
-        oldItem: SubscriptionPackage,
-        newItem: SubscriptionPackage
-    ): Boolean {
-        return oldItem.id == newItem.id &&
+    override fun areContentsTheSame(oldItem: SubscriptionPackage, newItem: SubscriptionPackage) =
+        oldItem.id == newItem.id &&
                 oldItem.name == newItem.name &&
                 oldItem.tier == newItem.tier &&
+                oldItem.kind == newItem.kind &&
                 oldItem.unitMonthlyAmount == newItem.unitMonthlyAmount &&
                 oldItem.description == newItem.description &&
                 oldItem.isActive == newItem.isActive
-    }
 }
-
-

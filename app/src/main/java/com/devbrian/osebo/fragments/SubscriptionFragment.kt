@@ -52,7 +52,6 @@ class SubscriptionFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        
         shopId = arguments?.getString("shopId") ?: getCurrentShopId()
 
         if (shopId.isEmpty()) {
@@ -65,7 +64,6 @@ class SubscriptionFragment : Fragment() {
         setupClickListeners()
         setupViewPager()
 
-        
         loadSubscriptionData()
     }
 
@@ -75,7 +73,7 @@ class SubscriptionFragment : Fragment() {
     }
 
     private fun setupObservers() {
-        
+
         viewModel.currentSubscription.observe(viewLifecycleOwner) { resource ->
             when (resource) {
                 is Resource.Success -> {
@@ -102,7 +100,6 @@ class SubscriptionFragment : Fragment() {
             }
         }
 
-        
         viewModel.subscriptionPackages.observe(viewLifecycleOwner) { resource ->
             when (resource) {
                 is Resource.Success -> {
@@ -134,9 +131,6 @@ class SubscriptionFragment : Fragment() {
             }
         }
 
-
-        // In SubscriptionFragment.kt, find the subscriptionResult observer and update it:
-
         viewModel.subscriptionResult.observe(viewLifecycleOwner) { resource ->
             when (resource) {
                 is Resource.Loading -> {
@@ -144,9 +138,7 @@ class SubscriptionFragment : Fragment() {
                 }
                 is Resource.Success -> {
                     val response = resource.data
-                    // FIXED: SubscriptionResponse now has paymentId directly
                     if (response?.paymentId != null) {
-                        // Success - payment initiated
                         Toast.makeText(requireContext(),
                             "Payment initiated! Please check your phone.",
                             Toast.LENGTH_LONG).show()
@@ -166,13 +158,14 @@ class SubscriptionFragment : Fragment() {
             }
         }
 
-        
+        // paymentPollingStatus is now Resource<Subscription?> — polls the subscription
+        // record itself by paymentId, since there's no separate payment-status endpoint.
         viewModel.paymentPollingStatus.observe(viewLifecycleOwner) { resource ->
             when (resource) {
                 is Resource.Success -> {
-                    resource.data?.let { response ->
-                        when (response.status.lowercase()) {
-                            "completed", "success" -> {
+                    resource.data?.let { subscription ->
+                        when (subscription.status?.lowercase()) {
+                            "active", "completed", "success" -> {
                                 Toast.makeText(requireContext(),
                                     "Payment successful! Your subscription is now active.",
                                     Toast.LENGTH_LONG
@@ -181,9 +174,12 @@ class SubscriptionFragment : Fragment() {
                             }
                             "failed", "cancelled" -> {
                                 Toast.makeText(requireContext(),
-                                    "Payment ${response.status}. Please try again.",
+                                    "Payment ${subscription.status ?: "failed"}. Please try again.",
                                     Toast.LENGTH_SHORT
                                 ).show()
+                            }
+                            else -> {
+                                // still pending — no action needed, polling continues
                             }
                         }
                     }
@@ -192,21 +188,18 @@ class SubscriptionFragment : Fragment() {
             }
         }
 
-        
         viewModel.errorMessage.observe(viewLifecycleOwner) { message ->
             message?.let {
                 Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
             }
         }
 
-        
         viewModel.successMessage.observe(viewLifecycleOwner) { message ->
             message?.let {
                 Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
             }
         }
 
-        
         viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
             if (isLoading) {
                 binding.progressBar.visibility = View.VISIBLE
@@ -217,18 +210,15 @@ class SubscriptionFragment : Fragment() {
     }
 
     private fun displaySubscriptionData(subscription: Subscription) {
-        
         binding.packageValue.text = subscription.displayPackage
         binding.maxValue.text = subscription.durationText
 
-        
         val endDate = subscription.formattedEndDate
         binding.expiresValue.text = endDate
 
         val daysLeft = subscription.daysRemaining
         binding.daysLeftValue.text = daysLeft.toString()
 
-        
         binding.daysLeftValue.setTextColor(
             resources.getColor(
                 if (daysLeft < 3) R.color.error_red
@@ -240,7 +230,6 @@ class SubscriptionFragment : Fragment() {
 
         binding.statusChip.text = subscription.displayStatus
 
-        
         when {
             subscription.isTrial && daysLeft > 0 ->
                 binding.statusChip.setChipBackgroundColorResource(R.color.blue_info)
@@ -254,11 +243,9 @@ class SubscriptionFragment : Fragment() {
                 binding.statusChip.setChipBackgroundColorResource(R.color.gray_500)
         }
 
-        
         binding.removeSubscriptionButton.visibility =
             if (subscription.isActiveStatus || subscription.isTrial) View.VISIBLE else View.GONE
 
-        
         binding.subscriptionDetails.visibility = View.VISIBLE
     }
 
@@ -330,7 +317,6 @@ class SubscriptionFragment : Fragment() {
             .setTitle("Cancel Subscription")
             .setMessage("Are you sure you want to cancel your ${subscription.displayPackage}? This action cannot be undone.")
             .setPositiveButton("Cancel Subscription") { _, _ ->
-                // FIXED: Call viewModel.cancelSubscription instead
                 viewModel.cancelSubscription(shopId, subscription.id)
             }
             .setNegativeButton("Keep Subscription", null)
@@ -343,13 +329,11 @@ class SubscriptionFragment : Fragment() {
             return
         }
 
-        
         if (plan.isCustom) {
             openContactSales()
             return
         }
 
-        
         showPaymentDialog(shopId, plan)
     }
 
@@ -364,10 +348,9 @@ class SubscriptionFragment : Fragment() {
         dialog.setPaymentListener { phoneNumber, packageId, months, amount ->
             viewModel.createSubscription(
                 shopId = shopId,
-                packageId = packageId,
+                packageIds = listOf(packageId),
                 phoneNumber = phoneNumber,
-                months = months,
-                amount = amount
+                months = months
             )
         }
 

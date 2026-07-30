@@ -1,11 +1,7 @@
 package com.devbrian.osebo.data.repository
 
-import com.devbrian.osebo.data.remote.dto.request.CheckPaymentStatusRequest
 import com.devbrian.osebo.data.remote.dto.request.CreateSubscriptionRequest
-import com.devbrian.osebo.data.remote.dto.request.InitiatePaymentRequest
-import com.devbrian.osebo.data.remote.dto.response.InitiatePaymentResponse
-import com.devbrian.osebo.data.remote.dto.response.PaymentPollResponse
-import com.devbrian.osebo.data.remote.dto.response.PaymentStatusResponse
+import com.devbrian.osebo.data.remote.dto.response.PaymentDto
 import com.devbrian.osebo.data.remote.dto.response.ShopSubscriptionStatusResponse
 import com.devbrian.osebo.data.remote.dto.response.SubscriptionResponse
 import com.devbrian.osebo.models.*
@@ -15,17 +11,9 @@ interface SubscriptionRepository {
 
     suspend fun getSubscriptionPackages(): Resource<List<SubscriptionPackage>>
 
-    suspend fun getSubscriptionDetails(
-        shopId: String,
-        subscriptionId: String
-    ): Resource<Subscription>
-
     suspend fun getShops(): Resource<List<Shop>>
 
-    suspend fun checkPaymentStatus(
-        paymentId: String,
-        request: CheckPaymentStatusRequest
-    ): Resource<PaymentStatusResponse>
+    suspend fun getSubscriptionDetails(subscriptionId: String): Resource<Subscription>
 
     suspend fun getShopActiveSubscription(shopId: String): Resource<Subscription>
 
@@ -34,22 +22,10 @@ interface SubscriptionRepository {
         request: CreateSubscriptionRequest
     ): Resource<SubscriptionResponse>
 
-    suspend fun initiatePayment(
+    suspend fun renewSubscription(
         shopId: String,
-        request: InitiatePaymentRequest
-    ): Resource<InitiatePaymentResponse>
-
-    suspend fun getPaymentStatus(shopId: String, paymentId: String): Resource<PaymentStatusResponse>
-
-    suspend fun pollPaymentStatus(
-        shopId: String,
-        request: PollPaymentStatusRequest
-    ): Resource<PaymentPollResponse>
-
-    suspend fun getPaymentHistory(
-        shopId: String,
-        subscriptionId: String
-    ): Resource<List<Payment>>
+        request: RenewSubscriptionRequest
+    ): Resource<SubscriptionResponse>
 
     suspend fun checkShopSubscription(shopId: String): Resource<ShopSubscriptionStatusResponse>
 
@@ -58,14 +34,20 @@ interface SubscriptionRepository {
         subscriptionId: String
     ): Resource<Unit>
 
-    suspend fun renewSubscription(
+    suspend fun cancelPackage(
         shopId: String,
         subscriptionId: String,
-        request: RenewSubscriptionRequest
-    ): Resource<SubscriptionResponse>
-
-    suspend fun activateFreeTrial(
-        shopId: String,
         packageId: String
-    ): Resource<SubscriptionResponse>
+    ): Resource<Unit>
+
+    suspend fun getPaymentHistory(
+        shopId: String,
+        page: Int = 1,
+        limit: Int = 10,
+        provider: String? = null
+    ): Resource<List<Payment>>
+
+    suspend fun getUserShopsSubscriptions(): Resource<List<Subscription>>
+
+    suspend fun findSubscriptionByPaymentId(paymentId: String): Resource<Subscription>
 }
