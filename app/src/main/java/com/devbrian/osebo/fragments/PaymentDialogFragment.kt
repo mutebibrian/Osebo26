@@ -29,7 +29,7 @@ class PaymentDialogFragment : BottomSheetDialogFragment() {
     private lateinit var viewModel: SubscriptionViewModel
 
     private var shopId: String? = null
-    private var packageId: String? = null
+    private var packageId: String? = null // may be a comma-joined list of ids
     private var packageName: String? = null
     private var amount: Double = 0.0
     private var selectedMonths: Int = 1
@@ -226,14 +226,12 @@ class PaymentDialogFragment : BottomSheetDialogFragment() {
                         println("🔔 PaymentDialog: Found paymentId, navigating to PaymentStatusFragment")
                         hasNavigated = true
 
-                        // Dismiss the bottom sheet
                         try {
                             dismissAllowingStateLoss()
                         } catch (e: Exception) {
                             println("Error dismissing: ${e.message}")
                         }
 
-                        // Navigate after a short delay
                         viewLifecycleOwner.lifecycleScope.launch {
                             delay(300)
                             try {
@@ -322,11 +320,19 @@ class PaymentDialogFragment : BottomSheetDialogFragment() {
             .setPositiveButton("Confirm") { _, _ ->
                 println("✅ User confirmed payment - calling createSubscription")
 
-                // Call the payment listener
+                // packageId may be a comma-joined string of multiple ids (from
+                // SubscriptionPackagesFragment's multi-bundle selection) — split it back
+                // into a list for the ViewModel's plural signature.
+                val packageIdList = packageId
+                    ?.split(",")
+                    ?.map { it.trim() }
+                    ?.filter { it.isNotEmpty() }
+                    ?: emptyList()
+
                 if (paymentListener != null) {
                     paymentListener?.invoke(phoneNumber, packageId!!, months, totalAmount)
                 } else {
-                    viewModel.createSubscription(shopId!!, packageId!!, phoneNumber, months, totalAmount)
+                    viewModel.createSubscription(shopId!!, packageIdList, phoneNumber, months)
                 }
             }
             .setNegativeButton("Cancel") { _, _ ->

@@ -15,7 +15,6 @@ import com.devbrian.osebo.models.CreateEmployeeResponse
 import com.devbrian.osebo.models.CreateRoleRequest
 import com.devbrian.osebo.models.EmployeeResponse
 import com.devbrian.osebo.models.Permission
-import com.devbrian.osebo.models.PollPaymentStatusRequest
 import com.devbrian.osebo.models.RenewSubscriptionRequest
 import com.devbrian.osebo.models.Subscription
 import com.devbrian.osebo.data.models.UserRole
@@ -81,7 +80,6 @@ interface ApiService {
 
     @POST("api/auth/send-otp")   // change to the correct path
     suspend fun generateOtp(@Body request: Map<String, String>): Response<BaseResponse<Unit>>
-
 
     // OTP endpoints (add these)
     @POST("api/auth/resend-otp")
@@ -181,8 +179,6 @@ interface ApiService {
 
     @GET("api/shops")
     suspend fun getShopsWithAuth(@Header("Authorization") token: String): Response<ApiResponse<List<ShopDto>>>
-
-
 
     @DELETE("shops/{id}")
     suspend fun deleteShop(@Header("Authorization") token: String, @Path("id") shopId: String): Response<ApiResponse<Unit>>
@@ -444,7 +440,7 @@ interface ApiService {
         @Path("customerId") customerId: String
     ): Response<ApiResponse<FinancialStatement>>
 
-    // ==================== SUBSCRIPTION & PAYMENT ENDPOINTS ====================
+    // ==================== SUBSCRIPTION & PAYMENT ENDPOINTS (updated to match v1 backend) ====================
 
     @GET("api/package")
     suspend fun getSubscriptionPackages(): Response<ApiResponse<List<PackageDto>>>
@@ -455,88 +451,55 @@ interface ApiService {
         @Body request: CreateSubscriptionRequest
     ): Response<ApiResponse<SubscriptionResponse>>
 
-    @GET("api/subscription/CheckShopSubscription")
-    suspend fun checkShopSubscription(@Query("shopId") shopId: String): Response<ApiResponse<ShopSubscriptionStatusResponse>>
-
-    @POST("api/subscription/AuthorizePayment")
-    suspend fun authorizePayment(
-        @Header("X-Shop") shopId: String,
-        @Body request: CreateSubscriptionRequest
-    ): Response<ApiResponse<SubscriptionResponse>>
-
-    @POST("api/subscription/{paymentId}/status/check")
-    suspend fun checkPaymentStatus(
-        @Path("paymentId") paymentId: String,
-        @Body request: CheckPaymentStatusRequest
-    ): Response<ApiResponse<PaymentStatusResponse>>
-
-    @GET("api/subscription/{subscriptionId}/payments")
-    suspend fun getSubscriptionPayments(
-        @Header("X-Shop") shopId: String,
-        @Path("subscriptionId") subscriptionId: String
-    ): Response<ApiResponse<List<PaymentDto>>>
-
-    @POST("api/subscription/PollPaymentStatus")
-    suspend fun pollPaymentStatus(
-        @Header("X-Shop") shopId: String,
-        @Body request: PollPaymentStatusRequest
-    ): Response<ApiResponse<PaymentPollResponse>>
-
-    @GET("api/subscription/shop")
-    suspend fun getShopSubscriptions(@Query("shopId") shopId: String): Response<ApiResponse<List<Subscription>>>
-
-    @GET("api/subscription/{id}")
-    suspend fun getSubscriptionDetails(
-        @Header("X-Shop") shopId: String,
-        @Path("id") subscriptionId: String
-    ): Response<ApiResponse<Subscription>>
-
-    @POST("api/subscription/activate-trial/{shopId}")
-    suspend fun activateFreeTrial(
-        @Header("X-Shop") shopId: String,
-        @Path("shopId") shopIdPath: String,
-        @Body request: ActivateTrialRequest
-    ): Response<ApiResponse<SubscriptionResponse>>
-
-    @POST("api/subscription/renew/{subscriptionId}")
+    @POST("api/subscription/renew")
     suspend fun renewSubscription(
         @Header("X-Shop") shopId: String,
-        @Path("subscriptionId") subscriptionId: String,
         @Body request: RenewSubscriptionRequest
     ): Response<ApiResponse<SubscriptionResponse>>
 
-    @POST("api/subscription/cancel/{subscriptionId}")
+    @PATCH("api/subscription/{subscriptionId}/cancel")
     suspend fun cancelSubscription(
         @Header("X-Shop") shopId: String,
         @Path("subscriptionId") subscriptionId: String
     ): Response<ApiResponse<Unit>>
 
-    @GET("api/subscriptions")
-    suspend fun getSubscriptions(): Response<ApiResponse<List<SubscriptionDto>>>
-
-    @POST("api/subscriptions")
-    suspend fun createLegacySubscription(@Body request: SubscribeRequest): Response<ApiResponse<SubscriptionDto>>
-
-    @POST("api/payment/initiate")
-    suspend fun initiatePayment(
+    @DELETE("api/subscription/{subscriptionId}/packages/{packageId}")
+    suspend fun cancelPackage(
         @Header("X-Shop") shopId: String,
-        @Body request: InitiatePaymentRequest
-    ): Response<ApiResponse<InitiatePaymentResponse>>
+        @Path("subscriptionId") subscriptionId: String,
+        @Path("packageId") packageId: String
+    ): Response<ApiResponse<Unit>>
 
-    @GET("api/payment/{transactionId}")
-    suspend fun getPaymentStatus(
+    @GET("api/subscription/shop/active")
+    suspend fun checkShopSubscription(
+        @Header("X-Shop") shopId: String
+    ): Response<ApiResponse<ShopSubscriptionStatusResponse>>
+
+    @GET("api/subscription/shop")
+    suspend fun getShopSubscriptions(
+        @Header("X-Shop") shopId: String
+    ): Response<ApiResponse<List<Subscription>>>
+
+    @GET("api/subscription/payments")
+    suspend fun getSubscriptionPayments(
         @Header("X-Shop") shopId: String,
-        @Path("transactionId") transactionId: String
-    ): Response<ApiResponse<PaymentStatusResponse>>
-
-    @GET("api/payments")
-    suspend fun getPayments(
-        @Query("shop_id") shopId: String? = null,
-        @Query("subscription_id") subscriptionId: String? = null
+        @Query("page") page: Int = 1,
+        @Query("limit") limit: Int = 10,
+        @Query("provider") provider: String? = null
     ): Response<ApiResponse<List<PaymentDto>>>
 
-    @POST("api/payments")
-    suspend fun createPayment(@Body request: CreatePaymentRequest): Response<ApiResponse<PaymentDto>>
+    @GET("api/subscription/user/shops")
+    suspend fun getUserShopsSubscriptions(): Response<ApiResponse<List<Subscription>>>
+
+    @GET("api/subscription/{subscriptionId}")
+    suspend fun getSubscriptionDetails(
+        @Path("subscriptionId") subscriptionId: String
+    ): Response<ApiResponse<Subscription>>
+
+    @GET("api/subscription/payment/{paymentId}")
+    suspend fun findSubscriptionByPaymentId(
+        @Path("paymentId") paymentId: String
+    ): Response<ApiResponse<Subscription>>
 
     // ==================== NOTIFICATION ENDPOINTS ====================
 

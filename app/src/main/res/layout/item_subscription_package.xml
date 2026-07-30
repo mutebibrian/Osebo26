@@ -59,6 +59,11 @@
                 tools:text="CUSTOM"
                 tools:visibility="visible" />
 
+            <CheckBox
+                android:id="@+id/checkboxSelect"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true" />
         </RelativeLayout>
 
         <!-- Package Name and Price Row -->

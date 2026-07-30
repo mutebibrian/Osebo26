@@ -6,9 +6,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
 import android.widget.Toast
-import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -16,7 +14,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.devbrian.osebo.R
 import com.devbrian.osebo.adapters.SubscriptionPackageAdapter
 import com.devbrian.osebo.databinding.FragmentSubscriptionPackagesBinding
 import com.devbrian.osebo.models.Shop
@@ -28,7 +25,6 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import android.view.ViewTreeObserver
 import com.devbrian.osebo.data.PreferenceManager
-import com.devbrian.osebo.ui.MainActivity
 
 @AndroidEntryPoint
 class SubscriptionPackagesFragment : Fragment() {
@@ -41,7 +37,7 @@ class SubscriptionPackagesFragment : Fragment() {
 
     private var shop: Shop? = null
     private var currentPackage: String? = null
-    private var selectedPackage: SubscriptionPackage? = null
+    private var selectedPackages: List<SubscriptionPackage> = emptyList()
     private var shopId: String = ""
 
     private val args: SubscriptionPackagesFragmentArgs by navArgs()
@@ -111,7 +107,7 @@ class SubscriptionPackagesFragment : Fragment() {
     }
 
     private fun setupUI() {
-        binding.toolbar.title = "Choose a Plan"
+        binding.toolbar.title = "Choose Bundles"
         binding.toolbar.setNavigationOnClickListener {
             findNavController().navigateUp()
         }
@@ -138,8 +134,8 @@ class SubscriptionPackagesFragment : Fragment() {
     }
 
     private fun setupRecyclerView() {
-        subscriptionPackageAdapter = SubscriptionPackageAdapter { packageItem ->
-            onPackageSelected(packageItem)
+        subscriptionPackageAdapter = SubscriptionPackageAdapter { selected ->
+            onSelectionChanged(selected)
         }
 
         binding.rvPackages.apply {
@@ -152,17 +148,36 @@ class SubscriptionPackagesFragment : Fragment() {
         println("🔄 RECYCLERVIEW: Setup completed")
     }
 
+    private fun onSelectionChanged(selected: List<SubscriptionPackage>) {
+        selectedPackages = selected
+
+        if (selected.isEmpty()) {
+            binding.cardCheckoutSummary.visibility = View.GONE
+            binding.btnContinue.isEnabled = false
+            binding.btnContinue.text = "SELECT BUNDLES TO CONTINUE"
+            return
+        }
+
+        binding.cardCheckoutSummary.visibility = View.VISIBLE
+        binding.tvSelectedBundlesList.text = selected.joinToString(", ") { it.displayName }
+
+        val total = selected.sumOf { it.price }
+        binding.tvEstimatedTotal.text = "UGX ${String.format("%,.0f", total)}"
+
+        binding.btnContinue.isEnabled = true
+        binding.btnContinue.text = "CONTINUE WITH ${selected.size} BUNDLE${if (selected.size > 1) "S" else ""}"
+    }
+
     private fun setupClickListeners() {
         binding.btnContinue.setOnClickListener {
-            val selectedPackage = subscriptionPackageAdapter.getSelectedPackage()
-            selectedPackage?.let { packageItem ->
-                proceedWithPackage(packageItem)
-            } ?: run {
+            if (selectedPackages.isEmpty()) {
                 Toast.makeText(
                     requireContext(),
-                    "Please select a package to continue",
+                    "Please select at least one bundle",
                     Toast.LENGTH_SHORT
                 ).show()
+            } else {
+                proceedWithPackages(selectedPackages)
             }
         }
 
@@ -192,8 +207,6 @@ class SubscriptionPackagesFragment : Fragment() {
             }
         }
 
-        // Single subscriptionResult observer
-        // In observeViewModel() - update the subscriptionResult observer
         viewModel.subscriptionResult.observe(viewLifecycleOwner) { resource ->
             println("🔔 SubscriptionPackages: subscriptionResult = $resource")
 
@@ -203,18 +216,18 @@ class SubscriptionPackagesFragment : Fragment() {
                 }
                 is Resource.Success -> {
                     val response = resource.data
-                    // FIXED: response is SubscriptionResponse directly
-                    val paymentId = response?.paymentId  // No .data
+                    val paymentId = response?.paymentId
                     println("🔔 PaymentId: $paymentId")
 
                     if (!paymentId.isNullOrBlank()) {
                         println("🔔 Found paymentId, navigating to PaymentStatusFragment")
                         try {
+                            val totalAmount = selectedPackages.sumOf { it.price }.toFloat()
                             val action = SubscriptionPackagesFragmentDirections
                                 .actionSubscriptionPackagesFragmentToPaymentStatusFragment(
                                     transactionId = paymentId,
                                     shopId = shopId,
-                                    amount = (selectedPackage?.unitMonthlyAmount?.toFloatOrNull() ?: 0f),
+                                    amount = totalAmount,
                                     currency = "UGX",
                                     phoneNumber = ""
                                 )
@@ -222,43 +235,29 @@ class SubscriptionPackagesFragment : Fragment() {
                             println("✅ Navigation successful!")
                         } catch (e: Exception) {
                             println("❌ Navigation error: ${e.message}")
-                            Toast.makeText(requireContext(),
+                            Toast.makeText(
+                                requireContext(),
                                 "Payment initiated. Please check your phone.",
-                                Toast.LENGTH_LONG).show()
+                                Toast.LENGTH_LONG
+                            ).show()
                         }
                     } else {
-                        Toast.makeText(requireContext(),
+                        Toast.makeText(
+                            requireContext(),
                             response?.message ?: "Subscription created",
-                            Toast.LENGTH_SHORT).show()
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        findNavController().navigateUp()
                     }
                 }
                 is Resource.Error -> {
                     println("🔔 Error: ${resource.message}")
-                    Toast.makeText(requireContext(),
+                    Toast.makeText(
+                        requireContext(),
                         resource.message ?: "Failed to create subscription",
-                        Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
-
-        viewModel.activateTrialResult.observe(viewLifecycleOwner) { resource ->
-            when (resource) {
-                is Resource.Success -> {
-                    Toast.makeText(
-                        requireContext(),
-                        "Free trial activated successfully!",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    findNavController().popBackStack()
-                }
-                is Resource.Error -> {
-                    Toast.makeText(
-                        requireContext(),
-                        resource.message ?: "Failed to activate trial",
                         Toast.LENGTH_SHORT
                     ).show()
                 }
-                is Resource.Loading -> {}
             }
         }
     }
@@ -280,86 +279,21 @@ class SubscriptionPackagesFragment : Fragment() {
         binding.rvPackages.viewTreeObserver.addOnGlobalLayoutListener(listener)
     }
 
-    private fun checkRecyclerViewState() {
-        println("📏 RECYCLERVIEW STATE DEBUG")
-        println("📏 RecyclerView child count: ${binding.rvPackages.childCount}")
-        println("📏 RecyclerView adapter item count: ${binding.rvPackages.adapter?.itemCount}")
-    }
-
     private fun loadSubscriptionPackages() {
         lifecycleScope.launch {
             viewModel.loadSubscriptionPackages()
         }
     }
 
-    private fun onPackageSelected(packageItem: SubscriptionPackage) {
-        selectedPackage = packageItem
-        updateSelectedPackageUI(packageItem)
-    }
-
-    private fun updateSelectedPackageUI(packageItem: SubscriptionPackage) {
-        binding.cardSelectedPackage.visibility = View.VISIBLE
-
-        binding.tvSelectedPackageName.text = packageItem.displayName
-        binding.tvSelectedPackagePrice.text = packageItem.displayPrice
-        binding.tvSelectedPackageDescription.text = packageItem.description
-
-        binding.btnContinue.isEnabled = true
-
-        binding.btnContinue.text = when {
-            packageItem.hasFreeTrial && currentPackage == null -> "START FREE TRIAL"
-            packageItem.isCustom -> "CONTACT SALES"
-            else -> "CONTINUE WITH ${packageItem.displayName.uppercase()}"
-        }
-
-        if (packageItem.hasFreeTrial && currentPackage == null) {
-            binding.layoutTrialInfo.visibility = View.VISIBLE
-            binding.tvTrialDays.text = "${packageItem.freeTrialDays} days free trial"
-        } else {
-            binding.layoutTrialInfo.visibility = View.GONE
-        }
-
-        updateFeaturesList(packageItem.featureList)
-    }
-
-    private fun updateFeaturesList(features: List<String>) {
-        binding.layoutFeatures.removeAllViews()
-
-        if (features.isEmpty()) {
-            val textView = TextView(requireContext()).apply {
-                text = "✓ No specific features listed"
-                setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyMedium)
-                setTextColor(ContextCompat.getColor(requireContext(), R.color.on_surface_variant))
-                setPadding(0, 8.dpToPx(), 0, 8.dpToPx())
-            }
-            binding.layoutFeatures.addView(textView)
-        } else {
-            features.forEach { feature ->
-                val textView = TextView(requireContext()).apply {
-                    text = "✓ $feature"
-                    setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyMedium)
-                    setTextColor(ContextCompat.getColor(requireContext(), R.color.on_surface_variant))
-                    setPadding(0, 8.dpToPx(), 0, 8.dpToPx())
-                }
-                binding.layoutFeatures.addView(textView)
-            }
-        }
-    }
-
-    private fun Int.dpToPx(): Int = (this * resources.displayMetrics.density).toInt()
-
-    private fun proceedWithPackage(packageItem: SubscriptionPackage) {
+    private fun proceedWithPackages(packages: List<SubscriptionPackage>) {
         shop?.let { shop ->
-            when {
-                packageItem.hasFreeTrial && currentPackage == null -> {
-                    showTrialConfirmationDialog(packageItem, shop)
-                }
-                packageItem.isCustom -> {
-                    showContactDialog(packageItem)
-                }
-                else -> {
-                    showPaymentDialog(packageItem, shop)
-                }
+            // If ANY selected package is a true contact-sales item (no real price),
+            // route the whole selection to Contact Sales instead of payment.
+            val customOnly = packages.any { it.isCustom }
+            if (customOnly) {
+                showContactDialog(packages)
+            } else {
+                showPaymentDialog(shop, packages)
             }
         } ?: run {
             Toast.makeText(
@@ -370,29 +304,25 @@ class SubscriptionPackagesFragment : Fragment() {
         }
     }
 
-    private fun showPaymentDialog(packageItem: SubscriptionPackage, shop: Shop) {
-        selectedPackage = packageItem
+    private fun showPaymentDialog(shop: Shop, packages: List<SubscriptionPackage>) {
+        val totalAmount = packages.sumOf { it.price }
 
-        println("💰 DEBUG PACKAGE PRICES:")
-        println("   price: ${packageItem.price}")
-        println("   unitMonthlyAmount: ${packageItem.unitMonthlyAmount}")
-        println("   displayPrice: ${packageItem.displayPrice}")
-        println("   currency: ${packageItem.currency}")
+        println("💰 DEBUG BUNDLE SELECTION:")
+        packages.forEach { println("   - ${it.name}: ${it.unitMonthlyAmount}") }
+        println("💰 total amount: $totalAmount")
 
-        val amount = packageItem.unitMonthlyAmount?.toDoubleOrNull() ?: 0.0
-
-        println("💰 final amount: $amount")
-
-
+        // NOTE: PaymentDialogFragment.newInstance still expects a single packageId/packageName —
+        // passing a placeholder here since the real list is captured via selectedPackages
+        // and used directly in the listener below instead of the dialog's own packageId param.
         val dialog = PaymentDialogFragment.newInstance(
             shopId = shop.id,
-            packageId = packageItem.id,
-            packageName = packageItem.displayName,
-            amount = amount
+            packageId = packages.joinToString(",") { it.id },
+            packageName = packages.joinToString(", ") { it.displayName },
+            amount = totalAmount
         )
 
-        dialog.setPaymentListener { phoneNumber, packageId, months, totalAmount ->
-            createSubscription(shop.id, packageId, phoneNumber, months, totalAmount)
+        dialog.setPaymentListener { phoneNumber, _, months, _ ->
+            createSubscription(shop.id, packages.map { it.id }, phoneNumber, months)
         }
 
         dialog.show(parentFragmentManager, "PaymentDialog")
@@ -400,44 +330,38 @@ class SubscriptionPackagesFragment : Fragment() {
 
     private fun createSubscription(
         shopId: String,
-        packageId: String,
+        packageIds: List<String>,
         phoneNumber: String,
-        months: Int,
-        amount: Double  // Add this parameter
+        months: Int
     ) {
         if (!isAdded) return
-        viewModel.createSubscription(shopId, packageId, phoneNumber, months, amount)
+        viewModel.createSubscription(shopId, packageIds, phoneNumber, months)
     }
 
-    private fun showTrialConfirmationDialog(packageItem: SubscriptionPackage, shop: Shop) {
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Start Free Trial")
-            .setMessage("Start your ${packageItem.freeTrialDays}-day free trial of ${packageItem.displayName}? You can upgrade anytime.")
-            .setPositiveButton("Start Trial") { _, _ ->
-                activateFreeTrial(shop.id, packageItem.id)
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
-    }
-
-    private fun showContactDialog(packageItem: SubscriptionPackage) {
+    private fun showContactDialog(packages: List<SubscriptionPackage>) {
         MaterialAlertDialogBuilder(requireContext())
             .setTitle("Contact Sales")
-            .setMessage("${packageItem.displayName} requires custom pricing. Please contact our sales team for more information.")
+            .setMessage(
+                "${packages.joinToString(", ") { it.displayName }} requires custom pricing. " +
+                        "Please contact our sales team for more information."
+            )
             .setPositiveButton("Contact Sales") { _, _ ->
-                openContactSales(packageItem)
+                openContactSales(packages)
             }
             .setNegativeButton("Cancel", null)
             .show()
     }
 
-    private fun openContactSales(packageItem: SubscriptionPackage) {
+    private fun openContactSales(packages: List<SubscriptionPackage>) {
         val intent = Intent(Intent.ACTION_SENDTO).apply {
             data = "mailto:sales@osebo.ai".toUri()
-            putExtra(Intent.EXTRA_SUBJECT, "Custom Plan Inquiry - ${packageItem.displayName}")
+            putExtra(
+                Intent.EXTRA_SUBJECT,
+                "Custom Plan Inquiry - ${packages.joinToString(", ") { it.displayName }}"
+            )
             putExtra(Intent.EXTRA_TEXT, buildString {
                 appendLine("Hello,")
-                appendLine("\nI'm interested in the ${packageItem.displayName} plan.")
+                appendLine("\nI'm interested in: ${packages.joinToString(", ") { it.displayName }}")
                 appendLine("\nShop: ${shop?.name ?: "N/A"}")
                 appendLine("Shop ID: ${shop?.id ?: "N/A"}")
                 appendLine("\nPlease contact me with more information.")
@@ -448,15 +372,6 @@ class SubscriptionPackagesFragment : Fragment() {
             startActivity(intent)
         } catch (_: Exception) {
             Toast.makeText(requireContext(), "No email app found", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun activateFreeTrial(shopId: String, packageId: String) {
-        lifecycleScope.launch {
-            viewModel.activateFreeTrial(shopId, packageId)
-            if (isAdded) {
-                (requireActivity() as? MainActivity)?.refreshNavigationMenu()
-            }
         }
     }
 

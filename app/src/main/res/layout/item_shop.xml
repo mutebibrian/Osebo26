@@ -14,7 +14,6 @@
         android:layout_height="wrap_content"
         android:padding="16dp">
 
-        <!-- Shop Logo -->
         <ImageView
             android:id="@+id/ivShopLogo"
             android:layout_width="60dp"
@@ -25,7 +24,6 @@
             android:contentDescription="Shop Logo"
             android:src="@drawable/ic_shop_placeholder" />
 
-        <!-- Shop Info -->
         <TextView
             android:id="@+id/tvShopName"
             android:layout_width="0dp"
@@ -60,7 +58,6 @@
             app:layout_constraintStart_toStartOf="@id/tvShopDescription"
             app:layout_constraintTop_toBottomOf="@id/tvShopDescription" />
 
-        <!-- Shop Category -->
         <TextView
             android:id="@+id/tvShopCategory"
             android:layout_width="0dp"
@@ -72,7 +69,6 @@
             app:layout_constraintStart_toStartOf="@id/tvShopLocation"
             app:layout_constraintTop_toBottomOf="@id/tvShopLocation" />
 
-        <!-- Active Badge -->
         <TextView
             android:id="@+id/tvActiveBadge"
             android:layout_width="wrap_content"
@@ -89,7 +85,6 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="@id/tvShopName" />
 
-        <!-- Stats Row -->
         <LinearLayout
             android:id="@+id/layoutStats"
             android:layout_width="0dp"
@@ -101,12 +96,8 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/ivShopLogo">
 
-            <!-- Revenue -->
-
-
         </LinearLayout>
 
-        <!-- Action Buttons -->
         <LinearLayout
             android:id="@+id/layoutActions"
             android:layout_width="match_parent"
@@ -145,6 +136,15 @@
                 android:text="Delete" />
 
         </LinearLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSubscriptionAction"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            style="@style/Widget.Material3.Button"
+            android:text="View Shop"
+            app:layout_constraintTop_toBottomOf="@id/layoutActions" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
