@@ -31,7 +31,7 @@
                 android:id="@+id/tvShopName"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="BK Enterprise"
+                android:text="Shop Name"
                 android:textSize="24sp"
                 android:textStyle="bold"
                 android:textColor="@color/black"
@@ -69,7 +69,6 @@
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent"
                 tools:visibility="gone" />
 
             <!-- Retry Button -->
@@ -85,62 +84,106 @@
                 app:layout_constraintEnd_toEndOf="parent"
                 tools:visibility="gone" />
 
+            <!-- Active Bundles Card — matches web's "Subscription Overview" card -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/activeBundlesCard"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="8dp"
+                app:cardElevation="1dp"
+                app:strokeColor="@color/grey_200"
+                app:strokeWidth="1dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="16dp"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toStartOf="parent">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="ACTIVE BUNDLES"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/grey_600"
+                        android:letterSpacing="0.05" />
+
+                    <TextView
+                        android:id="@+id/tvActiveBundles"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0"
+                        android:textSize="24sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/black"
+                        android:layout_marginTop="4dp"
+                        tools:text="0" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
             <!-- No Subscription State -->
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/noSubscriptionLayout"
                 android:layout_width="match_parent"
-                android:layout_height="300dp"
+                android:layout_height="wrap_content"
                 android:visibility="gone"
-                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/activeBundlesCard"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent">
-
-                <ImageView
-                    android:id="@+id/emptyStateImage"
-                    android:layout_width="80dp"
-                    android:layout_height="80dp"
-                    android:src="@drawable/ic_subscription_empty"
-                    android:tint="@color/grey_400"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    android:layout_marginTop="60dp" />
 
                 <TextView
                     android:id="@+id/emptyStateTitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="No Active Subscription"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
+                    android:text="No active subscriptions found for this shop."
+                    android:textSize="14sp"
                     android:textColor="@color/grey_700"
+                    android:gravity="center"
                     android:layout_marginTop="24dp"
-                    app:layout_constraintTop_toBottomOf="@id/emptyStateImage"
+                    app:layout_constraintTop_toTopOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintEnd_toEndOf="parent" />
 
-                <TextView
-                    android:id="@+id/emptyStateSubtitle"
-                    android:layout_width="wrap_content"
+                <!-- Buttons row: Start Free Trial / Manage Bundles + Renew Bundles -->
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Subscribe to a plan to access all features"
-                    android:textSize="14sp"
-                    android:textColor="@color/grey_600"
-                    android:layout_marginTop="8dp"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="20dp"
+                    android:layout_marginBottom="24dp"
                     app:layout_constraintTop_toBottomOf="@id/emptyStateTitle"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent" />
+                    app:layout_constraintEnd_toEndOf="parent">
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/subscribeNowButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Subscribe Now"
-                    style="@style/Widget.MaterialComponents.Button"
-                    android:layout_marginTop="24dp"
-                    app:layout_constraintTop_toBottomOf="@id/emptyStateSubtitle"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/subscribeNowButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="8dp"
+                        android:text="Start Free Trial"
+                        android:textAllCaps="false"
+                        app:backgroundTint="@color/success_green"
+                        style="@style/Widget.MaterialComponents.Button"
+                        tools:text="Start Free Trial" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/renewBundlesButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Renew Bundles"
+                        android:textAllCaps="false"
+                        style="@style/Widget.MaterialComponents.Button" />
+
+                </LinearLayout>
 
             </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -149,8 +192,8 @@
                 android:id="@+id/subscriptionDetailsLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:visibility="visible"
-                app:layout_constraintTop_toTopOf="parent"
+                android:visibility="gone"
+                app:layout_constraintTop_toBottomOf="@id/activeBundlesCard"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent">
 
@@ -183,9 +226,9 @@
                         android:text="Active"
                         app:chipBackgroundColor="@color/success_green"
                         android:textColor="@color/white"
-                    app:chipCornerRadius="16dp"
-                    android:textSize="12sp"
-                    tools:text="Active" />
+                        app:chipCornerRadius="16dp"
+                        android:textSize="12sp"
+                        tools:text="Active" />
                 </LinearLayout>
 
                 <!-- Price -->
@@ -490,6 +533,19 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent" />
 
+            <!-- Checkout button for selected bundles from the plans list -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnCheckoutSelected"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Checkout Selected Bundles"
+                android:textAllCaps="false"
+                style="@style/Widget.MaterialComponents.Button"
+                android:layout_marginTop="16dp"
+                app:layout_constraintTop_toBottomOf="@id/plansRecyclerView"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+
             <!-- Contact Sales Section -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/contactSalesCard"
@@ -498,7 +554,7 @@
                 app:cardElevation="2dp"
                 app:cardCornerRadius="12dp"
                 android:layout_marginTop="16dp"
-                app:layout_constraintTop_toBottomOf="@id/plansRecyclerView"
+                app:layout_constraintTop_toBottomOf="@id/btnCheckoutSelected"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 android:layout_marginBottom="16dp">

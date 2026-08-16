@@ -37,23 +37,23 @@ interface ApiService {
 
     // ==================== AUTH ENDPOINTS ====================
 
-    @POST("api/auth/signin")
+    @POST("api/v1/auth/signin")
     suspend fun signIn(@Body request: LoginRequest): Response<AuthResponse>
 
-    @POST("api/auth/verify-2fa")
+    @POST("api/v1/auth/verify-2fa")
     suspend fun verifyTwoFactor(@Body request: VerifyTwoFactorRequest): Response<AuthResponse>
 
-    // Fix 1: Refresh token should accept RefreshTokenRequest object
+    // Not confirmed against real backend — no "api/" prefix originally, left as-is
     @POST("auth/refresh")
     suspend fun refreshToken(@Body request: String): Response<AuthResponse>
 
-    @GET("api/shop-type")
+    @GET("api/v1/shop-type")
     suspend fun getShopTypes(): Response<BaseResponse<List<ShopType>>>
 
-    @POST("api/shops")
+    @POST("api/v1/shops")
     suspend fun createShop(@Body request: CreateShopRequest): Response<BaseResponse<Shop>>
 
-    // Fix 2: Sign out should accept RefreshTokenRequest object
+    // Not confirmed — no "api/" prefix originally, left as-is
     @POST("auth/signout")
     suspend fun signOut(@Body request: String): Response<ApiResponse<Unit>>
 
@@ -69,31 +69,30 @@ interface ApiService {
     @POST("auth/reset-password")
     suspend fun resetPassword(@Body request: ResetPasswordRequest): Response<ApiResponse<Unit>>
 
-    @POST("api/auth/resend-verification")
+    @POST("api/v1/auth/resend-verification")
     suspend fun resendVerificationCode(@Query("email") email: String): Response<ApiResponse<Unit>>
 
-    @POST("api/auth/resend-otp")
+    @POST("api/v1/auth/resend-otp")
     suspend fun resendOtp(@Body request: ResendOtpRequest): Response<AuthResponse>
 
-    @POST("api/auth/verify-otp")
+    @POST("api/v1/auth/verify-otp")
     suspend fun verifyOtp(@Body request: VerifyOtpRequest): Response<AuthResponse>
 
-    @POST("api/auth/send-otp")   // change to the correct path
+    @POST("api/v1/auth/send-otp")
     suspend fun generateOtp(@Body request: Map<String, String>): Response<BaseResponse<Unit>>
 
-    // OTP endpoints (add these)
-    @POST("api/auth/resend-otp")
+    @POST("api/v1/auth/resend-otp")
     suspend fun sendOtp(@Body request: Map<String, String>): Response<BaseResponse<Unit>>
 
-    @POST("api/auth/verify-otp")
+    @POST("api/v1/auth/verify-otp")
     suspend fun verifyOtp(@Body request: Map<String, String>): Response<BaseResponse<Unit>>
 
-    // Only if your backend requires a phone → userId step:
-    @POST("api/auth/phone-password-reset")
+    @POST("api/v1/auth/phone-password-reset")
     suspend fun getUserIdByPhone(@Body request: Map<String, String>): Response<BaseResponse<ResetResponse>>
 
     // ==================== USER ENDPOINTS ====================
 
+    // Not confirmed — no "api/" prefix originally, left as-is
     @GET("users/profile")
     suspend fun getCurrentUser(): Response<ApiResponse<UserDto>>
 
@@ -103,46 +102,46 @@ interface ApiService {
     @PUT("users/password")
     suspend fun changePassword(@Body request: ChangePasswordRequest): Response<ApiResponse<Unit>>
 
-    @GET("api/account")
+    @GET("api/v1/account")
     suspend fun getAccountDetails(@Header("Authorization") token: String): Response<ApiResponse<AccountDto>>
 
-    @PUT("api/account/two-factor")
+    @PUT("api/v1/account/two-factor")
     suspend fun updateTwoFactorAuth(
         @Header("Authorization") token: String,
         @Body request: TwoFactorAuthRequest
     ): Response<ApiResponse<AccountDto>>
 
-    @PUT("api/account/login-notifications")
+    @PUT("api/v1/account/login-notifications")
     suspend fun updateLoginNotifications(
         @Header("Authorization") token: String,
         @Body request: LoginNotificationsRequest
     ): Response<ApiResponse<AccountDto>>
 
-    @POST("api/account/deactivate")
+    @POST("api/v1/account/deactivate")
     suspend fun deactivateAccount(@Header("Authorization") token: String): Response<ApiResponse<Unit>>
 
-    @DELETE("api/account")
+    @DELETE("api/v1/account")
     suspend fun deleteAccount(@Header("Authorization") token: String): Response<ApiResponse<Unit>>
 
     // ==================== EMPLOYEE ENDPOINTS ====================
 
-    @POST("api/users")
+    @POST("api/v1/users")
     suspend fun createEmployee(
         @Header("Authorization") token: String,
         @Body employee: EmployeeRequest
     ): Response<CreateEmployeeResponse>
 
-    @GET("api/users")
+    @GET("api/v1/users")
     suspend fun getEmployees(@Header("Authorization") token: String): Response<EmployeeResponse>
 
-    @PUT("api/users/{userId}")
+    @PUT("api/v1/users/{userId}")
     suspend fun updateEmployee(
         @Header("Authorization") token: String,
         @Path("userId") userId: String,
         @Body employee: EmployeeRequest
     ): Response<EmployeeResponse>
 
-    @DELETE("api/users/{userId}")
+    @DELETE("api/v1/users/{userId}")
     suspend fun deleteEmployee(
         @Header("Authorization") token: String,
         @Path("userId") userId: String
@@ -150,6 +149,7 @@ interface ApiService {
 
     // ==================== ROLE & PERMISSION ENDPOINTS ====================
 
+    // Not confirmed — no "api/" prefix originally, left as-is
     @GET("roles")
     suspend fun getRoles(
         @Header("Authorization") token: String,
@@ -169,30 +169,31 @@ interface ApiService {
         @Body request: CreateRoleRequest
     ): Response<ApiResponse<UserRole>>
 
-    @GET("api/permissions")
+    @GET("api/v1/permissions")
     suspend fun getPermissions(@Header("Authorization") token: String): Response<ApiResponse<List<Permission>>>
 
     // ==================== SHOP ENDPOINTS ====================
 
-    @GET("api/shops")
+    @GET("api/v1/shops")
     suspend fun getShops(): Response<ApiResponse<List<ShopDto>>>
 
-    @GET("api/shops")
+    @GET("api/v1/shops")
     suspend fun getShopsWithAuth(@Header("Authorization") token: String): Response<ApiResponse<List<ShopDto>>>
 
+    // Not confirmed — no "api/" prefix originally, left as-is
     @DELETE("shops/{id}")
     suspend fun deleteShop(@Header("Authorization") token: String, @Path("id") shopId: String): Response<ApiResponse<Unit>>
 
     @PUT("shops/{id}")
     suspend fun updateShop(@Path("id") shopId: String, @Body request: UpdateShopRequest): Response<ApiResponse<ShopDto>>
 
-    @GET("api/shops/{shopId}/settings")
+    @GET("api/v1/shops/{shopId}/settings")
     suspend fun getFinanceSettings(
         @Header("X-Shop") shopId: String,
         @Path("shopId") shopIdPath: String
     ): Response<ApiResponse<FinanceSettingsDto>>
 
-    @PUT("api/shops/{shopId}/settings")
+    @PUT("api/v1/shops/{shopId}/settings")
     suspend fun updateFinanceSettings(
         @Header("X-Shop") shopId: String,
         @Path("shopId") shopIdPath: String,
@@ -201,11 +202,11 @@ interface ApiService {
 
     // ==================== PRODUCT ENDPOINTS ====================
 
-    @GET("api/stock-item")
+    @GET("api/v1/stock-item")
     suspend fun getProducts(@Header("X-Shop") shopUuid: String): Response<ApiResponse<List<ProductDto>>>
 
     @Multipart
-    @POST("api/stock-item/single")
+    @POST("api/v1/stock-item/single")
     suspend fun createProduct(
         @Header("X-Shop") shopId: String,
         @Part("name") name: RequestBody,
@@ -221,30 +222,30 @@ interface ApiService {
         @Part photo: MultipartBody.Part? = null
     ): Response<ApiResponse<ProductDto>>
 
-    @PUT("api/stock/{productId}")
+    @PUT("api/v1/stock/{productId}")
     suspend fun updateProduct(
         @Header("X-Shop") shopId: String,
         @Path("productId") productId: String,
         @Body request: UpdateProductRequest
     ): Response<ApiResponse<ProductDto>>
 
-    @DELETE("api/stock/{productId}")
+    @DELETE("api/v1/stock/{productId}")
     suspend fun deleteProduct(
         @Header("X-Shop") shopId: String,
         @Path("productId") productId: String
     ): Response<ApiResponse<Unit>>
 
-    @GET("api/stock-category")
+    @GET("api/v1/stock-category")
     suspend fun getCategories(@Header("X-Shop") shopId: String): Response<ApiResponse<List<StockCategoryDto>>>
 
-    @GET("api/stock-item/search/barcode")
+    @GET("api/v1/stock-item/search/barcode")
     suspend fun searchProductByBarcode(
         @Header("Authorization") token: String,
         @Header("X-Shop") shopId: String,
         @Query("barcode") barcode: String
     ): Response<ApiResponse<Product>>
 
-    @GET("api/stock-item/search")
+    @GET("api/v1/stock-item/search")
     suspend fun searchProducts(
         @Header("Authorization") token: String,
         @Header("X-Shop") shopId: String,
@@ -253,29 +254,29 @@ interface ApiService {
 
     // ==================== CUSTOMER ENDPOINTS ====================
 
-    @GET("api/customer")
+    @GET("api/v1/customer")
     suspend fun getCustomers(@Header("X-Shop") shopId: String): Response<ApiResponse<List<CustomerDto>>>
 
-    @GET("api/customer/{customerId}")
+    @GET("api/v1/customer/{customerId}")
     suspend fun getCustomer(
         @Header("X-Shop") shopId: String,
         @Path("customerId") customerId: String
     ): Response<ApiResponse<CustomerDto>>
 
-    @POST("api/customer")
+    @POST("api/v1/customer")
     suspend fun createCustomer(
         @Header("X-Shop") shopId: String,
         @Body request: CreateCustomerRequest
     ): Response<ApiResponse<CustomerDto>>
 
-    @PUT("api/customer/{customerId}")
+    @PUT("api/v1/customer/{customerId}")
     suspend fun updateCustomer(
         @Header("X-Shop") shopId: String,
         @Path("customerId") customerId: String,
         @Body request: UpdateCustomerRequest
     ): Response<ApiResponse<CustomerDto>>
 
-    @DELETE("api/customer/{customerId}")
+    @DELETE("api/v1/customer/{customerId}")
     suspend fun deleteCustomer(
         @Header("X-Shop") shopId: String,
         @Path("customerId") customerId: String
@@ -283,32 +284,32 @@ interface ApiService {
 
     // ==================== SALE ENDPOINTS ====================
 
-    @POST("api/sale")
+    @POST("api/v1/sale")
     suspend fun createSale(
         @Header("X-Shop") shopId: String,
         @Body request: SaleRequest
     ): Response<SaleApiResponse>
 
-    @GET("api/sale/{saleId}")
+    @GET("api/v1/sale/{saleId}")
     suspend fun getSale(
         @Header("X-Shop") shopId: String,
         @Path("saleId") saleId: String
     ): Response<SaleApiResponse>
 
-    @GET("api/sale/customer/{customerId}")
+    @GET("api/v1/sale/customer/{customerId}")
     suspend fun getCustomerSales(
         @Header("X-Shop") shopId: String,
         @Path("customerId") customerId: String,
         @Query("type") type: String? = null
     ): Response<SaleListApiResponse>
 
-    @GET("api/sale/customer-sale-history/{customerId}")
+    @GET("api/v1/sale/customer-sale-history/{customerId}")
     suspend fun getCustomerSaleHistory(
         @Header("X-Shop") shopId: String,
         @Path("customerId") customerId: String
     ): Response<SaleListApiResponse>
 
-    @POST("api/sale/record-payment")
+    @POST("api/v1/sale/record-payment")
     suspend fun recordPayment(
         @Header("x-shop-id") shopId: String,
         @Body request: PaymentRequest
@@ -316,58 +317,58 @@ interface ApiService {
 
     // ==================== EXPENSE ENDPOINTS ====================
 
-    @GET("api/expense")
+    @GET("api/v1/expense")
     suspend fun getExpenses(@Header("X-Shop") shopId: String): Response<ApiResponse<List<Expense>>>
 
-    @GET("api/expense")
+    @GET("api/v1/expense")
     suspend fun getAllExpenses(
         @Header("X-Shop") shopId: String,
         @Query("startDate") startDate: String? = null,
         @Query("endDate") endDate: String? = null
     ): Response<ApiResponse<List<Expense>>>
 
-    @POST("api/expense")
+    @POST("api/v1/expense")
     suspend fun createExpense(
         @Header("X-Shop") shopId: String,
         @Body request: CreateExpenseRequest
     ): Response<ApiResponse<Expense>>
 
-    @GET("api/expense/{expenseId}")
+    @GET("api/v1/expense/{expenseId}")
     suspend fun getExpense(
         @Header("X-Shop") shopId: String,
         @Path("expenseId") expenseId: String
     ): Response<ApiResponse<Expense>>
 
-    @PUT("api/expense/{expenseId}")
+    @PUT("api/v1/expense/{expenseId}")
     suspend fun updateExpense(
         @Header("X-Shop") shopId: String,
         @Path("expenseId") expenseId: String,
         @Body request: UpdateExpenseRequest
     ): Response<ApiResponse<Expense>>
 
-    @DELETE("api/expense/{expenseId}")
+    @DELETE("api/v1/expense/{expenseId}")
     suspend fun deleteExpense(
         @Header("X-Shop") shopId: String,
         @Path("expenseId") expenseId: String
     ): Response<ApiResponse<Unit>>
 
-    @GET("api/expense-category")
+    @GET("api/v1/expense-category")
     suspend fun getExpenseCategories(@Header("X-Shop") shopId: String): Response<ApiResponse<List<ExpenseCategory>>>
 
-    @POST("api/expense-category")
+    @POST("api/v1/expense-category")
     suspend fun createExpenseCategory(
         @Header("X-Shop") shopId: String,
         @Body request: CreateExpenseCategoryRequest
     ): Response<ApiResponse<ExpenseCategory>>
 
-    @PUT("api/expense-category/{categoryId}")
+    @PUT("api/v1/expense-category/{categoryId}")
     suspend fun updateExpenseCategory(
         @Header("X-Shop") shopId: String,
         @Path("categoryId") categoryId: String,
         @Body request: UpdateExpenseCategoryRequest
     ): Response<ApiResponse<ExpenseCategory>>
 
-    @DELETE("api/expense-category/{categoryId}")
+    @DELETE("api/v1/expense-category/{categoryId}")
     suspend fun deleteExpenseCategory(
         @Header("X-Shop") shopId: String,
         @Path("categoryId") categoryId: String
@@ -375,33 +376,34 @@ interface ApiService {
 
     // ==================== ANALYTICS & REPORT ENDPOINTS ====================
 
-    @GET("api/analytics/top-stock-items")
+    @GET("api/v1/analytics/top-stock-items")
     suspend fun getTopStockItems(@Header("X-Shop") shopId: String): Response<ApiResponse<TopStockItemsDto>>
 
-    @GET("api/analytics/shop-financial-statement")
+    @GET("api/v1/analytics/shop-financial-statement")
     suspend fun getFinancialStatement(
         @Header("X-Shop") shopId: String,
         @Query("range") range: String = "yearly"
     ): Response<ApiResponse<FinancialStatementDto>>
 
-    @GET("api/analytics/sales-comparison")
+    @GET("api/v1/analytics/sales-comparison")
     suspend fun getSalesComparison(
         @Header("X-Shop") shopId: String,
         @Query("period") period: String = "monthly"
     ): Response<ApiResponse<SalesComparisonDto>>
 
-    @GET("api/analytics/shop-summary")
+    @GET("api/v1/analytics/shop-summary")
     suspend fun getShopSummary(@Header("X-Shop") shopId: String): Response<ApiResponse<ShopSummaryDto>>
 
-    @GET("api/analytics/totals")
+    @GET("api/v1/analytics/totals")
     suspend fun getShopTotals(@Header("X-Shop") shopId: String): Response<ApiResponse<ShopTotalsDto>>
 
-    @GET("api/analytics/time-series")
+    @GET("api/v1/analytics/time-series")
     suspend fun getTimeSeries(
         @Header("X-Shop") shopId: String,
         @Query("range") range: String = "monthly"
     ): Response<ApiResponse<TimeSeriesApiResponse>>
 
+    // Not confirmed — no "api/" prefix originally, left as-is
     @GET("reports/sales")
     suspend fun getSalesReport(
         @Query("shopId") shopId: String? = null,
@@ -426,7 +428,7 @@ interface ApiService {
 
     // ==================== LEDGER ENDPOINTS ====================
 
-    @GET("api/general-ledger")
+    @GET("api/v1/general-ledger")
     suspend fun getGeneralLedger(
         @Header("X-Shop") shopId: String,
         @Query("startDate") startDate: String? = null,
@@ -434,53 +436,53 @@ interface ApiService {
         @Query("period") period: String = "monthly"
     ): Response<ApiResponse<FinancialStatement>>
 
-    @GET("api/general-ledger/customer/{customerId}")
+    @GET("api/v1/general-ledger/customer/{customerId}")
     suspend fun getCustomerLedger(
         @Header("X-Shop") shopId: String,
         @Path("customerId") customerId: String
     ): Response<ApiResponse<FinancialStatement>>
 
-    // ==================== SUBSCRIPTION & PAYMENT ENDPOINTS (updated to match v1 backend) ====================
+    // ==================== SUBSCRIPTION & PAYMENT ENDPOINTS ====================
 
-    @GET("api/package")
+    @GET("api/v1/package")
     suspend fun getSubscriptionPackages(): Response<ApiResponse<List<PackageDto>>>
 
-    @POST("api/subscription")
+    @POST("api/v1/subscription")
     suspend fun createSubscription(
         @Header("X-Shop") shopId: String,
         @Body request: CreateSubscriptionRequest
     ): Response<ApiResponse<SubscriptionResponse>>
 
-    @POST("api/subscription/renew")
+    @POST("api/v1/subscription/renew")
     suspend fun renewSubscription(
         @Header("X-Shop") shopId: String,
         @Body request: RenewSubscriptionRequest
     ): Response<ApiResponse<SubscriptionResponse>>
 
-    @PATCH("api/subscription/{subscriptionId}/cancel")
+    @PATCH("api/v1/subscription/{subscriptionId}/cancel")
     suspend fun cancelSubscription(
         @Header("X-Shop") shopId: String,
         @Path("subscriptionId") subscriptionId: String
     ): Response<ApiResponse<Unit>>
 
-    @DELETE("api/subscription/{subscriptionId}/packages/{packageId}")
+    @DELETE("api/v1/subscription/{subscriptionId}/packages/{packageId}")
     suspend fun cancelPackage(
         @Header("X-Shop") shopId: String,
         @Path("subscriptionId") subscriptionId: String,
         @Path("packageId") packageId: String
     ): Response<ApiResponse<Unit>>
 
-    @GET("api/subscription/shop/active")
+    @GET("api/v1/subscription/shop/active")
     suspend fun checkShopSubscription(
         @Header("X-Shop") shopId: String
     ): Response<ApiResponse<ShopSubscriptionStatusResponse>>
 
-    @GET("api/subscription/shop")
+    @GET("api/v1/subscription/shop")
     suspend fun getShopSubscriptions(
         @Header("X-Shop") shopId: String
     ): Response<ApiResponse<List<Subscription>>>
 
-    @GET("api/subscription/payments")
+    @GET("api/v1/subscription/payments")
     suspend fun getSubscriptionPayments(
         @Header("X-Shop") shopId: String,
         @Query("page") page: Int = 1,
@@ -488,21 +490,22 @@ interface ApiService {
         @Query("provider") provider: String? = null
     ): Response<ApiResponse<List<PaymentDto>>>
 
-    @GET("api/subscription/user/shops")
+    @GET("api/v1/subscription/user/shops")
     suspend fun getUserShopsSubscriptions(): Response<ApiResponse<List<Subscription>>>
 
-    @GET("api/subscription/{subscriptionId}")
+    @GET("api/v1/subscription/{subscriptionId}")
     suspend fun getSubscriptionDetails(
         @Path("subscriptionId") subscriptionId: String
     ): Response<ApiResponse<Subscription>>
 
-    @GET("api/subscription/payment/{paymentId}")
+    @GET("api/v1/subscription/payment/{paymentId}")
     suspend fun findSubscriptionByPaymentId(
         @Path("paymentId") paymentId: String
-    ): Response<ApiResponse<Subscription>>
+    ): Response<ApiResponse<PaymentCheckResponse>>
 
     // ==================== NOTIFICATION ENDPOINTS ====================
 
+    // Not confirmed — no "api/" prefix originally, left as-is
     @GET("notifications")
     suspend fun getNotifications(
         @Query("unreadOnly") unreadOnly: Boolean = false,
@@ -518,18 +521,20 @@ interface ApiService {
 
     // ==================== SUPPORT ENDPOINTS ====================
 
+    // Not confirmed — no "api/" prefix originally, left as-is
     @POST("support/tickets")
     suspend fun createSupportTicket(@Body request: CreateSupportTicketRequest): Response<ApiResponse<SupportTicketDto>>
 
     @GET("support/faqs")
     suspend fun getFaqs(): Response<ApiResponse<List<FaqDto>>>
 
-    @POST("api/auth/select-account")
+    @POST("api/v1/auth/select-account")
     suspend fun selectAccount(@Body request: SelectAccountRequest): Response<AuthResponse>
 
-    @POST("api/auth/switch-account")
+    @POST("api/v1/auth/switch-account")
     suspend fun switchAccount(@Header("Authorization") token: String, @Body request: SwitchAccountRequest): Response<AuthResponse>
 
+    // Not confirmed — no "api/" prefix originally, left as-is
     @POST("auth/accounts")
     suspend fun getAccountsByPhone(@Body request: AccountsByPhoneRequest): Response<ApiResponse<List<AccountInfo>>>
 }

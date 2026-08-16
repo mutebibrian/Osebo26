@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.devbrian.osebo.data.PreferenceManager
 import com.devbrian.osebo.data.remote.dto.request.CreateSubscriptionRequest
+import com.devbrian.osebo.data.remote.dto.response.PaymentCheckResponse
 import com.devbrian.osebo.data.remote.dto.response.ShopSubscriptionStatusResponse
 import com.devbrian.osebo.data.remote.dto.response.SubscriptionResponse
 import com.devbrian.osebo.data.repository.SubscriptionRepository
@@ -41,9 +42,9 @@ class SubscriptionViewModel @Inject constructor(
     private val _createSubscriptionResult = MutableLiveData<Resource<SubscriptionResponse>>()
     val createSubscriptionResult: LiveData<Resource<SubscriptionResponse>> = _createSubscriptionResult
 
-    // Now tracks polling of the subscription itself (via paymentId), not a separate payment-status object
-    private val _paymentPollingStatus = MutableLiveData<Resource<Subscription?>>()
-    val paymentPollingStatus: LiveData<Resource<Subscription?>> = _paymentPollingStatus
+    // Now tracks polling via the real payment-check response shape (shop / packageSubscriptions / payment)
+    private val _paymentPollingStatus = MutableLiveData<Resource<PaymentCheckResponse?>>()
+    val paymentPollingStatus: LiveData<Resource<PaymentCheckResponse?>> = _paymentPollingStatus
 
     private val _shopSubscriptionStatus = MutableLiveData<Resource<ShopSubscriptionStatusResponse?>>()
     val shopSubscriptionStatus: LiveData<Resource<ShopSubscriptionStatusResponse?>> = _shopSubscriptionStatus
@@ -217,8 +218,8 @@ class SubscriptionViewModel @Inject constructor(
     }
 
     /**
-     * Polls the subscription record by paymentId until it reflects a completed/failed state,
-     * since there's no dedicated payment-status endpoint anymore.
+     * Polls the real payment-check response (shop / packageSubscriptions / payment) until
+     * it reflects a paid, failed, or cancelled state.
      */
     fun startPaymentPolling(paymentId: String, shopId: String) {
         pollingJob?.cancel()
@@ -238,26 +239,25 @@ class SubscriptionViewModel @Inject constructor(
 
                     when (result) {
                         is Resource.Success -> {
-                            val subscription = result.data
-                            val status = subscription?.status?.lowercase()
+                            val checkResponse = result.data
 
-                            when (status) {
-                                "active", "completed", "success" -> {
+                            when {
+                                checkResponse?.isActive == true -> {
                                     _successMessage.value = "Payment completed successfully!"
-                                    _paymentPollingStatus.value = Resource.Success(subscription)
+                                    _paymentPollingStatus.value = Resource.Success(checkResponse)
                                     refreshAllData(shopId)
                                     pollCount = maxAttempts // stop loop
                                 }
-                                "failed", "cancelled" -> {
-                                    _errorMessage.value = "Payment $status"
-                                    _paymentPollingStatus.value = Resource.Success(subscription)
+                                checkResponse?.isFailed == true || checkResponse?.isCancelled == true -> {
+                                    _errorMessage.value = "Payment ${checkResponse.payment?.status}"
+                                    _paymentPollingStatus.value = Resource.Success(checkResponse)
                                     pollCount = maxAttempts // stop loop
                                 }
                                 else -> {
                                     if (pollCount % 3 == 0) {
                                         _successMessage.value = "Waiting for payment confirmation..."
                                     }
-                                    _paymentPollingStatus.value = Resource.Success(subscription)
+                                    _paymentPollingStatus.value = Resource.Success(checkResponse)
                                 }
                             }
                         }
