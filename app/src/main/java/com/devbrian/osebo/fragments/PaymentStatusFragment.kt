@@ -80,7 +80,7 @@ class PaymentStatusFragment : Fragment() {
     }
 
     private fun observeViewModel() {
-        // Observe payment polling status — now a Subscription?, not a payment-status response
+        // Observe payment polling status — now the real PaymentCheckResponse shape
         viewModel.paymentPollingStatus.observe(viewLifecycleOwner) { resource ->
             println("🔔 PaymentStatus: paymentPollingStatus = $resource")
 
@@ -89,13 +89,12 @@ class PaymentStatusFragment : Fragment() {
                     updateStatus("Processing...", R.color.yellow_500)
                 }
                 is Resource.Success -> {
-                    val subscription = resource.data
-                    println("🔔 PaymentStatus: Subscription = $subscription")
-                    println("🔔 PaymentStatus: status = ${subscription?.status}")
+                    val checkResponse = resource.data
+                    println("🔔 PaymentStatus: isPaid = ${checkResponse?.isPaid}, payment.status = ${checkResponse?.payment?.status}")
 
-                    if (subscription != null) {
-                        when (subscription.status?.lowercase()) {
-                            "active", "completed", "success" -> {
+                    if (checkResponse != null) {
+                        when {
+                            checkResponse.isActive -> {
                                 println("✅ PaymentStatus: Payment COMPLETED!")
                                 updateStatus("Payment Completed!", R.color.green_500)
                                 binding.ivStatusIcon.setImageResource(R.drawable.ic_check_circle)
@@ -106,17 +105,10 @@ class PaymentStatusFragment : Fragment() {
 
                                 refreshShopSubscription(args.shopId)
                             }
-                            "pending" -> {
-                                println("⏳ PaymentStatus: Payment PENDING (poll #$pollCount)")
-                                updateStatus("Payment Pending", R.color.yellow_500)
-                                binding.tvStatusMessage.text = "Please complete payment on your phone"
-                                binding.tvNextCheck.text = "Checking... ($pollCount/60)"
-                                binding.tvPollingMessage.text = "Waiting for payment confirmation..."
-                            }
-                            "failed", "cancelled" -> {
-                                println("❌ PaymentStatus: Payment ${subscription.status}")
+                            checkResponse.isFailed || checkResponse.isCancelled -> {
+                                println("❌ PaymentStatus: Payment ${checkResponse.payment?.status}")
                                 updateStatus(
-                                    "Payment ${subscription.status.replaceFirstChar { it.uppercase() }}",
+                                    "Payment ${checkResponse.payment?.status?.replaceFirstChar { it.uppercase() } ?: "Failed"}",
                                     R.color.red_500
                                 )
                                 binding.ivStatusIcon.setImageResource(R.drawable.ic_error)
@@ -125,16 +117,15 @@ class PaymentStatusFragment : Fragment() {
                                 stopPolling()
                             }
                             else -> {
-                                println("❓ PaymentStatus: Unknown status = ${subscription.status}")
-                                updateStatus("Unknown Status", R.color.gray_500)
-                                binding.tvStatusMessage.text = "Unknown payment status"
-                                showRetryButton()
-                                stopPolling()
+                                println("⏳ PaymentStatus: Payment PENDING (poll #$pollCount)")
+                                updateStatus("Payment Pending", R.color.yellow_500)
+                                binding.tvStatusMessage.text = "Please complete payment on your phone"
+                                binding.tvNextCheck.text = "Checking... ($pollCount/60)"
+                                binding.tvPollingMessage.text = "Waiting for payment confirmation..."
                             }
                         }
                     } else {
-                        println("❌ PaymentStatus: No subscription found for this payment yet")
-                        // Keep waiting — subscription may not exist until payment is confirmed
+                        println("❌ PaymentStatus: No response for this payment yet")
                         updateStatus("Payment Pending", R.color.yellow_500)
                         binding.tvStatusMessage.text = "Please complete payment on your phone"
                     }

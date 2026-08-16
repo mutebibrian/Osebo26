@@ -15,29 +15,28 @@ import java.util.concurrent.TimeUnit
 class AuthRepository {
 
     private interface LocalApiService {
-        @POST("api/auth/signup")
+        @POST("api/v1/auth/signup")
         suspend fun signUp(@Body request: SignUpRequest): Response<BaseResponse<SignUpResponse>>
 
-        @POST("api/auth/signin")
+        @POST("api/v1/auth/signin")
         suspend fun requestOtp(@Body request: Map<String, String>): Response<BaseResponse<SigninResponse>>
 
-        // Step 2: Verify OTP – returns preAuthToken + accounts
-        @POST("api/auth/verify-2fa")
+        @POST("api/v1/auth/verify-2fa")
         suspend fun verify2fa(@Body request: Map<String, String>): Response<BaseResponse<PreAuthData>>
 
-        // Step 3: Select account – returns final tokens (SigninData)
-        @POST("api/auth/select-account")
+        @POST("api/v1/auth/select-account")
         suspend fun selectAccount(@Body request: Map<String, String>): Response<BaseResponse<SigninData>>
 
-
-        @POST("api/auth/resend-otp")
+        @POST("api/v1/auth/resend-otp")
         suspend fun resendOtp(@Body request: Map<String, String>): Response<BaseResponse<Unit>>
-        @POST("api/auth/signin/password")
+
+        @POST("api/v1/auth/signin/password")
         suspend fun signInWithPassword(@Body request: Map<String, String>): Response<BaseResponse<PreAuthData>>
     }
 
     private val apiService: LocalApiService by lazy {
-        val BASE_URL = "https://prod-api.osebo.ai"
+        // BASE_URL stays unversioned — "v1" is now part of each individual path (api/v1/...)
+        val BASE_URL = "https://prod-api.osebo.ai/"
 
         val loggingInterceptor = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
@@ -85,7 +84,6 @@ class AuthRepository {
         }
     }
 
-    // Returns PreAuthData (preAuthToken + accounts) – NOT final tokens
     suspend fun verify2fa(userId: String, otp: String): Result<PreAuthData> {
         return try {
             val response = apiService.verify2fa(mapOf("userId" to userId, "otp" to otp))
@@ -105,7 +103,6 @@ class AuthRepository {
         }
     }
 
-    // Exchange preAuthToken + accountId for final tokens (SigninData)
     suspend fun selectAccount(preAuthToken: String, accountId: String): Result<SigninData> {
         return try {
             val response = apiService.selectAccount(mapOf("preAuthToken" to preAuthToken, "accountId" to accountId))
@@ -137,7 +134,6 @@ class AuthRepository {
         }
     }
 
-    // ---------- PASSWORD LOGIN (direct tokens) ----------
     suspend fun loginWithPassword(email: String, password: String): Result<PreAuthData> {
         return try {
             val response = apiService.signInWithPassword(mapOf("username" to email, "password" to password))
@@ -156,7 +152,6 @@ class AuthRepository {
         }
     }
 
-    // ---------- SIGNUP ----------
     suspend fun signUp(request: SignUpRequest): Result<SignUpResponse> {
         return try {
             val response = apiService.signUp(request)
@@ -171,7 +166,6 @@ class AuthRepository {
         }
     }
 
-    // ---------- LEGACY ----------
     suspend fun verifyOtp(request: VerifyOtpRequest): Result<Unit> {
         return try {
             val response = apiService.verify2fa(mapOf("userId" to request.userId, "otp" to request.otp))
@@ -185,7 +179,6 @@ class AuthRepository {
         }
     }
 
-    // ---------- HELPER ----------
     private fun extractErrorMessage(response: Response<*>): String {
         return try {
             val errorBody = response.errorBody()?.string()

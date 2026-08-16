@@ -4,6 +4,7 @@ import com.devbrian.osebo.data.ApiService
 import com.devbrian.osebo.data.remote.dto.request.CreateSubscriptionRequest
 import com.devbrian.osebo.data.remote.dto.response.FeatureDto
 import com.devbrian.osebo.data.remote.dto.response.PackageDto
+import com.devbrian.osebo.data.remote.dto.response.PaymentCheckResponse
 import com.devbrian.osebo.data.remote.dto.response.PaymentDto
 import com.devbrian.osebo.data.remote.dto.response.ShopDto
 import com.devbrian.osebo.data.remote.dto.response.ShopSubscriptionDto
@@ -87,9 +88,6 @@ class SubscriptionRepositoryImpl @Inject constructor(
         )
     }
 
-    // Fixed: `type` and `features` can both be missing/null in the API response.
-    // Gson bypasses Kotlin default values when a field is absent from JSON, so we
-    // must fall back explicitly here rather than relying on PackageDto's defaults.
     private fun PackageDto.toSubscriptionPackage(): SubscriptionPackage {
         return SubscriptionPackage(
             id = this.id,
@@ -362,7 +360,7 @@ class SubscriptionRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun findSubscriptionByPaymentId(paymentId: String): Resource<Subscription> {
+    override suspend fun findSubscriptionByPaymentId(paymentId: String): Resource<PaymentCheckResponse> {
         return try {
             val response = apiService.findSubscriptionByPaymentId(paymentId)
             if (response.isSuccessful) {
