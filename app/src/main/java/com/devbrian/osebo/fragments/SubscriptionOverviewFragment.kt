@@ -33,6 +33,7 @@ class SubscriptionOverviewFragment : Fragment() {
     private var shopId: String = ""
     private var currentSubscription: Subscription? = null
     private var selectedPackages: List<SubscriptionPackage> = emptyList()
+    private var canActivateTrial: Boolean = true
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -55,7 +56,6 @@ class SubscriptionOverviewFragment : Fragment() {
     }
 
     private fun setupRecyclerView() {
-        // Adapter now supports multi-select bundles — callback receives the full selection.
         packageAdapter = SubscriptionPackageAdapter { selected ->
             selectedPackages = selected
         }
@@ -67,25 +67,32 @@ class SubscriptionOverviewFragment : Fragment() {
     }
 
     private fun setupObservers() {
-        viewModel.currentSubscription.observe(viewLifecycleOwner) { resource ->
+        // Drives the "Active Bundles" overview card — matches web's Shop Billing screen
+        viewModel.shopSubscriptionStatus.observe(viewLifecycleOwner) { resource ->
             when (resource) {
                 is Resource.Success -> {
-                    resource.data?.let { subscription ->
-                        currentSubscription = subscription
+                    val data = resource.data
+                    binding.progressBar.visibility = View.GONE
+
+                    canActivateTrial = data?.canActivate ?: true
+
+                    val activeBundleCount = data?.subscription?.let { 1 } ?: 0
+                    binding.tvActiveBundles.text = activeBundleCount.toString()
+
+                    if (data?.isActive == true) {
                         binding.noSubscriptionLayout.visibility = View.GONE
                         binding.subscriptionDetailsLayout.visibility = View.VISIBLE
-                        binding.progressBar.visibility = View.GONE
-                        binding.errorText.visibility = View.GONE
-                        displaySubscriptionData(subscription)
-                    } ?: run {
-                        showNoSubscriptionState()
+                        data.subscription?.let { displaySubscriptionData(it) }
+                    } else {
+                        binding.noSubscriptionLayout.visibility = View.VISIBLE
+                        binding.subscriptionDetailsLayout.visibility = View.GONE
+                        binding.subscribeNowButton.text =
+                            if (canActivateTrial) "Start Free Trial" else "Manage Bundles"
                     }
                 }
                 is Resource.Error -> {
+                    binding.progressBar.visibility = View.GONE
                     showNoSubscriptionState()
-                    if (resource.message != "No active subscription found") {
-                        showSnackbar("Failed to load subscription: ${resource.message ?: "Unknown error"}")
-                    }
                 }
                 is Resource.Loading -> {
                     binding.progressBar.visibility = View.VISIBLE
@@ -98,19 +105,15 @@ class SubscriptionOverviewFragment : Fragment() {
                 is Resource.Success -> {
                     val packages = resource.data ?: emptyList()
                     packageAdapter.submitList(packages)
-                    binding.progressBar.visibility = View.GONE
                     binding.errorText.visibility = View.GONE
                     binding.plansRecyclerView.visibility = View.VISIBLE
                 }
                 is Resource.Error -> {
                     binding.errorText.text = resource.message ?: "Failed to load plans"
                     binding.errorText.visibility = View.VISIBLE
-                    binding.progressBar.visibility = View.GONE
                     binding.plansRecyclerView.visibility = View.GONE
                 }
-                is Resource.Loading -> {
-                    binding.progressBar.visibility = View.VISIBLE
-                }
+                is Resource.Loading -> {}
             }
         }
 
@@ -131,33 +134,20 @@ class SubscriptionOverviewFragment : Fragment() {
                 is Resource.Loading -> {}
             }
         }
-
-        viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
-            binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
-        }
     }
 
     private fun displaySubscriptionData(subscription: Subscription) {
-
         binding.tvShopName.text = getCurrentShopName()
-
         binding.planNameTextView.text = subscription.displayPackage ?: subscription.packageType
-
-        binding.priceTextView.text = if (subscription.isTrial) {
-            "Free Trial"
-        } else {
-            subscription.formattedAmount
-        }
+        binding.priceTextView.text = if (subscription.isTrial) "Free Trial" else subscription.formattedAmount
 
         val expiryDate = formatDateForDisplay(subscription.endDate)
         binding.expiresValue.text = expiryDate
         binding.endDateTextView.text = expiryDate
-
         binding.startDateTextView.text = formatDateForDisplay(subscription.startDate)
 
         val daysLeft = subscription.daysRemaining
         binding.daysLeftValue.text = daysLeft.toString()
-
         val daysColor = when {
             daysLeft < 3 -> R.color.error_red
             daysLeft < 7 -> R.color.warning_orange
@@ -181,7 +171,6 @@ class SubscriptionOverviewFragment : Fragment() {
         binding.statusChip.setChipBackgroundColorResource(statusColor)
 
         binding.autoRenewTextView.text = if (subscription.autoRenew) "Enabled" else "Disabled"
-
         binding.paymentMethodTextView.text = subscription.paymentMethod?.let {
             when (it.uppercase()) {
                 "MOBILE_MONEY" -> "Mobile Money"
@@ -191,25 +180,20 @@ class SubscriptionOverviewFragment : Fragment() {
             }
         } ?: "Not set"
 
-        binding.renewButton.visibility = if (subscription.isActiveStatus || subscription.isTrialActive) {
-            View.VISIBLE
-        } else {
-            View.GONE
-        }
-
+        binding.renewButton.visibility = if (subscription.isActiveStatus || subscription.isTrialActive) View.VISIBLE else View.GONE
         binding.renewShopSubscription.visibility = binding.renewButton.visibility
     }
 
     private fun showNoSubscriptionState() {
         binding.noSubscriptionLayout.visibility = View.VISIBLE
         binding.subscriptionDetailsLayout.visibility = View.GONE
-        binding.progressBar.visibility = View.GONE
         binding.tvShopName.text = getCurrentShopName()
+        binding.subscribeNowButton.text = if (canActivateTrial) "Start Free Trial" else "Manage Bundles"
     }
 
     private fun loadSubscriptionData() {
         if (shopId.isNotEmpty()) {
-            viewModel.getShopActiveSubscription(shopId)
+            viewModel.checkShopSubscription(shopId)
         }
         viewModel.loadSubscriptionPackages()
     }
@@ -220,21 +204,15 @@ class SubscriptionOverviewFragment : Fragment() {
         }
 
         binding.renewButton.setOnClickListener {
-            currentSubscription?.let { subscription ->
-                showRenewDialog(subscription)
-            } ?: run {
-                showSnackbar("No active subscription to renew")
-            }
+            currentSubscription?.let { showRenewDialog(it) } ?: showSnackbar("No active subscription to renew")
         }
 
         binding.renewShopSubscription.setOnClickListener {
-            currentSubscription?.let { subscription ->
-                showRenewDialog(subscription)
-            } ?: run {
-                showSnackbar("No active subscription to renew")
-            }
+            currentSubscription?.let { showRenewDialog(it) } ?: showSnackbar("No active subscription to renew")
         }
 
+        // "Start Free Trial" / "Manage Bundles" — both scroll to bundle picker,
+        // matching the web app's flow into Choose Bundles
         binding.subscribeNowButton.setOnClickListener {
             binding.plansRecyclerView.smoothScrollToPosition(0)
         }
@@ -247,9 +225,9 @@ class SubscriptionOverviewFragment : Fragment() {
             loadSubscriptionData()
         }
 
-        // NOTE: if your layout has a dedicated "continue with selected bundles" button
-        // (e.g. binding.btnSubscribeSelected), wire it here to call proceedWithSelection().
-        // Not present in the layout shown so far — add it if you have one.
+        binding.btnCheckoutSelected?.setOnClickListener {
+            proceedWithSelection()
+        }
     }
 
     private fun proceedWithSelection() {
@@ -257,18 +235,14 @@ class SubscriptionOverviewFragment : Fragment() {
             Toast.makeText(requireContext(), "No shop selected", Toast.LENGTH_SHORT).show()
             return
         }
-
         if (selectedPackages.isEmpty()) {
             Toast.makeText(requireContext(), "Please select at least one bundle", Toast.LENGTH_SHORT).show()
             return
         }
-
-        val customOnly = selectedPackages.any { it.isCustom }
-        if (customOnly) {
+        if (selectedPackages.any { it.isCustom }) {
             openContactSales()
             return
         }
-
         showPaymentDialog(selectedPackages)
     }
 
@@ -276,24 +250,19 @@ class SubscriptionOverviewFragment : Fragment() {
         androidx.appcompat.app.AlertDialog.Builder(requireContext())
             .setTitle("Renew Subscription")
             .setMessage("Do you want to renew your ${subscription.displayPackage}?")
-            .setPositiveButton("Renew Now") { _, _ ->
-                binding.plansRecyclerView.smoothScrollToPosition(0)
-            }
+            .setPositiveButton("Renew Now") { _, _ -> binding.plansRecyclerView.smoothScrollToPosition(0) }
             .setNegativeButton("Cancel", null)
             .show()
     }
 
     private fun showPaymentDialog(packages: List<SubscriptionPackage>) {
         val totalAmount = packages.sumOf { it.price }
-        println("💰 Payment amount: $totalAmount")
-
         val dialog = PaymentDialogFragment.newInstance(
             shopId = shopId,
             packageId = packages.joinToString(",") { it.id },
             packageName = packages.joinToString(", ") { it.displayName },
             amount = totalAmount
         )
-
         dialog.setPaymentListener { phoneNumber, _, months, _ ->
             viewModel.createSubscription(
                 shopId = shopId,
@@ -302,7 +271,6 @@ class SubscriptionOverviewFragment : Fragment() {
                 months = months
             )
         }
-
         dialog.show(parentFragmentManager, "PaymentDialog")
     }
 
@@ -311,13 +279,9 @@ class SubscriptionOverviewFragment : Fragment() {
             data = "mailto:support@osebo.ai".toUri()
             putExtra(android.content.Intent.EXTRA_SUBJECT, "Custom Plan Inquiry")
             putExtra(android.content.Intent.EXTRA_TEXT, buildString {
-                append("Hello,\n\n")
-                append("I'm interested in a custom subscription plan.\n\n")
-                append("Shop ID: $shopId\n")
-                append("Please contact me with more information.")
+                append("Hello,\n\nI'm interested in a custom subscription plan.\n\nShop ID: $shopId\nPlease contact me with more information.")
             })
         }
-
         try {
             startActivity(intent)
         } catch (_: Exception) {
@@ -327,22 +291,12 @@ class SubscriptionOverviewFragment : Fragment() {
 
     private fun formatDateForDisplay(dateString: String?): String {
         if (dateString.isNullOrEmpty()) return "N/A"
-
         return try {
             val inputFormat = if (dateString.contains("T")) {
-                SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()).apply {
-                    timeZone = TimeZone.getTimeZone("UTC")
-                }
-            } else {
-                SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-            }
-
-            val outputFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
-            val date = inputFormat.parse(dateString)
-            outputFormat.format(date!!)
-        } catch (e: Exception) {
-            dateString
-        }
+                SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()).apply { timeZone = TimeZone.getTimeZone("UTC") }
+            } else SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(inputFormat.parse(dateString)!!)
+        } catch (e: Exception) { dateString }
     }
 
     private fun getCurrentShopId(): String {
@@ -352,12 +306,10 @@ class SubscriptionOverviewFragment : Fragment() {
 
     private fun getCurrentShopName(): String {
         val prefs = requireContext().getSharedPreferences("OseboPrefs", android.content.Context.MODE_PRIVATE)
-        return prefs.getString("current_shop_name", "BK Enterprise") ?: "BK Enterprise"
+        return prefs.getString("current_shop_name", "") ?: ""
     }
 
-    private fun showSnackbar(message: String) {
-        Snackbar.make(binding.root, message, Snackbar.LENGTH_SHORT).show()
-    }
+    private fun showSnackbar(message: String) = Snackbar.make(binding.root, message, Snackbar.LENGTH_SHORT).show()
 
     override fun onDestroyView() {
         super.onDestroyView()

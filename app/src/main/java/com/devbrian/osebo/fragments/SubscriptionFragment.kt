@@ -163,18 +163,18 @@ class SubscriptionFragment : Fragment() {
         viewModel.paymentPollingStatus.observe(viewLifecycleOwner) { resource ->
             when (resource) {
                 is Resource.Success -> {
-                    resource.data?.let { subscription ->
-                        when (subscription.status?.lowercase()) {
-                            "active", "completed", "success" -> {
+                    resource.data?.let { checkResponse ->
+                        when {
+                            checkResponse.isActive -> {
                                 Toast.makeText(requireContext(),
                                     "Payment successful! Your subscription is now active.",
                                     Toast.LENGTH_LONG
                                 ).show()
                                 loadSubscriptionData()
                             }
-                            "failed", "cancelled" -> {
+                            checkResponse.isFailed || checkResponse.isCancelled -> {
                                 Toast.makeText(requireContext(),
-                                    "Payment ${subscription.status ?: "failed"}. Please try again.",
+                                    "Payment ${checkResponse.payment?.status ?: "failed"}. Please try again.",
                                     Toast.LENGTH_SHORT
                                 ).show()
                             }
