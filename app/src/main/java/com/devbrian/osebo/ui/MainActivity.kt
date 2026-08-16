@@ -9,8 +9,6 @@ import android.util.Log
 import android.view.MenuItem
 import android.view.MotionEvent
 import android.view.View
-import android.widget.ImageView
-import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -78,10 +76,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private var currentShop: Shop? = null
     private var isDataLoading = false
 
-    
-    
-    
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -98,10 +92,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         loadInitialData()
     }
-
-    
-    
-    
 
     private fun setupToolbar() {
         setSupportActionBar(binding.topAppBar)
@@ -133,11 +123,11 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         setupActionBarWithNavController(navController, appBarConfiguration)
 
-        
         binding.navigationView.setNavigationItemSelectedListener(this)
         Log.d("NavDrawer_DEBUG", "✅ NavigationItemSelectedListener set")
 
-        binding.navigationView.itemIconTintList = null
+        // REMOVED: binding.navigationView.itemIconTintList = null (We want the XML selector to work)
+
         binding.navigationView.isClickable = true
         binding.navigationView.isFocusable = true
         binding.navigationView.isLongClickable = true
@@ -148,23 +138,11 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             binding.drawerLayout.openDrawer(GravityCompat.START)
         }
 
-        
         binding.drawerLayout.addDrawerListener(object : androidx.drawerlayout.widget.DrawerLayout.DrawerListener {
-            override fun onDrawerSlide(drawerView: View, slideOffset: Float) {
-                Log.d("NavDrawer_DEBUG", "📂 Drawer sliding: offset=$slideOffset")
-            }
-
-            override fun onDrawerOpened(drawerView: View) {
-                Log.d("NavDrawer_DEBUG", "📂 ✅ DRAWER OPENED - Menu items should be clickable now")
-            }
-
-            override fun onDrawerClosed(drawerView: View) {
-                Log.d("NavDrawer_DEBUG", "📂 Drawer closed")
-            }
-
-            override fun onDrawerStateChanged(newState: Int) {
-                Log.d("NavDrawer_DEBUG", "📂 Drawer state changed: $newState")
-            }
+            override fun onDrawerSlide(drawerView: View, slideOffset: Float) {}
+            override fun onDrawerOpened(drawerView: View) {}
+            override fun onDrawerClosed(drawerView: View) {}
+            override fun onDrawerStateChanged(newState: Int) {}
         })
 
         Log.d("NavDrawer_DEBUG", "✅ setupNavigation() completed successfully")
@@ -186,6 +164,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             else -> "UNKNOWN($action)"
         }
     }
+
     private fun setupNavControllerListener() {
         navController.addOnDestinationChangedListener { _, destination, arguments ->
             Log.d("NavDrawer_DEBUG", "📍 Destination changed to: ${destination.label} (ID: ${destination.id})")
@@ -258,45 +237,25 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
     }
 
+    // UPDATED: Now uses direct binding instead of getHeaderView(0)
     private fun setupHeaderView() {
-        val headerView = binding.navigationView.getHeaderView(0)
-
-        val tvUserName = headerView.findViewById<TextView>(R.id.tv_user_name)
-        val tvUserEmail = headerView.findViewById<TextView>(R.id.tv_user_email)
-        val tvUserInitial = headerView.findViewById<TextView>(R.id.tv_user_initial)
-        val tvCurrentShop = headerView.findViewById<TextView>(R.id.tv_current_shop)
-        val ivSettings = headerView.findViewById<ImageView>(R.id.iv_settings)
-        val llUserAvatar = headerView.findViewById<View>(R.id.ll_user_avatar)
-        val tvSubscriptionBadge = headerView.findViewById<TextView>(R.id.tv_subscription_badge)
-
         val userName = preferenceManager.getUserName()
-        val userEmail = preferenceManager.getUserEmail()
-        val shopName = preferenceManager.getCurrentShopName()
+        val firstName = userName.split(" ").firstOrNull()?.takeIf { it.isNotEmpty() } ?: "User"
 
-        tvUserName.text = userName.ifEmpty { "Admin User" }
-        tvUserEmail.text = userEmail.ifEmpty { "admin@osebo.ai" }
-        tvCurrentShop.text = shopName.ifEmpty { "No Shop Selected" }
+        binding.tvUserName.text = firstName
+        binding.tvAppVersion.text = "v1.2.4 (Build 498)" // You can change this to BuildConfig.VERSION_NAME if preferred
 
-        updateSubscriptionBadge(tvSubscriptionBadge)
+        val initial = if (userName.isNotEmpty()) userName.first().toString().uppercase(Locale.getDefault()) else "A"
+        binding.tvUserInitial.text = initial
 
-        val initial = if (userName.isNotEmpty()) userName.first().toString() else "A"
-        tvUserInitial.text = initial.uppercase()
-        llUserAvatar.setBackgroundColor(getAvatarColor(userName))
+        // Tint the avatar circle dynamically based on user name
+        binding.tvUserInitial.backgroundTintList = android.content.res.ColorStateList.valueOf(getAvatarColor(userName))
 
-        
-        llUserAvatar.setOnClickListener {
-            Log.d("NavDrawer_DEBUG", "🔵 Avatar clicked - navigating to profile")
-            navigateToProfile()
-        }
-        ivSettings.setOnClickListener {
-            Log.d("NavDrawer_DEBUG", "🔵 Settings clicked - navigating to settings")
-            navigateToSettings()
-        }
+        binding.ivLogout.setOnClickListener { logout() }
+        binding.llUserCard.setOnClickListener { navigateToProfile() }
+
+        updateHeaderWithSubscriptionStatus()
     }
-
-    
-    
-    
 
     private fun loadInitialData() {
         if (isDataLoading) return
@@ -443,19 +402,13 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
     }
 
-    private fun checkForExpiringSubscription() {
-        
-    }
+    private fun checkForExpiringSubscription() {}
 
     private fun handleDestinationArguments(destinationId: Int, arguments: Bundle?) {
         when (destinationId) {
             R.id.subscriptionPackagesFragment -> { }
         }
     }
-
-
-
-
 
     private fun setupNavigationMenu() {
         Log.d("NavDrawer_DEBUG", "📍 setupNavigationMenu() called")
@@ -510,9 +463,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         menu.findItem(R.id.nav_account).isVisible = hasShops &&
                 (isOwner || permissionManager.hasPermission(PermissionType.VIEW_EMPLOYEES))
 
-        // ===== FIX: Hide User Roles for employees (only owners can see it) =====
+        // Hide User Roles for employees (only owners can see it)
         val userRolesItem = menu.findItem(R.id.nav_user_roles)
-        userRolesItem.isVisible = hasShops && isOwner  // Only shop owners can see User Roles
+        userRolesItem.isVisible = hasShops && isOwner
         Log.d("NavDrawer_DEBUG", "  Menu item nav_user_roles: visible=${userRolesItem.isVisible} (isOwner=$isOwner)")
 
         updateHeaderWithSubscriptionStatus()
@@ -524,308 +477,114 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         binding.navigationView.invalidate()
     }
 
-    
-    
-    
-    
-
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
         Log.d("NavDrawer_DEBUG", "🔴 ============ MenuItem CLICKED ============")
         Log.d("NavDrawer_DEBUG", "   itemId: ${item.itemId}")
         Log.d("NavDrawer_DEBUG", "   title: ${item.title}")
-        Log.d("NavDrawer_DEBUG", "   isVisible: ${item.isVisible}")
-        Log.d("NavDrawer_DEBUG", "   isEnabled: ${item.isEnabled}")
 
         when (item.itemId) {
-
-            
-            R.id.nav_dashboard -> {
-                Log.d("NavDrawer_DEBUG", "→ Case: nav_dashboard - Navigating to mainDashboardFragment")
-                navController.navigate(R.id.mainDashboardFragment)
-            }
-
+            R.id.nav_dashboard -> navController.navigate(R.id.mainDashboardFragment)
             R.id.nav_shops -> {
-                Log.d("NavDrawer_DEBUG", "→ Case: nav_shops - isShopOwner: ${permissionManager.isShopOwner()}")
-                if (permissionManager.isShopOwner()) {
-                    Log.d("NavDrawer_DEBUG", "→ Navigating to shopsFragment")
-                    navController.navigate(R.id.shopsFragment)
-                } else {
-                    Log.d("NavDrawer_DEBUG", "⚠️ Permission denied - not shop owner")
-                    showPermissionDeniedDialog("manage shops")
-                }
+                if (permissionManager.isShopOwner()) navController.navigate(R.id.shopsFragment)
+                else showPermissionDeniedDialog("manage shops")
             }
-
-            
             R.id.nav_shop_home -> {
-                Log.d("NavDrawer_DEBUG", "→ Case: nav_shop_home - hasShop: ${preferenceManager.hasShop()}")
-                if (preferenceManager.hasShop()) {
-                    Log.d("NavDrawer_DEBUG", "→ Navigating to shopDashboardFragment")
-                    navController.navigate(R.id.shopDashboardFragment)
-                } else {
-                    Log.d("NavDrawer_DEBUG", "⚠️ No shop selected")
-                    showSelectShopFirstDialog()
-                }
+                if (preferenceManager.hasShop()) navController.navigate(R.id.shopDashboardFragment)
+                else showSelectShopFirstDialog()
             }
-
-            
             R.id.nav_sales -> {
-                Log.d("NavDrawer_DEBUG", "→ Case: nav_sales - Checking permission: VIEW_SALES")
-                val hasPermission = permissionManager.hasPermission(PermissionType.VIEW_SALES)
-                Log.d("NavDrawer_DEBUG", "   hasPermission: $hasPermission")
-                if (hasPermission) {
-                    Log.d("NavDrawer_DEBUG", "→ Navigating to salesFragment")
-                    navController.navigate(R.id.salesFragment)
-                } else {
-                    Log.d("NavDrawer_DEBUG", "⚠️ Permission denied - VIEW_SALES")
-                    showPermissionDeniedDialog("sales")
-                }
+                if (permissionManager.hasPermission(PermissionType.VIEW_SALES)) navController.navigate(R.id.salesFragment)
+                else showPermissionDeniedDialog("sales")
             }
-
             R.id.nav_finance -> {
-                Log.d("NavDrawer_DEBUG", "→ Case: nav_finance - Checking permission: VIEW_FINANCE")
-                val hasPermission = permissionManager.hasPermission(PermissionType.VIEW_FINANCE)
-                Log.d("NavDrawer_DEBUG", "   hasPermission: $hasPermission")
-                if (hasPermission) {
-                    Log.d("NavDrawer_DEBUG", "→ Navigating to financeFragment")
-                    navController.navigate(R.id.financeFragment)
-                } else {
-                    Log.d("NavDrawer_DEBUG", "⚠️ Permission denied - VIEW_FINANCE")
-                    showPermissionDeniedDialog("finance")
-                }
+                if (permissionManager.hasPermission(PermissionType.VIEW_FINANCE)) navController.navigate(R.id.financeFragment)
+                else showPermissionDeniedDialog("finance")
             }
-
             R.id.nav_inventory -> {
-                Log.d("NavDrawer_DEBUG", "→ Case: nav_inventory - Checking permission: VIEW_INVENTORY")
-                val hasPermission = permissionManager.hasPermission(PermissionType.VIEW_INVENTORY)
-                Log.d("NavDrawer_DEBUG", "   hasPermission: $hasPermission")
-                if (hasPermission) {
-                    Log.d("NavDrawer_DEBUG", "→ Navigating to inventoryFragment")
-                    navController.navigate(R.id.inventoryFragment)
-                } else {
-                    Log.d("NavDrawer_DEBUG", "⚠️ Permission denied - VIEW_INVENTORY")
-                    showPermissionDeniedDialog("inventory")
-                }
+                if (permissionManager.hasPermission(PermissionType.VIEW_INVENTORY)) navController.navigate(R.id.inventoryFragment)
+                else showPermissionDeniedDialog("inventory")
             }
-
-            R.id.nav_transfers -> {
-                Log.d("NavDrawer_DEBUG", "→ Case: nav_transfers - Coming soon")
-                Toast.makeText(this, "Transfers coming soon", Toast.LENGTH_SHORT).show()
-            }
-
-            
+            R.id.nav_transfers -> Toast.makeText(this, "Transfers coming soon", Toast.LENGTH_SHORT).show()
             R.id.nav_employees -> {
-                Log.d("NavDrawer_DEBUG", "→ Case: nav_employees - Checking permission: VIEW_EMPLOYEES")
-                val hasPermission = permissionManager.hasPermission(PermissionType.VIEW_EMPLOYEES)
-                Log.d("NavDrawer_DEBUG", "   hasPermission: $hasPermission")
-                if (hasPermission) {
-                    Log.d("NavDrawer_DEBUG", "→ Navigating to employeesFragment")
-                    navController.navigate(R.id.employeesFragment)
-                } else {
-                    Log.d("NavDrawer_DEBUG", "⚠️ Permission denied - VIEW_EMPLOYEES")
-                    showPermissionDeniedDialog("employee management")
-                }
+                if (permissionManager.hasPermission(PermissionType.VIEW_EMPLOYEES)) navController.navigate(R.id.employeesFragment)
+                else showPermissionDeniedDialog("employee management")
             }
-
             R.id.nav_suppliers -> {
-                Log.d("NavDrawer_DEBUG", "→ Case: nav_suppliers - Checking permission: VIEW_INVENTORY")
-                val hasPermission = permissionManager.hasPermission(PermissionType.VIEW_INVENTORY)
-                Log.d("NavDrawer_DEBUG", "   hasPermission: $hasPermission")
-                if (hasPermission) {
-                    Log.d("NavDrawer_DEBUG", "→ Navigating to suppliersFragment")
-                    navController.navigate(R.id.suppliersFragment)
-                } else {
-                    Log.d("NavDrawer_DEBUG", "⚠️ Permission denied - VIEW_INVENTORY (suppliers)")
-                    showPermissionDeniedDialog("suppliers")
-                }
+                if (permissionManager.hasPermission(PermissionType.VIEW_INVENTORY)) navController.navigate(R.id.suppliersFragment)
+                else showPermissionDeniedDialog("suppliers")
             }
-
             R.id.nav_customers -> {
-                Log.d("NavDrawer_DEBUG", "→ Case: nav_customers - Checking permission: VIEW_CUSTOMERS")
-                val hasPermission = permissionManager.hasPermission(PermissionType.VIEW_CUSTOMERS)
-                Log.d("NavDrawer_DEBUG", "   hasPermission: $hasPermission")
-                if (hasPermission) {
-                    Log.d("NavDrawer_DEBUG", "→ Navigating to customersFragment")
-                    navController.navigate(R.id.customersFragment)
-                } else {
-                    Log.d("NavDrawer_DEBUG", "⚠️ Permission denied - VIEW_CUSTOMERS")
-                    showPermissionDeniedDialog("customer management")
-                }
+                if (permissionManager.hasPermission(PermissionType.VIEW_CUSTOMERS)) navController.navigate(R.id.customersFragment)
+                else showPermissionDeniedDialog("customer management")
             }
-
-            
             R.id.nav_subscription -> {
-                Log.d("NavDrawer_DEBUG", "→ Case: nav_subscription - isShopOwner: ${permissionManager.isShopOwner()}")
-                if (permissionManager.isShopOwner()) {
-                    Log.d("NavDrawer_DEBUG", "→ Navigating to subscriptionPackagesFragment")
-                    navigateToSubscriptionPackages()
-                } else {
-                    Log.d("NavDrawer_DEBUG", "⚠️ Permission denied - not shop owner")
-                    showPermissionDeniedDialog("subscription management")
-                }
+                if (permissionManager.isShopOwner()) navigateToSubscriptionPackages()
+                else showPermissionDeniedDialog("subscription management")
             }
-
             R.id.nav_user_roles -> {
-                Log.d("NavDrawer_DEBUG", "→ Case: nav_user_roles - Checking permission")
-                // Only shop owners can access User Roles
-                if (permissionManager.isShopOwner()) {
-                    Log.d("NavDrawer_DEBUG", "→ Owner verified - Navigating to userRolesFragment")
-                    navController.navigate(R.id.userRolesFragment)
-                } else {
-                    Log.d("NavDrawer_DEBUG", "⚠️ Permission denied - User Roles only for shop owners")
+                if (permissionManager.isShopOwner()) navController.navigate(R.id.userRolesFragment)
+                else {
                     showPermissionDeniedDialog("user roles management")
-                    // Close drawer and don't navigate
                     binding.drawerLayout.closeDrawer(GravityCompat.START)
                     return true
                 }
             }
-
             R.id.nav_account -> {
-                Log.d("NavDrawer_DEBUG", "→ Case: nav_account - Checking permissions")
                 val hasViewPermission = permissionManager.hasPermission(PermissionType.VIEW_EMPLOYEES)
                 val isOwner = permissionManager.isShopOwner()
-                Log.d("NavDrawer_DEBUG", "   hasViewPermission: $hasViewPermission, isOwner: $isOwner")
-                if (hasViewPermission || isOwner) {
-                    Log.d("NavDrawer_DEBUG", "→ Navigating to accountFragment")
-                    navController.navigate(R.id.accountFragment)
-                } else {
-                    Log.d("NavDrawer_DEBUG", "⚠️ Permission denied - account settings")
-                    showPermissionDeniedDialog("account settings")
-                }
+                if (hasViewPermission || isOwner) navController.navigate(R.id.accountFragment)
+                else showPermissionDeniedDialog("account settings")
             }
-
-            R.id.nav_contact_us -> {
-                Log.d("NavDrawer_DEBUG", "→ Case: nav_contact_us - Navigating to contactUsFragment")
-                navController.navigate(R.id.contactUsFragment)
-            }
-
-            R.id.nav_logout -> {
-                Log.d("NavDrawer_DEBUG", "→ Case: nav_logout - Showing logout dialog")
-                logout()
-            }
-
-            else -> {
-                Log.d("NavDrawer_DEBUG", "⚠️ Unhandled menu item: ${item.itemId}")
-                Toast.makeText(this, "Feature coming soon", Toast.LENGTH_SHORT).show()
-            }
+            R.id.nav_contact_us -> navController.navigate(R.id.contactUsFragment)
+            R.id.nav_logout -> logout()
+            else -> Toast.makeText(this, "Feature coming soon", Toast.LENGTH_SHORT).show()
         }
 
-        Log.d("NavDrawer_DEBUG", "🟢 Closing drawer")
         binding.drawerLayout.closeDrawer(GravityCompat.START)
-        Log.d("NavDrawer_DEBUG", "🟢 ============ MenuItem handling COMPLETE ============")
         return true
     }
 
-    
-    
-    
-
+    // UPDATED: Uses direct binding for user role instead of header view
     private fun updateHeaderWithSubscriptionStatus() {
-        val headerView = binding.navigationView.getHeaderView(0)
-        val tvAppVersion = headerView.findViewById<TextView>(R.id.tv_app_version)
-
-        val hasAccess = hasAccessToBusinessOperations()
         val isOwner = permissionManager.isShopOwner()
-
-        val status = when {
-            !preferenceManager.hasShop() -> "NO SHOP SELECTED"
-            !isOwner -> "EMPLOYEE ACCOUNT"
-            preferenceManager.isTrial() -> "TRIAL (expires: ${preferenceManager.getSubscriptionExpiry()})"
-            hasAccess -> "ACTIVE"
-            else -> "NO SUBSCRIPTION"
+        binding.tvUserRole.text = when {
+            !isOwner -> "Employee"
+            !preferenceManager.hasShop() -> "Owner • No active shop"
+            preferenceManager.isTrial() -> "Owner • Trial"
+            hasAccessToBusinessOperations() -> "Owner"
+            else -> "Owner • No subscription"
         }
-
-        tvAppVersion.text = "v1.2.0 • $status"
     }
 
-    private fun updateHeaderForShopView(shopName: String) {
-        val headerView = binding.navigationView.getHeaderView(0)
-        val tvCurrentShop = headerView.findViewById<TextView>(R.id.tv_current_shop)
-        val tvViewingMode = headerView.findViewById<TextView>(R.id.tv_viewing_mode)
+    // Kept as no-ops since the new web drawer doesn't show shop names in the header
+    private fun updateHeaderForShopView(shopName: String) {}
+    private fun updateHeaderForMainView() {}
 
-        tvViewingMode?.text = "Viewing:"
-        tvViewingMode?.visibility = View.VISIBLE
-        tvCurrentShop.text = shopName
-        tvCurrentShop.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_shop, 0, 0, 0)
-    }
-
-    private fun updateHeaderForMainView() {
-        val headerView = binding.navigationView.getHeaderView(0)
-        val tvCurrentShop = headerView.findViewById<TextView>(R.id.tv_current_shop)
-        val tvViewingMode = headerView.findViewById<TextView>(R.id.tv_viewing_mode)
-
-        tvViewingMode?.visibility = View.GONE
-        val shopName = preferenceManager.getCurrentShopName()
-        tvCurrentShop.text = shopName.ifEmpty { "No Shop Selected" }
-        tvCurrentShop.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_location, 0, 0, 0)
-    }
-
-    private fun updateSubscriptionBadge(tvSubscriptionBadge: TextView) {
-        val hasAccess = hasAccessToBusinessOperations()
-        val isTrial = preferenceManager.isTrial()
-        val expiry = preferenceManager.getSubscriptionExpiry()
-        val isOwner = permissionManager.isShopOwner()
-
-        val statusText = when {
-            !preferenceManager.hasShop() -> "NO SHOP"
-            !isOwner -> "EMPLOYEE"
-            hasAccess && isTrial -> {
-                val daysLeft = calculateDaysUntilExpiry(expiry)
-                if (daysLeft > 0) "TRIAL · $daysLeft days left" else "TRIAL ENDED"
-            }
-            hasAccess && !isTrial -> "ACTIVE"
-            preferenceManager.isExpired() -> "EXPIRED"
-            else -> "NO SUBSCRIPTION"
-        }
-
-        val backgroundDrawable = when {
-            !preferenceManager.hasShop() -> R.drawable.bg_subscription_badge_inactive
-            !isOwner -> R.drawable.bg_subscription_badge_employee
-            hasAccess && isTrial -> R.drawable.bg_subscription_badge_trial
-            hasAccess && !isTrial -> R.drawable.bg_subscription_badge_active
-            else -> R.drawable.bg_subscription_badge_expired
-        }
-
-        tvSubscriptionBadge.text = statusText
-        tvSubscriptionBadge.setBackgroundResource(backgroundDrawable)
-        tvSubscriptionBadge.visibility = View.VISIBLE
-    }
-
-    
-    
-    
-
+    // UPDATED: Uses direct binding instead of getHeaderView
     fun updateHeaderShopInfo(shopName: String) {
-        val headerView = binding.navigationView.getHeaderView(0)
-        headerView.findViewById<TextView>(R.id.tv_current_shop).text = shopName
         preferenceManager.saveCurrentShopName(shopName)
         if (preferenceManager.getCurrentShopId().isNotEmpty()) {
             preferenceManager.saveHasShop(true)
         }
         checkSubscriptionStatus()
+        updateHeaderWithSubscriptionStatus()
     }
 
+    // UPDATED: Uses direct binding instead of getHeaderView
     fun updateHeaderUserInfo(userName: String, userEmail: String) {
-        val headerView = binding.navigationView.getHeaderView(0)
-        val tvUserName = headerView.findViewById<TextView>(R.id.tv_user_name)
-        val tvUserEmail = headerView.findViewById<TextView>(R.id.tv_user_email)
-        val tvUserInitial = headerView.findViewById<TextView>(R.id.tv_user_initial)
-        val llUserAvatar = headerView.findViewById<View>(R.id.ll_user_avatar)
+        val firstName = userName.split(" ").firstOrNull()?.takeIf { it.isNotEmpty() } ?: "User"
+        binding.tvUserName.text = firstName
 
-        tvUserName.text = userName
-        tvUserEmail.text = userEmail
-        val initial = if (userName.isNotEmpty()) userName.first().toString() else "A"
-        tvUserInitial.text = initial.uppercase()
-        llUserAvatar.setBackgroundColor(getAvatarColor(userName))
+        val initial = if (userName.isNotEmpty()) userName.first().toString().uppercase(Locale.getDefault()) else "A"
+        binding.tvUserInitial.text = initial
+        binding.tvUserInitial.backgroundTintList = android.content.res.ColorStateList.valueOf(getAvatarColor(userName))
 
         val parts = userName.split(" ", limit = 2)
-        val firstName = parts.getOrNull(0) ?: userName
-        val lastName = parts.getOrNull(1) ?: ""
-
         preferenceManager.saveUserFullData(
             userId = preferenceManager.getUserId(),
             email = userEmail,
-            firstName = firstName,
-            lastName = lastName,
+            firstName = parts.getOrNull(0) ?: userName,
+            lastName = parts.getOrNull(1) ?: "",
             phone = preferenceManager.getUserPhone()
         )
     }
@@ -834,10 +593,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         checkSubscriptionStatus()
         Toast.makeText(this, "Subscription updated successfully!", Toast.LENGTH_SHORT).show()
     }
-
-    
-    
-    
 
     private fun showFab() {
         binding.mainFab.visibility = View.VISIBLE
@@ -901,10 +656,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         navController.navigate(R.id.newSaleFragment)
     }
 
-    
-    
-    
-
     private fun hasAccessToBusinessOperations(): Boolean {
         if (subscriptionCheckInProgress) return false
         subscriptionCheckInProgress = true
@@ -953,10 +704,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             0
         }
     }
-
-    
-    
-    
 
     private fun showSelectShopFirstDialog() {
         AlertDialog.Builder(this)
@@ -1024,10 +771,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         forceLogoutToLogin()
     }
 
-    
-    
-    
-
     private fun getAvatarColor(name: String): Int {
         val colors = listOf(
             android.graphics.Color.parseColor("#FF6B6B"),
@@ -1043,42 +786,31 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
     private fun navigateToProfile() {
-        Toast.makeText(this, "Profile", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun navigateToSettings() {
-        Toast.makeText(this, "Settings", Toast.LENGTH_SHORT).show()
+        navController.navigate(R.id.accountFragment)
+        binding.drawerLayout.closeDrawer(GravityCompat.START)
     }
 
     private fun showDataLoading() {
-        binding.progressOverlay?.visibility = View.VISIBLE
+        binding.progressOverlay.visibility = View.VISIBLE
     }
 
     private fun hideDataLoading() {
-        binding.progressOverlay?.visibility = View.GONE
+        binding.progressOverlay.visibility = View.GONE
     }
-
-    
-    
-    
 
     override fun onSupportNavigateUp(): Boolean {
         return navController.navigateUp(appBarConfiguration) || super.onSupportNavigateUp()
     }
 
     override fun onBackPressed() {
-        Log.d("NavDrawer_DEBUG", "📍 onBackPressed() called")
         when {
             binding.drawerLayout.isDrawerOpen(GravityCompat.START) -> {
-                Log.d("NavDrawer_DEBUG", "🔵 Closing drawer via back press")
                 binding.drawerLayout.closeDrawer(GravityCompat.START)
             }
             isFabMenuOpen -> {
-                Log.d("NavDrawer_DEBUG", "🔵 Closing FAB menu via back press")
                 toggleFabMenu()
             }
             else -> {
-                Log.d("NavDrawer_DEBUG", "🔵 Standard back press")
                 super.onBackPressed()
             }
         }
