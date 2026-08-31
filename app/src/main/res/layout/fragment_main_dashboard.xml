@@ -444,22 +444,42 @@
             </androidx.cardview.widget.CardView>
 
             <!-- 4. YOUR SHOPS SECTION -->
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Your Shops"
-                android:textColor="#2C3E50"
-                android:textSize="18sp"
-                android:textStyle="bold"
-                android:fontFamily="@font/poppins_bold"
-                android:layout_marginBottom="12dp" />
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rvShops"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:nestedScrollingEnabled="false"
-                android:layout_marginBottom="24dp" />
+                android:orientation="vertical"
+                android:layout_marginBottom="12dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Your Shops"
+                    android:textColor="#2C3E50"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:fontFamily="@font/poppins_bold"
+                    android:layout_marginBottom="12dp" />
+
+                <!-- RecyclerView for shops -->
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rvShops"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false" />
+
+                <!-- Empty state (shown when no shops) -->
+                <TextView
+                    android:id="@+id/tvNoShops"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="No shops found. Create your first shop!"
+                    android:textColor="#95A5A6"
+                    android:textSize="16sp"
+                    android:fontFamily="@font/poppins_regular"
+                    android:gravity="center"
+                    android:padding="32dp"
+                    android:visibility="gone" />
+            </LinearLayout>
 
             <!-- 5. QUICK ACTIONS SECTION -->
             <TextView
@@ -626,7 +646,7 @@
 
     </androidx.core.widget.NestedScrollView>
 
-    <!-- 2. The Progress Bar (Now safely outside the ScrollView!) -->
+    <!-- 2. The Progress Bar -->
     <ProgressBar
         android:id="@+id/progressBar"
         android:layout_width="48dp"

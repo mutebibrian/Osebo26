@@ -205,7 +205,12 @@ class LoginActivity : AppCompatActivity() {
 
                 if (result.isSuccess) {
                     val preAuth = result.getOrNull()!!
-                    handleAccounts(preAuth)
+                    // Navigate to SelectAccountActivity with the preAuth data
+                    val intent = Intent(this@LoginActivity, SelectAccountActivity::class.java)
+                    intent.putExtra(SelectAccountActivity.EXTRA_PRE_AUTH_DATA, preAuth)
+                    startActivity(intent)
+                    // Finish login activity so user can't go back
+                    finish()
                 } else {
                     showError(result.exceptionOrNull()?.message ?: "Invalid OTP")
                 }
@@ -238,8 +243,12 @@ class LoginActivity : AppCompatActivity() {
                 showLoading(false)
 
                 if (result.isSuccess) {
-                    val data = result.getOrNull()!!
-                    handleAccounts(data)
+                    val preAuth = result.getOrNull()!!
+                    // Navigate to SelectAccountActivity
+                    val intent = Intent(this@LoginActivity, SelectAccountActivity::class.java)
+                    intent.putExtra(SelectAccountActivity.EXTRA_PRE_AUTH_DATA, preAuth)
+                    startActivity(intent)
+                    finish()
                 } else {
                     showError("Login failed")
                 }
@@ -247,41 +256,7 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
-    // ---------------- ACCOUNT HANDLING ----------------
-
-    private fun handleAccounts(data: PreAuthData) {
-        if (data.accounts.size == 1) {
-            selectAccount(data.preAuthToken, data.accounts[0].accountId)
-            val intent = Intent(this, SelectAccountActivity::class.java)
-            intent.putExtra(SelectAccountActivity.EXTRA_PRE_AUTH_DATA, data)
-            startActivity(intent)
-        }
-    }
-
-    private fun selectAccount(token: String, accountId: String) {
-        CoroutineScope(Dispatchers.IO).launch {
-            val result = authRepository.selectAccount(token, accountId)
-
-            withContext(Dispatchers.Main) {
-                if (result.isSuccess) {
-                    saveAuth(result.getOrNull()!!)
-                    startActivity(Intent(this@LoginActivity, MainActivity::class.java))
-                    finish()
-                } else {
-                    showError("Account selection failed")
-                }
-            }
-        }
-    }
-
     // ---------------- UTIL ----------------
-
-    private fun saveAuth(data: SigninData) {
-        preferenceManager.saveAuthToken(data.accessToken)
-        preferenceManager.saveRefreshToken(data.refreshToken)
-        preferenceManager.saveUserId(data.user.id)
-        preferenceManager.setUserLoggedIn(true)
-    }
 
     private fun resendOtp() {
         if (currentUserId == null) return requestOtp()
