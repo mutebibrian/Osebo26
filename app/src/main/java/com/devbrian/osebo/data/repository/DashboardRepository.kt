@@ -5,10 +5,8 @@ import com.devbrian.osebo.data.ApiService
 import com.devbrian.osebo.data.PreferenceManager
 import com.devbrian.osebo.data.local.AppDatabase
 import com.devbrian.osebo.data.local.entity.*
-import com.devbrian.osebo.models.TimeSeriesData
 import com.google.gson.Gson
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 import java.io.IOException
 import java.net.UnknownHostException
 import javax.inject.Inject
@@ -25,14 +23,18 @@ class DashboardRepository @Inject constructor(
 
     companion object {
         private const val TAG = "DashboardRepository"
-        private const val CACHE_VALIDITY_PERIOD = 30 * 60 * 1000
+        private const val CACHE_VALIDITY_PERIOD = 30 * 60 * 1000 // 30 minutes
     }
+
+    // ===================== FLOW DATA =====================
 
     fun getDashboardSummary(): Flow<DashboardSummaryEntity?> = dao.getDashboardSummary()
     fun getTimeSeries(): Flow<TimeSeriesEntity?> = dao.getTimeSeries()
     fun getTopStockItems(): Flow<List<TopStockItemEntity>> = dao.getTopStockItems()
     fun getShopSummary(shopId: String): Flow<ShopSummaryEntity?> = dao.getShopSummary(shopId)
     fun getFinancialStatement(): Flow<FinancialStatementEntity?> = dao.getFinancialStatement()
+
+    // ===================== SYNC GETTERS =====================
 
     suspend fun getDashboardSummarySync(): DashboardSummaryEntity? = dao.getDashboardSummarySync()
     suspend fun getTimeSeriesSync(): TimeSeriesEntity? = dao.getTimeSeriesSync()
@@ -46,14 +48,19 @@ class DashboardRepository @Inject constructor(
         return (System.currentTimeMillis() - lastUpdate) < CACHE_VALIDITY_PERIOD
     }
 
+    // ===================== REFRESH =====================
+
     suspend fun refreshDashboardData() {
-        val shopId = preferences.getCurrentShopId()
+        // Use UUID (from current_shop_uuid) if present, otherwise fallback to current_shop_id
+        var shopId = preferences.getCurrentShopUuid().takeIf { it.isNotEmpty() }
+            ?: preferences.getCurrentShopId()
+
         if (shopId.isEmpty()) {
-            Log.e(TAG, "No shop selected")
+            Log.e(TAG, "❌ No shop selected – cannot refresh")
             return
         }
 
-        Log.d(TAG, "Refreshing dashboard data for shop: $shopId")
+        Log.d(TAG, "🔄 Using shop identifier: $shopId (UUID: ${preferences.getCurrentShopUuid()}, ID: ${preferences.getCurrentShopId()})")
 
         try {
             fetchAndSaveShopSummary(shopId)
@@ -61,35 +68,43 @@ class DashboardRepository @Inject constructor(
             fetchAndSaveTopStockItems(shopId)
             fetchAndSaveFinancialStatement(shopId)
 
-            Log.d(TAG, "Dashboard data refreshed successfully")
+            Log.d(TAG, "✅ Dashboard data refreshed successfully")
 
         } catch (e: UnknownHostException) {
-            Log.e(TAG, "Network error - no internet: ${e.message}")
+            Log.e(TAG, "🌐 Network error: ${e.message}")
         } catch (e: IOException) {
-            Log.e(TAG, "IO error: ${e.message}")
+            Log.e(TAG, "📡 IO error: ${e.message}")
         } catch (e: Exception) {
-            Log.e(TAG, "Unexpected error: ${e.message}")
+            Log.e(TAG, "⚠️ Unexpected error: ${e.message}")
             e.printStackTrace()
         }
     }
 
+    // ===================== PRIVATE FETCHERS =====================
+
     private suspend fun fetchAndSaveShopSummary(shopId: String) {
         try {
+            Log.d(TAG, "📡 Calling getShopSummary for $shopId")
             val response = apiService.getShopSummary(shopId)
-            if (response.isSuccessful && response.body()?.success == true) {
-                response.body()?.data?.let { summary ->
+            Log.d(TAG, "📡 Response code: ${response.code()}")
+
+            if (response.isSuccessful) {
+                val body = response.body()
+                Log.d(TAG, "📡 Response body: ${gson.toJson(body)}")
+                if (body?.success == true && body.data != null) {
+                    val summary = body.data
                     val dashboardEntity = DashboardSummaryEntity(
                         employeesCount = summary.totalEmployees,
                         suppliersCount = summary.totalSuppliers,
                         customersCount = summary.totalCustomers,
                         totalSales = summary.totalSales,
-                        totalExpenses = summary.totalExpenses  // Use totalExpenses from your DTO
+                        totalExpenses = summary.totalExpenses
                     )
                     dao.insertDashboardSummary(dashboardEntity)
 
                     val shopEntity = ShopSummaryEntity(
                         shopId = shopId,
-                        shopName = preferences.getCurrentShopName(),
+                        shopName = preferences.getCurrentShopName().takeIf { it.isNotEmpty() } ?: "Unknown Shop",
                         totalEmployees = summary.totalEmployees,
                         totalCustomers = summary.totalCustomers,
                         totalSuppliers = summary.totalSuppliers,
@@ -97,11 +112,15 @@ class DashboardRepository @Inject constructor(
                     )
                     dao.insertShopSummary(shopEntity)
 
-                    Log.d(TAG, "Shop summary saved: ${summary.totalEmployees} employees, totalExpenses: ${summary.totalExpenses}")
+                    Log.d(TAG, "✅ Shop summary saved: totalSales=${summary.totalSales}, totalExpenses=${summary.totalExpenses}")
+                } else {
+                    Log.w(TAG, "⚠️ API success=false or data=null: ${body?.message}")
                 }
+            } else {
+                Log.e(TAG, "❌ API error: ${response.code()} - ${response.errorBody()?.string()}")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error fetching shop summary: ${e.message}")
+            Log.e(TAG, "❌ Exception fetching shop summary: ${e.message}")
         }
     }
 
@@ -117,13 +136,13 @@ class DashboardRepository @Inject constructor(
                         expenses = gson.toJson(timeSeriesData.expenses)
                     )
                     dao.insertTimeSeries(entity)
-                    Log.d(TAG, "Time series saved with ${timeSeriesData.xAxis.size} points")
+                    Log.d(TAG, "📈 Time series saved (${timeSeriesData.xAxis.size} points)")
                 } else {
-                    Log.d(TAG, "No time series data available")
+                    Log.d(TAG, "📈 No time series data available")
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error fetching time series: ${e.message}")
+            Log.e(TAG, "❌ Error fetching time series: ${e.message}")
         }
     }
 
@@ -133,10 +152,6 @@ class DashboardRepository @Inject constructor(
             if (response.isSuccessful && response.body()?.success == true) {
                 val items = response.body()?.data?.items ?: emptyList()
                 Log.d(TAG, "📦 API returned ${items.size} top stock items")
-
-                items.forEachIndexed { index, item ->
-                    Log.d(TAG, "   API Item[$index]: ${item.name}, quantity: ${item.totalQuantitySold}, sales: ${item.totalSalesAmount}")
-                }
 
                 dao.clearTopStockItems()
                 if (items.isNotEmpty()) {
@@ -150,15 +165,10 @@ class DashboardRepository @Inject constructor(
                     }
                     dao.insertTopStockItems(entities)
                     Log.d(TAG, "✅ Saved ${entities.size} top stock items to DB")
-
-                    val savedItems = dao.getTopStockItemsSync()
-                    savedItems.forEachIndexed { index, entity ->
-                        Log.d(TAG, "   Saved Entity[$index]: ${entity.name}, qty: ${entity.quantity}, sales: ${entity.sales}")
-                    }
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error fetching top stock items: ${e.message}")
+            Log.e(TAG, "❌ Error fetching top stock items: ${e.message}")
         }
     }
 
@@ -174,20 +184,22 @@ class DashboardRepository @Inject constructor(
                         totalExpenses = financial.totalExpenses
                     )
                     dao.insertFinancialStatement(entity)
-                    Log.d(TAG, "Financial statement saved")
+                    Log.d(TAG, "💰 Financial statement saved")
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error fetching financial statement: ${e.message}")
+            Log.e(TAG, "❌ Error fetching financial statement: ${e.message}")
         }
     }
+
+    // ===================== CLEAR =====================
 
     suspend fun clearAllDashboardData() {
         dao.clearDashboardSummary()
         dao.clearTimeSeries()
         dao.clearTopStockItems()
         dao.clearFinancialStatement()
-        Log.d(TAG, "All dashboard data cleared")
+        Log.d(TAG, "🧹 All dashboard data cleared")
     }
 
     suspend fun deleteOldStockItems(cutoffTime: Long) {
