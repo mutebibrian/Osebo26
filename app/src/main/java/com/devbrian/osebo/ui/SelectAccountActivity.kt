@@ -2,18 +2,19 @@ package com.devbrian.osebo.ui
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.RadioButton
-import android.widget.RadioGroup
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.devbrian.osebo.R
 import com.devbrian.osebo.data.PreferenceManager
 import com.devbrian.osebo.data.remote.dto.response.PreAuthData
+import com.devbrian.osebo.data.remote.dto.response.SigninData
 import com.devbrian.osebo.data.repository.AuthRepository
 import com.devbrian.osebo.utils.NetworkUtils
 import kotlinx.coroutines.CoroutineScope
@@ -25,17 +26,20 @@ class SelectAccountActivity : AppCompatActivity() {
 
     companion object {
         const val EXTRA_PRE_AUTH_DATA = "PRE_AUTH_DATA"
+        private const val TAG = "SelectAccountActivity"
     }
 
     private val authRepository = AuthRepository()
     private lateinit var preferenceManager: PreferenceManager
 
-    private lateinit var rgAccounts: RadioGroup
+    private lateinit var accountsContainer: LinearLayout   // Changed from RadioGroup
     private lateinit var btnContinue: Button
     private lateinit var btnBackToLogin: Button
     private lateinit var progressBar: ProgressBar
 
     private lateinit var preAuthData: PreAuthData
+    private var selectedAccountId: String? = null
+    private var selectedIndex: Int = -1
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,25 +54,22 @@ class SelectAccountActivity : AppCompatActivity() {
             return
         }
         preAuthData = data
+        Log.d(TAG, "Received PreAuthData: ${preAuthData.accounts.size} accounts")
 
         initViews()
         populateAccounts()
         setupListeners()
     }
-    private fun setupListeners() {
-        btnContinue.setOnClickListener { onContinueClicked() }
-        btnBackToLogin.setOnClickListener { goBackToLogin() }
-    }
 
     private fun initViews() {
-        rgAccounts = findViewById(R.id.rgAccounts)
+        accountsContainer = findViewById(R.id.accountsContainer)   // Your LinearLayout ID
         btnContinue = findViewById(R.id.btnContinue)
         btnBackToLogin = findViewById(R.id.btnBackToLogin)
         progressBar = findViewById(R.id.progressBar)
     }
 
     private fun populateAccounts() {
-        rgAccounts.removeAllViews()
+        accountsContainer.removeAllViews()
 
         preAuthData.accounts.forEachIndexed { index, account ->
             val row = LinearLayout(this).apply {
@@ -77,12 +78,14 @@ class SelectAccountActivity : AppCompatActivity() {
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
                 ).apply { topMargin = dp(8) }
+                setOnClickListener { onAccountSelected(index) }
             }
 
             val radioButton = RadioButton(this).apply {
                 id = index
                 text = "${account.ownerFirstName?.trim()} ${account.ownerLastName?.trim()}"
                 textSize = 16f
+                isClickable = false   // Let the row handle clicks
             }
             row.addView(radioButton)
 
@@ -90,33 +93,46 @@ class SelectAccountActivity : AppCompatActivity() {
                 val badge = TextView(this).apply {
                     text = "Owner"
                     setPadding(dp(10), dp(4), dp(10), dp(4))
-                    setBackgroundResource(android.R.drawable.editbox_background) // swap for your own drawable later
+                    setBackgroundResource(android.R.drawable.editbox_background)
                 }
                 row.addView(badge)
             }
 
-            rgAccounts.addView(row)
+            accountsContainer.addView(row)
         }
 
-        if (rgAccounts.childCount > 0) {
-            (rgAccounts.getChildAt(0) as? LinearLayout)?.getChildAt(0)?.let {
-                (it as? RadioButton)?.isChecked = true
+        // Auto-select the first account
+        if (accountsContainer.childCount > 0) {
+            onAccountSelected(0)
+        }
+    }
+
+    private fun onAccountSelected(index: Int) {
+        // Update UI: uncheck all, then check the selected one
+        for (i in 0 until accountsContainer.childCount) {
+            val row = accountsContainer.getChildAt(i) as? LinearLayout
+            row?.getChildAt(0)?.let {
+                (it as? RadioButton)?.isChecked = (i == index)
             }
         }
+        selectedIndex = index
+        selectedAccountId = preAuthData.accounts[index].accountId
+        Log.d(TAG, "Selected account: $selectedAccountId")
+    }
+
+    private fun setupListeners() {
+        btnContinue.setOnClickListener { onContinueClicked() }
+        btnBackToLogin.setOnClickListener { goBackToLogin() }
     }
 
     private fun onContinueClicked() {
-        val checkedIndex = rgAccounts.checkedRadioButtonId
-        if (checkedIndex == -1 || checkedIndex >= preAuthData.accounts.size) {
+        if (selectedAccountId == null) {
             Toast.makeText(this, "Please select an account", Toast.LENGTH_SHORT).show()
             return
         }
-
-        val account = preAuthData.accounts[checkedIndex]
-        selectAccount(preAuthData.preAuthToken, account.accountId)
+        Log.d(TAG, "Continuing with account: $selectedAccountId")
+        selectAccount(preAuthData.preAuthToken, selectedAccountId!!)
     }
-
-
 
     private fun selectAccount(preAuthToken: String, accountId: String) {
         if (!NetworkUtils.isNetworkAvailable(this)) {
@@ -125,30 +141,66 @@ class SelectAccountActivity : AppCompatActivity() {
         }
 
         showLoading(true)
+        Log.d(TAG, "Calling selectAccount with token: ${preAuthToken.take(20)}..., accountId: $accountId")
 
         CoroutineScope(Dispatchers.IO).launch {
-            val result = authRepository.selectAccount(preAuthToken, accountId)
+            try {
+                val result = authRepository.selectAccount(preAuthToken, accountId)
 
-            withContext(Dispatchers.Main) {
-                showLoading(false)
+                withContext(Dispatchers.Main) {
+                    showLoading(false)
 
-                if (result.isSuccess) {
-                    val signinData = result.getOrNull()!!
-                    saveAuth(signinData)
-                    navigateToMain()
-                } else {
-                    val message = result.exceptionOrNull()?.message ?: "Account selection failed"
-                    Toast.makeText(this@SelectAccountActivity, message, Toast.LENGTH_LONG).show()
+                    if (result.isSuccess) {
+                        val signinData = result.getOrNull()!!
+                        Log.d(TAG, "Select account success, saving user data")
+                        saveUserAndProceed(signinData)
+                    } else {
+                        val error = result.exceptionOrNull()
+                        Log.e(TAG, "Select account failed", error)
+                        Toast.makeText(
+                            this@SelectAccountActivity,
+                            "Failed to select account: ${error?.message ?: "Unknown error"}",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Exception during selectAccount", e)
+                withContext(Dispatchers.Main) {
+                    showLoading(false)
+                    Toast.makeText(
+                        this@SelectAccountActivity,
+                        "Error: ${e.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
             }
         }
     }
 
-    private fun saveAuth(data: com.devbrian.osebo.data.remote.dto.response.SigninData) {
-        preferenceManager.saveAuthToken(data.accessToken)
-        preferenceManager.saveRefreshToken(data.refreshToken)
-        preferenceManager.saveUserId(data.user.id)
-        preferenceManager.setUserLoggedIn(true)
+    private fun saveUserAndProceed(signinData: SigninData) {
+        try {
+            // Save tokens
+            preferenceManager.saveAuthToken(signinData.accessToken)
+            preferenceManager.saveRefreshToken(signinData.refreshToken)
+            preferenceManager.setUserLoggedIn(true)
+
+            // Save user data
+            val user = signinData.user
+            val fullName = "${user.firstName?.trim() ?: ""} ${user.lastName?.trim() ?: ""}".trim()
+            preferenceManager.saveUserName(if (fullName.isNotEmpty()) fullName else "User")
+            preferenceManager.saveFirstName(user.firstName?.trim() ?: "")
+            preferenceManager.saveLastName(user.lastName?.trim() ?: "")
+            preferenceManager.saveUserEmail(user.email ?: "")
+            preferenceManager.saveUserPhone(user.phone ?: "")
+            preferenceManager.saveUserId(user.id)
+
+            Log.d(TAG, "User data saved, navigating to Main")
+            navigateToMain()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error saving user data", e)
+            Toast.makeText(this, "Error saving user data: ${e.message}", Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun navigateToMain() {

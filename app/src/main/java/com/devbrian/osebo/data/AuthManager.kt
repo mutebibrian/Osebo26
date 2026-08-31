@@ -3,7 +3,7 @@ package com.devbrian.osebo.data
 import android.content.Context
 import android.content.SharedPreferences
 
-class PreferencesManager(context: Context) {
+class AuthManager(context: Context) {
 
     
     private val sharedPreferences: SharedPreferences = context.getSharedPreferences("OseboPrefs", Context.MODE_PRIVATE)

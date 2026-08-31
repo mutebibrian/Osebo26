@@ -1,6 +1,7 @@
 package com.devbrian.osebo.fragments
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -14,6 +15,7 @@ import com.devbrian.osebo.R
 import com.devbrian.osebo.adapters.MainShopAdapter
 import com.devbrian.osebo.adapters.ShopPerformanceAdapter
 import com.devbrian.osebo.data.PreferenceManager
+import com.devbrian.osebo.data.repository.DashboardRepository
 import com.devbrian.osebo.data.repository.FinanceRepository
 import com.devbrian.osebo.data.repository.ProductRepository
 import com.devbrian.osebo.data.repository.ShopRepositoryImpl
@@ -28,6 +30,8 @@ import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.util.*
 import javax.inject.Inject
+
+private const val TAG = "MainDashboardFragment"
 
 @AndroidEntryPoint
 class MainDashboardFragment : Fragment() {
@@ -44,6 +48,7 @@ class MainDashboardFragment : Fragment() {
     @Inject lateinit var financeRepository: FinanceRepository
     @Inject lateinit var productRepository: ProductRepository
     @Inject lateinit var salesRepository: SalesRepository
+    @Inject lateinit var dashboardRepository: DashboardRepository   // injected, but not used directly for totals now
 
     private val currencyFormatter: NumberFormat = NumberFormat.getCurrencyInstance().apply {
         maximumFractionDigits = 0
@@ -127,18 +132,19 @@ class MainDashboardFragment : Fragment() {
     }
 
     private fun saveCurrentShop(shop: Shop) {
+        val uuid = shop.uuid ?: shop.id
         preferenceManager.saveCurrentShopId(shop.id)
+        preferenceManager.saveCurrentShopUuid(uuid)
         preferenceManager.saveCurrentShopName(shop.name)
-        preferenceManager.saveCurrentShopUuid(shop.id)
         preferenceManager.saveHasShop(true)
 
-        if (shop.subscriptionStatus.equals("active", ignoreCase = true) ||
-            shop.subscriptionStatus.equals("trial", ignoreCase = true)) {
+        if (shop.isSubscriptionActive) {
             preferenceManager.saveSubscriptionStatus(shop.subscriptionStatus.uppercase())
             shop.subscriptionType?.let { preferenceManager.saveSubscriptionType(it) }
             shop.subscriptionExpiry?.let { preferenceManager.saveSubscriptionExpiry(it) }
             preferenceManager.debugSubscriptionInfo()
         }
+        Log.d(TAG, "Saved shop UUID: $uuid, ID: ${shop.id}")
     }
 
     private fun showSubscriptionExpiredDialog(shop: Shop) {
@@ -209,6 +215,7 @@ class MainDashboardFragment : Fragment() {
         }
     }
 
+    // ===== LOAD DASHBOARD DATA =====
     private fun loadDashboardData() {
         showLoading(true)
 
@@ -221,19 +228,45 @@ class MainDashboardFragment : Fragment() {
                         val shopsResult = shopRepository.getShops()
                         if (shopsResult is Resource.Success) {
                             val shops = shopsResult.data ?: emptyList()
-                            if (shops.isNotEmpty()) loadActualSalesData(shops)
-                            else {
+                            if (shops.isNotEmpty()) {
+                                // Select first shop (or active one) to set as current
+                                val selectedShop = shops.find { it.isSubscriptionActive } ?: shops.first()
+                                saveCurrentShop(selectedShop)
+
+                                // Fetch sales for ALL shops to compute grand totals
+                                val (totalSales, totalExpenses) = loadActualSalesData(shops)
+
+                                // Update UI totals
+                                updateTotals(totalSales, totalExpenses, shops.size)
+
+                                // Update shop list adapters
+                                mainShopAdapter.submitList(shops)
+
+                                // Also refresh the current shop's dashboard data (for other metrics)
+                                dashboardRepository.refreshDashboardData()
+                            } else {
                                 showEmptyState()
                                 Toast.makeText(requireContext(), "No shops found.", Toast.LENGTH_LONG).show()
                             }
-                        } else showErrorState("Failed to load shops")
+                        } else {
+                            showErrorState("Failed to load shops")
+                        }
                     }
                     is Resource.Error -> {
+                        // Use cached shops
                         val shopsResult = shopRepository.getShops()
                         if (shopsResult is Resource.Success && shopsResult.data?.isNotEmpty() == true) {
-                            loadActualSalesData(shopsResult.data)
+                            val shops = shopsResult.data
+                            val selectedShop = shops.find { it.isSubscriptionActive } ?: shops.first()
+                            saveCurrentShop(selectedShop)
+
+                            val (totalSales, totalExpenses) = loadActualSalesData(shops)
+                            updateTotals(totalSales, totalExpenses, shops.size)
+                            mainShopAdapter.submitList(shops)
                             Toast.makeText(requireContext(), "Using cached shop data", Toast.LENGTH_SHORT).show()
-                        } else showErrorState(refreshResult.message ?: "Failed to load shops")
+                        } else {
+                            showErrorState(refreshResult.message ?: "Failed to load shops")
+                        }
                     }
                     is Resource.Loading -> {}
                 }
@@ -245,7 +278,8 @@ class MainDashboardFragment : Fragment() {
         }
     }
 
-    private suspend fun loadActualSalesData(shops: List<Shop>) {
+    // ===== FETCH SALES FOR ALL SHOPS AND RETURN GRAND TOTALS =====
+    private suspend fun loadActualSalesData(shops: List<Shop>): Pair<Double, Double> {
         val originalShopId = preferenceManager.getCurrentShopId()
         val shopSalesMap = mutableMapOf<String, Double>()
         val shopExpensesMap = mutableMapOf<String, Double>()
@@ -253,28 +287,27 @@ class MainDashboardFragment : Fragment() {
         var grandTotalExpenses = 0.0
 
         for (shop in shops) {
-            val hasActiveSubscription = shop.subscriptionStatus.equals("active", ignoreCase = true) ||
-                    shop.subscriptionStatus.equals("trial", ignoreCase = true)
+            // Only fetch for shops with active subscription (or all if you want)
+            // We'll fetch for all to match web app behavior (it might show totals across all)
+            // But if a shop has no subscription, its sales should be 0 anyway.
+            val shopUuid = shop.uuid ?: shop.id
+            preferenceManager.saveCurrentShopId(shopUuid) // temporarily set to UUID
 
-            if (hasActiveSubscription) {
-                preferenceManager.saveCurrentShopId(shop.id)
-                val totalSales = salesRepository.getTotalSalesForShop(shop.id, limit = 10000)
-                shopSalesMap[shop.id] = totalSales
-                grandTotalSales += totalSales
+            // Fetch sales for this shop
+            val totalSales = salesRepository.getTotalSalesForShop(shopUuid, limit = 10000)
+            shopSalesMap[shop.id] = totalSales
+            grandTotalSales += totalSales
 
-                val totalExpenses = getTotalExpensesForShop(shop.id)
-                shopExpensesMap[shop.id] = totalExpenses
-                grandTotalExpenses += totalExpenses
-            } else {
-                shopSalesMap[shop.id] = 0.0
-                shopExpensesMap[shop.id] = 0.0
-            }
+            val totalExpenses = getTotalExpensesForShop(shopUuid)
+            shopExpensesMap[shop.id] = totalExpenses
+            grandTotalExpenses += totalExpenses
         }
 
+        // Restore original shop ID
         preferenceManager.saveCurrentShopId(originalShopId)
 
+        // Build performance data
         val maxSales = shopSalesMap.values.maxOrNull() ?: 0.0
-
         val performances = shops.map { shop ->
             val actualSales = shopSalesMap[shop.id] ?: 0.0
             val actualExpenses = shopExpensesMap[shop.id] ?: 0.0
@@ -292,11 +325,9 @@ class MainDashboardFragment : Fragment() {
         }
 
         shopPerformanceAdapter.submitList(performances.sortedByDescending { it.totalSales })
-        mainShopAdapter.submitList(shops)
-
-        // Pass shops.size so we can display the "Total Shops" stat tile
-        updateTotals(grandTotalSales, grandTotalExpenses, shops.size)
         updateSubscriptionSummary(shops)
+
+        return Pair(grandTotalSales, grandTotalExpenses)
     }
 
     private suspend fun getTotalExpensesForShop(shopId: String): Double {
@@ -312,14 +343,13 @@ class MainDashboardFragment : Fragment() {
         }
     }
 
+    // ===== UI UPDATE HELPERS =====
     private fun updateTotals(totalSales: Double, totalExpenses: Double, totalShops: Int) {
         binding.tvTotalSales.text = formatCompactCurrency(totalSales)
         binding.tvTotalExpenses.text = formatCompactCurrency(totalExpenses)
-
-        // FIXED: Correctly interpolating the totalShops parameter
         binding.tvTotalShops.text = "$totalShops Shops"
 
-        // --- TODAY'S DATA (Placeholder until API supports daily breakdown) ---
+        // Today's data (placeholder – you can replace with real today's data later)
         val todaySales = totalSales * 0.12
         val todayExpenses = totalExpenses * 0.08
         val todayBalance = todaySales - todayExpenses
@@ -338,16 +368,13 @@ class MainDashboardFragment : Fragment() {
     }
 
     private fun updateSubscriptionSummary(shops: List<Shop>) {
-        val activeCount = shops.count { it.subscriptionStatus.equals("active", ignoreCase = true) }
+        val activeCount = shops.count { it.isSubscriptionActive }
         val trialCount = shops.count { it.subscriptionStatus.equals("trial", ignoreCase = true) }
-        println("📊 Subscription Summary: Active=$activeCount, Trial=$trialCount")
+        Log.d(TAG, "📊 Subscription Summary: Active=$activeCount, Trial=$trialCount")
     }
 
     private fun hasActiveShopWithSubscription(): Boolean {
-        return mainShopAdapter.currentList.any {
-            it.subscriptionStatus.equals("active", ignoreCase = true) ||
-                    it.subscriptionStatus.equals("trial", ignoreCase = true)
-        }
+        return mainShopAdapter.currentList.any { it.isSubscriptionActive }
     }
 
     private fun filterShopsByTime(filter: String) {
@@ -387,6 +414,7 @@ class MainDashboardFragment : Fragment() {
 
     private fun showEmptyState() {
         binding.rvShops.visibility = View.GONE
+        binding.tvNoShops.visibility = View.VISIBLE
     }
 
     private fun showErrorState(message: String) {
@@ -396,7 +424,6 @@ class MainDashboardFragment : Fragment() {
 
     private fun showLoading(show: Boolean) {
         binding.progressBar.visibility = if (show) View.VISIBLE else View.GONE
-        // Note: Ensure your NestedScrollView has android:id="@+id/mainContent" in the XML!
         binding.mainContent.visibility = if (show) View.GONE else View.VISIBLE
     }
 

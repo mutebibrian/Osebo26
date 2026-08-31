@@ -8,7 +8,6 @@ import com.devbrian.osebo.data.local.entity.DashboardSummaryEntity
 import com.devbrian.osebo.data.local.entity.TimeSeriesEntity
 import com.devbrian.osebo.data.local.entity.TopStockItemEntity
 import com.devbrian.osebo.data.remote.dto.response.TopStockItemDto
-import com.devbrian.osebo.utils.NetworkUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -87,7 +86,6 @@ class DashboardViewModel @Inject constructor(
             Log.d(TAG, "   📦 Entity[$index]: ${entity.name}, qty: ${entity.quantity}, sales: ${entity.sales}")
         }
 
-        // Update dashboard state with summary data
         if (summary != null) {
             Log.d(TAG, "📊 Summary data - Employees: ${summary.employeesCount}, Suppliers: ${summary.suppliersCount}, Customers: ${summary.customersCount}, Sales: ${summary.totalSales}, Expenses: ${summary.totalExpenses}")
 
@@ -97,13 +95,12 @@ class DashboardViewModel @Inject constructor(
                     suppliersCount = summary.suppliersCount,
                     customersCount = summary.customersCount,
                     totalSales = summary.totalSales,
-                    totalExpenses = summary.totalExpenses  // FIXED: Added totalExpenses here
+                    totalExpenses = summary.totalExpenses
                 )
             )
             Log.d(TAG, "✅ DashboardState updated to Success")
         }
 
-        // Update time series data
         if (timeSeriesEntity != null) {
             Log.d(TAG, "📈 Time series data - xAxis size: ${timeSeriesEntity.getXAxisList().size}")
 
@@ -115,7 +112,6 @@ class DashboardViewModel @Inject constructor(
             Log.d(TAG, "✅ TimeSeriesData updated")
         }
 
-        // Update top stock items
         if (topItems.isNotEmpty()) {
             Log.d(TAG, "📦 Processing ${topItems.size} top stock items")
 
@@ -136,13 +132,11 @@ class DashboardViewModel @Inject constructor(
             _topStockItems.value = emptyList()
         }
 
-        // Mark initial load as complete
         if (summary != null || timeSeriesEntity != null || topItems.isNotEmpty()) {
             isInitialLoadComplete = true
             Log.d(TAG, "✅ Initial load marked as complete")
         }
 
-        // Update last updated timestamp
         viewModelScope.launch {
             try {
                 val lastUpdateTime = repository.getLastUpdateTime()
@@ -161,9 +155,7 @@ class DashboardViewModel @Inject constructor(
         return timestamp?.let {
             try {
                 val dateFormat = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
-                val formatted = dateFormat.format(Date(it))
-                Log.d(TAG, "⏰ Formatted timestamp: $timestamp -> $formatted")
-                formatted
+                dateFormat.format(Date(it))
             } catch (e: Exception) {
                 Log.e(TAG, "❌ Error formatting timestamp: ${e.message}")
                 null
@@ -276,32 +268,18 @@ class DashboardViewModel @Inject constructor(
         val suppliersCount: Int,
         val customersCount: Int,
         val totalSales: Double,
-        val totalExpenses: Double  // Keep this field
-    ) {
-        init {
-            Log.d(TAG, "📊 DashboardData created: Emp:$employeesCount, Sup:$suppliersCount, Cust:$customersCount, Sales:$totalSales, Expenses:$totalExpenses")
-        }
-    }
+        val totalExpenses: Double
+    )
 
     data class TimeSeriesDto(
         val xAxis: List<String>,
         val sales: List<Double>,
         val expenses: List<Double>
-    ) {
-        init {
-            Log.d(TAG, "📈 TimeSeriesDto created with ${xAxis.size} points")
-        }
-    }
+    )
 
     sealed class DashboardState {
-        object Loading : DashboardState() {
-            init { Log.d(TAG, "⏳ DashboardState: Loading") }
-        }
-        data class Success(val data: DashboardData) : DashboardState() {
-            init { Log.d(TAG, "✅ DashboardState: Success with ${data.employeesCount} employees, Expenses: ${data.totalExpenses}") }
-        }
-        data class Error(val message: String) : DashboardState() {
-            init { Log.d(TAG, "❌ DashboardState: Error - $message") }
-        }
+        object Loading : DashboardState()
+        data class Success(val data: DashboardData) : DashboardState()
+        data class Error(val message: String) : DashboardState()
     }
 }
