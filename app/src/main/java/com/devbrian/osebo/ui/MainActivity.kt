@@ -9,6 +9,7 @@ import android.util.Log
 import android.view.MenuItem
 import android.view.MotionEvent
 import android.view.View
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -43,6 +44,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private lateinit var navController: NavController
     private lateinit var preferenceManager: PreferenceManager
     private lateinit var permissionManager: PermissionManager
+    private lateinit var navigationView: NavigationView
 
     @Inject
     lateinit var shopRepository: ShopRepositoryImpl
@@ -76,6 +78,16 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private var currentShop: Shop? = null
     private var isDataLoading = false
 
+    // Header views (cached)
+    private lateinit var tvUserName: TextView
+    private lateinit var tvUserEmail: TextView
+    private lateinit var tvUserInitial: TextView
+    private lateinit var tvAppVersion: TextView
+    private lateinit var tvSubscriptionBadge: TextView
+    private lateinit var tvCurrentShop: TextView
+    private lateinit var tvViewingMode: TextView
+    private lateinit var ivSettings: View
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -83,10 +95,11 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         preferenceManager = PreferenceManager.getInstance(this)
         permissionManager = PermissionManager(this)
+        navigationView = binding.navigationView
 
         setupToolbar()
         setupNavigation()
-        setupHeaderView()
+        setupHeaderView() // now uses getHeaderView(0)
         setupFloatingActionButtons()
         setupNavControllerListener()
 
@@ -123,14 +136,12 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         setupActionBarWithNavController(navController, appBarConfiguration)
 
-        binding.navigationView.setNavigationItemSelectedListener(this)
+        navigationView.setNavigationItemSelectedListener(this)
         Log.d("NavDrawer_DEBUG", "✅ NavigationItemSelectedListener set")
 
-        // REMOVED: binding.navigationView.itemIconTintList = null (We want the XML selector to work)
-
-        binding.navigationView.isClickable = true
-        binding.navigationView.isFocusable = true
-        binding.navigationView.isLongClickable = true
+        navigationView.isClickable = true
+        navigationView.isFocusable = true
+        navigationView.isLongClickable = true
         Log.d("NavDrawer_DEBUG", "✅ NavigationView interactive properties set")
 
         binding.topAppBar.setNavigationOnClickListener {
@@ -179,11 +190,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 R.id.shopDashboardFragment -> {
                     val shopName = preferenceManager.getCurrentShopName()
                     supportActionBar?.title = shopName.ifEmpty { "Shop Dashboard" }
-                    updateHeaderForShopView(shopName)
                 }
                 R.id.mainDashboardFragment -> {
                     supportActionBar?.title = "Dashboard"
-                    updateHeaderForMainView()
                 }
                 else -> {
                     supportActionBar?.title = destination.label
@@ -237,26 +246,94 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
     }
 
-    // UPDATED: Now uses direct binding instead of getHeaderView(0)
+    // ===== HEADER SETUP – uses navigationView.getHeaderView(0) =====
     private fun setupHeaderView() {
-        val userName = preferenceManager.getUserName()
-        val firstName = userName.split(" ").firstOrNull()?.takeIf { it.isNotEmpty() } ?: "User"
+        val headerView = navigationView.getHeaderView(0)
 
-        binding.tvUserName.text = firstName
-        binding.tvAppVersion.text = "v1.2.4 (Build 498)" // You can change this to BuildConfig.VERSION_NAME if preferred
+        tvUserName = headerView.findViewById(R.id.tv_user_name)
+        tvUserEmail = headerView.findViewById(R.id.tv_user_email)
+        tvUserInitial = headerView.findViewById(R.id.tv_user_initial)
+        tvAppVersion = headerView.findViewById(R.id.tv_app_version)
+        tvSubscriptionBadge = headerView.findViewById(R.id.tv_subscription_badge)
+        tvCurrentShop = headerView.findViewById(R.id.tv_current_shop)
+        tvViewingMode = headerView.findViewById(R.id.tv_viewing_mode)
+        ivSettings = headerView.findViewById(R.id.iv_settings)
 
-        val initial = if (userName.isNotEmpty()) userName.first().toString().uppercase(Locale.getDefault()) else "A"
-        binding.tvUserInitial.text = initial
+        // Set initial values
+        val userName = preferenceManager.getUserName().takeIf { it.isNotEmpty() } ?: "User"
+        val userEmail = preferenceManager.getUserEmail().takeIf { it.isNotEmpty() } ?: "user@email.com"
 
-        // Tint the avatar circle dynamically based on user name
-        binding.tvUserInitial.backgroundTintList = android.content.res.ColorStateList.valueOf(getAvatarColor(userName))
+        tvUserName.text = userName
+        tvUserEmail.text = userEmail
+        tvAppVersion.text = "v1.2.4 (Build 498)" // or from BuildConfig
 
-        binding.ivLogout.setOnClickListener { logout() }
-        binding.llUserCard.setOnClickListener { navigateToProfile() }
+        val initial = if (userName.isNotEmpty()) userName.first().uppercase(Locale.getDefault()) else "A"
+        tvUserInitial.text = initial
+        // tint the avatar background if needed; the drawable bg_user_avatar may have a color, but we can also set a tint
 
-        updateHeaderWithSubscriptionStatus()
+        // Set subscription badge
+        updateSubscriptionBadge()
+
+        // Set current shop
+        val shopName = preferenceManager.getCurrentShopName().takeIf { it.isNotEmpty() } ?: "No Shop Selected"
+        tvCurrentShop.text = shopName
+
+        // Click listener for settings icon (optional)
+        ivSettings.setOnClickListener {
+            navController.navigate(R.id.accountFragment)
+            binding.drawerLayout.closeDrawer(GravityCompat.START)
+        }
     }
 
+    // ===== HEADER UPDATE METHODS =====
+    fun updateHeaderUserInfo(userName: String, userEmail: String) {
+        tvUserName.text = userName
+        tvUserEmail.text = userEmail
+
+        val initial = if (userName.isNotEmpty()) userName.first().uppercase(Locale.getDefault()) else "A"
+        tvUserInitial.text = initial
+
+        // Also store in Preferences
+        val parts = userName.split(" ", limit = 2)
+        preferenceManager.saveUserFullData(
+            userId = preferenceManager.getUserId(),
+            email = userEmail,
+            firstName = parts.getOrNull(0) ?: userName,
+            lastName = parts.getOrNull(1) ?: "",
+            phone = preferenceManager.getUserPhone()
+        )
+    }
+
+    fun updateHeaderShopInfo(shopName: String) {
+        preferenceManager.saveCurrentShopName(shopName)
+        tvCurrentShop.text = shopName.ifEmpty { "No Shop Selected" }
+        if (preferenceManager.getCurrentShopId().isNotEmpty()) {
+            preferenceManager.saveHasShop(true)
+        }
+        checkSubscriptionStatus()
+        updateSubscriptionBadge()
+    }
+
+    private fun updateSubscriptionBadge() {
+        val status = preferenceManager.getSubscriptionStatus()
+        when (status.uppercase()) {
+            "ACTIVE", "TRIAL" -> {
+                tvSubscriptionBadge.text = status.uppercase()
+                tvSubscriptionBadge.visibility = View.VISIBLE
+                tvSubscriptionBadge.setBackgroundResource(R.drawable.bg_subscription_badge_active)
+            }
+            "EXPIRED" -> {
+                tvSubscriptionBadge.text = "EXPIRED"
+                tvSubscriptionBadge.visibility = View.VISIBLE
+                tvSubscriptionBadge.setBackgroundResource(R.drawable.bg_subscription_badge_expired)
+            }
+            else -> {
+                tvSubscriptionBadge.visibility = View.GONE
+            }
+        }
+    }
+
+    // ===== LOAD DATA =====
     private fun loadInitialData() {
         if (isDataLoading) return
         isDataLoading = true
@@ -309,7 +386,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                                 loadCurrentShopData()
                                 checkSubscriptionStatus()
                                 setupNavigationMenu()
-                                updateHeaderWithSubscriptionStatus()
+                                updateSubscriptionBadge()
                             }
                             else -> {}
                         }
@@ -397,29 +474,21 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         val shopId = preferenceManager.getCurrentShopId()
         if (shopId.isNotEmpty()) {
             setupNavigationMenu()
-            checkForExpiringSubscription()
             preferenceManager.debugSubscriptionInfo()
         }
     }
 
-    private fun checkForExpiringSubscription() {}
-
-    private fun handleDestinationArguments(destinationId: Int, arguments: Bundle?) {
-        when (destinationId) {
-            R.id.subscriptionPackagesFragment -> { }
-        }
-    }
-
+    // ===== NAVIGATION MENU =====
     private fun setupNavigationMenu() {
         Log.d("NavDrawer_DEBUG", "📍 setupNavigationMenu() called")
 
-        val menu = binding.navigationView.menu
+        val menu = navigationView.menu
         val hasShops = preferenceManager.hasShop()
         val isOwner = permissionManager.isShopOwner()
 
         Log.d("NavDrawer_DEBUG", "📊 Menu setup state: hasShops=$hasShops, isOwner=$isOwner")
 
-        // Always visible items
+        // Always visible
         menu.findItem(R.id.nav_dashboard).isVisible = true
         menu.findItem(R.id.nav_contact_us).isVisible = true
         menu.findItem(R.id.nav_logout).isVisible = true
@@ -428,7 +497,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         menu.findItem(R.id.nav_shops).isVisible = isOwner
         menu.findItem(R.id.nav_shop_home).isVisible = hasShops
 
-        // Business operations items based on permissions
+        // Business operations based on permissions
         val businessItems = mapOf(
             R.id.nav_sales to PermissionType.VIEW_SALES,
             R.id.nav_finance to PermissionType.VIEW_FINANCE,
@@ -459,22 +528,22 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             }
         }
 
-        // Account - only for owners or employees with VIEW_EMPLOYEES permission
+        // Account - only for owners or employees with VIEW_EMPLOYEES
         menu.findItem(R.id.nav_account).isVisible = hasShops &&
                 (isOwner || permissionManager.hasPermission(PermissionType.VIEW_EMPLOYEES))
 
-        // Hide User Roles for employees (only owners can see it)
         val userRolesItem = menu.findItem(R.id.nav_user_roles)
         userRolesItem.isVisible = hasShops && isOwner
         Log.d("NavDrawer_DEBUG", "  Menu item nav_user_roles: visible=${userRolesItem.isVisible} (isOwner=$isOwner)")
 
-        updateHeaderWithSubscriptionStatus()
+        // Update subscription badge in header
+        updateSubscriptionBadge()
         Log.d("NavDrawer_DEBUG", "✅ setupNavigationMenu() completed")
     }
 
     fun refreshNavigationMenu() {
         setupNavigationMenu()
-        binding.navigationView.invalidate()
+        navigationView.invalidate()
     }
 
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
@@ -544,56 +613,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         return true
     }
 
-    // UPDATED: Uses direct binding for user role instead of header view
-    private fun updateHeaderWithSubscriptionStatus() {
-        val isOwner = permissionManager.isShopOwner()
-        binding.tvUserRole.text = when {
-            !isOwner -> "Employee"
-            !preferenceManager.hasShop() -> "Owner • No active shop"
-            preferenceManager.isTrial() -> "Owner • Trial"
-            hasAccessToBusinessOperations() -> "Owner"
-            else -> "Owner • No subscription"
-        }
-    }
-
-    // Kept as no-ops since the new web drawer doesn't show shop names in the header
-    private fun updateHeaderForShopView(shopName: String) {}
-    private fun updateHeaderForMainView() {}
-
-    // UPDATED: Uses direct binding instead of getHeaderView
-    fun updateHeaderShopInfo(shopName: String) {
-        preferenceManager.saveCurrentShopName(shopName)
-        if (preferenceManager.getCurrentShopId().isNotEmpty()) {
-            preferenceManager.saveHasShop(true)
-        }
-        checkSubscriptionStatus()
-        updateHeaderWithSubscriptionStatus()
-    }
-
-    // UPDATED: Uses direct binding instead of getHeaderView
-    fun updateHeaderUserInfo(userName: String, userEmail: String) {
-        val firstName = userName.split(" ").firstOrNull()?.takeIf { it.isNotEmpty() } ?: "User"
-        binding.tvUserName.text = firstName
-
-        val initial = if (userName.isNotEmpty()) userName.first().toString().uppercase(Locale.getDefault()) else "A"
-        binding.tvUserInitial.text = initial
-        binding.tvUserInitial.backgroundTintList = android.content.res.ColorStateList.valueOf(getAvatarColor(userName))
-
-        val parts = userName.split(" ", limit = 2)
-        preferenceManager.saveUserFullData(
-            userId = preferenceManager.getUserId(),
-            email = userEmail,
-            firstName = parts.getOrNull(0) ?: userName,
-            lastName = parts.getOrNull(1) ?: "",
-            phone = preferenceManager.getUserPhone()
-        )
-    }
-
-    fun onSubscriptionUpdated() {
-        checkSubscriptionStatus()
-        Toast.makeText(this, "Subscription updated successfully!", Toast.LENGTH_SHORT).show()
-    }
-
+    // ===== FAB METHODS =====
     private fun showFab() {
         binding.mainFab.visibility = View.VISIBLE
         binding.mainFab.alpha = 0f
@@ -656,6 +676,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         navController.navigate(R.id.newSaleFragment)
     }
 
+    // ===== ACCESS CHECK =====
     private fun hasAccessToBusinessOperations(): Boolean {
         if (subscriptionCheckInProgress) return false
         subscriptionCheckInProgress = true
@@ -693,18 +714,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
     }
 
-    private fun calculateDaysUntilExpiry(expiryDate: String?): Int {
-        if (expiryDate.isNullOrEmpty()) return 0
-        return try {
-            val format = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-            val expiry = format.parse(expiryDate)
-            val diffInMillies = expiry.time - Date().time
-            (diffInMillies / (1000 * 60 * 60 * 24)).toInt().coerceAtLeast(0)
-        } catch (e: Exception) {
-            0
-        }
-    }
-
+    // ===== DIALOGS =====
     private fun showSelectShopFirstDialog() {
         AlertDialog.Builder(this)
             .setTitle("No Shop Selected")
@@ -755,6 +765,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         navController.navigate(R.id.subscriptionPackagesFragment)
     }
 
+    // ===== LOGOUT =====
     private fun logout() {
         AlertDialog.Builder(this)
             .setTitle("Logout")
@@ -771,7 +782,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         forceLogoutToLogin()
     }
 
+    // ===== UTILITY =====
     private fun getAvatarColor(name: String): Int {
+        // Not used now, but can be used to tint the avatar circle
         val colors = listOf(
             android.graphics.Color.parseColor("#FF6B6B"),
             android.graphics.Color.parseColor("#4ECDC4"),
@@ -785,11 +798,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         return colors[Math.abs(index)]
     }
 
-    private fun navigateToProfile() {
-        navController.navigate(R.id.accountFragment)
-        binding.drawerLayout.closeDrawer(GravityCompat.START)
-    }
-
     private fun showDataLoading() {
         binding.progressOverlay.visibility = View.VISIBLE
     }
@@ -798,6 +806,17 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         binding.progressOverlay.visibility = View.GONE
     }
 
+    private fun handleDestinationArguments(destinationId: Int, arguments: Bundle?) {
+        // Placeholder for any argument handling
+    }
+
+    fun onSubscriptionUpdated() {
+        checkSubscriptionStatus()
+        updateSubscriptionBadge()
+        Toast.makeText(this, "Subscription updated successfully!", Toast.LENGTH_SHORT).show()
+    }
+
+    // ===== NAVIGATION =====
     override fun onSupportNavigateUp(): Boolean {
         return navController.navigateUp(appBarConfiguration) || super.onSupportNavigateUp()
     }
