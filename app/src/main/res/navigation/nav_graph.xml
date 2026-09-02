@@ -21,6 +21,15 @@
                 app:argType="string" />
         </action>
 
+        <!-- NEW: Navigation to Shop Billing (Subscription Overview) -->
+        <action
+            android:id="@+id/actionMainDashboardToShopBilling"
+            app:destination="@id/shopBillingFragment">
+            <argument
+                android:name="shop"
+                app:argType="com.devbrian.osebo.models.Shop" />
+        </action>
+
         <action
             android:id="@+id/action_mainDashboard_to_userRolesFragment"
             app:destination="@id/userRolesFragment" />
@@ -100,7 +109,36 @@
 
     </fragment>
 
-    <!-- SHOP DASHBOARD - Individual shop view (renamed from dashboardFragment) -->
+    <!-- ===== NEW: SHOP BILLING FRAGMENT ===== -->
+    <fragment
+        android:id="@+id/shopBillingFragment"
+        android:name="com.devbrian.osebo.fragments.ShopbillingFragment"
+        android:label="Shop Billing"
+        tools:layout="@layout/fragment_shop_billing">
+
+        <argument
+            android:name="shop"
+            app:argType="com.devbrian.osebo.models.Shop" />
+
+        <!-- Optional: Navigation to Subscription Packages from the billing screen -->
+        <action
+            android:id="@+id/action_shopBilling_to_subscriptionPackages"
+            app:destination="@id/subscriptionPackagesFragment">
+            <argument
+                android:name="shop"
+                app:argType="com.devbrian.osebo.models.Shop" />
+        </action>
+
+        <!-- Navigation back to Dashboard -->
+        <action
+            android:id="@+id/action_shopBilling_to_mainDashboard"
+            app:destination="@id/mainDashboardFragment"
+            app:popUpTo="@id/mainDashboardFragment"
+            app:popUpToInclusive="true" />
+
+    </fragment>
+
+    <!-- SHOP DASHBOARD - Individual shop view -->
     <fragment
         android:id="@+id/shopDashboardFragment"
         android:name="com.devbrian.osebo.fragments.ShopDashboardFragment"
@@ -181,7 +219,6 @@
         android:label="My Shops"
         tools:layout="@layout/fragment_shops">
 
-        <!-- Navigation to Shop Details -->
         <action
             android:id="@+id/action_shopsFragment_to_shopDetailsFragment"
             app:destination="@id/shopDetailsFragment">
@@ -190,7 +227,6 @@
                 app:argType="com.devbrian.osebo.models.Shop" />
         </action>
 
-        <!-- Navigation to Shop Dashboard -->
         <action
             android:id="@+id/action_shopsFragment_to_shopDashboardFragment"
             app:destination="@id/shopDashboardFragment">
@@ -199,7 +235,6 @@
                 app:argType="string" />
         </action>
 
-        <!-- Navigation to Subscription Packages -->
         <action
             android:id="@+id/action_shopsFragment_to_subscriptionPackagesFragment"
             app:destination="@id/subscriptionPackagesFragment">
@@ -210,7 +245,6 @@
                 android:defaultValue="@null" />
         </action>
 
-        <!-- Navigation back to Main Dashboard -->
         <action
             android:id="@+id/action_shopsFragment_to_mainDashboard"
             app:destination="@id/mainDashboardFragment"
@@ -353,7 +387,7 @@
             app:nullable="true" />
     </fragment>
 
-    <!-- Finance Fragment - UPDATED with all missing actions -->
+    <!-- Finance Fragment -->
     <fragment
         android:id="@+id/financeFragment"
         android:name="com.devbrian.osebo.fragments.FinanceFragment"
@@ -394,14 +428,14 @@
 
     </fragment>
 
-    <!-- Reports Fragment - NEW -->
+    <!-- Reports Fragment -->
     <fragment
         android:id="@+id/reportsFragment"
         android:name="com.devbrian.osebo.fragments.ReportsFragment"
         android:label="Reports"
         tools:layout="@layout/fragment_reports" />
 
-    <!-- Finance Settings Fragment - NEW -->
+    <!-- Finance Settings Fragment -->
     <fragment
         android:id="@+id/financeSettingsFragment"
         android:name="com.devbrian.osebo.fragments.FinanceSettingsFragment"
@@ -685,14 +719,12 @@
             app:nullable="true"
             android:defaultValue="" />
 
-        <!-- Navigation to Main Dashboard after successful payment -->
         <action
             android:id="@+id/action_paymentStatusFragment_to_mainDashboard"
             app:destination="@id/mainDashboardFragment"
             app:popUpTo="@id/mainDashboardFragment"
             app:popUpToInclusive="true" />
 
-        <!-- Keep existing actions -->
         <action
             android:id="@+id/action_paymentStatusFragment_to_subscriptionPackagesFragment"
             app:destination="@id/subscriptionPackagesFragment">
@@ -709,14 +741,13 @@
 
     </fragment>
 
-    <!-- 🔥 FIXED: Subscription Packages Fragment - Removed Duplicate Argument -->
+    <!-- Subscription Packages Fragment -->
     <fragment
         android:id="@+id/subscriptionPackagesFragment"
         android:name="com.devbrian.osebo.fragments.SubscriptionPackagesFragment"
         android:label="Choose Package"
         tools:layout="@layout/fragment_subscription_packages">
 
-        <!-- 🔥 SINGLE argument definition with nullable support -->
         <argument
             android:name="shop"
             app:argType="com.devbrian.osebo.models.Shop"

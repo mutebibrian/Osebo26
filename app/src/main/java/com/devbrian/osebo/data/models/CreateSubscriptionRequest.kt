@@ -9,7 +9,7 @@ data class CreateSubscriptionRequest(
     val shopId: String,
 
     @SerializedName("package_type")
-    val packageType: String, 
+    val packageType: String,
 
     @SerializedName("phone_number")
     val phoneNumber: String,
@@ -22,6 +22,7 @@ data class CreateSubscriptionRequest(
 
     @SerializedName("currency")
     val currency: String = "UGX"
+
 )
 
 
