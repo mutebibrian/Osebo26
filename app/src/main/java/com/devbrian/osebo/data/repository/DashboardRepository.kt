@@ -23,18 +23,16 @@ class DashboardRepository @Inject constructor(
 
     companion object {
         private const val TAG = "DashboardRepository"
-        private const val CACHE_VALIDITY_PERIOD = 30 * 60 * 1000 // 30 minutes
+        private const val CACHE_VALIDITY_PERIOD = 30 * 60 * 1000
     }
 
-    // ===================== FLOW DATA =====================
+    // ===== EXISTING METHODS =====
 
     fun getDashboardSummary(): Flow<DashboardSummaryEntity?> = dao.getDashboardSummary()
     fun getTimeSeries(): Flow<TimeSeriesEntity?> = dao.getTimeSeries()
     fun getTopStockItems(): Flow<List<TopStockItemEntity>> = dao.getTopStockItems()
     fun getShopSummary(shopId: String): Flow<ShopSummaryEntity?> = dao.getShopSummary(shopId)
     fun getFinancialStatement(): Flow<FinancialStatementEntity?> = dao.getFinancialStatement()
-
-    // ===================== SYNC GETTERS =====================
 
     suspend fun getDashboardSummarySync(): DashboardSummaryEntity? = dao.getDashboardSummarySync()
     suspend fun getTimeSeriesSync(): TimeSeriesEntity? = dao.getTimeSeriesSync()
@@ -48,28 +46,21 @@ class DashboardRepository @Inject constructor(
         return (System.currentTimeMillis() - lastUpdate) < CACHE_VALIDITY_PERIOD
     }
 
-    // ===================== REFRESH =====================
-
     suspend fun refreshDashboardData() {
-        // Use UUID (from current_shop_uuid) if present, otherwise fallback to current_shop_id
-        var shopId = preferences.getCurrentShopUuid().takeIf { it.isNotEmpty() }
+        val shopUuid = preferences.getCurrentShopUuid().takeIf { it.isNotEmpty() }
             ?: preferences.getCurrentShopId()
-
-        if (shopId.isEmpty()) {
+        if (shopUuid.isEmpty()) {
             Log.e(TAG, "❌ No shop selected – cannot refresh")
             return
         }
-
-        Log.d(TAG, "🔄 Using shop identifier: $shopId (UUID: ${preferences.getCurrentShopUuid()}, ID: ${preferences.getCurrentShopId()})")
+        Log.d(TAG, "🔄 Refreshing dashboard for shop UUID: $shopUuid")
 
         try {
-            fetchAndSaveShopSummary(shopId)
-            fetchAndSaveTimeSeries(shopId)
-            fetchAndSaveTopStockItems(shopId)
-            fetchAndSaveFinancialStatement(shopId)
-
+            fetchAndSaveShopSummary(shopUuid)
+            fetchAndSaveTimeSeries(shopUuid)
+            fetchAndSaveTopStockItems(shopUuid)
+            fetchAndSaveFinancialStatement(shopUuid)
             Log.d(TAG, "✅ Dashboard data refreshed successfully")
-
         } catch (e: UnknownHostException) {
             Log.e(TAG, "🌐 Network error: ${e.message}")
         } catch (e: IOException) {
@@ -80,19 +71,34 @@ class DashboardRepository @Inject constructor(
         }
     }
 
-    // ===================== PRIVATE FETCHERS =====================
+    // ===== NEW HELPER: fetch summary for ANY shop (without changing current shop) =====
+    suspend fun fetchShopSummary(shopUuid: String): ShopSummaryData? {
+        return try {
+            val response = apiService.getShopSummary(shopUuid)
+            if (response.isSuccessful && response.body()?.success == true) {
+                response.body()?.data?.let {
+                    ShopSummaryData(
+                        totalEmployees = it.totalEmployees,
+                        totalCustomers = it.totalCustomers,
+                        totalSuppliers = it.totalSuppliers,
+                        totalSales = it.totalSales,
+                        totalExpenses = it.totalExpenses
+                    )
+                }
+            } else null
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching shop summary for $shopUuid: ${e.message}")
+            null
+        }
+    }
 
-    private suspend fun fetchAndSaveShopSummary(shopId: String) {
+    // ===== EXISTING PRIVATE METHODS (keep unchanged) =====
+
+    private suspend fun fetchAndSaveShopSummary(shopUuid: String) {
         try {
-            Log.d(TAG, "📡 Calling getShopSummary for $shopId")
-            val response = apiService.getShopSummary(shopId)
-            Log.d(TAG, "📡 Response code: ${response.code()}")
-
-            if (response.isSuccessful) {
-                val body = response.body()
-                Log.d(TAG, "📡 Response body: ${gson.toJson(body)}")
-                if (body?.success == true && body.data != null) {
-                    val summary = body.data
+            val response = apiService.getShopSummary(shopUuid)
+            if (response.isSuccessful && response.body()?.success == true) {
+                response.body()?.data?.let { summary ->
                     val dashboardEntity = DashboardSummaryEntity(
                         employeesCount = summary.totalEmployees,
                         suppliersCount = summary.totalSuppliers,
@@ -103,8 +109,8 @@ class DashboardRepository @Inject constructor(
                     dao.insertDashboardSummary(dashboardEntity)
 
                     val shopEntity = ShopSummaryEntity(
-                        shopId = shopId,
-                        shopName = preferences.getCurrentShopName().takeIf { it.isNotEmpty() } ?: "Unknown Shop",
+                        shopId = shopUuid,
+                        shopName = preferences.getCurrentShopName(),
                         totalEmployees = summary.totalEmployees,
                         totalCustomers = summary.totalCustomers,
                         totalSuppliers = summary.totalSuppliers,
@@ -112,21 +118,17 @@ class DashboardRepository @Inject constructor(
                     )
                     dao.insertShopSummary(shopEntity)
 
-                    Log.d(TAG, "✅ Shop summary saved: totalSales=${summary.totalSales}, totalExpenses=${summary.totalExpenses}")
-                } else {
-                    Log.w(TAG, "⚠️ API success=false or data=null: ${body?.message}")
+                    Log.d(TAG, "Shop summary saved: sales=${summary.totalSales}, expenses=${summary.totalExpenses}")
                 }
-            } else {
-                Log.e(TAG, "❌ API error: ${response.code()} - ${response.errorBody()?.string()}")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "❌ Exception fetching shop summary: ${e.message}")
+            Log.e(TAG, "Error fetching shop summary: ${e.message}")
         }
     }
 
-    private suspend fun fetchAndSaveTimeSeries(shopId: String) {
+    private suspend fun fetchAndSaveTimeSeries(shopUuid: String) {
         try {
-            val response = apiService.getTimeSeries(shopId, "monthly")
+            val response = apiService.getTimeSeries(shopUuid, "monthly")
             if (response.isSuccessful && response.body()?.success == true) {
                 val timeSeriesData = response.body()?.data
                 if (timeSeriesData != null && timeSeriesData.xAxis.isNotEmpty()) {
@@ -136,23 +138,19 @@ class DashboardRepository @Inject constructor(
                         expenses = gson.toJson(timeSeriesData.expenses)
                     )
                     dao.insertTimeSeries(entity)
-                    Log.d(TAG, "📈 Time series saved (${timeSeriesData.xAxis.size} points)")
-                } else {
-                    Log.d(TAG, "📈 No time series data available")
+                    Log.d(TAG, "Time series saved (${timeSeriesData.xAxis.size} points)")
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "❌ Error fetching time series: ${e.message}")
+            Log.e(TAG, "Error fetching time series: ${e.message}")
         }
     }
 
-    private suspend fun fetchAndSaveTopStockItems(shopId: String) {
+    private suspend fun fetchAndSaveTopStockItems(shopUuid: String) {
         try {
-            val response = apiService.getTopStockItems(shopId)
+            val response = apiService.getTopStockItems(shopUuid)
             if (response.isSuccessful && response.body()?.success == true) {
                 val items = response.body()?.data?.items ?: emptyList()
-                Log.d(TAG, "📦 API returned ${items.size} top stock items")
-
                 dao.clearTopStockItems()
                 if (items.isNotEmpty()) {
                     val entities = items.map { item ->
@@ -164,17 +162,17 @@ class DashboardRepository @Inject constructor(
                         )
                     }
                     dao.insertTopStockItems(entities)
-                    Log.d(TAG, "✅ Saved ${entities.size} top stock items to DB")
+                    Log.d(TAG, "Saved ${entities.size} top stock items")
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "❌ Error fetching top stock items: ${e.message}")
+            Log.e(TAG, "Error fetching top stock items: ${e.message}")
         }
     }
 
-    private suspend fun fetchAndSaveFinancialStatement(shopId: String) {
+    private suspend fun fetchAndSaveFinancialStatement(shopUuid: String) {
         try {
-            val response = apiService.getFinancialStatement(shopId, "yearly")
+            val response = apiService.getFinancialStatement(shopUuid, "yearly")
             if (response.isSuccessful && response.body()?.success == true) {
                 response.body()?.data?.let { financial ->
                     val entity = FinancialStatementEntity(
@@ -184,22 +182,20 @@ class DashboardRepository @Inject constructor(
                         totalExpenses = financial.totalExpenses
                     )
                     dao.insertFinancialStatement(entity)
-                    Log.d(TAG, "💰 Financial statement saved")
+                    Log.d(TAG, "Financial statement saved")
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "❌ Error fetching financial statement: ${e.message}")
+            Log.e(TAG, "Error fetching financial statement: ${e.message}")
         }
     }
-
-    // ===================== CLEAR =====================
 
     suspend fun clearAllDashboardData() {
         dao.clearDashboardSummary()
         dao.clearTimeSeries()
         dao.clearTopStockItems()
         dao.clearFinancialStatement()
-        Log.d(TAG, "🧹 All dashboard data cleared")
+        Log.d(TAG, "All dashboard data cleared")
     }
 
     suspend fun deleteOldStockItems(cutoffTime: Long) {
@@ -210,3 +206,12 @@ class DashboardRepository @Inject constructor(
         return !isCacheValid() || !hasCachedData()
     }
 }
+
+// Data class for shop summary returned by fetchShopSummary
+data class ShopSummaryData(
+    val totalEmployees: Int,
+    val totalCustomers: Int,
+    val totalSuppliers: Int,
+    val totalSales: Double,
+    val totalExpenses: Double
+)

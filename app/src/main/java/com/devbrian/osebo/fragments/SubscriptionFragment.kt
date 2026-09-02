@@ -2,31 +2,27 @@ package com.devbrian.osebo.fragments
 
 import android.content.Context
 import android.content.Intent
-import androidx.core.net.toUri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
-import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.devbrian.osebo.R
 import com.devbrian.osebo.adapters.PlanAdapter
 import com.devbrian.osebo.adapters.SubscriptionPagerAdapter
+import com.devbrian.osebo.data.remote.dto.response.PackageDto
 import com.devbrian.osebo.databinding.FragmentSubscriptionBinding
 import com.devbrian.osebo.models.Subscription
-import com.devbrian.osebo.models.SubscriptionPackage
 import com.devbrian.osebo.ui.viewmodels.SubscriptionViewModel
 import com.devbrian.osebo.utils.Resource
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.tabs.TabLayoutMediator
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
 import java.util.*
-import java.util.concurrent.TimeUnit
 
 @AndroidEntryPoint
 class SubscriptionFragment : Fragment() {
@@ -73,7 +69,6 @@ class SubscriptionFragment : Fragment() {
     }
 
     private fun setupObservers() {
-
         viewModel.currentSubscription.observe(viewLifecycleOwner) { resource ->
             when (resource) {
                 is Resource.Success -> {
@@ -104,8 +99,9 @@ class SubscriptionFragment : Fragment() {
             when (resource) {
                 is Resource.Success -> {
                     val plans = resource.data ?: emptyList()
-                    planAdapter = PlanAdapter(plans) { plan ->
-                        showPlanConfirmationDialog(plan)
+                    val packageDtos = plans.map { PackageDto.fromSubscriptionPackage(it) }
+                    planAdapter = PlanAdapter(packageDtos) { packageDto ->
+                        showPackageConfirmationDialog(packageDto)
                     }
                     binding.plansRecyclerView.adapter = planAdapter
 
@@ -133,9 +129,7 @@ class SubscriptionFragment : Fragment() {
 
         viewModel.subscriptionResult.observe(viewLifecycleOwner) { resource ->
             when (resource) {
-                is Resource.Loading -> {
-                    // Show loading if needed
-                }
+                is Resource.Loading -> { /* optional loading */ }
                 is Resource.Success -> {
                     val response = resource.data
                     if (response?.paymentId != null) {
@@ -158,8 +152,6 @@ class SubscriptionFragment : Fragment() {
             }
         }
 
-        // paymentPollingStatus is now Resource<Subscription?> — polls the subscription
-        // record itself by paymentId, since there's no separate payment-status endpoint.
         viewModel.paymentPollingStatus.observe(viewLifecycleOwner) { resource ->
             when (resource) {
                 is Resource.Success -> {
@@ -179,7 +171,7 @@ class SubscriptionFragment : Fragment() {
                                 ).show()
                             }
                             else -> {
-                                // still pending — no action needed, polling continues
+                                // still pending — no action needed
                             }
                         }
                     }
@@ -201,11 +193,7 @@ class SubscriptionFragment : Fragment() {
         }
 
         viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
-            if (isLoading) {
-                binding.progressBar.visibility = View.VISIBLE
-            } else {
-                binding.progressBar.visibility = View.GONE
-            }
+            binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
         }
     }
 
@@ -323,26 +311,26 @@ class SubscriptionFragment : Fragment() {
             .show()
     }
 
-    private fun showPlanConfirmationDialog(plan: SubscriptionPackage) {
+    private fun showPackageConfirmationDialog(packageDto: PackageDto) {
         if (shopId.isEmpty()) {
             Toast.makeText(requireContext(), "No shop selected", Toast.LENGTH_SHORT).show()
             return
         }
 
-        if (plan.isCustom) {
+        if (packageDto.isCustomPlan) {
             openContactSales()
             return
         }
 
-        showPaymentDialog(shopId, plan)
+        showPaymentDialog(shopId, packageDto)
     }
 
-    private fun showPaymentDialog(shopId: String, plan: SubscriptionPackage) {
+    private fun showPaymentDialog(shopId: String, packageDto: PackageDto) {
         val dialog = PaymentDialogFragment.newInstance(
             shopId = shopId,
-            packageId = plan.id,
-            packageName = plan.displayName,
-            amount = plan.price
+            packageId = packageDto.id,
+            packageName = packageDto.displayName,
+            amount = packageDto.monthlyAmount  // ← Fixed: now passing Double directly (no .toFloat())
         )
 
         dialog.setPaymentListener { phoneNumber, packageId, months, amount ->

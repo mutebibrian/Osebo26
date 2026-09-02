@@ -25,6 +25,7 @@ import com.devbrian.osebo.R
 import com.devbrian.osebo.data.PreferenceManager
 import com.devbrian.osebo.data.repository.ShopRepositoryImpl
 import com.devbrian.osebo.databinding.ActivityMainBinding
+import com.devbrian.osebo.fragments.MainDashboardFragment
 import com.devbrian.osebo.models.Shop
 import com.devbrian.osebo.models.PermissionType
 import com.devbrian.osebo.utils.PermissionManager
@@ -99,7 +100,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         setupToolbar()
         setupNavigation()
-        setupHeaderView() // now uses getHeaderView(0)
+        setupHeaderView()
         setupFloatingActionButtons()
         setupNavControllerListener()
 
@@ -265,11 +266,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         tvUserName.text = userName
         tvUserEmail.text = userEmail
-        tvAppVersion.text = "v1.2.4 (Build 498)" // or from BuildConfig
+        tvAppVersion.text = "v1.2.4 (Build 498)"
 
         val initial = if (userName.isNotEmpty()) userName.first().uppercase(Locale.getDefault()) else "A"
         tvUserInitial.text = initial
-        // tint the avatar background if needed; the drawable bg_user_avatar may have a color, but we can also set a tint
 
         // Set subscription badge
         updateSubscriptionBadge()
@@ -278,7 +278,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         val shopName = preferenceManager.getCurrentShopName().takeIf { it.isNotEmpty() } ?: "No Shop Selected"
         tvCurrentShop.text = shopName
 
-        // Click listener for settings icon (optional)
+        // Click listener for settings icon
         ivSettings.setOnClickListener {
             navController.navigate(R.id.accountFragment)
             binding.drawerLayout.closeDrawer(GravityCompat.START)
@@ -293,7 +293,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         val initial = if (userName.isNotEmpty()) userName.first().uppercase(Locale.getDefault()) else "A"
         tvUserInitial.text = initial
 
-        // Also store in Preferences
         val parts = userName.split(" ", limit = 2)
         preferenceManager.saveUserFullData(
             userId = preferenceManager.getUserId(),
@@ -784,7 +783,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     // ===== UTILITY =====
     private fun getAvatarColor(name: String): Int {
-        // Not used now, but can be used to tint the avatar circle
         val colors = listOf(
             android.graphics.Color.parseColor("#FF6B6B"),
             android.graphics.Color.parseColor("#4ECDC4"),
@@ -807,13 +805,74 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
     private fun handleDestinationArguments(destinationId: Int, arguments: Bundle?) {
-        // Placeholder for any argument handling
+        // Placeholder
     }
 
     fun onSubscriptionUpdated() {
         checkSubscriptionStatus()
         updateSubscriptionBadge()
         Toast.makeText(this, "Subscription updated successfully!", Toast.LENGTH_SHORT).show()
+    }
+
+    // ===== PUBLIC METHOD TO REFRESH AND SELECT ACTIVE SHOP =====
+    fun refreshAndSelectActiveShop(callback: (() -> Unit)? = null) {
+        lifecycleScope.launch {
+            try {
+                val refreshResult = shopRepository.refreshShops()
+                if (refreshResult is Resource.Success) {
+                    val shopsResult = shopRepository.getShops()
+                    if (shopsResult is Resource.Success) {
+                        val shops = shopsResult.data ?: emptyList()
+                        val activeShop = shops.find {
+                            it.subscriptionStatus.equals("active", ignoreCase = true) ||
+                                    it.subscriptionStatus.equals("trial", ignoreCase = true)
+                        }
+                        if (activeShop != null) {
+                            val uuid = activeShop.uuid ?: activeShop.id
+                            preferenceManager.saveCurrentShopId(activeShop.id)
+                            preferenceManager.saveCurrentShopUuid(uuid)
+                            preferenceManager.saveCurrentShopName(activeShop.name)
+                            preferenceManager.saveHasShop(true)
+                            preferenceManager.saveSubscriptionStatus(activeShop.subscriptionStatus.uppercase())
+                            preferenceManager.saveSubscriptionType(activeShop.subscriptionType ?: "")
+                            preferenceManager.saveSubscriptionExpiry(activeShop.subscriptionExpiry ?: "")
+
+                            runOnUiThread {
+                                updateHeaderShopInfo(activeShop.name)
+                                setupNavigationMenu()
+                                updateSubscriptionBadge()
+                                reloadDashboardFragment()
+                            }
+                        } else {
+                            // fallback
+                            val fallback = shops.firstOrNull()
+                            if (fallback != null) {
+                                preferenceManager.saveCurrentShopId(fallback.id)
+                                preferenceManager.saveCurrentShopUuid(fallback.uuid ?: fallback.id)
+                                preferenceManager.saveCurrentShopName(fallback.name)
+                                runOnUiThread {
+                                    updateHeaderShopInfo(fallback.name)
+                                    setupNavigationMenu()
+                                    updateSubscriptionBadge()
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("MainActivity", "Error refreshing shops", e)
+            }
+            callback?.invoke()
+        }
+    }
+
+
+
+    private fun reloadDashboardFragment() {
+        val fragment = supportFragmentManager.findFragmentById(R.id.fragment_container)
+        if (fragment is MainDashboardFragment) {
+            fragment.loadDashboardData()
+        }
     }
 
     // ===== NAVIGATION =====

@@ -42,7 +42,6 @@ class SubscriptionViewModel @Inject constructor(
     private val _createSubscriptionResult = MutableLiveData<Resource<SubscriptionResponse>>()
     val createSubscriptionResult: LiveData<Resource<SubscriptionResponse>> = _createSubscriptionResult
 
-    // Now tracks polling via the real payment-check response shape (shop / packageSubscriptions / payment)
     private val _paymentPollingStatus = MutableLiveData<Resource<PaymentCheckResponse?>>()
     val paymentPollingStatus: LiveData<Resource<PaymentCheckResponse?>> = _paymentPollingStatus
 
@@ -167,7 +166,8 @@ class SubscriptionViewModel @Inject constructor(
         shopId: String,
         packageIds: List<String>,
         phoneNumber: String,
-        months: Int = 1
+        months: Int = 1,
+        isTrial: Boolean = false
     ) {
         viewModelScope.launch {
             _subscriptionResult.value = Resource.Loading
@@ -176,10 +176,13 @@ class SubscriptionViewModel @Inject constructor(
             currentShopId = shopId
 
             try {
+                // Include shopId in the request body
                 val request = CreateSubscriptionRequest(
+                    shopId = shopId,
                     packageIds = packageIds,
                     customerPhone = phoneNumber,
-                    duration = months
+                    duration = months,
+                    isTrial = isTrial
                 )
 
                 val result = repository.createSubscription(shopId, request)
@@ -190,7 +193,10 @@ class SubscriptionViewModel @Inject constructor(
                         _subscriptionResult.value = Resource.Success(response)
                         _createSubscriptionResult.value = Resource.Success(response)
 
-                        if (!response?.paymentId.isNullOrBlank()) {
+                        if (isTrial) {
+                            _successMessage.value = "Free trial started! 15 days free."
+                            getShopActiveSubscription(shopId)
+                        } else if (!response?.paymentId.isNullOrBlank()) {
                             _successMessage.value = "Subscription initiated successfully"
                             response?.paymentId?.let { paymentId ->
                                 startPaymentPolling(paymentId, shopId)
@@ -217,10 +223,6 @@ class SubscriptionViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Polls the real payment-check response (shop / packageSubscriptions / payment) until
-     * it reflects a paid, failed, or cancelled state.
-     */
     fun startPaymentPolling(paymentId: String, shopId: String) {
         pollingJob?.cancel()
         currentShopId = shopId
@@ -246,12 +248,12 @@ class SubscriptionViewModel @Inject constructor(
                                     _successMessage.value = "Payment completed successfully!"
                                     _paymentPollingStatus.value = Resource.Success(checkResponse)
                                     refreshAllData(shopId)
-                                    pollCount = maxAttempts // stop loop
+                                    pollCount = maxAttempts
                                 }
                                 checkResponse?.isFailed == true || checkResponse?.isCancelled == true -> {
                                     _errorMessage.value = "Payment ${checkResponse.payment?.status}"
                                     _paymentPollingStatus.value = Resource.Success(checkResponse)
-                                    pollCount = maxAttempts // stop loop
+                                    pollCount = maxAttempts
                                 }
                                 else -> {
                                     if (pollCount % 3 == 0) {
