@@ -6,91 +6,89 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.devbrian.osebo.R
 import com.devbrian.osebo.databinding.ItemPlanBinding
-import com.devbrian.osebo.models.SubscriptionPackage
+import com.devbrian.osebo.data.remote.dto.response.PackageDto
 
 class PlanAdapter(
-    private val plans: List<SubscriptionPackage>,
-    private val onPlanSelected: (SubscriptionPackage) -> Unit
+    private val plans: List<PackageDto>,
+    private val onPlanSelected: (PackageDto) -> Unit
 ) : RecyclerView.Adapter<PlanAdapter.ViewHolder>() {
 
     inner class ViewHolder(private val binding: ItemPlanBinding) :
         RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(plan: SubscriptionPackage) {
-            
-            binding.planName.text = plan.displayName ?: plan.name
+        fun bind(plan: PackageDto) {
+            // Plan name
+            binding.planName.text = plan.displayName
 
-            
-            binding.planPrice.text = plan.displayPrice
+            // Price
+            binding.planPrice.text = plan.formattedPrice
 
-            
-            binding.planType.text = when (plan.name.uppercase()) {
-                "BASIC" -> "Basic"
-                "PRO" -> "Pro"
-                "POPULAR" -> "Enterprise"
-                else -> "Custom"
+            // Plan type badge
+            binding.planType.text = when (plan.tier.lowercase()) {
+                "basic" -> "BASE"
+                "pro" -> "PRO"
+                "premium" -> "PREMIUM"
+                "enterprise" -> "ENTERPRISE"
+                else -> plan.tier.uppercase()
             }
 
-            
-            binding.planDescription.text = plan.description ?: getDefaultDescription(plan.name)
+            // Description
+            binding.planDescription.text = plan.description
 
-            
-            binding.popularBadge.visibility = if (plan.isPopular) View.VISIBLE else View.GONE
+            // Popular badge
+            binding.popularBadge.visibility = if (plan.tier.lowercase() == "popular") View.VISIBLE else View.GONE
 
-            
-            binding.planFeatures.text = if (plan.features.isNotEmpty()) {
-                plan.features.joinToString("\n") { "✓ $it" }
+            // ========== TRIAL BADGE ==========
+            // Show if canTry is true, OR if tier is "basic" (fallback)
+            val showTrial = plan.canTry || plan.tier.lowercase() == "basic"
+            binding.trialBadge.visibility = if (showTrial) View.VISIBLE else View.GONE
+
+            // Features
+            binding.planFeatures.text = if (plan.featureNames.isNotEmpty()) {
+                plan.featureNames.joinToString("\n") { "✓ $it" }
             } else {
-                getDefaultFeatures(plan.name)
+                "✓ All core features included"
             }
 
-            
-            binding.additionalInfo.text = getAdditionalInfo(plan.name)
+            // Additional info
+            binding.additionalInfo.text = when (plan.tier.lowercase()) {
+                "basic" -> "5 users • 2 shops • Basic analytics"
+                "pro" -> "20 users • 10 shops • Advanced analytics"
+                "premium" -> "Unlimited users • Unlimited shops • Priority support"
+                "enterprise" -> "Custom limits • Dedicated support"
+                else -> "Customizable for your business"
+            }
 
-            
-            binding.chooseButton.text = if (plan.isCustom) {
+            // Button text
+            binding.chooseButton.text = if (plan.isCustomPlan) {
                 "Contact Sales"
             } else {
                 "Choose Plan"
             }
 
-            
             binding.chooseButton.setOnClickListener {
                 onPlanSelected(plan)
             }
 
-            
-            if (plan.isPopular) {
-                binding.chooseButton.setBackgroundColor(
-                    itemView.context.getColor(R.color.primary_color)
+            // Card styling
+            when (plan.tier.lowercase()) {
+                "basic" -> binding.planCard.setCardBackgroundColor(
+                    itemView.context.getColor(android.R.color.white)
                 )
-            }
-        }
-
-        private fun getDefaultDescription(packageName: String): String {
-            return when (packageName.uppercase()) {
-                "BASIC" -> "Perfect for small businesses getting started"
-                "PRO" -> "Advanced features for growing businesses"
-                "POPULAR" -> "Custom enterprise solutions with dedicated support"
-                else -> "Tailored solutions for your business needs"
-            }
-        }
-
-        private fun getDefaultFeatures(packageName: String): String {
-            return when (packageName.uppercase()) {
-                "BASIC" -> "✓ Inventory\n✓ Reports\n✓ Basic Support"
-                "PRO" -> "✓ Inventory\n✓ Reports\n✓ Support\n✓ Analytics"
-                "POPULAR" -> "✓ Inventory\n✓ Reports\n✓ Support\n✓ API Access\n✓ Custom Features"
-                else -> "✓ Custom features based on your needs"
-            }
-        }
-
-        private fun getAdditionalInfo(packageName: String): String {
-            return when (packageName.uppercase()) {
-                "BASIC" -> "5 users • 2 shops • Basic analytics"
-                "PRO" -> "20 users • 10 shops • Advanced analytics"
-                "POPULAR" -> "Unlimited users • Unlimited shops • Priority support"
-                else -> "Custom limits • Dedicated support"
+                "pro" -> binding.planCard.setCardBackgroundColor(
+                    itemView.context.getColor(R.color.surface)
+                )
+                "premium", "enterprise" -> {
+                    binding.planCard.setCardBackgroundColor(
+                        itemView.context.getColor(R.color.surface)
+                    )
+                    binding.planCard.cardElevation = 8f
+                }
+                else -> {
+                    binding.planCard.setCardBackgroundColor(
+                        itemView.context.getColor(android.R.color.white)
+                    )
+                }
             }
         }
     }
@@ -110,5 +108,3 @@ class PlanAdapter(
 
     override fun getItemCount() = plans.size
 }
-
-

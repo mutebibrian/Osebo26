@@ -10,16 +10,18 @@ import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import com.devbrian.osebo.R
+import com.devbrian.osebo.data.PreferenceManager
+import com.devbrian.osebo.data.repository.ShopRepositoryImpl
 import com.devbrian.osebo.databinding.FragmentPaymentStatusBinding
 import com.devbrian.osebo.fragments.subscription.PaymentStatusFragmentArgs
 import com.devbrian.osebo.ui.viewmodels.SubscriptionViewModel
 import com.devbrian.osebo.utils.Resource
-import com.devbrian.osebo.data.PreferenceManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class PaymentStatusFragment : Fragment() {
@@ -28,6 +30,8 @@ class PaymentStatusFragment : Fragment() {
     private val binding get() = _binding!!
     private val viewModel: SubscriptionViewModel by viewModels()
     private val args: PaymentStatusFragmentArgs by navArgs()
+
+    @Inject lateinit var shopRepository: ShopRepositoryImpl
 
     private lateinit var preferenceManager: PreferenceManager
     private var isPollingActive = true
@@ -80,7 +84,6 @@ class PaymentStatusFragment : Fragment() {
     }
 
     private fun observeViewModel() {
-        // Observe payment polling status — now the real PaymentCheckResponse shape
         viewModel.paymentPollingStatus.observe(viewLifecycleOwner) { resource ->
             println("🔔 PaymentStatus: paymentPollingStatus = $resource")
 
@@ -103,7 +106,8 @@ class PaymentStatusFragment : Fragment() {
                                 showSuccessButtons()
                                 stopPolling()
 
-                                refreshShopSubscription(args.shopId)
+                                // Refresh shops and select the active one
+                                refreshShopsAndSelectActive()
                             }
                             checkResponse.isFailed || checkResponse.isCancelled -> {
                                 println("❌ PaymentStatus: Payment ${checkResponse.payment?.status}")
@@ -176,6 +180,7 @@ class PaymentStatusFragment : Fragment() {
                             println("✅ Saved subscription to preferences: $subscriptionStatus")
                             preferenceManager.debugSubscriptionInfo()
 
+                            // Navigate after a delay
                             binding.btnViewSubscription.postDelayed({
                                 navigateToDashboard()
                             }, 1500)
@@ -201,47 +206,50 @@ class PaymentStatusFragment : Fragment() {
                 else -> {}
             }
         }
-
-        // Observe current subscription as fallback
-        viewModel.currentSubscription.observe(viewLifecycleOwner) { resource ->
-            when (resource) {
-                is Resource.Success -> {
-                    resource.data?.let { subscription ->
-                        println("🔍 Active subscription loaded:")
-                        println("   - id: ${subscription.id}")
-                        println("   - status: ${subscription.status}")
-                        println("   - package: ${subscription.packageType}")
-                        println("   - isActiveStatus: ${subscription.isActiveStatus}")
-
-                        if (subscription.isActiveStatus) {
-                            binding.tvStatusMessage.text = "Subscription activated! Redirecting..."
-
-                            preferenceManager.saveSubscriptionStatus(
-                                if (subscription.isTrial) "TRIAL" else "ACTIVE"
-                            )
-                            preferenceManager.saveSubscriptionId(subscription.id)
-                            preferenceManager.saveCurrentShopUuid(subscription.id)
-                            preferenceManager.saveSubscriptionType(subscription.packageType)
-                            subscription.endDate?.let { preferenceManager.saveSubscriptionExpiry(it) }
-
-                            binding.btnViewSubscription.postDelayed({
-                                navigateToDashboard()
-                            }, 1500)
-                        }
-                    }
-                }
-                is Resource.Error -> {
-                    println("⚠️ Error loading active subscription: ${resource.message}")
-                }
-                else -> {}
-            }
-        }
     }
 
-    private fun refreshShopSubscription(shopId: String) {
-        println("🔄 Refreshing shop subscription for shop: $shopId")
-        viewModel.checkShopSubscription(shopId)
-        viewModel.getShopActiveSubscription(shopId)
+    private fun refreshShopsAndSelectActive() {
+        // Force refresh shops from API and select the one with active subscription
+        CoroutineScope(Dispatchers.Main).launch {
+            try {
+                val refreshResult = shopRepository.refreshShops()
+                if (refreshResult is Resource.Success) {
+                    val shopsResult = shopRepository.getShops()
+                    if (shopsResult is Resource.Success) {
+                        val shops = shopsResult.data ?: emptyList()
+                        val activeShop = shops.find {
+                            it.subscriptionStatus.equals("active", ignoreCase = true) ||
+                                    it.subscriptionStatus.equals("trial", ignoreCase = true)
+                        }
+                        if (activeShop != null) {
+                            // Save this shop as current
+                            val uuid = activeShop.uuid ?: activeShop.id
+                            preferenceManager.saveCurrentShopId(activeShop.id)
+                            preferenceManager.saveCurrentShopUuid(uuid)
+                            preferenceManager.saveCurrentShopName(activeShop.name)
+                            preferenceManager.saveHasShop(true)
+                            preferenceManager.saveSubscriptionStatus(activeShop.subscriptionStatus.uppercase())
+                            preferenceManager.saveSubscriptionType(activeShop.subscriptionType ?: "")
+                            preferenceManager.saveSubscriptionExpiry(activeShop.subscriptionExpiry ?: "")
+                            println("✅ Selected active shop: ${activeShop.name}")
+                        } else {
+                            // fallback to first shop
+                            val fallback = shops.firstOrNull()
+                            if (fallback != null) {
+                                preferenceManager.saveCurrentShopId(fallback.id)
+                                preferenceManager.saveCurrentShopUuid(fallback.uuid ?: fallback.id)
+                                preferenceManager.saveCurrentShopName(fallback.name)
+                            }
+                        }
+                        // Also refresh subscription status via ViewModel
+                        viewModel.checkShopSubscription(preferenceManager.getCurrentShopId())
+                        viewModel.getShopActiveSubscription(preferenceManager.getCurrentShopId())
+                    }
+                }
+            } catch (e: Exception) {
+                println("❌ Error refreshing shops: ${e.message}")
+            }
+        }
     }
 
     private fun navigateToDashboard() {

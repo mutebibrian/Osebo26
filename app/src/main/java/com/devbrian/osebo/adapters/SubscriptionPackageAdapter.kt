@@ -30,6 +30,7 @@ class SubscriptionPackageAdapter(
                 val featuresText = packageItem.featureList.joinToString(" • ")
                 tvFeatures.text = featuresText
 
+                // Popular tag
                 if (packageItem.isPopular) {
                     tvPopularTag.visibility = View.VISIBLE
                     tvPopularTag.text = "POPULAR"
@@ -37,6 +38,7 @@ class SubscriptionPackageAdapter(
                     tvPopularTag.visibility = View.GONE
                 }
 
+                // Custom tag
                 if (packageItem.isAddOn) {
                     tvCustomTag.visibility = View.VISIBLE
                     tvCustomTag.text = "CUSTOM"
@@ -44,6 +46,8 @@ class SubscriptionPackageAdapter(
                     tvCustomTag.visibility = View.GONE
                 }
 
+                // ========== TRIAL BADGE ==========
+                // Show ONLY if hasFreeTrial is true (no fallback)
                 if (packageItem.hasFreeTrial) {
                     tvTrialInfo.visibility = View.VISIBLE
                     tvTrialInfo.text = "Trial Available"
@@ -51,6 +55,7 @@ class SubscriptionPackageAdapter(
                     tvTrialInfo.visibility = View.GONE
                 }
 
+                // Price
                 if (packageItem.price > 0) {
                     tvPackagePrice.visibility = View.VISIBLE
                     tvPackagePrice.text = "UGX ${String.format("%,.0f", packageItem.price)}/mo"
@@ -61,6 +66,7 @@ class SubscriptionPackageAdapter(
                     tvContactSales.text = "Contact Sales"
                 }
 
+                // Checkbox
                 checkboxSelect.setOnCheckedChangeListener(null)
                 checkboxSelect.isChecked = selectedIds.contains(packageItem.id)
                 checkboxSelect.setOnCheckedChangeListener { _, isChecked ->
