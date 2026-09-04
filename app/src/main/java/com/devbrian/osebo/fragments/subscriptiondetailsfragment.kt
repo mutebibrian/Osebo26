@@ -15,6 +15,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.devbrian.osebo.R
 import com.devbrian.osebo.adapters.FeatureListAdapter
 import com.devbrian.osebo.adapters.SubscriptionHistoryAdapter
+import com.devbrian.osebo.data.models.Shop
 import com.devbrian.osebo.databinding.FragmentSubscriptionDetailsBinding
 import com.devbrian.osebo.models.Feature
 import com.devbrian.osebo.models.Subscription
@@ -271,7 +272,7 @@ class SubscriptionDetailsFragment : Fragment() {
         val currentPackage: String = currentSubscription?.packageType ?: ""
 
         
-        val shopPlaceholder = com.devbrian.osebo.models.Shop(
+        val shopPlaceholder = Shop(
             id = args.shopId ?: "",
             name = "",
             subscriptionStatus = "inactive"

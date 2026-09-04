@@ -27,7 +27,6 @@ class DashboardRepository @Inject constructor(
     }
 
     // ===== EXISTING METHODS =====
-
     fun getDashboardSummary(): Flow<DashboardSummaryEntity?> = dao.getDashboardSummary()
     fun getTimeSeries(): Flow<TimeSeriesEntity?> = dao.getTimeSeries()
     fun getTopStockItems(): Flow<List<TopStockItemEntity>> = dao.getTopStockItems()
@@ -93,7 +92,6 @@ class DashboardRepository @Inject constructor(
     }
 
     // ===== EXISTING PRIVATE METHODS (keep unchanged) =====
-
     private suspend fun fetchAndSaveShopSummary(shopUuid: String) {
         try {
             val response = apiService.getShopSummary(shopUuid)

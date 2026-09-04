@@ -1,6 +1,6 @@
 package com.devbrian.osebo.data.repository
 
-import com.devbrian.osebo.models.Shop
+import com.devbrian.osebo.data.models.Shop
 import com.devbrian.osebo.utils.Resource
 
 interface ShopRepository {

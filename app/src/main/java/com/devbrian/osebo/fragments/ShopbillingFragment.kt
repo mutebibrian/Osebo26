@@ -10,7 +10,7 @@ import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.devbrian.osebo.R
 import com.devbrian.osebo.databinding.FragmentShopBillingBinding
-import com.devbrian.osebo.models.Shop
+import com.devbrian.osebo.data.models.Shop
 import java.text.SimpleDateFormat
 import java.util.*
 

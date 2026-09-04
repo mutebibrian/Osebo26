@@ -17,7 +17,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.devbrian.osebo.adapters.SubscriptionPackageAdapter
 import com.devbrian.osebo.data.PreferenceManager
 import com.devbrian.osebo.databinding.FragmentSubscriptionPackagesBinding
-import com.devbrian.osebo.models.Shop
+import com.devbrian.osebo.data.models.Shop
 import com.devbrian.osebo.models.SubscriptionPackage
 import com.devbrian.osebo.ui.viewmodels.SubscriptionViewModel
 import com.devbrian.osebo.utils.Resource

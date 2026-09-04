@@ -9,7 +9,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.devbrian.osebo.R
 import com.devbrian.osebo.databinding.ItemShopDashboardBinding
-import com.devbrian.osebo.models.Shop
+import com.devbrian.osebo.data.models.Shop
 import java.text.NumberFormat
 import java.util.*
 

@@ -1,5 +1,6 @@
 package com.devbrian.osebo.models
 
+import com.devbrian.osebo.data.models.Shop
 
 
 fun Shop.toSubscriptionStatusUi(): SubscriptionStatusUi {
