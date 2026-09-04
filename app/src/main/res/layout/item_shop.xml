@@ -1,151 +1,119 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView
+<com.google.android.material.card.MaterialCardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/cardView"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="8dp"
-    app:cardCornerRadius="8dp"
-    app:cardElevation="2dp"
-    app:cardUseCompatPadding="true">
+    android:layout_marginHorizontal="8dp"
+    android:layout_marginVertical="6dp"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="1dp"
+    app:cardBackgroundColor="?attr/colorSurface">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:padding="16dp">
 
-        <ImageView
+        <!-- ===== GREEN RIBBON (top-left, rotated) ===== -->
+        <FrameLayout
+            android:id="@+id/ribbonContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <TextView
+                android:id="@+id/tvRibbon"
+                android:layout_width="100dp"
+                android:layout_height="28dp"
+                android:background="@drawable/ribbon_active"
+                android:gravity="center"
+                android:text="ACTIVE"
+                android:textColor="@android:color/white"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:rotation="-45"
+                android:translationX="-10dp"
+                android:translationY="-10dp" />
+        </FrameLayout>
+
+        <!-- Shop Logo -->
+        <com.google.android.material.imageview.ShapeableImageView
             android:id="@+id/ivShopLogo"
-            android:layout_width="60dp"
-            android:layout_height="60dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:scaleType="centerCrop"
+            android:src="@drawable/ic_shop_placeholder"
+            android:contentDescription="Shop logo"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            android:contentDescription="Shop Logo"
-            android:src="@drawable/ic_shop_placeholder" />
+            app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full" />
 
+        <!-- Shop Name -->
         <TextView
             android:id="@+id/tvShopName"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="8dp"
+            android:text="Shop Name"
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="16sp"
             android:textStyle="bold"
-            android:textSize="18sp"
-            app:layout_constraintEnd_toStartOf="@id/tvActiveBadge"
+            android:maxLines="1"
+            android:ellipsize="end"
+            app:layout_constraintEnd_toStartOf="@id/btnPrimaryAction"
             app:layout_constraintStart_toEndOf="@id/ivShopLogo"
             app:layout_constraintTop_toTopOf="@id/ivShopLogo" />
 
-        <TextView
-            android:id="@+id/tvShopDescription"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textSize="14sp"
-            android:textColor="@color/text_secondary"
-            app:layout_constraintEnd_toEndOf="@id/tvShopName"
-            app:layout_constraintStart_toStartOf="@id/tvShopName"
-            app:layout_constraintTop_toBottomOf="@id/tvShopName" />
-
-        <TextView
-            android:id="@+id/tvShopLocation"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textSize="12sp"
-            android:drawableStart="@drawable/ic_location"
-            android:drawablePadding="4dp"
-            app:layout_constraintEnd_toEndOf="@id/tvShopDescription"
-            app:layout_constraintStart_toStartOf="@id/tvShopDescription"
-            app:layout_constraintTop_toBottomOf="@id/tvShopDescription" />
-
+        <!-- Shop Type -->
         <TextView
             android:id="@+id/tvShopCategory"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
+            android:drawableStart="@drawable/ic_category"
+            android:drawablePadding="4dp"
+            android:text="Retail Store"
+            android:textColor="?attr/colorOnSurfaceVariant"
             android:textSize="12sp"
-            android:textColor="@color/text_secondary"
-            app:layout_constraintEnd_toEndOf="@id/tvShopLocation"
-            app:layout_constraintStart_toStartOf="@id/tvShopLocation"
-            app:layout_constraintTop_toBottomOf="@id/tvShopLocation" />
+            app:layout_constraintEnd_toStartOf="@id/btnPrimaryAction"
+            app:layout_constraintStart_toStartOf="@id/tvShopName"
+            app:layout_constraintTop_toBottomOf="@id/tvShopName" />
 
+        <!-- Shop Location -->
         <TextView
-            android:id="@+id/tvActiveBadge"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:background="@drawable/bg_active_badge"
-            android:paddingHorizontal="8dp"
-            android:paddingVertical="2dp"
-            android:text="Active"
-            android:textColor="@android:color/white"
-            android:textSize="10sp"
-            android:visibility="gone"
-            app:layout_constraintBottom_toBottomOf="@id/tvShopName"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="@id/tvShopName" />
-
-        <LinearLayout
-            android:id="@+id/layoutStats"
+            android:id="@+id/tvShopLocation"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:orientation="horizontal"
-            android:weightSum="5"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/ivShopLogo">
+            android:layout_marginTop="2dp"
+            android:drawableStart="@drawable/ic_location"
+            android:drawablePadding="4dp"
+            android:text="Location"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textSize="12sp"
+            app:layout_constraintEnd_toStartOf="@id/btnPrimaryAction"
+            app:layout_constraintStart_toStartOf="@id/tvShopName"
+            app:layout_constraintTop_toBottomOf="@id/tvShopCategory" />
 
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/layoutActions"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:orientation="horizontal"
-            android:visibility="gone"
-            app:layout_constraintTop_toBottomOf="@id/layoutStats">
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnSetActive"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginEnd="4dp"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:text="Set Active" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnEdit"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="4dp"
-                android:layout_marginEnd="4dp"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:text="Edit" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnDelete"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="4dp"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:text="Delete" />
-
-        </LinearLayout>
-
+        <!-- Primary Action Button (right side) -->
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnSubscriptionAction"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:id="@+id/btnPrimaryAction"
             style="@style/Widget.Material3.Button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:text="View Shop"
-            app:layout_constraintTop_toBottomOf="@id/layoutActions" />
+            android:textAllCaps="false"
+            android:textSize="12sp"
+            app:cornerRadius="8dp"
+            app:icon="@drawable/ic_arrow_forward"
+            app:iconGravity="textEnd"
+            app:iconSize="16dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/ivShopLogo" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
-
-</androidx.cardview.widget.CardView>
+</com.google.android.material.card.MaterialCardView>

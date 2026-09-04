@@ -14,7 +14,7 @@
 
         <argument
             android:name="shop"
-            app:argType="com.devbrian.osebo.models.Shop"
+            app:argType="com.devbrian.osebo.data.models.Shop"
             app:nullable="true" />
 
         <argument
@@ -45,7 +45,7 @@
 
         <argument
             android:name="shop"
-            app:argType="com.devbrian.osebo.models.Shop"
+            app:argType="com.devbrian.osebo.data.models.Shop"
             app:nullable="true" />
 
         <argument
@@ -140,7 +140,7 @@
             app:destination="@id/subscriptionPackagesFragment">
             <argument
                 android:name="shop"
-                app:argType="com.devbrian.osebo.models.Shop"
+                app:argType="com.devbrian.osebo.data.models.Shop"
                 app:nullable="true" />
         </action>
     </fragment>
@@ -166,7 +166,7 @@
             app:destination="@id/subscriptionPackagesFragment">
             <argument
                 android:name="shop"
-                app:argType="com.devbrian.osebo.models.Shop"
+                app:argType="com.devbrian.osebo.data.models.Shop"
                 app:nullable="true" />
             <argument
                 android:name="currentPackage"

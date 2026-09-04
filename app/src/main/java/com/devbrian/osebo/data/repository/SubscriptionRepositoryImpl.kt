@@ -1,6 +1,8 @@
 package com.devbrian.osebo.data.repository
 
 import com.devbrian.osebo.data.ApiService
+import com.devbrian.osebo.data.models.Shop
+import com.devbrian.osebo.data.models.ShopSubscription
 import com.devbrian.osebo.data.remote.dto.request.CreateSubscriptionRequest
 import com.devbrian.osebo.data.remote.dto.response.FeatureDto
 import com.devbrian.osebo.data.remote.dto.response.PackageDto
@@ -73,18 +75,16 @@ class SubscriptionRepositoryImpl @Inject constructor(
     }
 
     private fun ShopSubscriptionDto.toShopSubscription(): ShopSubscription {
-        val subscriptionPackage = this.packageDetails?.toSubscriptionPackage()
+        // ✅ Removed the unused variable and the extra parameters
         return ShopSubscription(
             id = this.id,
             status = this.status,
             packageType = this.packageType,
-            subscriptionPackage = subscriptionPackage,
             startsAt = this.startsAt,
             endsAt = this.endsAt,
             isActive = this.isActive,
             durationDays = this.durationDays,
-            isTrial = this.isTrial,
-            payment = null
+            isTrial = this.isTrial
         )
     }
 

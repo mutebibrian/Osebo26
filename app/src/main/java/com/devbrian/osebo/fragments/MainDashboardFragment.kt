@@ -12,17 +12,19 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.devbrian.osebo.R
-import com.devbrian.osebo.adapters.MainShopAdapter
+import com.devbrian.osebo.adapters.OnShopClickListener
+import com.devbrian.osebo.adapters.ShopsAdapter
 import com.devbrian.osebo.adapters.ShopPerformanceAdapter
 import com.devbrian.osebo.data.PreferenceManager
+import com.devbrian.osebo.data.models.Shop
 import com.devbrian.osebo.data.repository.DashboardRepository
 import com.devbrian.osebo.data.repository.FinanceRepository
 import com.devbrian.osebo.data.repository.ProductRepository
 import com.devbrian.osebo.data.repository.ShopRepositoryImpl
 import com.devbrian.osebo.data.repository.SalesRepository
 import com.devbrian.osebo.databinding.FragmentMainDashboardBinding
-import com.devbrian.osebo.models.Shop
 import com.devbrian.osebo.models.ShopPerformance
+import com.devbrian.osebo.ui.MainActivity
 import com.devbrian.osebo.utils.PermissionManager
 import com.devbrian.osebo.utils.Resource
 import dagger.hilt.android.AndroidEntryPoint
@@ -42,7 +44,7 @@ class MainDashboardFragment : Fragment() {
     private lateinit var preferenceManager: PreferenceManager
     private lateinit var permissionManager: PermissionManager
     private lateinit var shopPerformanceAdapter: ShopPerformanceAdapter
-    private lateinit var mainShopAdapter: MainShopAdapter
+    private lateinit var shopsAdapter: ShopsAdapter
 
     @Inject lateinit var shopRepository: ShopRepositoryImpl
     @Inject lateinit var financeRepository: FinanceRepository
@@ -94,24 +96,61 @@ class MainDashboardFragment : Fragment() {
     }
 
     private fun setupRecyclerViews() {
+        // 1. Shop Performance (horizontal)
         shopPerformanceAdapter = ShopPerformanceAdapter { shopId ->
-            val shop = mainShopAdapter.currentList.find { it.id == shopId }
+            val shop = shopsAdapter.currentList.find { it.id == shopId }
             shop?.let { navigateToShopBilling(it) }
         }
         binding.rvShopPerformance.apply {
-            layoutManager = LinearLayoutManager(requireContext())
+            layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
             adapter = shopPerformanceAdapter
             isNestedScrollingEnabled = false
         }
 
-        mainShopAdapter = MainShopAdapter(
-            onShopClick = { shop -> navigateToShopBilling(shop) },
-            onViewDetailsClick = { shop -> navigateToShopBilling(shop) }
+        // 2. Your Shops (vertical, using ShopsAdapter)
+        shopsAdapter = ShopsAdapter(
+            listener = object : OnShopClickListener {
+                override fun onShopClick(shop: Shop) {
+                    if (shop.isSubscriptionActive) {
+                        navigateToShopDashboard(shop)
+                    } else {
+                        showSubscriptionRequiredDialog(shop)
+                    }
+                }
+
+                override fun onEditClick(shop: Shop) {
+                    Toast.makeText(requireContext(), "Edit ${shop.name}", Toast.LENGTH_SHORT).show()
+                }
+
+                override fun onDeleteClick(shop: Shop) {
+                    // optional
+                }
+
+                override fun onSetActiveClick(shop: Shop) {
+                    setActiveShop(shop)
+                }
+
+                override fun onSubscribeClick(shop: Shop) {
+                    navigateToSubscriptionPackages(shop)
+                }
+            },
+            context = requireContext()
         )
+
         binding.rvShops.apply {
             layoutManager = LinearLayoutManager(requireContext())
-            adapter = mainShopAdapter
+            adapter = shopsAdapter
             isNestedScrollingEnabled = false
+        }
+    }
+
+    // ===== SHOP NAVIGATION / ACTIONS =====
+    private fun navigateToShopDashboard(shop: Shop) {
+        try {
+            val action = MainDashboardFragmentDirections.actionMainDashboardToShopDashboard(shop.id)
+            findNavController().navigate(action)
+        } catch (e: Exception) {
+            Toast.makeText(requireContext(), "Navigation error: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -121,7 +160,6 @@ class MainDashboardFragment : Fragment() {
             findNavController().navigate(action)
         } catch (e: Exception) {
             Log.e(TAG, "Navigation to ShopBilling failed", e)
-            Toast.makeText(requireContext(), "Opening subscription options", Toast.LENGTH_SHORT).show()
             navigateToSubscriptionPackages(shop)
         }
     }
@@ -135,6 +173,36 @@ class MainDashboardFragment : Fragment() {
         }
     }
 
+    private fun setActiveShop(shop: Shop) {
+        if (shop.id.isBlank() || !Shop.isValidUUID(shop.id)) {
+            Toast.makeText(requireContext(), "Invalid shop ID", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        preferenceManager.saveCurrentShop(
+            shopId = shop.id,
+            shopUuid = shop.id,
+            shopName = shop.name
+        )
+
+        if (shop.isSubscriptionActive) {
+            val status = if (shop.subscription?.isTrial == true) "TRIAL" else "ACTIVE"
+            preferenceManager.saveSubscriptionInfo(
+                subscriptionId = shop.subscription?.id,
+                status = status,
+                type = shop.subscription?.packageType,
+                expiry = shop.subscription?.endsAt,
+                packageId = shop.subscription?.subscriptionPackage?.id
+            )
+        } else {
+            preferenceManager.clearSubscriptionInfo()
+        }
+
+        shopsAdapter.setActiveShopId(shop.id)
+        (activity as? MainActivity)?.refreshNavigationMenu()
+        Toast.makeText(requireContext(), "${shop.name} is now active", Toast.LENGTH_SHORT).show()
+    }
+
     private fun saveCurrentShop(shop: Shop) {
         val uuid = shop.uuid ?: shop.id
         preferenceManager.saveCurrentShopId(shop.id)
@@ -143,10 +211,13 @@ class MainDashboardFragment : Fragment() {
         preferenceManager.saveHasShop(true)
 
         if (shop.isSubscriptionActive) {
-            preferenceManager.saveSubscriptionStatus(shop.subscriptionStatus.uppercase())
+            val status = if (shop.subscription?.isTrial == true) "TRIAL" else "ACTIVE"
+            preferenceManager.saveSubscriptionStatus(status)
             shop.subscriptionType?.let { preferenceManager.saveSubscriptionType(it) }
             shop.subscriptionExpiry?.let { preferenceManager.saveSubscriptionExpiry(it) }
-            preferenceManager.debugSubscriptionInfo()
+            shop.subscription?.id?.let { preferenceManager.saveSubscriptionId(it) }
+        } else {
+            preferenceManager.clearSubscriptionInfo()
         }
         Log.d(TAG, "Saved shop UUID: $uuid, ID: ${shop.id}")
     }
@@ -157,13 +228,30 @@ class MainDashboardFragment : Fragment() {
             preferenceManager.saveCurrentShopId(shopId)
             val result = productRepository.getProducts()
             preferenceManager.saveCurrentShopId(originalShopId)
-
             if (result is Resource.Success) (result.data ?: emptyList()).size else 0
-        } catch (e: Exception) {
-            0
-        }
+        } catch (e: Exception) { 0 }
     }
 
+    // ===== DIALOGS =====
+    private fun showSubscriptionRequiredDialog(shop: Shop) {
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle("Subscription Required")
+            .setMessage("${shop.name} doesn't have an active subscription. Would you like to subscribe now?")
+            .setPositiveButton("Subscribe Now") { _, _ -> navigateToSubscriptionPackages(shop) }
+            .setNegativeButton("Later", null)
+            .show()
+    }
+
+    private fun showNoActiveShopDialog() {
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle("No Active Shop")
+            .setMessage("You need an active subscription to perform this action.")
+            .setPositiveButton("View Shops") { _, _ -> findNavController().navigate(R.id.shopsFragment) }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    // ===== CLICK LISTENERS =====
     private fun setupClickListeners() {
         binding.tvToday.setOnClickListener { filterShopsByTime("today") }
         binding.tvAllShops.setOnClickListener { filterShopsByTime("all") }
@@ -192,14 +280,13 @@ class MainDashboardFragment : Fragment() {
         }
     }
 
-    // ===== PUBLIC loadDashboardData (called by MainActivity) =====
+    // ===== LOAD DATA (PUBLIC) =====
     fun loadDashboardData() {
         showLoading(true)
 
         lifecycleScope.launch {
             try {
                 val refreshResult = shopRepository.refreshShops()
-
                 when (refreshResult) {
                     is Resource.Success -> {
                         val shopsResult = shopRepository.getShops()
@@ -209,11 +296,12 @@ class MainDashboardFragment : Fragment() {
                                 val selectedShop = shops.find { it.isSubscriptionActive } ?: shops.first()
                                 saveCurrentShop(selectedShop)
 
-                                // ✅ COMPUTE GRAND TOTALS ACROSS ALL SHOPS
+                                // ✅ GRAND TOTALS ACROSS ALL SHOPS
                                 val (totalSales, totalExpenses) = loadActualSalesData(shops)
 
                                 updateTotals(totalSales, totalExpenses, shops.size)
-                                mainShopAdapter.submitList(shops)
+                                shopsAdapter.submitList(shops)
+                                shopsAdapter.setActiveShopId(selectedShop.id)
                                 dashboardRepository.refreshDashboardData()
                             } else {
                                 showEmptyState()
@@ -232,7 +320,8 @@ class MainDashboardFragment : Fragment() {
 
                             val (totalSales, totalExpenses) = loadActualSalesData(shops)
                             updateTotals(totalSales, totalExpenses, shops.size)
-                            mainShopAdapter.submitList(shops)
+                            shopsAdapter.submitList(shops)
+                            shopsAdapter.setActiveShopId(selectedShop.id)
                             Toast.makeText(requireContext(), "Using cached shop data", Toast.LENGTH_SHORT).show()
                         } else {
                             showErrorState(refreshResult.message ?: "Failed to load shops")
@@ -257,7 +346,6 @@ class MainDashboardFragment : Fragment() {
 
         for (shop in shops) {
             val shopUuid = shop.uuid ?: shop.id
-            // Fetch summary for this shop directly from the API
             val summary = dashboardRepository.fetchShopSummary(shopUuid)
             val sales = summary?.totalSales ?: 0.0
             val expenses = summary?.totalExpenses ?: 0.0
@@ -268,7 +356,6 @@ class MainDashboardFragment : Fragment() {
             grandTotalExpenses += expenses
         }
 
-        // Build performance bars
         val maxSales = shopSalesMap.values.maxOrNull() ?: 0.0
         val performances = shops.map { shop ->
             val actualSales = shopSalesMap[shop.id] ?: 0.0
@@ -321,7 +408,7 @@ class MainDashboardFragment : Fragment() {
     }
 
     private fun hasActiveShopWithSubscription(): Boolean {
-        return mainShopAdapter.currentList.any { it.isSubscriptionActive }
+        return shopsAdapter.currentList.any { it.isSubscriptionActive }
     }
 
     private fun filterShopsByTime(filter: String) {
@@ -339,24 +426,6 @@ class MainDashboardFragment : Fragment() {
                 binding.tvToday.setTextColor(ContextCompat.getColor(requireContext(), R.color.primary))
             }
         }
-    }
-
-    private fun navigateToShopDashboard(shopId: String) {
-        try {
-            val action = MainDashboardFragmentDirections.actionMainDashboardToShopDashboard(shopId)
-            findNavController().navigate(action)
-        } catch (e: Exception) {
-            Toast.makeText(requireContext(), "Navigation error: ${e.message}", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun showNoActiveShopDialog() {
-        androidx.appcompat.app.AlertDialog.Builder(requireContext())
-            .setTitle("No Active Shop")
-            .setMessage("You need an active subscription to perform this action.")
-            .setPositiveButton("View Shops") { _, _ -> findNavController().navigate(R.id.shopsFragment) }
-            .setNegativeButton("Cancel", null)
-            .show()
     }
 
     private fun showEmptyState() {

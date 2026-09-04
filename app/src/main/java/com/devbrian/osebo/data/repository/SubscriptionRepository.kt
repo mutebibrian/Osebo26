@@ -1,8 +1,8 @@
 package com.devbrian.osebo.data.repository
 
+import com.devbrian.osebo.data.models.Shop
 import com.devbrian.osebo.data.remote.dto.request.CreateSubscriptionRequest
 import com.devbrian.osebo.data.remote.dto.response.PaymentCheckResponse
-import com.devbrian.osebo.data.remote.dto.response.PaymentDto
 import com.devbrian.osebo.data.remote.dto.response.ShopSubscriptionStatusResponse
 import com.devbrian.osebo.data.remote.dto.response.SubscriptionResponse
 import com.devbrian.osebo.models.*

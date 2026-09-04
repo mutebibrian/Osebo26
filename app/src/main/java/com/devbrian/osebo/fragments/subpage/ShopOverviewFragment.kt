@@ -6,7 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import com.devbrian.osebo.databinding.FragmentShopOverviewBinding
-import com.devbrian.osebo.models.Shop
+import com.devbrian.osebo.data.models.Shop
 import java.text.NumberFormat
 import java.util.*
 

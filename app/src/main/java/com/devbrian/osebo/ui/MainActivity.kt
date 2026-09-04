@@ -26,7 +26,7 @@ import com.devbrian.osebo.data.PreferenceManager
 import com.devbrian.osebo.data.repository.ShopRepositoryImpl
 import com.devbrian.osebo.databinding.ActivityMainBinding
 import com.devbrian.osebo.fragments.MainDashboardFragment
-import com.devbrian.osebo.models.Shop
+import com.devbrian.osebo.data.models.Shop
 import com.devbrian.osebo.models.PermissionType
 import com.devbrian.osebo.utils.PermissionManager
 import com.devbrian.osebo.utils.Resource

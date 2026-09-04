@@ -9,9 +9,8 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
-import com.devbrian.osebo.R
 import com.devbrian.osebo.databinding.FragmentSubscriptionPaymentBinding
-import com.devbrian.osebo.models.Shop
+import com.devbrian.osebo.data.models.Shop
 import com.devbrian.osebo.ui.viewmodels.SubscriptionViewModel
 import com.devbrian.osebo.utils.Resource
 import dagger.hilt.android.AndroidEntryPoint

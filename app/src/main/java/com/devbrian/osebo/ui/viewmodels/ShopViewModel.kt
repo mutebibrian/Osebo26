@@ -6,7 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.devbrian.osebo.data.repository.ShopRepository
 import com.devbrian.osebo.models.PaymentHistory
-import com.devbrian.osebo.models.Shop
+import com.devbrian.osebo.data.models.Shop
 import com.devbrian.osebo.utils.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
