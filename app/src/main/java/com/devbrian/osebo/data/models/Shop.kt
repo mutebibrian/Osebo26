@@ -1,6 +1,8 @@
-package com.devbrian.osebo.models
+package com.devbrian.osebo.data.models
 
 import android.os.Parcelable
+import com.devbrian.osebo.models.Payment
+import com.devbrian.osebo.models.SubscriptionPackage
 import com.google.gson.annotations.SerializedName
 import kotlinx.parcelize.Parcelize
 import java.io.Serializable
@@ -99,17 +101,21 @@ data class Shop(
     val updatedAt: String? = null
 ) : Parcelable, Serializable {
 
-    
     val isUuid: Boolean
         get() = isValidUUID(id)
 
-    
     val effectiveUuid: String
         get() = uuid ?: (if (isValidUUID(id)) id else "")
 
+    /**
+     * ✅ IMPROVED: Checks both subscriptionStatus AND the nested subscription object
+     * This ensures that shops with trial/active subscriptions are correctly detected
+     */
     val isSubscriptionActive: Boolean
         get() = subscriptionStatus.equals("active", ignoreCase = true) ||
-                subscriptionStatus.equals("trial", ignoreCase = true)
+                subscriptionStatus.equals("trial", ignoreCase = true) ||
+                (subscription?.isActive == true) ||
+                (subscription?.isTrial == true)
 
     val needsSubscription: Boolean
         get() = subscriptionStatus.equals("inactive", ignoreCase = true) ||

@@ -12,6 +12,8 @@
     <color name="accent_light">#BBDEFB</color>
     <color name="accent_color">#FF6B35</color>
     <color name="blue">#FF2196F3</color>
+    <color name="surface_highlight">#F5F5F5</color>
+
 
     <!-- Text Colors -->
     <color name="text_primary">#212121</color>

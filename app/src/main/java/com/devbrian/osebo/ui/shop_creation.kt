@@ -12,7 +12,7 @@ import com.devbrian.osebo.data.ApiService
 import com.devbrian.osebo.data.ShopType
 import com.devbrian.osebo.data.remote.dto.request.CreateShopRequest
 import com.devbrian.osebo.databinding.ActivityShopCreationBinding
-import com.devbrian.osebo.models.Shop
+import com.devbrian.osebo.data.models.Shop
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import java.text.SimpleDateFormat

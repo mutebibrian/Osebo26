@@ -3,7 +3,7 @@ package com.devbrian.osebo.data.local.entity
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.devbrian.osebo.data.remote.dto.response.ShopDto
-import com.devbrian.osebo.models.Shop
+import com.devbrian.osebo.data.models.Shop
 import java.util.UUID
 
 @Entity(tableName = "shops")

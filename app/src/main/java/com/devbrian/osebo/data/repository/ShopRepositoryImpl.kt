@@ -4,8 +4,7 @@ import com.devbrian.osebo.data.ApiService
 import com.devbrian.osebo.data.PreferenceManager
 import com.devbrian.osebo.data.local.AppDatabase
 import com.devbrian.osebo.data.local.entity.ShopEntity
-import com.devbrian.osebo.data.remote.dto.response.ShopDto
-import com.devbrian.osebo.models.Shop
+import com.devbrian.osebo.data.models.Shop
 import com.devbrian.osebo.utils.NetworkUtils
 import com.devbrian.osebo.utils.Resource
 import kotlinx.coroutines.flow.Flow

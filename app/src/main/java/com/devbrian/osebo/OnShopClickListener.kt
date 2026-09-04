@@ -1,6 +1,6 @@
 package com.devbrian.osebo
 
-import com.devbrian.osebo.models.Shop
+import com.devbrian.osebo.data.models.Shop
 
 interface OnShopClickListener {
     fun onShopClick(shop: Shop)

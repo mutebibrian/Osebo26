@@ -26,7 +26,7 @@ import com.devbrian.osebo.models.Expense
 import com.devbrian.osebo.models.ExpenseCategory
 import com.devbrian.osebo.models.FinancialStatement
 import com.devbrian.osebo.models.Product
-import com.devbrian.osebo.models.Shop
+import com.devbrian.osebo.data.models.Shop
 import com.devbrian.osebo.models.TimeSeriesApiResponse
 import okhttp3.MultipartBody
 import okhttp3.RequestBody

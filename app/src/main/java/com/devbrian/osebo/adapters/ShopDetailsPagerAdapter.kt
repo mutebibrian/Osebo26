@@ -8,7 +8,7 @@ import com.devbrian.osebo.fragments.subpage.ShopOverviewFragment
 import com.devbrian.osebo.fragments.subpage.ShopStatisticsFragment
 import com.devbrian.osebo.fragments.subpages.ShopSettingsFragment
 import com.devbrian.osebo.fragments.subpages.ShopSubscriptionFragment
-import com.devbrian.osebo.models.Shop
+import com.devbrian.osebo.data.models.Shop
 
 class ShopDetailsPagerAdapter(
     fragmentManager: FragmentManager,

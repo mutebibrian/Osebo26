@@ -1,6 +1,7 @@
 package com.devbrian.osebo.models
 
 
+import com.devbrian.osebo.data.models.Shop
 import com.devbrian.osebo.data.models.User
 import com.google.gson.annotations.SerializedName
 
