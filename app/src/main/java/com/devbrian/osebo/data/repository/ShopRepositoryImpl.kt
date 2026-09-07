@@ -53,10 +53,7 @@ class ShopRepositoryImpl @Inject constructor(
     suspend fun refreshShops(): Resource<Boolean> {
         val token = preferenceManager.getAuthToken()
         val userId = preferenceManager.getUserId()
-        val userRole = preferenceManager.getUserRole()
-        val isOwner = userRole.equals("owner", ignoreCase = true) || userRole.equals("admin", ignoreCase = true)
 
-        println("🔍 Refreshing shops - User: $userId, Role: $userRole, IsOwner: $isOwner")
         println("🔍 Token exists: ${token.isNotEmpty()}, Token length: ${token.length}")
 
         if (token.isEmpty()) {
@@ -68,6 +65,26 @@ class ShopRepositoryImpl @Inject constructor(
             if (!NetworkUtils.isNetworkAvailable(preferenceManager.getContext())) {
                 return Resource.Error("No internet connection. Showing cached shops.")
             }
+
+            // Self-heal a stale/missing role for resumed sessions (e.g. sessions that
+            // logged in before the role field was persisted, or an app relaunch that
+            // never re-ran the login flow) by re-fetching the current user's role.
+            try {
+                val profileResponse = apiService.getCurrentUser()
+                if (profileResponse.isSuccessful) {
+                    val freshRole = profileResponse.body()?.data?.getRoleName()
+                    if (!freshRole.isNullOrBlank()) {
+                        preferenceManager.saveUserRole(freshRole)
+                    }
+                }
+            } catch (e: Exception) {
+                println("⚠️ Could not refresh user role: ${e.message}")
+            }
+
+            val userRole = preferenceManager.getUserRole()
+            val isOwner = userRole.equals("owner", ignoreCase = true) || userRole.equals("admin", ignoreCase = true)
+
+            println("🔍 Refreshing shops - User: $userId, Role: $userRole, IsOwner: $isOwner")
 
             // FIXED: Use getShopsWithAuth instead of getShops
             val response = apiService.getShopsWithAuth("Bearer $token")
