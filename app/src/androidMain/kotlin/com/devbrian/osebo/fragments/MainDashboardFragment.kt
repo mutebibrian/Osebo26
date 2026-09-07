@@ -27,15 +27,13 @@ import com.devbrian.osebo.models.ShopPerformance
 import com.devbrian.osebo.ui.MainActivity
 import com.devbrian.osebo.utils.PermissionManager
 import com.devbrian.osebo.utils.Resource
-import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.util.*
-import javax.inject.Inject
+import org.koin.android.ext.android.inject
 
 private const val TAG = "MainDashboardFragment"
 
-@AndroidEntryPoint
 class MainDashboardFragment : Fragment() {
 
     private var _binding: FragmentMainDashboardBinding? = null
@@ -46,11 +44,11 @@ class MainDashboardFragment : Fragment() {
     private lateinit var shopPerformanceAdapter: ShopPerformanceAdapter
     private lateinit var shopsAdapter: ShopsAdapter
 
-    @Inject lateinit var shopRepository: ShopRepositoryImpl
-    @Inject lateinit var financeRepository: FinanceRepository
-    @Inject lateinit var productRepository: ProductRepository
-    @Inject lateinit var salesRepository: SalesRepository
-    @Inject lateinit var dashboardRepository: DashboardRepository
+    private val shopRepository: ShopRepositoryImpl by inject()
+    private val financeRepository: FinanceRepository by inject()
+    private val productRepository: ProductRepository by inject()
+    private val salesRepository: SalesRepository by inject()
+    private val dashboardRepository: DashboardRepository by inject()
 
     private val currencyFormatter: NumberFormat = NumberFormat.getCurrencyInstance().apply {
         maximumFractionDigits = 0

@@ -7,13 +7,10 @@ import androidx.lifecycle.viewModelScope
 import com.devbrian.osebo.data.repository.FinanceRepository
 import com.devbrian.osebo.data.remote.dto.request.CreateExpenseRequest
 import com.devbrian.osebo.models.ExpenseCategory
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import android.util.Log
-import javax.inject.Inject
 
-@HiltViewModel
-class AddExpenseViewModel @Inject constructor(
+class AddExpenseViewModel(
     private val financeRepository: FinanceRepository
 ) : ViewModel() {
 

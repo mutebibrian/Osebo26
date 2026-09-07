@@ -8,12 +8,9 @@ import com.devbrian.osebo.data.repository.ShopRepository
 import com.devbrian.osebo.models.PaymentHistory
 import com.devbrian.osebo.data.models.Shop
 import com.devbrian.osebo.utils.Resource
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
-@HiltViewModel
-class ShopViewModel @Inject constructor(
+class ShopViewModel(
     private val repository: ShopRepository
 ) : ViewModel() {
 

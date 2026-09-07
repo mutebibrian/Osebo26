@@ -10,17 +10,14 @@ import com.devbrian.osebo.data.remote.dto.request.SelectAccountRequest
 import com.devbrian.osebo.data.remote.dto.request.VerifyTwoFactorRequest
 import com.devbrian.osebo.data.remote.dto.response.AccountInfo
 import com.devbrian.osebo.data.remote.dto.response.AuthData
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import java.io.IOException
-import javax.inject.Inject
 
-@HiltViewModel
-class LoginViewModel @Inject constructor(
+class LoginViewModel(
     private val apiService: ApiService,
     private val preferences: PreferenceManager
 ) : ViewModel() {

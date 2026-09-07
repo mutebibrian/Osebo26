@@ -9,11 +9,8 @@ import com.google.gson.Gson
 import kotlinx.coroutines.flow.Flow
 import java.io.IOException
 import java.net.UnknownHostException
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class DashboardRepository @Inject constructor(
+class DashboardRepository(
     private val apiService: ApiService,
     private val preferences: PreferenceManager,
     private val database: AppDatabase

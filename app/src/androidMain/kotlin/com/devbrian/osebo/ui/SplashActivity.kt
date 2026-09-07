@@ -18,9 +18,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.animation.addListener
 import com.devbrian.osebo.R
 import com.devbrian.osebo.data.PreferenceManager
-import dagger.hilt.android.AndroidEntryPoint
 
-@AndroidEntryPoint
 class SplashActivity : AppCompatActivity() {
 
     private lateinit var ivLogo: ImageView
