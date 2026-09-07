@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/planCard"
+    android:layout_width="280dp"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="4dp"
+    app:cardUseCompatPadding="true">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="24dp">
+
+        <!-- Plan Name -->
+        <TextView
+            android:id="@+id/planName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Basic Plan"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="@color/black"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <!-- Popular Badge -->
+        <TextView
+            android:id="@+id/popularBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="POPULAR"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:textColor="@color/white"
+            android:background="@drawable/bg_popular_badge"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="4dp"
+            android:visibility="gone"
+            android:layout_marginStart="12dp"
+            app:layout_constraintTop_toTopOf="@id/planName"
+            app:layout_constraintStart_toEndOf="@id/planName"
+            app:layout_constraintBottom_toBottomOf="@id/planName" />
+
+        <!-- Trial Badge -->
+        <TextView
+            android:id="@+id/trialBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Trial Available"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:textColor="@android:color/white"
+            android:background="@drawable/bg_trial_badge"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="4dp"
+            android:visibility="gone"
+            android:layout_marginStart="8dp"
+            app:layout_constraintTop_toTopOf="@id/planName"
+            app:layout_constraintStart_toEndOf="@id/popularBadge"
+            app:layout_constraintBottom_toBottomOf="@id/planName" />
+
+        <!-- Plan Price -->
+        <TextView
+            android:id="@+id/planPrice"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="UGX 50,000 /mo"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:textColor="@color/primary_color"
+            android:layout_marginTop="16dp"
+            app:layout_constraintTop_toBottomOf="@id/planName"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <!-- Plan Type -->
+        <TextView
+            android:id="@+id/planType"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Basic"
+            android:textSize="14sp"
+            android:textColor="@color/grey_600"
+            android:layout_marginTop="4dp"
+            app:layout_constraintTop_toBottomOf="@id/planPrice"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <!-- Plan Description -->
+        <TextView
+            android:id="@+id/planDescription"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Best for small and growing businesses"
+            android:textSize="13sp"
+            android:textColor="@color/grey_700"
+            android:layout_marginTop="8dp"
+            app:layout_constraintTop_toBottomOf="@id/planType"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <!-- Divider -->
+        <View
+            android:id="@+id/divider"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/grey_200"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="16dp"
+            app:layout_constraintTop_toBottomOf="@id/planDescription"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <!-- Features List -->
+        <TextView
+            android:id="@+id/planFeatures"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="✓ Inventory\n✓ Reports\n✓ Basic Support"
+            android:textSize="14sp"
+            android:textColor="@color/grey_700"
+            android:lineSpacingExtra="8dp"
+            app:layout_constraintTop_toBottomOf="@id/divider"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <!-- Additional Info -->
+        <TextView
+            android:id="@+id/additionalInfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="5 users • 2 shops • 1GB storage"
+            android:textSize="12sp"
+            android:textColor="@color/grey_600"
+            android:layout_marginTop="12dp"
+            app:layout_constraintTop_toBottomOf="@id/planFeatures"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <!-- Choose Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/chooseButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Choose Plan"
+            style="@style/Widget.MaterialComponents.Button"
+            android:layout_marginTop="24dp"
+            app:layout_constraintTop_toBottomOf="@id/additionalInfo"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</androidx.cardview.widget.CardView>

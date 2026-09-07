@@ -2,76 +2,19 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
-    <!-- View Profile -->
     <item
-        android:id="@+id/action_view_profile"
-        android:icon="@drawable/ic_visibility"
-        android:title="View Profile"
-        app:showAsAction="never"/>
+        android:id="@+id/action_import_employees"
+        android:title="Import"
+        app:showAsAction="never" />
 
-    <!-- Edit Employee -->
     <item
-        android:id="@+id/action_edit_employee"
-        android:icon="@drawable/ic_edit"
-        android:title="Edit Employee"
-        app:showAsAction="never"/>
+        android:id="@+id/action_export_employees"
+        android:title="Export"
+        app:showAsAction="never" />
 
-    <!-- View Attendance -->
     <item
-        android:id="@+id/action_view_attendance"
-        android:icon="@drawable/ic_attendance"
-        android:title="View Attendance"
-        app:showAsAction="never"/>
-
-    <!-- Assign Task -->
-    <item
-        android:id="@+id/action_assign_task"
-        android:icon="@drawable/ic_task"
-        android:title="Assign Task"
-        app:showAsAction="never"/>
-
-    <!-- Send Message -->
-    <item
-        android:id="@+id/action_send_message"
-        android:icon="@drawable/ic_message"
-        android:title="Send Message"
-        app:showAsAction="never"/>
-
-    <!-- Change Role -->
-    <item
-        android:id="@+id/action_change_role"
-        android:icon="@drawable/ic_role"
-        android:title="Change Role"
-        app:showAsAction="never"/>
-
-    <!-- Divider -->
-    <item
-        android:id="@+id/action_divider"
-        android:title="">
-        <menu>
-            <item android:title="">
-                <view
-                    class="android.view.View"
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="@color/divider" />
-            </item>
-        </menu>
-    </item>
-
-    <!-- Activate/Deactivate -->
-    <item
-        android:id="@+id/action_toggle_status"
-        android:icon="@drawable/ic_toggle"
-        android:title="Deactivate"
-        app:showAsAction="never"/>
-
-    <!-- Delete Employee -->
-    <item
-        android:id="@+id/action_delete_employee"
-        android:icon="@drawable/ic_delete"
-        android:title="Delete Employee"
-        android:titleTextColor="@color/red_error"
-        app:showAsAction="never"/>
+        android:id="@+id/action_roles_permissions"
+        android:title="Roles and Permissions"
+        app:showAsAction="never" />
 
 </menu>

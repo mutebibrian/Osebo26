@@ -2,115 +2,289 @@ package com.devbrian.osebo.ui
 
 import android.content.Intent
 import android.os.Bundle
-import android.util.Patterns
 import android.view.View
-import android.widget.Button
-import android.widget.EditText
-import android.widget.LinearLayout
-import android.widget.RadioButton
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import com.devbrian.osebo.R
+import com.devbrian.osebo.data.PreferenceManager
+import com.devbrian.osebo.data.remote.dto.response.PreAuthData
+import com.devbrian.osebo.data.remote.dto.response.SigninData
+import com.devbrian.osebo.data.repository.AuthRepository
+import com.devbrian.osebo.utils.NetworkUtils
+import com.hbb20.CountryCodePicker
+import kotlinx.coroutines.*
 
 class LoginActivity : AppCompatActivity() {
 
-    private lateinit var rbEmail: RadioButton
+    // UI
+    private lateinit var rgLoginMethod: RadioGroup
     private lateinit var rbPhone: RadioButton
+    private lateinit var rbEmail: RadioButton
+
     private lateinit var emailLayout: LinearLayout
     private lateinit var phoneLayout: LinearLayout
+    private lateinit var otpLayout: LinearLayout
+
     private lateinit var etEmail: EditText
     private lateinit var etPhone: EditText
     private lateinit var etPassword: EditText
-    private lateinit var btnLogin: Button
+    private lateinit var etOtpCode: EditText
+
+    private lateinit var btnSignIn: Button
     private lateinit var tvSignUp: TextView
+    private lateinit var tvForgotPassword: TextView
+    private lateinit var tvResendOtp: TextView
+    private lateinit var tvError: TextView
+    private lateinit var progressBar: ProgressBar
+
+    private lateinit var ccp: CountryCodePicker
+
+    // Logic
+    private val authRepository = AuthRepository()
+    private lateinit var preferenceManager: PreferenceManager
+
+    private var currentPhoneNumber = ""
+    private var currentUserId: String? = null
+    private var isOtpMode = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
 
+        preferenceManager = PreferenceManager.getInstance(this)
+
         initViews()
         setupListeners()
+
+        rbPhone.isChecked = true
+        showPhoneLayout()
     }
 
     private fun initViews() {
-        rbEmail = findViewById(R.id.rbEmail)
+        rgLoginMethod = findViewById(R.id.rgLoginMethod)
         rbPhone = findViewById(R.id.rbPhone)
+        rbEmail = findViewById(R.id.rbEmail)
+
         emailLayout = findViewById(R.id.emailLayout)
         phoneLayout = findViewById(R.id.phoneLayout)
+        otpLayout = findViewById(R.id.otpLayout)
+
         etEmail = findViewById(R.id.etEmail)
         etPhone = findViewById(R.id.etPhone)
         etPassword = findViewById(R.id.etPassword)
-        btnLogin = findViewById(R.id.btnLogin)
+        etOtpCode = findViewById(R.id.etOtpCode)
+
+        btnSignIn = findViewById(R.id.btnSignIn)
         tvSignUp = findViewById(R.id.tvSignUp)
+        tvForgotPassword = findViewById(R.id.tvForgotPassword)
+        tvResendOtp = findViewById(R.id.tvResendOtp)
+        tvError = findViewById(R.id.tvError)
+        progressBar = findViewById(R.id.progressBar)
+
+        ccp = findViewById(R.id.ccp)
     }
 
     private fun setupListeners() {
-
-        rbEmail.setOnCheckedChangeListener { _, isChecked ->
-            if (isChecked) {
-                emailLayout.visibility = View.VISIBLE
-                phoneLayout.visibility = View.GONE
+        rgLoginMethod.setOnCheckedChangeListener { _, id ->
+            when (id) {
+                R.id.rbPhone -> showPhoneLayout()
+                R.id.rbEmail -> showEmailLayout()
             }
         }
 
-        rbPhone.setOnCheckedChangeListener { _, isChecked ->
-            if (isChecked) {
-                phoneLayout.visibility = View.VISIBLE
-                emailLayout.visibility = View.GONE
-            }
-        }
-
-        btnLogin.setOnClickListener {
-            validateAndLogin()
-        }
+        btnSignIn.setOnClickListener { attemptLogin() }
 
         tvSignUp.setOnClickListener {
             startActivity(Intent(this, SignUpActivity::class.java))
         }
+
+        tvForgotPassword.setOnClickListener {
+            Toast.makeText(this, "Reset coming soon", Toast.LENGTH_SHORT).show()
+        }
+
+        tvResendOtp.setOnClickListener { resendOtp() }
     }
 
-    private fun validateAndLogin() {
+    // ---------------- UI MODES ----------------
+
+    private fun showPhoneLayout() {
+        phoneLayout.visibility = View.VISIBLE
+        emailLayout.visibility = View.GONE
+        otpLayout.visibility = View.GONE
+        isOtpMode = false
+        btnSignIn.text = "Sign In"
+        clearErrors()
+    }
+
+    private fun showEmailLayout() {
+        phoneLayout.visibility = View.GONE
+        emailLayout.visibility = View.VISIBLE
+        otpLayout.visibility = View.GONE
+        isOtpMode = false
+        btnSignIn.text = "Sign In"
+        clearErrors()
+    }
+
+    // ---------------- LOGIN ENTRY ----------------
+
+    private fun attemptLogin() {
+        if (rbPhone.isChecked) attemptPhoneLogin()
+        else attemptEmailLogin()
+    }
+
+    // ---------------- PHONE OTP LOGIN ----------------
+
+    private fun attemptPhoneLogin() {
+        val phoneRaw = etPhone.text.toString().trim()
+
+        if (phoneRaw.isBlank()) {
+            etPhone.error = "Phone required"
+            return
+        }
+
+        currentPhoneNumber = ccp.selectedCountryCodeWithPlus + phoneRaw
+
+        if (isOtpMode) verifyOtp()
+        else requestOtp()
+    }
+
+    private fun requestOtp() {
+        if (!NetworkUtils.isNetworkAvailable(this)) {
+            showError("No internet")
+            return
+        }
+
+        showLoading(true)
+
+        CoroutineScope(Dispatchers.IO).launch {
+            val result = authRepository.requestOtp(currentPhoneNumber)
+
+            withContext(Dispatchers.Main) {
+                showLoading(false)
+
+                if (result.isSuccess) {
+                    currentUserId = result.getOrNull()?.userId
+                    isOtpMode = true
+
+                    otpLayout.visibility = View.VISIBLE
+                    btnSignIn.text = "Verify OTP"
+
+                    Toast.makeText(
+                        this@LoginActivity,
+                        "OTP sent to $currentPhoneNumber",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                } else {
+                    showError(result.exceptionOrNull()?.message ?: "OTP failed")
+                }
+            }
+        }
+    }
+
+    private fun verifyOtp() {
+        val otp = etOtpCode.text.toString().trim()
+
+        if (otp.length != 6) {
+            etOtpCode.error = "Enter 6-digit OTP"
+            return
+        }
+
+        if (currentUserId == null) {
+            showError("Session expired")
+            resetOtp()
+            return
+        }
+
+        showLoading(true)
+
+        CoroutineScope(Dispatchers.IO).launch {
+            val result = authRepository.verify2fa(currentUserId!!, otp)
+
+            withContext(Dispatchers.Main) {
+                showLoading(false)
+
+                if (result.isSuccess) {
+                    val preAuth = result.getOrNull()!!
+                    // Navigate to SelectAccountActivity with the preAuth data
+                    val intent = Intent(this@LoginActivity, SelectAccountActivity::class.java)
+                    intent.putExtra(SelectAccountActivity.EXTRA_PRE_AUTH_DATA, preAuth)
+                    startActivity(intent)
+                    // Finish login activity so user can't go back
+                    finish()
+                } else {
+                    showError(result.exceptionOrNull()?.message ?: "Invalid OTP")
+                }
+            }
+        }
+    }
+
+    // ---------------- EMAIL LOGIN ----------------
+
+    private fun attemptEmailLogin() {
+        val email = etEmail.text.toString().trim()
         val password = etPassword.text.toString().trim()
 
-        if (rbEmail.isChecked) {
-            val email = etEmail.text.toString().trim()
-
-            if (email.isEmpty()) {
-                etEmail.error = "Email is required"
-                return
-            }
-
-            if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                etEmail.error = "Enter a valid email"
-                return
-            }
-
-        } else {
-            val phone = etPhone.text.toString().trim()
-
-            if (phone.isEmpty()) {
-                etPhone.error = "Phone number is required"
-                return
-            }
-
-            if (phone.length < 9) {
-                etPhone.error = "Enter a valid phone number"
-                return
-            }
-        }
-
-        if (password.isEmpty()) {
-            etPassword.error = "Password is required"
+        if (email.isBlank()) {
+            etEmail.error = "Email required"
             return
         }
 
-        if (password.length < 6) {
-            etPassword.error = "Password must be at least 6 characters"
+        if (password.isBlank()) {
+            etPassword.error = "Password required"
             return
         }
 
-        // TODO: Connect to API / Firebase Authentication
-        Toast.makeText(this, "Login successful (demo)", Toast.LENGTH_SHORT).show()
+        showLoading(true)
+
+        CoroutineScope(Dispatchers.IO).launch {
+            val result = authRepository.loginWithPassword(email, password)
+
+            withContext(Dispatchers.Main) {
+                showLoading(false)
+
+                if (result.isSuccess) {
+                    val preAuth = result.getOrNull()!!
+                    // Navigate to SelectAccountActivity
+                    val intent = Intent(this@LoginActivity, SelectAccountActivity::class.java)
+                    intent.putExtra(SelectAccountActivity.EXTRA_PRE_AUTH_DATA, preAuth)
+                    startActivity(intent)
+                    finish()
+                } else {
+                    showError("Login failed")
+                }
+            }
+        }
+    }
+
+    // ---------------- UTIL ----------------
+
+    private fun resendOtp() {
+        if (currentUserId == null) return requestOtp()
+
+        CoroutineScope(Dispatchers.IO).launch {
+            authRepository.resendOtp(currentUserId!!)
+        }
+    }
+
+    private fun resetOtp() {
+        isOtpMode = false
+        currentUserId = null
+        otpLayout.visibility = View.GONE
+        btnSignIn.text = "Sign In"
+        etOtpCode.text.clear()
+    }
+
+    private fun showLoading(show: Boolean) {
+        progressBar.visibility = if (show) View.VISIBLE else View.GONE
+        btnSignIn.isEnabled = !show
+    }
+
+    private fun showError(msg: String) {
+        tvError.text = msg
+        tvError.visibility = View.VISIBLE
+    }
+
+    private fun clearErrors() {
+        tvError.visibility = View.GONE
     }
 }
