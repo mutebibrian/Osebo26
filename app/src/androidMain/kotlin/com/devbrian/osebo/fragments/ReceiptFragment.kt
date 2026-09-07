@@ -29,13 +29,11 @@ import com.devbrian.osebo.utils.CurrencyFormatter
 import com.devbrian.osebo.utils.PrintUtils
 import com.devbrian.osebo.data.PreferenceManager
 import com.devbrian.osebo.utils.PrinterConnectionManager
-import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
-import javax.inject.Inject
+import org.koin.android.ext.android.inject
 
-@AndroidEntryPoint
 class ReceiptFragment : Fragment() {
 
     private var _binding: FragmentReceiptBinding? = null
@@ -47,8 +45,7 @@ class ReceiptFragment : Fragment() {
 
     private val BLUETOOTH_PERMISSION_REQUEST_CODE = 1001
 
-    @Inject
-    lateinit var preferenceManager: PreferenceManager
+    private val preferenceManager: PreferenceManager by inject()
 
 
 

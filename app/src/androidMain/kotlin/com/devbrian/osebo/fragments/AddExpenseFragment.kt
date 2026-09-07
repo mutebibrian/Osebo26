@@ -8,23 +8,21 @@ import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
+import org.koin.androidx.viewmodel.ext.android.viewModel
 import androidx.navigation.fragment.findNavController
 import com.devbrian.osebo.databinding.FragmentAddExpenseBinding
 import com.devbrian.osebo.ui.viewmodels.AddExpenseViewModel
 import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import dagger.hilt.android.AndroidEntryPoint
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-@AndroidEntryPoint
 class AddExpenseFragment : Fragment() {
     private var _binding: FragmentAddExpenseBinding? = null
     private val binding get() = _binding!!
     private lateinit var dateFormat: SimpleDateFormat
-    private val viewModel: AddExpenseViewModel by viewModels()
+    private val viewModel: AddExpenseViewModel by viewModel()
 
     override fun onCreateView(
         inflater: LayoutInflater,

@@ -3,9 +3,8 @@ package com.devbrian.osebo.data.mapper
 import com.devbrian.osebo.data.remote.dto.response.AccountDto
 import com.devbrian.osebo.domain.model.Account
 import com.devbrian.osebo.models.ApiResponse
-import javax.inject.Inject
 
-class AccountMapper @Inject constructor() {
+class AccountMapper() {
 
     fun toDomain(response: ApiResponse<AccountDto>): Account {
         val accountData = response.data ?: throw IllegalArgumentException("Account data is null in API response")
