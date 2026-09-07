@@ -173,6 +173,7 @@ class MainDashboardFragment : Fragment() {
         }
     }
 
+    // ===== FIXED: No reference to subscriptionPackage =====
     private fun setActiveShop(shop: Shop) {
         if (shop.id.isBlank() || !Shop.isValidUUID(shop.id)) {
             Toast.makeText(requireContext(), "Invalid shop ID", Toast.LENGTH_SHORT).show()
@@ -192,7 +193,7 @@ class MainDashboardFragment : Fragment() {
                 status = status,
                 type = shop.subscription?.packageType,
                 expiry = shop.subscription?.endsAt,
-                packageId = shop.subscription?.subscriptionPackage?.id
+                packageId = null   // removed subscriptionPackage reference
             )
         } else {
             preferenceManager.clearSubscriptionInfo()
