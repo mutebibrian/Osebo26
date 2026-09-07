@@ -1,12 +1,10 @@
 package com.devbrian.osebo.adapters
 
-
 import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
-import android.widget.PopupMenu
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
@@ -14,7 +12,8 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.devbrian.osebo.R
 import com.devbrian.osebo.models.Customer
-
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 class CustomerAdapter(
     private val onItemClick: (Customer) -> Unit,
@@ -35,7 +34,6 @@ class CustomerAdapter(
         if (payloads.isEmpty()) {
             super.onBindViewHolder(holder, position, payloads)
         } else {
-            // Handle partial updates if needed
             holder.bindPartialUpdate(getItem(position), payloads)
         }
     }
@@ -76,28 +74,38 @@ class CustomerAdapter(
         fun bind(customer: Customer) {
             currentCustomer = customer
 
-            // Set customer initial with random color
-            val initial = customer.name.first().toString().uppercase()
-            tvCustomerInitial.text = initial
+            
+            tvCustomerInitial.text = getInitials(customer.name)
             tvCustomerInitial.setBackgroundColor(getAvatarColor(customer.name))
 
-            // Set customer details
+            
             tvCustomerName.text = customer.name
-            tvCustomerEmail.text = customer.email
-            tvCustomerPhone.text = customer.phone
+            tvCustomerEmail.text = customer.email ?: "No email"
+            tvCustomerPhone.text = customer.phone ?: "No phone"
 
-            // Format currency
-            val formattedAmount = formatCurrency(customer.totalSpent)
-            tvTotalSpent.text = "UGX $formattedAmount"
+            
+            val totalAmount = if (customer.totalSpent > 0) customer.totalSpent else customer.totalPurchases
+            tvTotalSpent.text = "UGX ${formatCurrency(totalAmount)}"
 
-            // Set other details
-            tvLastPurchase.text = customer.lastPurchase
-            tvLoyaltyPoints.text = customer.loyaltyPoints.toString()
-            tvPurchaseCount.text = "${customer.totalPurchases} ${if (customer.totalPurchases == 1) "purchase" else "purchases"}"
-            tvCustomerSince.text = "Customer since ${customer.customerSince}"
+            
+            val lastPurchaseFormatted = formatDate(customer.lastPurchase)
+            val customerSinceFormatted = formatDate(customer.customerSince)
 
-            // Highlight VIP customers (spent more than 500,000)
-            if (customer.totalSpent > 500000) {
+            tvLastPurchase.text = "Last: $lastPurchaseFormatted"
+            tvCustomerSince.text = "Since $customerSinceFormatted"
+
+            
+            tvLoyaltyPoints.text = "${customer.loyaltyPoints} pts"
+
+            val purchaseCount = customer.totalPurchases.toInt()
+            tvPurchaseCount.text =
+                "$purchaseCount ${if (purchaseCount == 1) "purchase" else "purchases"}"
+
+            
+            
+            val totalAmountDouble = totalAmount.toDouble()
+            val isVip = customer.customerType.lowercase() == "vip" || totalAmountDouble > 500000.0
+            if (isVip) {
                 itemView.setBackgroundColor(
                     ContextCompat.getColor(itemView.context, R.color.vip_customer_background)
                 )
@@ -106,49 +114,122 @@ class CustomerAdapter(
             }
         }
 
+        private fun getInitials(name: String): String {
+            if (name.isBlank()) return "?"
+
+            val parts = name.trim().split("\\s+".toRegex())
+            return when {
+                parts.size >= 2 -> "${parts[0][0]}${parts[1][0]}".uppercase()
+                else -> parts[0][0].toString().uppercase()
+            }
+        }
+
         fun bindPartialUpdate(customer: Customer, payloads: List<Any>) {
-            // Handle partial updates here if needed
-            // For example, update only specific fields
             currentCustomer = customer
 
-            // Check payloads and update specific views
             payloads.forEach { payload ->
                 when (payload) {
                     is CustomerUpdatePayload.TotalSpent -> {
                         val formattedAmount = formatCurrency(payload.newTotalSpent)
                         tvTotalSpent.text = "UGX $formattedAmount"
+
+                        
+                        
+                        val isVip = customer.customerType.lowercase() == "vip" || payload.newTotalSpent > 500000.0
+                        if (isVip) {
+                            itemView.setBackgroundColor(
+                                ContextCompat.getColor(itemView.context, R.color.vip_customer_background)
+                            )
+                        } else {
+                            itemView.setBackgroundColor(Color.TRANSPARENT)
+                        }
                     }
                     is CustomerUpdatePayload.LastPurchase -> {
-                        tvLastPurchase.text = payload.newLastPurchase
+                        val formattedDate = formatDate(payload.newLastPurchase)
+                        tvLastPurchase.text = "Last: $formattedDate"
                     }
                     is CustomerUpdatePayload.LoyaltyPoints -> {
-                        tvLoyaltyPoints.text = payload.newLoyaltyPoints.toString()
+                        tvLoyaltyPoints.text = "${payload.newLoyaltyPoints} pts"
+                    }
+                    is CustomerUpdatePayload.Status -> {
+                        
                     }
                 }
             }
         }
 
         private fun getAvatarColor(name: String): Int {
-            // Generate consistent color based on customer name
+            
             val colors = listOf(
-                Color.parseColor("#FF6B6B"), // Coral Red
-                Color.parseColor("#4ECDC4"), // Tiffany Blue
-                Color.parseColor("#FFD166"), // Sunglow
-                Color.parseColor("#06D6A0"), // Emerald
-                Color.parseColor("#118AB2"), // Blue NCS
-                Color.parseColor("#EF476F"), // Paradise Pink
-                Color.parseColor("#073B4C")  // Midnight Green
+                Color.parseColor("#FF6B6B"), 
+                Color.parseColor("#4ECDC4"), 
+                Color.parseColor("#FFD166"), 
+                Color.parseColor("#06D6A0"), 
+                Color.parseColor("#118AB2"), 
+                Color.parseColor("#EF476F"), 
+                Color.parseColor("#073B4C")  
             )
 
             val index = name.hashCode() % colors.size
             return colors[Math.abs(index)]
         }
 
-        private fun formatCurrency(amount: Double): String {
-            return when {
-                amount >= 1000000 -> String.format("%.1fM", amount / 1000000)
-                amount >= 1000 -> String.format("%.1fK", amount / 1000)
-                else -> String.format("%.0f", amount)
+        private fun formatCurrency(amount: Any): String {
+            return try {
+                
+                val amountDouble = when (amount) {
+                    is Int -> amount.toDouble()
+                    is Long -> amount.toDouble()
+                    is Float -> amount.toDouble()
+                    is Double -> amount
+                    is String -> amount.toDoubleOrNull() ?: 0.0
+                    else -> 0.0
+                }
+
+                when {
+                    amountDouble >= 1000000.0 -> String.format(Locale.getDefault(), "%.1fM", amountDouble / 1000000.0)
+                    amountDouble >= 1000.0 -> String.format(Locale.getDefault(), "%.1fK", amountDouble / 1000.0)
+                    else -> String.format(Locale.getDefault(), "%.0f", amountDouble)
+                }
+            } catch (e: Exception) {
+                "0"
+            }
+        }
+
+        private fun formatDate(dateString: String?): String {
+            if (dateString.isNullOrEmpty()) return "Never"
+
+            return try {
+                
+                
+                val dateFormats = listOf(
+                    SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()),
+                    SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()),
+                    SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()),
+                    SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()),
+                    SimpleDateFormat("MM/dd/yyyy", Locale.getDefault())
+                )
+
+                var parsedDate: java.util.Date? = null
+                for (format in dateFormats) {
+                    try {
+                        parsedDate = format.parse(dateString)
+                        if (parsedDate != null) break
+                    } catch (e: Exception) {
+                        
+                    }
+                }
+
+                if (parsedDate != null) {
+                    val outputFormat = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
+                    outputFormat.format(parsedDate)
+                } else {
+                    
+                    if (dateString.length > 10) dateString.substring(0, 10) else dateString
+                }
+            } catch (e: Exception) {
+                
+                if (dateString.length > 10) dateString.substring(0, 10) else dateString
             }
         }
     }
@@ -163,26 +244,29 @@ class CustomerAdapter(
         }
 
         override fun getChangePayload(oldItem: Customer, newItem: Customer): Any? {
-            // Return specific payload for partial updates
             val payloads = mutableListOf<Any>()
 
-            if (oldItem.totalSpent != newItem.totalSpent) {
+            if (oldItem.totalSpent != newItem.totalSpent || oldItem.totalPurchases != newItem.totalPurchases) {
                 payloads.add(CustomerUpdatePayload.TotalSpent(newItem.totalSpent))
             }
 
             if (oldItem.lastPurchase != newItem.lastPurchase) {
-                payloads.add(CustomerUpdatePayload.LastPurchase(newItem.lastPurchase))
+                payloads.add(CustomerUpdatePayload.LastPurchase(newItem.lastPurchase ?: ""))
             }
 
             if (oldItem.loyaltyPoints != newItem.loyaltyPoints) {
                 payloads.add(CustomerUpdatePayload.LoyaltyPoints(newItem.loyaltyPoints))
             }
 
+            if (oldItem.status != newItem.status) {
+                payloads.add(CustomerUpdatePayload.Status(newItem.status))
+            }
+
             return if (payloads.isNotEmpty()) payloads else null
         }
     }
 
-    // Extension function for easy submission
+    
     fun submitCustomerList(customers: List<Customer>) {
         submitList(customers)
     }
@@ -194,11 +278,68 @@ class CustomerAdapter(
             null
         }
     }
+
+    
+    fun filterCustomers(query: String, originalList: List<Customer>): List<Customer> {
+        return if (query.isEmpty()) {
+            originalList
+        } else {
+            originalList.filter { customer ->
+                customer.name.contains(query, ignoreCase = true) ||
+                        customer.email?.contains(query, ignoreCase = true) == true ||
+                        customer.phone?.contains(query, ignoreCase = true) == true
+            }
+        }
+    }
+
+    
+    fun sortCustomers(customers: List<Customer>, sortBy: String, ascending: Boolean = true): List<Customer> {
+        return when (sortBy.lowercase()) {
+            "name" -> {
+                if (ascending) customers.sortedBy { it.name }
+                else customers.sortedByDescending { it.name }
+            }
+            "totalspent" -> {
+                if (ascending) {
+                    customers.sortedBy { customer ->
+                        
+                        if (customer.totalSpent > 0) customer.totalSpent else customer.totalPurchases.toDouble()
+                    }
+                } else {
+                    customers.sortedByDescending { customer ->
+                        
+                        if (customer.totalSpent > 0) customer.totalSpent else customer.totalPurchases.toDouble()
+                    }
+                }
+            }
+            "lastpurchase" -> {
+                
+                if (ascending) {
+                    customers.sortedWith(compareBy(nullsLast()) { it.lastPurchase })
+                } else {
+                    customers.sortedWith(compareByDescending(nullsLast()) { it.lastPurchase })
+                }
+            }
+            "customersince" -> {
+                
+                if (ascending) {
+                    customers.sortedWith(compareBy(nullsLast()) { it.customerSince })
+                } else {
+                    customers.sortedWith(compareByDescending(nullsLast()) { it.customerSince })
+                }
+            }
+            else -> customers
+        }
+    }
 }
 
-// Payload classes for partial updates
+
+
 sealed class CustomerUpdatePayload {
     data class TotalSpent(val newTotalSpent: Double) : CustomerUpdatePayload()
     data class LastPurchase(val newLastPurchase: String) : CustomerUpdatePayload()
     data class LoyaltyPoints(val newLoyaltyPoints: Int) : CustomerUpdatePayload()
+    data class Status(val newStatus: String) : CustomerUpdatePayload()
 }
+
+

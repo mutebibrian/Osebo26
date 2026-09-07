@@ -1,5 +1,174 @@
 <resources>
+    <!-- App Name -->
     <string name="app_name">Osebo</string>
+
+    <!-- Login Activity -->
+    <string name="welcome_back">Welcome Back</string>
+    <string name="sign_in_to_continue">Sign in to continue</string>
+    <string name="logging_in">Signing in...</string>
+    <string name="email">Email</string>
+    <string name="email_address">Email address</string>
+    <string name="phone">Phone</string>
+    <string name="phone_number">Phone number</string>
+    <string name="password">Password</string>
+    <string name="forgot_password">Forgot password?</string>
+    <string name="dont_have_account">Don\'t have an account?</string>
+    <string name="sign_up">Sign up</string>
+    <string name="remember_me">Remember Me</string>
+    <string name="country_code">+256</string>
+
+    <string name="empty_history">Empty history</string>
+    <string name="no_payment_history">No payment history found</string>
+    <string name="payments_will_appear_here">Your payment transactions will appear here</string>
+    <string name="retry">Retry</string>
+
+    <!-- Welcome Messages -->
+    <string name="welcome_back_name">Welcome back, %s!</string>
+    <string name="welcome">Welcome back!</string>
+
+    <!-- Error Messages -->
+    <string name="error_email_required">Email is required</string>
+    <string name="error_valid_email">Enter a valid email address</string>
+    <string name="error_phone_required">Phone number is required</string>
+    <string name="error_valid_phone">Enter a valid phone number (9-15 digits)</string>
+    <string name="error_phone_digits_only">Phone number should contain only digits</string>
+    <string name="error_password_required">Password is required</string>
+    <string name="error_password_length">Password must be at least 6 characters</string>
+    <string name="error_no_internet">No internet connection. Please check your network.</string>
+    <string name="error_login_failed">Login failed. Please check your credentials.</string>
+    <string name="error_saving_user_data">Error saving user data: %s</string>
+
+    <!-- Forgot Password -->
+    <string name="forgot_password_coming_soon">Forgot password feature coming soon</string>
+
+    <!-- Exit Dialog -->
+    <string name="exit_app_title">Exit App</string>
+    <string name="exit_app_message">Are you sure you want to exit?</string>
+    <string name="exit">Exit</string>
+    <string name="cancel">Cancel</string>
+
+    <!-- Dashboard/Home Screen -->
+    <string name="no_shops_yet">No Shops Yet</string>
+    <string name="add_your_first_shop">Add your first shop to get started</string>
+    <string name="add_shop">Add Shop</string>
+    <string name="error_loading_shops">Error Loading Shops</string>
+    <string name="revenue">Revenue</string>
+    <string name="expenses">Expenses</string>
+    <string name="profit">Profit</string>
+    <string name="products">Products</string>
+    <string name="employees">Employees</string>
+
+    <!-- Format Strings -->
+    <string name="revenue_format">%1$.2f</string>
+    <string name="expenses_format">%1$.2f</string>
+    <string name="profit_format">%1$.2f</string>
+    <string name="revenue_currency_format">KES %1$.2f</string>
+    <string name="expenses_currency_format">KES %1$.2f</string>
+    <string name="profit_currency_format">KES %1$.2f</string>
+
+    <!-- Session Management -->
+    <string name="back">Back</string>
+    <string name="no_sessions">No active sessions</string>
+    <string name="active_sessions">Active Sessions</string>
+    <string name="terminate_all_other_sessions">Terminate All Other Sessions</string>
+    <string name="refresh">Refresh</string>
+    <string name="current">Current</string>
+    <string name="terminate">Terminate</string>
+    <string name="shop_name">Shop Name</string>
+
+    <!-- Subscription -->
+    <string name="no_subscription_text">No Subscription</string>
+    <string name="inactive_text">Inactive</string>
+    <string name="error_text">Error</string>
+    <string name="failed_load_subscription">Failed to load subscription</string>
+    <string name="remove_subscription_title">Remove Subscription</string>
+    <string name="remove_subscription_message">Are you sure you want to remove this shop subscription?</string>
+    <string name="remove">Remove</string>
+
+    <!-- Sales Fragment -->
+    <string name="product_image">Product Image</string>
+    <string name="new_sale">New Sale</string>
+    <string name="samsung_tv_55">Samsung TV 55\"</string>
+
+    <string name="suppliers">Suppliers</string>
+    <string name="add_supplier">Add Supplier</string>
+    <string name="search_suppliers">Search suppliers...</string>
+    <string name="no_suppliers_yet">No Suppliers Yet</string>
+    <string name="add_your_first_supplier">Add your first supplier to get started</string>
+    <string name="supplier_name">Supplier Name</string>
+    <string name="contact_person">Contact Person</string>
+    <string name="products_count">%d products</string>
+    <string name="total_purchases">Total Purchases</string>
+    <string name="add_expense">Add Expense</string>
+    <string name="category">Category</string>
+    <string name="amount">Amount</string>
+    <string name="date">Date</string>
+    <string name="payment_method">Payment Method</string>
+    <string name="reference_number">Reference Number</string>
+    <string name="attach_receipt">Attach Receipt</string>
+    <string name="save_expense">Save Expense</string>
+    <string name="expense_saved">Expense saved successfully</string>
+
+    <string-array name="business_types">
+        <item>Retail Store</item>
+        <item>Wholesale</item>
+        <item>Service Business</item>
+        <item>Manufacturing</item>
+        <item>Restaurant</item>
+        <item>Salon &amp; Spa</item>
+        <item>Grocery Store</item>
+        <item>Pharmacy</item>
+        <item>Hardware Store</item>
+        <item>Fashion &amp; Clothing</item>
+        <item>Electronics Store</item>
+        <item>Online Store</item>
+    </string-array>
+
+    <!-- Plurals -->
+    <plurals name="months_count">
+        <item quantity="one">%d month</item>
+        <item quantity="other">%d months</item>
+    </plurals>
+
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="you_re_offline_sales_will_be_saved_locally">📴 You\'re offline. Sales will be saved locally.</string>
+    <string name="customer">Customer</string>
+
+    <string-array name="titles_array">
+        <item>Mr.</item>
+        <item>Mrs.</item>
+        <item>Ms.</item>
+        <item>Dr.</item>
+        <item>Other</item>
+    </string-array>
+
+    <!-- Login screen -->
+    <string name="sign_in_with_phone">Sign in with phone</string>
+    <string name="phone_number_label">Phone number</string>
+    <string name="country_code_ug">ug (UG) ▼</string>
+    <string name="enter_phone_number">Enter phone number</string>
+    <string name="verification_code_label">Verification Code</string>
+    <string name="enter_6_digit_code">Enter 6-digit code</string>
+    <string name="resend_code">Resend code</string>
+    <string name="send_otp">Send OTP</string>
+    <string name="verify_and_sign_in">Verify &amp; Sign In</string>
+    <string name="have_no_account">Have no account?</string>
+    <string name="create_account">Create an account</string>
+
+    <!-- Signup screen -->
+    <string name="create_account_title">Create your account</string>
+    <string name="title_label">Title *</string>
+    <string name="first_name_label">First Name *</string>
+    <string name="first_name_hint">First name</string>
+    <string name="last_name_label">Last Name *</string>
+    <string name="last_name_hint">Last name</string>
+    <string name="phone_format_hint">Format: 7XXXXXXXX (9 digits)</string>
+    <string name="email_optional_label">Email Address (optional)</string>
+    <string name="email_hint">Email address</string>
+    <string name="terms_accept">I accept the Terms and Conditions</string>
+    <string name="verify_and_create">Verify &amp; Create Account</string>
+    <string name="already_have_account">Already have an Account?</string>
+    <string name="sign_in">Sign In</string>
+
 </resources>

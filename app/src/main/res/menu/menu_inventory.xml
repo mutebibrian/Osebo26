@@ -2,20 +2,43 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
+    <!-- Scan Barcode -->
     <item
         android:id="@+id/action_scan_barcode"
         android:icon="@drawable/ic_barcode"
         android:title="Scan Barcode"
-        app:showAsAction="ifRoom"/>
+        app:showAsAction="ifRoom" />
 
+    <!-- Export Inventory -->
     <item
         android:id="@+id/action_export_inventory"
         android:icon="@drawable/ic_export"
-        android:title="Export Inventory"
-        app:showAsAction="ifRoom"/>
+        android:title="Export"
+        app:showAsAction="ifRoom" />
 
+    <!-- Stock Take -->
     <item
         android:id="@+id/action_stock_take"
+        android:icon="@drawable/ic_stock_take"
         android:title="Stock Take"
-        app:showAsAction="never"/>
+        app:showAsAction="ifRoom" />
+
+    <!-- Sync Now - NEW -->
+    <item
+        android:id="@+id/action_sync_now"
+        android:icon="@drawable/ic_sync"
+        android:title="Sync Now"
+        app:showAsAction="ifRoom" />
+
+    <!-- More options (if needed) -->
+    <item
+        android:id="@+id/action_settings"
+        android:title="Settings"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_help"
+        android:title="Help"
+        app:showAsAction="never" />
+
 </menu>

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:paddingVertical="2dp"
+    android:minHeight="24dp">
+
+    <!-- Item Name - Truncated for 40mm -->
+    <TextView
+        android:id="@+id/tv_item_name"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="3"
+        android:text="Product Name"
+        android:textSize="8sp"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:paddingStart="2dp"
+        android:paddingEnd="2dp"
+        android:textColor="@color/text_primary" />
+
+    <!-- Quantity - Centered -->
+    <TextView
+        android:id="@+id/tv_item_quantity"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="1"
+        android:textSize="8sp"
+        android:gravity="center"
+        android:textStyle="bold"
+        android:textColor="@color/text_primary" />
+
+    <!-- Unit Price with Discount - Right Aligned (Hidden in compact mode) -->
+    <TextView
+        android:id="@+id/tv_item_price"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="UGX 0"
+        android:textSize="7sp"
+        android:gravity="end"
+        android:paddingEnd="2dp"
+        android:textColor="@color/text_secondary"
+        android:visibility="gone" />
+
+    <!-- Total Price - Right Aligned, Bold -->
+    <TextView
+        android:id="@+id/tv_item_total"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="0"
+        android:textSize="8sp"
+        android:textStyle="bold"
+        android:gravity="end"
+        android:paddingEnd="2dp"
+        android:textColor="@color/colorPrimary" />
+
+</LinearLayout>

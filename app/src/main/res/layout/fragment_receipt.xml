@@ -1,0 +1,539 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/light_background"
+    tools:context=".fragments.ReceiptFragment">
+
+    <com.google.android.material.appbar.AppBarLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:theme="@style/ThemeOverlay.MaterialComponents.Dark.ActionBar">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            app:title="Receipt"
+            app:navigationIcon="@drawable/ic_arrow_back"
+            app:menu="@menu/menu_receipt" />
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior"
+        android:padding="4dp"
+        android:background="#FFFFFF">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:maxWidth="200dp"
+            android:layout_gravity="center_horizontal">
+
+            <!-- Success Animation -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:layout_marginBottom="8dp">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_success"
+                    android:background="@drawable/circle_background_green"
+                    android:padding="4dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Success!"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/green_success"
+                    android:layout_marginTop="2dp" />
+            </LinearLayout>
+
+            <!-- Receipt Card -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="2dp"
+                app:cardElevation="1dp"
+                android:layout_marginBottom="8dp"
+                android:backgroundTint="@color/white">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="4dp">
+
+                    <!-- Store Header -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:layout_marginBottom="4dp"
+                        android:padding="4dp">
+
+                        <TextView
+                            android:id="@+id/tv_shop_name"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="AK SHOPPERS"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/colorPrimary"
+                            android:textAlignment="center"
+                            android:letterSpacing="0.05"
+                            android:paddingVertical="1dp" />
+
+                        <TextView
+                            android:id="@+id/tv_business_type"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Retail"
+                            android:textSize="7sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/colorPrimaryDark"
+                            android:textAlignment="center"
+                            android:background="@color/light_gray"
+                            android:paddingHorizontal="4dp"
+                            android:paddingVertical="1dp"
+                            android:layout_marginTop="2dp"
+                            android:visibility="gone" />
+
+                        <TextView
+                            android:id="@+id/tv_shop_address"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Kiwatule"
+                            android:textSize="7sp"
+                            android:textColor="@color/text_primary"
+                            android:textAlignment="center"
+                            android:paddingHorizontal="2dp" />
+
+                        <TextView
+                            android:id="@+id/tv_shop_contact"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="+256 700 000000"
+                            android:textSize="7sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/colorPrimary"
+                            android:layout_marginTop="1dp"
+                            android:paddingHorizontal="4dp"
+                            android:paddingVertical="1dp" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="@color/divider"
+                        android:layout_marginVertical="2dp" />
+
+                    <!-- Receipt Info -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:padding="2dp"
+                        android:layout_marginBottom="2dp">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Receipt:"
+                                android:textSize="7sp"
+                                android:textColor="@color/text_secondary" />
+
+                            <TextView
+                                android:id="@+id/tv_receipt_number"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="INV-001"
+                                android:textSize="7sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/colorPrimary" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:layout_marginStart="4dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Date:"
+                                android:textSize="7sp"
+                                android:textColor="@color/text_secondary" />
+
+                            <TextView
+                                android:id="@+id/tv_receipt_date"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Feb 15"
+                                android:textSize="7sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/colorPrimary" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- Customer Info -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:padding="2dp"
+                        android:background="@color/colorPrimaryLight"
+                        android:layout_marginBottom="2dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/tv_customer_name"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Walk-in"
+                                android:textSize="8sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/colorPrimary" />
+
+                            <TextView
+                                android:id="@+id/tv_customer_phone"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="N/A"
+                                android:textSize="6sp"
+                                android:textColor="@color/text_secondary" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- Served By (NEW) -->
+                    <TextView
+                        android:id="@+id/tv_served_by"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Served by: "
+                        android:textSize="8sp"
+                        android:textColor="@color/text_secondary"
+                        android:padding="2dp"
+                        android:background="@color/light_gray"
+                        android:layout_marginBottom="2dp"
+                        android:visibility="gone" />
+
+                    <!-- Items Header -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:paddingVertical="2dp"
+                        android:background="@color/colorPrimary"
+                        android:layout_marginTop="2dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="3"
+                            android:text="ITEM"
+                            android:textStyle="bold"
+                            android:textSize="7sp"
+                            android:textColor="@color/white"
+                            android:paddingStart="2dp" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="QTY"
+                            android:textStyle="bold"
+                            android:textSize="7sp"
+                            android:textColor="@color/white"
+                            android:gravity="center" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="TOTAL"
+                            android:textStyle="bold"
+                            android:textSize="7sp"
+                            android:textColor="@color/white"
+                            android:gravity="end"
+                            android:paddingEnd="2dp" />
+                    </LinearLayout>
+
+                    <!-- Items List -->
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rv_receipt_items"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:nestedScrollingEnabled="false"
+                        android:layout_marginVertical="2dp" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="@color/divider"
+                        android:layout_marginVertical="2dp" />
+
+                    <!-- Summary Section -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="2dp"
+                        android:background="@color/light_gray">
+
+                        <!-- Subtotal -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:layout_marginBottom="2dp">
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="Subtotal"
+                                android:textSize="7sp"
+                                android:textColor="@color/text_primary" />
+
+                            <TextView
+                                android:id="@+id/tv_subtotal"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="0"
+                                android:textSize="7sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/colorPrimary"
+                                android:textAlignment="textEnd" />
+                        </LinearLayout>
+
+                        <!-- Discount -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:layout_marginBottom="2dp">
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="Discount"
+                                android:textSize="7sp"
+                                android:textColor="@color/text_primary" />
+
+                            <TextView
+                                android:id="@+id/tv_discount"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="0"
+                                android:textColor="@color/green_success"
+                                android:textSize="7sp"
+                                android:textStyle="bold"
+                                android:textAlignment="textEnd" />
+                        </LinearLayout>
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:background="@color/divider"
+                            android:layout_marginVertical="1dp" />
+
+                        <!-- TOTAL + TAX + PAID + CHANGE + PAYMENT on ONE LINE -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:paddingVertical="2dp"
+                            android:weightSum="1">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="TOTAL"
+                                android:textSize="9sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/text_primary"
+                                android:layout_marginEnd="2dp" />
+
+                            <TextView
+                                android:id="@+id/tv_tax"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="+0"
+                                android:textSize="6sp"
+                                android:textColor="@color/text_secondary"
+                                android:layout_marginEnd="2dp" />
+
+                            <TextView
+                                android:id="@+id/tv_total"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="0"
+                                android:textSize="9sp"
+                                android:textColor="@color/colorPrimary"
+                                android:textStyle="bold"
+                                android:layout_marginEnd="4dp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="PAID"
+                                android:textSize="7sp"
+                                android:textColor="@color/text_secondary"
+                                android:layout_marginEnd="2dp" />
+
+                            <TextView
+                                android:id="@+id/tv_paid"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="0"
+                                android:textSize="7sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/colorPrimary"
+                                android:layout_marginEnd="4dp" />
+
+                            <TextView
+                                android:id="@+id/tv_change"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="0"
+                                android:textSize="7sp"
+                                android:textColor="@color/green_success"
+                                android:textStyle="bold"
+                                android:layout_marginEnd="4dp"
+                                android:visibility="visible" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="|"
+                                android:textSize="6sp"
+                                android:textColor="@color/text_secondary"
+                                android:layout_marginEnd="2dp" />
+
+                            <TextView
+                                android:id="@+id/tv_payment_method"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Cash"
+                                android:textSize="7sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/colorPrimary" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- Footer Section (UPDATED) -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:layout_marginTop="6dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Thank You!"
+                            android:textSize="8sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/colorPrimary" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Powered by Oseo"
+                            android:textSize="6sp"
+                            android:textColor="@color/text_secondary"
+                            android:layout_marginTop="2dp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="www.osebo.ai"
+                            android:textSize="6sp"
+                            android:textColor="@color/text_secondary"
+                            android:layout_marginTop="1dp" />
+                    </LinearLayout>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- Action Buttons -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="8dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_print"
+                    android:layout_width="0dp"
+                    android:layout_height="32dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="2dp"
+                    android:text="Print"
+                    android:textSize="9sp"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    app:icon="@drawable/ic_print"
+                    app:iconSize="14dp"
+                    app:iconGravity="textStart"
+                    android:textColor="@color/colorPrimary"
+                    app:strokeColor="@color/colorPrimary" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_share"
+                    android:layout_width="0dp"
+                    android:layout_height="32dp"
+                    android:layout_weight="1"
+                    android:layout_marginStart="2dp"
+                    android:text="Share"
+                    android:textSize="9sp"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    app:icon="@drawable/ic_share"
+                    app:iconSize="14dp"
+                    app:iconGravity="textStart"
+                    android:textColor="@color/colorPrimary"
+                    app:strokeColor="@color/colorPrimary" />
+            </LinearLayout>
+
+            <!-- New Sale Button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_new_sale"
+                android:layout_width="match_parent"
+                android:layout_height="32dp"
+                android:text="New Sale"
+                android:textSize="10sp"
+                android:backgroundTint="@color/colorPrimary"
+                app:icon="@drawable/ic_add"
+                app:iconSize="14dp"
+                app:iconGravity="textStart"
+                android:textColor="@color/white" />
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

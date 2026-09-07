@@ -1,0 +1,1003 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/mainDashboardFragment">
+
+    <!-- MAIN DASHBOARD - Overview of ALL shops -->
+    <fragment
+        android:id="@+id/mainDashboardFragment"
+        android:name="com.devbrian.osebo.fragments.MainDashboardFragment"
+        android:label="Dashboard"
+        tools:layout="@layout/fragment_main_dashboard">
+
+        <!-- Navigation to Shop Dashboard (individual shop) -->
+        <action
+            android:id="@+id/action_mainDashboard_to_shopDashboard"
+            app:destination="@id/shopDashboardFragment">
+            <argument
+                android:name="shopId"
+                app:argType="string" />
+        </action>
+
+        <!-- NEW: Navigation to Shop Billing (Subscription Overview) -->
+        <action
+            android:id="@+id/actionMainDashboardToShopBilling"
+            app:destination="@id/shopBillingFragment">
+            <argument
+                android:name="shop"
+                app:argType="com.devbrian.osebo.data.models.Shop" />
+        </action>
+
+        <action
+            android:id="@+id/action_mainDashboard_to_userRolesFragment"
+            app:destination="@id/userRolesFragment" />
+
+        <!-- Navigation to Shop Details -->
+        <action
+            android:id="@+id/action_mainDashboard_to_shopDetails"
+            app:destination="@id/shopDetailsFragment">
+            <argument
+                android:name="shopId"
+                app:argType="string" />
+        </action>
+
+        <!-- Navigation to Subscription Packages (for shops without subscription) -->
+        <action
+            android:id="@+id/action_mainDashboard_to_subscriptionPackages"
+            app:destination="@id/subscriptionPackagesFragment">
+            <argument
+                android:name="shop"
+                app:argType="com.devbrian.osebo.data.models.Shop"
+                app:nullable="true"
+                android:defaultValue="@null" />
+        </action>
+
+        <!-- Quick Actions -->
+        <action
+            android:id="@+id/action_mainDashboard_to_addProduct"
+            app:destination="@id/addProductFragment" />
+
+        <action
+            android:id="@+id/action_mainDashboard_to_newSale"
+            app:destination="@id/newSaleFragment" />
+
+        <action
+            android:id="@+id/action_mainDashboard_to_employees"
+            app:destination="@id/employeesFragment" />
+
+        <action
+            android:id="@+id/action_mainDashboard_to_account"
+            app:destination="@id/accountFragment" />
+
+        <action
+            android:id="@+id/action_mainDashboard_to_shops"
+            app:destination="@id/shopsFragment" />
+
+        <action
+            android:id="@+id/action_mainDashboard_to_inventory"
+            app:destination="@id/inventoryFragment" />
+
+        <action
+            android:id="@+id/action_mainDashboard_to_sales"
+            app:destination="@id/salesFragment" />
+
+        <action
+            android:id="@+id/action_mainDashboard_to_customers"
+            app:destination="@id/customersFragment" />
+
+        <action
+            android:id="@+id/action_mainDashboard_to_suppliers"
+            app:destination="@id/suppliersFragment" />
+
+        <action
+            android:id="@+id/action_mainDashboard_to_finance"
+            app:destination="@id/financeFragment" />
+
+        <action
+            android:id="@+id/action_mainDashboard_to_addExpense"
+            app:destination="@id/addExpenseFragment" />
+
+        <action
+            android:id="@+id/action_mainDashboard_to_productDetails"
+            app:destination="@id/productDetailsFragment" />
+
+        <action
+            android:id="@+id/action_mainDashboard_to_contactUs"
+            app:destination="@id/contactUsFragment" />
+
+    </fragment>
+
+    <!-- ===== NEW: SHOP BILLING FRAGMENT ===== -->
+    <fragment
+        android:id="@+id/shopBillingFragment"
+        android:name="com.devbrian.osebo.fragments.ShopbillingFragment"
+        android:label="Shop Billing"
+        tools:layout="@layout/fragment_shop_billing">
+
+        <argument
+            android:name="shop"
+            app:argType="com.devbrian.osebo.data.models.Shop" />
+
+        <!-- Optional: Navigation to Subscription Packages from the billing screen -->
+        <action
+            android:id="@+id/action_shopBilling_to_subscriptionPackages"
+            app:destination="@id/subscriptionPackagesFragment">
+            <argument
+                android:name="shop"
+                app:argType="com.devbrian.osebo.data.models.Shop" />
+        </action>
+
+        <!-- Navigation back to Dashboard -->
+        <action
+            android:id="@+id/action_shopBilling_to_mainDashboard"
+            app:destination="@id/mainDashboardFragment"
+            app:popUpTo="@id/mainDashboardFragment"
+            app:popUpToInclusive="true" />
+
+    </fragment>
+
+    <!-- SHOP DASHBOARD - Individual shop view -->
+    <fragment
+        android:id="@+id/shopDashboardFragment"
+        android:name="com.devbrian.osebo.fragments.ShopDashboardFragment"
+        android:label="Shop Dashboard"
+        tools:layout="@layout/fragment_shop_dashboard">
+
+        <argument
+            android:name="shopId"
+            app:argType="string"
+            android:defaultValue="" />
+
+        <!-- Navigation to Main Dashboard -->
+        <action
+            android:id="@+id/action_shopDashboard_to_mainDashboard"
+            app:destination="@id/mainDashboardFragment"
+            app:popUpTo="@id/mainDashboardFragment"
+            app:popUpToInclusive="true" />
+
+        <!-- Shop-specific actions -->
+        <action
+            android:id="@+id/action_shopDashboard_to_productDetails"
+            app:destination="@id/productDetailsFragment">
+            <argument
+                android:name="productId"
+                app:argType="string" />
+        </action>
+
+        <action
+            android:id="@+id/action_shopDashboard_to_employees"
+            app:destination="@id/employeesFragment" />
+
+        <action
+            android:id="@+id/action_shopDashboard_to_suppliers"
+            app:destination="@id/suppliersFragment" />
+
+        <action
+            android:id="@+id/action_shopDashboard_to_customers"
+            app:destination="@id/customersFragment" />
+
+        <action
+            android:id="@+id/action_shopDashboard_to_sales"
+            app:destination="@id/salesFragment" />
+
+        <action
+            android:id="@+id/action_shopDashboard_to_newSale"
+            app:destination="@id/newSaleFragment" />
+
+        <action
+            android:id="@+id/action_shopDashboard_to_addProduct"
+            app:destination="@id/addProductFragment" />
+
+        <action
+            android:id="@+id/action_shopDashboard_to_addExpense"
+            app:destination="@id/addExpenseFragment" />
+
+        <action
+            android:id="@+id/action_shopDashboard_to_inventory"
+            app:destination="@id/inventoryFragment" />
+
+        <action
+            android:id="@+id/action_shopDashboard_to_shopDetails"
+            app:destination="@id/shopDetailsFragment">
+            <argument
+                android:name="shop"
+                app:argType="com.devbrian.osebo.data.models.Shop" />
+        </action>
+
+        <action
+            android:id="@+id/action_shopDashboard_to_finance"
+            app:destination="@id/financeFragment" />
+
+    </fragment>
+
+    <!-- Shops Fragment (List of all shops) -->
+    <fragment
+        android:id="@+id/shopsFragment"
+        android:name="com.devbrian.osebo.fragments.ShopsFragment"
+        android:label="My Shops"
+        tools:layout="@layout/fragment_shops">
+
+        <action
+            android:id="@+id/action_shopsFragment_to_shopDetailsFragment"
+            app:destination="@id/shopDetailsFragment">
+            <argument
+                android:name="shop"
+                app:argType="com.devbrian.osebo.data.models.Shop" />
+        </action>
+
+        <action
+            android:id="@+id/action_shopsFragment_to_shopDashboardFragment"
+            app:destination="@id/shopDashboardFragment">
+            <argument
+                android:name="shopId"
+                app:argType="string" />
+        </action>
+
+        <action
+            android:id="@+id/action_shopsFragment_to_subscriptionPackagesFragment"
+            app:destination="@id/subscriptionPackagesFragment">
+            <argument
+                android:name="shop"
+                app:argType="com.devbrian.osebo.data.models.Shop"
+                app:nullable="true"
+                android:defaultValue="@null" />
+        </action>
+
+        <action
+            android:id="@+id/action_shopsFragment_to_mainDashboard"
+            app:destination="@id/mainDashboardFragment"
+            app:popUpTo="@id/mainDashboardFragment"
+            app:popUpToInclusive="true" />
+
+    </fragment>
+
+    <!-- Sales Fragment -->
+    <fragment
+        android:id="@+id/salesFragment"
+        android:name="com.devbrian.osebo.fragments.SalesFragment"
+        android:label="Sales"
+        tools:layout="@layout/fragment_sales" />
+
+    <!-- New Sale Fragment -->
+    <fragment
+        android:id="@+id/newSaleFragment"
+        android:name="com.devbrian.osebo.fragments.NewSaleFragment"
+        android:label="New Sale"
+        tools:layout="@layout/fragment_new_sale">
+
+        <action
+            android:id="@+id/action_newSaleFragment_to_paymentFragment"
+            app:destination="@id/paymentFragment" />
+    </fragment>
+
+    <!-- Payment Fragment -->
+    <fragment
+        android:id="@+id/paymentFragment"
+        android:name="com.devbrian.osebo.fragments.PaymentFragment"
+        android:label="Payment"
+        tools:layout="@layout/fragment_payment">
+
+        <argument
+            android:name="customerId"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+
+        <argument
+            android:name="cartItems"
+            app:argType="com.devbrian.osebo.models.CartItem[]"
+            android:defaultValue="@null"
+            app:nullable="true" />
+
+        <argument
+            android:name="totalAmount"
+            app:argType="float" />
+
+        <action
+            android:id="@+id/action_paymentFragment_to_receiptFragment"
+            app:destination="@id/receiptFragment" />
+    </fragment>
+
+    <!-- Receipt Fragment -->
+    <fragment
+        android:id="@+id/receiptFragment"
+        android:name="com.devbrian.osebo.fragments.ReceiptFragment"
+        android:label="Receipt"
+        tools:layout="@layout/fragment_receipt">
+
+        <argument
+            android:name="invoiceNumber"
+            app:argType="string" />
+
+        <argument
+            android:name="customerName"
+            app:argType="string"
+            android:defaultValue="Walk-in Customer" />
+
+        <argument
+            android:name="customerPhone"
+            app:argType="string"
+            android:defaultValue="N/A" />
+
+        <argument
+            android:name="cartItems"
+            app:argType="com.devbrian.osebo.models.CartItem[]"
+            android:defaultValue="@null"
+            app:nullable="true" />
+
+        <argument
+            android:name="totalAmount"
+            app:argType="float" />
+
+        <argument
+            android:name="paidAmount"
+            app:argType="float" />
+
+        <argument
+            android:name="change"
+            app:argType="float" />
+
+        <argument
+            android:name="paymentMethod"
+            app:argType="string"
+            android:defaultValue="cash" />
+
+        <argument
+            android:name="saleId"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
+
+        <argument
+            android:name="shopName"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
+
+        <argument
+            android:name="shopAddress"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
+
+        <argument
+            android:name="shopPhone"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
+
+        <argument
+            android:name="shopDescription"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
+
+        <argument
+            android:name="receiptDate"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
+
+        <argument
+            android:name="servedBy"
+            app:argType="string"
+            android:defaultValue=""
+            app:nullable="true" />
+    </fragment>
+
+    <!-- Finance Fragment -->
+    <fragment
+        android:id="@+id/financeFragment"
+        android:name="com.devbrian.osebo.fragments.FinanceFragment"
+        android:label="Finance"
+        tools:layout="@layout/fragment_finance">
+
+        <action
+            android:id="@+id/action_financeFragment_to_addExpenseFragment"
+            app:destination="@id/addExpenseFragment" />
+
+        <action
+            android:id="@+id/action_financeFragment_to_newSaleFragment"
+            app:destination="@id/newSaleFragment" />
+
+        <action
+            android:id="@+id/action_financeFragment_to_expenseCategoriesFragment"
+            app:destination="@id/expenseCategoriesFragment" />
+
+        <action
+            android:id="@+id/action_financeFragment_to_financialStatementFragment"
+            app:destination="@id/financialStatementFragment" />
+
+        <action
+            android:id="@+id/action_financeFragment_to_transactionsFragment"
+            app:destination="@id/transactionsFragment" />
+
+        <action
+            android:id="@+id/action_financeFragment_to_shopsFragment"
+            app:destination="@id/shopsFragment" />
+
+        <action
+            android:id="@+id/action_financeFragment_to_reportsFragment"
+            app:destination="@id/reportsFragment" />
+
+        <action
+            android:id="@+id/action_financeFragment_to_financeSettingsFragment"
+            app:destination="@id/financeSettingsFragment" />
+
+    </fragment>
+
+    <!-- Reports Fragment -->
+    <fragment
+        android:id="@+id/reportsFragment"
+        android:name="com.devbrian.osebo.fragments.ReportsFragment"
+        android:label="Reports"
+        tools:layout="@layout/fragment_reports" />
+
+    <!-- Finance Settings Fragment -->
+    <fragment
+        android:id="@+id/financeSettingsFragment"
+        android:name="com.devbrian.osebo.fragments.FinanceSettingsFragment"
+        android:label="Finance Settings"
+        tools:layout="@layout/fragment_finance_settings" />
+
+    <!-- Expense Categories Fragment -->
+    <fragment
+        android:id="@+id/expenseCategoriesFragment"
+        android:name="com.devbrian.osebo.fragments.ExpenseCategoriesFragment"
+        android:label="Expense Categories"
+        tools:layout="@layout/fragment_expense_categories" />
+
+    <!-- Financial Statement Fragment -->
+    <fragment
+        android:id="@+id/financialStatementFragment"
+        android:name="com.devbrian.osebo.fragments.FinancialStatementFragment"
+        android:label="Financial Statement"
+        tools:layout="@layout/fragment_financial_statement" />
+
+    <!-- Transactions Fragment -->
+    <fragment
+        android:id="@+id/transactionsFragment"
+        android:name="com.devbrian.osebo.fragments.TransactionsFragment"
+        android:label="Transactions"
+        tools:layout="@layout/fragment_transactions">
+
+        <action
+            android:id="@+id/action_transactionsFragment_to_addExpenseFragment"
+            app:destination="@id/addExpenseFragment" />
+
+    </fragment>
+
+    <!-- Inventory Fragment -->
+    <fragment
+        android:id="@+id/inventoryFragment"
+        android:name="com.devbrian.osebo.fragments.InventoryFragment"
+        android:label="Inventory"
+        tools:layout="@layout/fragment_inventory">
+
+        <action
+            android:id="@+id/action_inventory_to_addProduct"
+            app:destination="@id/addProductFragment" />
+
+        <action
+            android:id="@+id/action_inventory_to_restock"
+            app:destination="@id/restockFragment" />
+
+        <action
+            android:id="@+id/action_inventory_to_productDetails"
+            app:destination="@id/productDetailsFragment">
+            <argument
+                android:name="productId"
+                app:argType="string" />
+        </action>
+
+    </fragment>
+
+    <!-- Suppliers Fragment -->
+    <fragment
+        android:id="@+id/suppliersFragment"
+        android:name="com.devbrian.osebo.fragments.SuppliersFragment"
+        android:label="Suppliers"
+        tools:layout="@layout/fragment_suppliers" />
+
+    <!-- Restock Fragment -->
+    <fragment
+        android:id="@+id/restockFragment"
+        android:name="com.devbrian.osebo.fragments.RestockFragment"
+        android:label="Restock Products"
+        tools:layout="@layout/fragment_restock" />
+
+    <!-- Add Expense Fragment -->
+    <fragment
+        android:id="@+id/addExpenseFragment"
+        android:name="com.devbrian.osebo.fragments.AddExpenseFragment"
+        android:label="Add Expense"
+        tools:layout="@layout/fragment_add_expense" />
+
+    <!-- Add Product Fragment -->
+    <fragment
+        android:id="@+id/addProductFragment"
+        android:name="com.devbrian.osebo.fragments.AddProductFragment"
+        android:label="Add Product"
+        tools:layout="@layout/fragment_add_product">
+
+        <argument
+            android:name="productId"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
+
+    </fragment>
+
+    <!-- Product Details Fragment -->
+    <fragment
+        android:id="@+id/productDetailsFragment"
+        android:name="com.devbrian.osebo.fragments.ProductDetailsFragment"
+        android:label="Product Details"
+        tools:layout="@layout/fragment_product_details">
+
+        <argument
+            android:name="productId"
+            app:argType="string" />
+
+        <action
+            android:id="@+id/action_productDetails_to_addProduct"
+            app:destination="@id/addProductFragment">
+            <argument
+                android:name="productId"
+                app:argType="string" />
+        </action>
+
+    </fragment>
+
+    <!-- Employees Fragment -->
+    <fragment
+        android:id="@+id/employeesFragment"
+        android:name="com.devbrian.osebo.fragments.EmployeesFragment"
+        android:label="Employees"
+        tools:layout="@layout/fragment_employees">
+
+        <action
+            android:id="@+id/action_employeesFragment_to_userRolesFragment"
+            app:destination="@id/userRolesFragment" />
+    </fragment>
+
+    <!-- Customers Fragment -->
+    <fragment
+        android:id="@+id/customersFragment"
+        android:name="com.devbrian.osebo.fragments.CustomersFragment"
+        android:label="Customers"
+        tools:layout="@layout/fragment_customers" />
+
+    <!-- Contact Us Fragment -->
+    <fragment
+        android:id="@+id/contactUsFragment"
+        android:name="com.devbrian.osebo.fragments.ContactUsFragment"
+        android:label="Contact Us"
+        tools:layout="@layout/fragment_contact_us">
+
+        <action
+            android:id="@+id/action_contactUsFragment_to_faqFragment"
+            app:destination="@id/faqFragment" />
+
+    </fragment>
+
+    <!-- FAQ Fragment -->
+    <fragment
+        android:id="@+id/faqFragment"
+        android:name="com.devbrian.osebo.fragments.FaqDetailDialogFragment"
+        android:label="FAQs"
+        tools:layout="@layout/fragment_faq" />
+
+    <!-- User Roles Fragment -->
+    <fragment
+        android:id="@+id/userRolesFragment"
+        android:name="com.devbrian.osebo.fragments.UserRolesFragment"
+        android:label="User Roles"
+        tools:layout="@layout/fragment_user_roles" />
+
+    <!-- Account Fragment -->
+    <fragment
+        android:id="@+id/accountFragment"
+        android:name="com.devbrian.osebo.fragments.AccountFragment"
+        android:label="Account"
+        tools:layout="@layout/fragment_account">
+
+        <action
+            android:id="@+id/action_accountFragment_to_sessionsFragment"
+            app:destination="@id/sessionsFragment" />
+
+    </fragment>
+
+    <!-- Subscriptions Fragment -->
+    <fragment
+        android:id="@+id/subscriptionsFragment"
+        android:name="com.devbrian.osebo.fragments.SubscriptionFragment"
+        android:label="Subscriptions"
+        tools:layout="@layout/fragment_subscription">
+
+        <argument
+            android:name="shopId"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
+
+        <argument
+            android:name="shopName"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
+
+    </fragment>
+
+    <!-- Subscription Overview Fragment -->
+    <fragment
+        android:id="@+id/subscriptionOverviewFragment"
+        android:name="com.devbrian.osebo.fragments.SubscriptionOverviewFragment"
+        android:label="Subscription Overview"
+        tools:layout="@layout/fragment_subscription_overview">
+
+        <argument
+            android:name="shopId"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
+
+    </fragment>
+
+    <!-- FAQ Detail Dialog Fragment -->
+    <fragment
+        android:id="@+id/faq_detail_dialog"
+        android:name="com.devbrian.osebo.fragments.FaqDetailDialogFragment"
+        android:label="FAQ Detail"
+        tools:layout="@layout/fragment_faq_detail_dialog" />
+
+    <!-- Sessions Fragment -->
+    <fragment
+        android:id="@+id/sessionsFragment"
+        android:name="com.devbrian.osebo.fragments.SessionsFragment"
+        android:label="Active Sessions"
+        tools:layout="@layout/fragment_sessions" />
+
+    <!-- Payment Dialog Fragment -->
+    <dialog
+        android:id="@+id/paymentDialogFragment"
+        android:name="com.devbrian.osebo.fragments.PaymentDialogFragment"
+        android:label="Payment"
+        tools:layout="@layout/fragment_payment_dialog">
+
+        <argument
+            android:name="shopId"
+            app:argType="string" />
+
+        <argument
+            android:name="packageId"
+            app:argType="string" />
+
+        <argument
+            android:name="packageName"
+            app:argType="string" />
+
+        <argument
+            android:name="amount"
+            app:argType="float" />
+
+        <action
+            android:id="@+id/action_paymentDialogFragment_to_paymentStatusFragment"
+            app:destination="@id/paymentStatusFragment" />
+
+    </dialog>
+
+    <!-- Payment Status Fragment -->
+    <fragment
+        android:id="@+id/paymentStatusFragment"
+        android:name="com.devbrian.osebo.fragments.PaymentStatusFragment"
+        android:label="Payment Status"
+        tools:layout="@layout/fragment_payment_status">
+
+        <argument
+            android:name="transactionId"
+            app:argType="string" />
+
+        <argument
+            android:name="shopId"
+            app:argType="string" />
+
+        <argument
+            android:name="amount"
+            app:argType="float" />
+
+        <argument
+            android:name="currency"
+            app:argType="string"
+            android:defaultValue="UGX" />
+
+        <argument
+            android:name="phoneNumber"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="" />
+
+        <action
+            android:id="@+id/action_paymentStatusFragment_to_mainDashboard"
+            app:destination="@id/mainDashboardFragment"
+            app:popUpTo="@id/mainDashboardFragment"
+            app:popUpToInclusive="true" />
+
+        <action
+            android:id="@+id/action_paymentStatusFragment_to_subscriptionPackagesFragment"
+            app:destination="@id/subscriptionPackagesFragment">
+            <argument
+                android:name="shop"
+                app:argType="com.devbrian.osebo.data.models.Shop"
+                app:nullable="true"
+                android:defaultValue="@null" />
+        </action>
+
+        <action
+            android:id="@+id/action_paymentStatusFragment_to_subscriptionDetailsFragment"
+            app:destination="@id/subscriptionDetailsFragment" />
+
+    </fragment>
+
+    <!-- Subscription Packages Fragment -->
+    <fragment
+        android:id="@+id/subscriptionPackagesFragment"
+        android:name="com.devbrian.osebo.fragments.SubscriptionPackagesFragment"
+        android:label="Choose Package"
+        tools:layout="@layout/fragment_subscription_packages">
+
+        <argument
+            android:name="shop"
+            app:argType="com.devbrian.osebo.data.models.Shop"
+            app:nullable="true"
+            android:defaultValue="@null" />
+
+        <argument
+            android:name="currentPackage"
+            app:argType="string"
+            android:defaultValue=""
+            app:nullable="true" />
+
+        <action
+            android:id="@+id/action_subscriptionPackagesFragment_to_paymentStatusFragment"
+            app:destination="@id/paymentStatusFragment" />
+
+        <action
+            android:id="@+id/action_subscriptionPackagesFragment_to_subscriptionPaymentFragment"
+            app:destination="@id/subscriptionPaymentFragment" />
+
+        <action
+            android:id="@+id/action_subscriptionPackagesFragment_to_paymentDialogFragment"
+            app:destination="@id/paymentDialogFragment" />
+
+    </fragment>
+
+    <!-- Subscription Payment Fragment -->
+    <fragment
+        android:id="@+id/subscriptionPaymentFragment"
+        android:name="com.devbrian.osebo.fragments.SubscriptionPaymentFragment"
+        android:label="Complete Payment"
+        tools:layout="@layout/fragment_subscription_payment">
+
+        <argument
+            android:name="shop"
+            app:argType="com.devbrian.osebo.data.models.Shop"
+            app:nullable="true"
+            android:defaultValue="@null" />
+
+        <argument
+            android:name="packageId"
+            app:argType="string" />
+
+        <argument
+            android:name="packageName"
+            app:argType="string" />
+
+        <argument
+            android:name="packagePrice"
+            app:argType="float" />
+
+        <action
+            android:id="@+id/action_subscriptionPaymentFragment_to_paymentStatusFragment"
+            app:destination="@id/paymentStatusFragment" />
+
+    </fragment>
+
+    <!-- Shop Details Fragment -->
+    <fragment
+        android:id="@+id/shopDetailsFragment"
+        android:name="com.devbrian.osebo.fragments.ShopDetailsFragment"
+        android:label="Shop Details"
+        tools:layout="@layout/fragment_shop_details">
+
+        <argument
+            android:name="shop"
+            app:argType="com.devbrian.osebo.data.models.Shop" />
+
+        <action
+            android:id="@+id/action_shopDetailsFragment_to_editShopFragment"
+            app:destination="@id/editShopFragment">
+            <argument
+                android:name="shop"
+                app:argType="com.devbrian.osebo.data.models.Shop" />
+        </action>
+
+        <action
+            android:id="@+id/action_shopDetailsFragment_to_shopStatisticsFragment"
+            app:destination="@id/shopStatisticsFragment">
+            <argument
+                android:name="shopId"
+                app:argType="string" />
+        </action>
+
+        <action
+            android:id="@+id/action_shopDetailsFragment_to_subscriptionPackagesFragment"
+            app:destination="@id/subscriptionPackagesFragment">
+            <argument
+                android:name="shop"
+                app:argType="com.devbrian.osebo.data.models.Shop" />
+        </action>
+
+        <action
+            android:id="@+id/action_shopDetailsFragment_to_subscriptionDetailsFragment"
+            app:destination="@id/subscriptionDetailsFragment">
+            <argument
+                android:name="shopId"
+                app:argType="string" />
+        </action>
+
+        <action
+            android:id="@+id/action_shopDetailsFragment_to_shopDashboard"
+            app:destination="@id/shopDashboardFragment">
+            <argument
+                android:name="shopId"
+                app:argType="string" />
+        </action>
+
+    </fragment>
+
+    <!-- Edit Shop Fragment -->
+    <fragment
+        android:id="@+id/editShopFragment"
+        android:name="com.devbrian.osebo.fragments.EditShopFragment"
+        android:label="Edit Shop"
+        tools:layout="@layout/fragment_edit_shop">
+
+        <argument
+            android:name="shop"
+            app:argType="com.devbrian.osebo.data.models.Shop" />
+
+    </fragment>
+
+    <!-- Shop Statistics Fragment -->
+    <fragment
+        android:id="@+id/shopStatisticsFragment"
+        android:name="com.devbrian.osebo.fragments.subpage.ShopStatisticsFragment"
+        android:label="Shop Statistics"
+        tools:layout="@layout/fragment_shop_statistics">
+
+        <argument
+            android:name="shopId"
+            app:argType="string" />
+
+        <argument
+            android:name="period"
+            app:argType="string"
+            android:defaultValue="month"
+            app:nullable="true" />
+
+    </fragment>
+
+    <!-- Subscription Details Fragment -->
+    <fragment
+        android:id="@+id/subscriptionDetailsFragment"
+        android:name="com.devbrian.osebo.fragments.SubscriptionDetailsFragment"
+        android:label="Subscription Details"
+        tools:layout="@layout/fragment_subscription_details">
+
+        <argument
+            android:name="shopId"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
+
+        <argument
+            android:name="subscriptionId"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
+
+        <argument
+            android:name="subscription"
+            app:argType="com.devbrian.osebo.models.Subscription"
+            app:nullable="true"
+            android:defaultValue="@null" />
+
+        <action
+            android:id="@+id/action_subscriptionDetailsFragment_to_subscriptionPackagesFragment"
+            app:destination="@id/subscriptionPackagesFragment">
+            <argument
+                android:name="shop"
+                app:argType="com.devbrian.osebo.data.models.Shop"
+                app:nullable="true"
+                android:defaultValue="@null" />
+        </action>
+
+        <action
+            android:id="@+id/action_subscriptionDetailsFragment_to_paymentStatusFragment"
+            app:destination="@id/paymentStatusFragment" />
+
+        <action
+            android:id="@+id/action_subscriptionDetailsFragment_to_usageStatisticsFragment"
+            app:destination="@id/usageStatisticsFragment">
+            <argument
+                android:name="shopId"
+                app:argType="string" />
+        </action>
+
+        <action
+            android:id="@+id/action_subscriptionDetailsFragment_to_paymentHistoryFragment"
+            app:destination="@id/paymentHistoryFragment">
+            <argument
+                android:name="subscriptionId"
+                app:argType="string" />
+        </action>
+
+    </fragment>
+
+    <!-- Subscription Management Fragment -->
+    <fragment
+        android:id="@+id/subscriptionManagementFragment"
+        android:name="com.devbrian.osebo.fragments.SubscriptionManagementFragment"
+        android:label="Manage Subscription"
+        tools:layout="@layout/fragment_subscription_management">
+
+        <argument
+            android:name="shopId"
+            app:argType="string" />
+
+        <action
+            android:id="@+id/action_subscriptionManagementFragment_to_subscriptionPackagesFragment"
+            app:destination="@id/subscriptionPackagesFragment">
+            <argument
+                android:name="shop"
+                app:argType="com.devbrian.osebo.data.models.Shop"
+                app:nullable="true"
+                android:defaultValue="@null" />
+        </action>
+
+    </fragment>
+
+    <!-- Usage Statistics Fragment -->
+    <fragment
+        android:id="@+id/usageStatisticsFragment"
+        android:name="com.devbrian.osebo.fragments.UsageStatisticsFragment"
+        android:label="Usage Statistics"
+        tools:layout="@layout/fragment_usage_statistics">
+
+        <argument
+            android:name="shopId"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
+
+    </fragment>
+
+    <!-- Payment History Fragment -->
+    <fragment
+        android:id="@+id/paymentHistoryFragment"
+        android:name="com.devbrian.osebo.fragments.Fragmentpaymenthistory"
+        android:label="Payment History"
+        tools:layout="@layout/fragment_payment_history">
+
+        <argument
+            android:name="subscriptionId"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
+
+    </fragment>
+
+</navigation>

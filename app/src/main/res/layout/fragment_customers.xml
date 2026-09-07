@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/light_background">
+    android:background="@color/light_background"
+    tools:context=".fragments.CustomersFragment">
 
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
@@ -16,7 +17,7 @@
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             app:title="Customers"
-            app:menu="@menu/menu_customer"/>
+            app:menu="@menu/menu_customer" />
 
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -30,6 +31,15 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
+
+            <!-- Progress Bar (Optional - add if you have loading state) -->
+            <ProgressBar
+                android:id="@+id/progress_bar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginVertical="20dp"
+                android:visibility="gone" />
 
             <!-- Customers Overview -->
             <LinearLayout
@@ -59,25 +69,26 @@
                             android:layout_height="wrap_content"
                             android:text="Total Customers"
                             android:textSize="14sp"
-                            android:textColor="@color/text_secondary"/>
+                            android:textColor="@color/text_secondary" />
 
                         <TextView
                             android:id="@+id/tv_total_customers"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="1"
+                            android:text="0"
                             android:textSize="32sp"
                             android:textColor="@color/colorPrimary"
                             android:textStyle="bold"
-                            android:layout_marginTop="8dp"/>
+                            android:layout_marginTop="8dp" />
 
                         <TextView
+                            android:id="@+id/tv_new_customers"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="1 new this month"
+                            android:text="0 new this month"
                             android:textSize="12sp"
                             android:textColor="@color/text_secondary"
-                            android:layout_marginTop="4dp"/>
+                            android:layout_marginTop="4dp" />
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
 
@@ -101,17 +112,19 @@
                             android:layout_height="wrap_content"
                             android:text="Total Sales"
                             android:textSize="14sp"
-                            android:textColor="@color/text_secondary"/>
+                            android:textColor="@color/text_secondary" />
 
                         <TextView
                             android:id="@+id/tv_customer_sales"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="900k"
-                            android:textSize="32sp"
+                            android:text="UGX 0"
+                            android:textSize="28sp"
                             android:textColor="@color/green_success"
                             android:textStyle="bold"
-                            android:layout_marginTop="8dp"/>
+                            android:layout_marginTop="8dp"
+                            android:maxLines="1"
+                            android:ellipsize="end" />
 
                         <TextView
                             android:layout_width="wrap_content"
@@ -119,35 +132,35 @@
                             android:text="From customer purchases"
                             android:textSize="12sp"
                             android:textColor="@color/text_secondary"
-                            android:layout_marginTop="4dp"/>
+                            android:layout_marginTop="4dp" />
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
             </LinearLayout>
 
             <!-- Add Customer Card -->
             <androidx.cardview.widget.CardView
+                android:id="@+id/card_add_customer"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:cardCornerRadius="12dp"
                 app:cardElevation="4dp"
-                android:layout_marginBottom="24dp">
+                android:layout_marginBottom="24dp"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
                     android:padding="20dp"
-                    android:gravity="center"
-                    android:background="?attr/selectableItemBackground"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:id="@+id/card_add_customer">
+                    android:gravity="center">
 
                     <ImageView
                         android:layout_width="64dp"
                         android:layout_height="64dp"
                         android:src="@drawable/ic_addcustomer"
-                        android:tint="@color/colorPrimary"/>
+                        android:tint="@color/colorPrimary" />
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -155,7 +168,7 @@
                         android:text="Add New Customer"
                         android:textSize="18sp"
                         android:textStyle="bold"
-                        android:layout_marginTop="12dp"/>
+                        android:layout_marginTop="12dp" />
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -163,7 +176,7 @@
                         android:text="Add customers to track their purchases"
                         android:textSize="14sp"
                         android:textColor="@color/text_secondary"
-                        android:layout_marginTop="4dp"/>
+                        android:layout_marginTop="4dp" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
@@ -179,147 +192,148 @@
 
                 <!-- Loyalty Program -->
                 <androidx.cardview.widget.CardView
+                    android:id="@+id/card_loyalty"
                     android:layout_width="0dp"
                     android:layout_height="100dp"
                     android:layout_columnWeight="1"
                     android:layout_margin="4dp"
                     app:cardCornerRadius="12dp"
-                    app:cardElevation="2dp">
+                    app:cardElevation="2dp"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:orientation="vertical"
-                        android:gravity="center"
-                        android:background="?attr/selectableItemBackground"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:id="@+id/card_loyalty">
+                        android:gravity="center">
 
                         <ImageView
                             android:layout_width="48dp"
                             android:layout_height="48dp"
                             android:src="@drawable/ic_loyality"
-                            android:tint="@color/colorPrimary"/>
+                            android:tint="@color/colorPrimary" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Loyalty Program"
+                            android:text="Loyalty"
                             android:textSize="14sp"
-                            android:layout_marginTop="8dp"/>
+                            android:layout_marginTop="8dp" />
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
 
                 <!-- Customer Groups -->
                 <androidx.cardview.widget.CardView
+                    android:id="@+id/card_groups"
                     android:layout_width="0dp"
                     android:layout_height="100dp"
                     android:layout_columnWeight="1"
                     android:layout_margin="4dp"
                     app:cardCornerRadius="12dp"
-                    app:cardElevation="2dp">
+                    app:cardElevation="2dp"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:orientation="vertical"
-                        android:gravity="center"
-                        android:background="?attr/selectableItemBackground"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:id="@+id/card_groups">
+                        android:gravity="center">
 
                         <ImageView
                             android:layout_width="48dp"
                             android:layout_height="48dp"
                             android:src="@drawable/ic_group"
-                            android:tint="@color/colorPrimary"/>
+                            android:tint="@color/colorPrimary" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Groups"
                             android:textSize="14sp"
-                            android:layout_marginTop="8dp"/>
+                            android:layout_marginTop="8dp" />
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
 
                 <!-- Communication -->
                 <androidx.cardview.widget.CardView
+                    android:id="@+id/card_communication"
                     android:layout_width="0dp"
                     android:layout_height="100dp"
                     android:layout_columnWeight="1"
                     android:layout_margin="4dp"
                     app:cardCornerRadius="12dp"
-                    app:cardElevation="2dp">
+                    app:cardElevation="2dp"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:orientation="vertical"
-                        android:gravity="center"
-                        android:background="?attr/selectableItemBackground"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:id="@+id/card_communication">
+                        android:gravity="center">
 
                         <ImageView
                             android:layout_width="48dp"
                             android:layout_height="48dp"
                             android:src="@drawable/ic_business"
-                            android:tint="@color/colorPrimary"/>
+                            android:tint="@color/colorPrimary" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Communication"
+                            android:text="Message"
                             android:textSize="14sp"
-                            android:layout_marginTop="8dp"/>
+                            android:layout_marginTop="8dp" />
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
 
                 <!-- Customer Analytics -->
                 <androidx.cardview.widget.CardView
+                    android:id="@+id/card_analytics"
                     android:layout_width="0dp"
                     android:layout_height="100dp"
                     android:layout_columnWeight="1"
                     android:layout_margin="4dp"
                     app:cardCornerRadius="12dp"
-                    app:cardElevation="2dp">
+                    app:cardElevation="2dp"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:orientation="vertical"
-                        android:gravity="center"
-                        android:background="?attr/selectableItemBackground"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:id="@+id/card_analytics">
+                        android:gravity="center">
 
                         <ImageView
                             android:layout_width="48dp"
                             android:layout_height="48dp"
                             android:src="@drawable/ic_chart"
-                            android:tint="@color/colorPrimary"/>
+                            android:tint="@color/colorPrimary" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Analytics"
                             android:textSize="14sp"
-                            android:layout_marginTop="8dp"/>
+                            android:layout_marginTop="8dp" />
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
             </GridLayout>
 
-            <!-- Recent Customers -->
+            <!-- Customers List -->
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                app:cardElevation="4dp"
+                android:layout_marginBottom="80dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -338,9 +352,9 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Recent Customers"
+                            android:text="All Customers"
                             android:textSize="18sp"
-                            android:textStyle="bold"/>
+                            android:textStyle="bold" />
 
                         <TextView
                             android:id="@+id/tv_view_all_customers"
@@ -350,8 +364,9 @@
                             android:textColor="@color/colorPrimary"
                             android:textSize="14sp"
                             android:padding="8dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
                             android:clickable="true"
-                            android:focusable="true"/>
+                            android:focusable="true" />
                     </LinearLayout>
 
                     <!-- Search Bar -->
@@ -360,24 +375,57 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginHorizontal="16dp"
-                        android:layout_marginBottom="16dp"
-                        android:hint="Search customers">
+                        android:layout_marginBottom="8dp"
+                        app:endIconMode="clear_text"
+                        android:hint="Search customers by name or phone">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/et_search_customers"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:inputType="text"
-                            android:imeOptions="actionSearch"/>
+                            android:imeOptions="actionSearch" />
                     </com.google.android.material.textfield.TextInputLayout>
 
-                    <!-- Customers List -->
+                    <!-- Empty State -->
+                    <LinearLayout
+                        android:id="@+id/layout_empty_customers"
+                        android:layout_width="match_parent"
+                        android:layout_height="200dp"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:visibility="gone">
+
+                        <ImageView
+                            android:layout_width="80dp"
+                            android:layout_height="80dp"
+                            android:src="@drawable/ic_customer"
+                            android:tint="@color/grey_400" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="No customers found"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:layout_marginTop="16dp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Add your first customer to get started"
+                            android:textColor="@color/text_secondary"
+                            android:layout_marginTop="4dp" />
+                    </LinearLayout>
+
+                    <!-- Customers RecyclerView -->
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/rv_customers"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:padding="8dp"
-                        android:clipToPadding="false"/>
+                        android:clipToPadding="false"
+                        android:nestedScrollingEnabled="false" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
         </LinearLayout>
@@ -392,5 +440,8 @@
         android:layout_margin="16dp"
         android:src="@drawable/ic_add"
         app:backgroundTint="@color/colorPrimary"
-        app:tint="@color/white"/>
+        app:tint="@color/white"
+        app:borderWidth="0dp"
+        app:elevation="6dp" />
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

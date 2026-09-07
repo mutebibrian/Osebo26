@@ -1,0 +1,326 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/surface"
+    android:fitsSystemWindows="true">
+
+    <!-- Toolbar -->
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="0dp"
+        android:layout_height="?attr/actionBarSize"
+        app:title="Payment Status"
+        app:titleTextColor="@color/on_surface"
+        app:navigationIcon="@drawable/ic_arrow_back"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- Main Content -->
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/nestedScrollView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:padding="24dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/toolbar">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <!-- Status Icon -->
+            <ImageView
+                android:id="@+id/ivStatusIcon"
+                android:layout_width="120dp"
+                android:layout_height="120dp"
+                android:src="@drawable/ic_pending"
+                android:tint="@color/yellow_500"
+                android:layout_marginVertical="32dp"
+                android:contentDescription="Payment Status" />
+
+            <!-- Status Title -->
+            <TextView
+                android:id="@+id/tvStatusTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Payment Pending"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:textColor="@color/on_surface"
+                android:layout_marginBottom="8dp" />
+
+            <!-- Status Message -->
+            <TextView
+                android:id="@+id/tvStatusMessage"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Please follow the prompts sent to your mobile phone to complete the payment."
+                android:textSize="16sp"
+                android:textColor="@color/on_surface_variant"
+                android:gravity="center"
+                android:lineSpacingExtra="4dp"
+                android:paddingHorizontal="16dp"
+                android:layout_marginBottom="24dp" />
+
+            <!-- Transaction Details Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp"
+                android:layout_marginBottom="32dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Transaction Details"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/on_surface"
+                        android:layout_marginBottom="16dp" />
+
+                    <!-- Transaction ID -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="12dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Transaction ID"
+                            android:textSize="14sp"
+                            android:textColor="@color/on_surface_variant" />
+
+                        <TextView
+                            android:id="@+id/tvTransactionId"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="TX-123456789"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/on_surface" />
+
+                    </LinearLayout>
+
+                    <!-- Amount -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="12dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Amount"
+                            android:textSize="14sp"
+                            android:textColor="@color/on_surface_variant" />
+
+                        <TextView
+                            android:id="@+id/tvAmount"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="UGX 20,000"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/on_surface" />
+
+                    </LinearLayout>
+
+                    <!-- Phone Number -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="12dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Phone Number"
+                            android:textSize="14sp"
+                            android:textColor="@color/on_surface_variant" />
+
+                        <TextView
+                            android:id="@+id/tvPhoneNumber"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="+256 700 123 456"
+                            android:textSize="14sp"
+                            android:textColor="@color/on_surface" />
+
+                    </LinearLayout>
+
+                    <!-- Time -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Initiated"
+                            android:textSize="14sp"
+                            android:textColor="@color/on_surface_variant" />
+
+                        <TextView
+                            android:id="@+id/tvTime"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="2 minutes ago"
+                            android:textSize="14sp"
+                            android:textColor="@color/on_surface" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Payment Instructions -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="12dp"
+                app:cardBackgroundColor="@color/blue_50"
+                app:strokeColor="@color/blue_200"
+                app:strokeWidth="1dp"
+                android:layout_marginBottom="32dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Payment Instructions"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/blue_700"
+                        android:drawablePadding="8dp"
+                        android:drawableStart="@drawable/ic_info"
+                        android:layout_marginBottom="12dp" />
+
+                    <TextView
+                        android:id="@+id/tvInstructions"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="1. Check your phone for a payment request\n2. Enter your PIN to confirm\n3. Wait for confirmation message\n4. Payment will be confirmed automatically"
+                        android:textSize="14sp"
+                        android:textColor="@color/blue_800"
+                        android:lineSpacingExtra="6dp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="NOTE: Local operator charges may apply!"
+                        android:textSize="12sp"
+                        android:textStyle="italic"
+                        android:textColor="@color/red_500"
+                        android:layout_marginTop="12dp" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Action Buttons -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginBottom="32dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnTryAgain"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="TRY AGAIN"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    app:strokeColor="@color/primary"
+                    app:strokeWidth="1dp"
+                    android:layout_marginBottom="12dp"
+                    android:visibility="gone" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnContactSupport"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="CONTACT SUPPORT"
+                    style="@style/Widget.Material3.Button.TextButton"
+                    android:layout_marginBottom="12dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnBackToShop"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="BACK TO SHOP"
+                    style="@style/Widget.Material3.Button"
+                    android:visibility="gone" />
+
+            </LinearLayout>
+
+            <!-- Polling Progress -->
+            <LinearLayout
+                android:id="@+id/layoutPolling"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:padding="16dp"
+                android:visibility="visible">
+
+                <ProgressBar
+                    android:id="@+id/pbPolling"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:indeterminateTint="@color/primary" />
+
+                <TextView
+                    android:id="@+id/tvPollingMessage"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Checking payment status..."
+                    android:textSize="14sp"
+                    android:textColor="@color/on_surface_variant"
+                    android:layout_marginTop="12dp" />
+
+                <TextView
+                    android:id="@+id/tvNextCheck"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Next check in 5 seconds"
+                    android:textSize="12sp"
+                    android:textColor="@color/on_surface_variant"
+                    android:layout_marginTop="4dp" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </androidx.core.widget.NestedScrollView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

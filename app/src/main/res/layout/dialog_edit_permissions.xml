@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@android:color/white">
+
+    <!-- Header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:gravity="center_vertical"
+        android:background="#F5F5F5">
+
+        <TextView
+            android:id="@+id/tvDialogTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Edit Permissions - Manager"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="#212121" />
+
+        <ImageView
+            android:id="@+id/btnCloseDialog"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_close"
+            android:padding="4dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?selectableItemBackgroundBorderless" />
+
+    </LinearLayout>
+
+    <!-- Search Bar -->
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        app:cardElevation="2dp"
+        app:cardCornerRadius="8dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="8dp"
+            android:gravity="center_vertical">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_search"
+                android:tint="#9E9E9E"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp" />
+
+            <EditText
+                android:id="@+id/etSearchPermissions"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="Search permissions... (name or ability)"
+                android:textSize="14sp"
+                android:background="@null"
+                android:maxLines="1" />
+
+        </LinearLayout>
+
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Permissions List -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvPermissions"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:paddingHorizontal="16dp" />
+
+    <!-- Buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="end"
+        android:padding="16dp"
+        android:background="#F5F5F5">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnClose"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:text="Close"
+            android:textColor="#757575"
+            app:cornerRadius="8dp"
+            app:strokeColor="#757575"
+            app:strokeWidth="1dp"
+            app:backgroundTint="@android:color/transparent"
+            android:layout_marginEnd="8dp"
+            android:minWidth="100dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSaveChanges"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:text="Save Changes"
+            android:textColor="@android:color/white"
+            app:cornerRadius="8dp"
+            android:backgroundTint="#2196F3"
+            android:minWidth="120dp" />
+
+    </LinearLayout>
+
+    <!-- Progress Bar -->
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="center"
+        android:visibility="gone" />
+
+</LinearLayout>
