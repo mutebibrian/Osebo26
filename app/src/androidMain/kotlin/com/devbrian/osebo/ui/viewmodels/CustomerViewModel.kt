@@ -7,14 +7,11 @@ import androidx.lifecycle.viewModelScope
 import com.devbrian.osebo.data.repository.CustomerRepository
 import com.devbrian.osebo.models.Customer
 import com.devbrian.osebo.utils.Resource
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
-@HiltViewModel
-class CustomerViewModel @Inject constructor(
+class CustomerViewModel(
     private val repository: CustomerRepository
 ) : ViewModel() {
 

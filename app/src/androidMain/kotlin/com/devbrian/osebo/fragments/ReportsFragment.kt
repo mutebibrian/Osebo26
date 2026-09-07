@@ -10,7 +10,7 @@ import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
+import org.koin.androidx.viewmodel.ext.android.viewModel
 import com.devbrian.osebo.R
 import com.devbrian.osebo.data.PreferenceManager
 import com.devbrian.osebo.data.remote.dto.response.SalesComparisonDto
@@ -23,15 +23,13 @@ import com.github.mikephil.charting.data.BarDataSet
 import com.github.mikephil.charting.data.BarEntry
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
 import com.github.mikephil.charting.formatter.ValueFormatter
-import dagger.hilt.android.AndroidEntryPoint
 import java.text.NumberFormat
 import java.util.*
 
-@AndroidEntryPoint
 class ReportsFragment : Fragment() {
     private var _binding: FragmentReportsBinding? = null
     private val binding get() = _binding!!
-    private val viewModel: ReportsViewModel by viewModels()
+    private val viewModel: ReportsViewModel by viewModel()
     private lateinit var preferenceManager: PreferenceManager
     private var salesDataList = mutableListOf<SalesDataPoint>()
 

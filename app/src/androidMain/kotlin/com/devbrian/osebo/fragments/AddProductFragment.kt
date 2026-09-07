@@ -7,20 +7,18 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
+import org.koin.androidx.viewmodel.ext.android.viewModel
 import androidx.navigation.fragment.findNavController
 import com.devbrian.osebo.databinding.FragmentAddProductBinding
 import com.devbrian.osebo.models.Product
 import com.devbrian.osebo.ui.viewmodels.InventoryViewModel
-import dagger.hilt.android.AndroidEntryPoint
 
-@AndroidEntryPoint
 class AddProductFragment : Fragment() {
 
     private var _binding: FragmentAddProductBinding? = null
     private val binding get() = _binding!!
 
-    private val viewModel: InventoryViewModel by viewModels()
+    private val viewModel: InventoryViewModel by viewModel()
 
     private var isEditMode = false
     private var productId: String? = null

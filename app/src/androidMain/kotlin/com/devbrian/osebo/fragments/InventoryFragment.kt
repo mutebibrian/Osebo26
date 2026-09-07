@@ -10,7 +10,7 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
+import org.koin.androidx.viewmodel.ext.android.viewModel
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.devbrian.osebo.R
@@ -18,15 +18,13 @@ import com.devbrian.osebo.adapters.ProductAdapter
 import com.devbrian.osebo.databinding.FragmentInventoryBinding
 import com.devbrian.osebo.models.Product
 import com.devbrian.osebo.ui.viewmodels.InventoryViewModel
-import dagger.hilt.android.AndroidEntryPoint
 import kotlin.collections.filter
 
-@AndroidEntryPoint
 class InventoryFragment : Fragment() {
     private var _binding: FragmentInventoryBinding? = null
     private val binding get() = _binding!!
     private lateinit var productAdapter: ProductAdapter
-    private val viewModel: InventoryViewModel by viewModels()
+    private val viewModel: InventoryViewModel by viewModel()
 
     override fun onCreateView(
         inflater: LayoutInflater,

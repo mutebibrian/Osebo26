@@ -5,7 +5,7 @@ import android.view.*
 import android.widget.PopupMenu
 import android.widget.Toast
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
+import org.koin.androidx.viewmodel.ext.android.viewModel
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.devbrian.osebo.R
@@ -13,14 +13,12 @@ import com.devbrian.osebo.adapters.TransactionAdapter
 import com.devbrian.osebo.databinding.FragmentTransactionsBinding
 import com.devbrian.osebo.models.Transaction
 import com.devbrian.osebo.ui.viewmodels.TransactionViewModel
-import dagger.hilt.android.AndroidEntryPoint
 
-@AndroidEntryPoint
 class TransactionsFragment : Fragment() {
     private var _binding: FragmentTransactionsBinding? = null
     private val binding get() = _binding!!
     private lateinit var transactionAdapter: TransactionAdapter
-    private val viewModel: TransactionViewModel by viewModels()
+    private val viewModel: TransactionViewModel by viewModel()
 
     override fun onCreateView(
         inflater: LayoutInflater,

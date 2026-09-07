@@ -8,14 +8,13 @@ import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
+import org.koin.androidx.viewmodel.ext.android.viewModel
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.snackbar.Snackbar
-import dagger.hilt.android.AndroidEntryPoint
 import com.devbrian.osebo.R
 import com.devbrian.osebo.data.PreferenceManager
 import com.devbrian.osebo.databinding.FragmentShopDashboardBinding
@@ -23,7 +22,6 @@ import com.devbrian.osebo.ui.viewmodels.DashboardViewModel
 import com.devbrian.osebo.utils.NetworkUtils
 import kotlinx.coroutines.launch
 
-@AndroidEntryPoint
 class ShopDashboardFragment : Fragment() {
 
     private val args: ShopDashboardFragmentArgs by navArgs()
@@ -31,7 +29,7 @@ class ShopDashboardFragment : Fragment() {
     private var _binding: FragmentShopDashboardBinding? = null
     private val binding get() = _binding!!
 
-    private val viewModel: DashboardViewModel by viewModels()
+    private val viewModel: DashboardViewModel by viewModel()
 
     private lateinit var topStockAdapter: TopStockAdapter
 

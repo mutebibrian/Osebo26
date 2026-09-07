@@ -6,7 +6,6 @@ plugins {
     alias(libs.plugins.kotlin.compose.compiler)
     alias(libs.plugins.compose.multiplatform)
     alias(libs.plugins.ksp)
-    alias(libs.plugins.hilt.android)
     alias(libs.plugins.navigation.safe.args)
     id("kotlin-parcelize")
 }
@@ -38,6 +37,7 @@ kotlin {
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
             implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.koin.core)
         }
 
         androidMain.dependencies {
@@ -77,9 +77,8 @@ kotlin {
             // Glide
             implementation("com.github.bumptech.glide:glide:4.15.1")
 
-            // Hilt
-            implementation(libs.hilt.android)
-            implementation("androidx.hilt:hilt-work:1.1.0")
+            // Koin (DI)
+            implementation(libs.koin.android)
 
             // Networking
             implementation("com.squareup.retrofit2:retrofit:2.9.0")
@@ -118,7 +117,6 @@ kotlin {
         androidInstrumentedTest.dependencies {
             implementation(libs.androidx.junit)
             implementation(libs.androidx.espresso.core)
-            implementation("com.google.dagger:hilt-android-testing:2.60.1")
         }
     }
 }
@@ -173,12 +171,10 @@ android {
     }
 }
 
-// KSP processors run for the Android target only (Hilt, Room, Glide) — KMP
+// KSP processors run for the Android target only (Room, Glide) — KMP
 // projects use per-target configuration names (kspAndroid) instead of the
 // deprecated catch-all ksp(...) that plain single-platform apps use.
 dependencies {
-    add("kspAndroid", libs.hilt.compiler)
-    add("kspAndroid", "androidx.hilt:hilt-compiler:1.1.0")
     add("kspAndroid", "androidx.room:room-compiler:2.6.1")
     add("kspAndroid", "com.github.bumptech.glide:ksp:4.15.1")
     debugImplementation(compose.uiTooling)

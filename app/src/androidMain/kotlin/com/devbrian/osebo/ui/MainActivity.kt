@@ -31,13 +31,11 @@ import com.devbrian.osebo.models.PermissionType
 import com.devbrian.osebo.utils.PermissionManager
 import com.devbrian.osebo.utils.Resource
 import com.google.android.material.navigation.NavigationView
-import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
-import javax.inject.Inject
+import org.koin.android.ext.android.inject
 
-@AndroidEntryPoint
 class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
 
     private lateinit var binding: ActivityMainBinding
@@ -47,8 +45,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private lateinit var permissionManager: PermissionManager
     private lateinit var navigationView: NavigationView
 
-    @Inject
-    lateinit var shopRepository: ShopRepositoryImpl
+    private val shopRepository: ShopRepositoryImpl by inject()
 
     private val subscriptionRequiredDestinations = setOf(
         R.id.salesFragment,

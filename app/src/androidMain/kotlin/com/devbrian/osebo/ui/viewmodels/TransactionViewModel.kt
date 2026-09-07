@@ -9,12 +9,9 @@ import androidx.lifecycle.viewModelScope
 import com.devbrian.osebo.data.repository.FinanceRepository
 import com.devbrian.osebo.models.Transaction
 import com.devbrian.osebo.models.TransactionFilter
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
-@HiltViewModel
-class TransactionViewModel @Inject constructor(
+class TransactionViewModel(
     private val repository: FinanceRepository
 ) : ViewModel() {
 

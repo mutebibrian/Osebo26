@@ -9,7 +9,7 @@ import android.widget.EditText
 import android.widget.Toast
 import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
+import org.koin.androidx.viewmodel.ext.android.viewModel
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
@@ -22,16 +22,14 @@ import com.devbrian.osebo.models.SubscriptionPackage
 import com.devbrian.osebo.ui.viewmodels.SubscriptionViewModel
 import com.devbrian.osebo.utils.Resource
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
-@AndroidEntryPoint
 class SubscriptionPackagesFragment : Fragment() {
 
     private var _binding: FragmentSubscriptionPackagesBinding? = null
     private val binding get() = _binding!!
 
-    private val viewModel: SubscriptionViewModel by viewModels()
+    private val viewModel: SubscriptionViewModel by viewModel()
     private lateinit var subscriptionPackageAdapter: SubscriptionPackageAdapter
 
     private var shop: Shop? = null

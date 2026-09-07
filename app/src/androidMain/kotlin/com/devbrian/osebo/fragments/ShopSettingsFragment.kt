@@ -7,7 +7,7 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
+import org.koin.androidx.viewmodel.ext.android.viewModel
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.devbrian.osebo.R
@@ -17,17 +17,15 @@ import com.devbrian.osebo.ui.ShopViewModel
 import com.devbrian.osebo.ui.viewmodels.SubscriptionViewModel
 import com.devbrian.osebo.utils.Resource
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
-@AndroidEntryPoint
 class ShopSettingsFragment : Fragment() {
 
     private var _binding: FragmentShopSettingsBinding? = null
     private val binding get() = _binding!!
 
-    private val shopViewModel: ShopViewModel by viewModels()
-    private val subscriptionViewModel: SubscriptionViewModel by viewModels()
+    private val shopViewModel: ShopViewModel by viewModel()
+    private val subscriptionViewModel: SubscriptionViewModel by viewModel()
 
     companion object {
         private const val ARG_SHOP_ID = "shop_id"

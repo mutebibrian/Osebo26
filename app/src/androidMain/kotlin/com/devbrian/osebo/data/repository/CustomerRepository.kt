@@ -14,11 +14,8 @@ import com.devbrian.osebo.utils.Resource
 import com.google.gson.Gson
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class CustomerRepository @Inject constructor(
+class CustomerRepository(
     private val database: AppDatabase,
     private val apiService: ApiService,
     private val preferenceManager: PreferenceManager,

@@ -6,7 +6,7 @@ import android.view.*
 import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
+import org.koin.androidx.viewmodel.ext.android.viewModel
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.devbrian.osebo.R
@@ -14,18 +14,16 @@ import com.devbrian.osebo.adapters.TransactionAdapter
 import com.devbrian.osebo.databinding.FragmentFinanceBinding
 import com.devbrian.osebo.models.Transaction
 import com.devbrian.osebo.ui.viewmodels.FinanceViewModel
-import dagger.hilt.android.AndroidEntryPoint
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
 
-@AndroidEntryPoint
 class FinanceFragment : Fragment() {
     private var _binding: FragmentFinanceBinding? = null
     private val binding get() = _binding!!
     private lateinit var transactionAdapter: TransactionAdapter
 
-    private val viewModel: FinanceViewModel by viewModels()
+    private val viewModel: FinanceViewModel by viewModel()
 
     private val periods = arrayOf(
         "Today",
