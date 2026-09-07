@@ -10,12 +10,9 @@ import com.devbrian.osebo.models.Expense
 import com.devbrian.osebo.models.ExpenseCategory
 import com.devbrian.osebo.models.FinancialStatement
 import com.devbrian.osebo.models.Transaction
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
-@HiltViewModel
-class FinanceViewModel @Inject constructor(
+class FinanceViewModel(
     private val repository: FinanceRepository,
     private val preferenceManager: PreferenceManager
 ) : ViewModel() {

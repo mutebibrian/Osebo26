@@ -9,7 +9,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
+import org.koin.androidx.viewmodel.ext.android.viewModel
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import com.devbrian.osebo.R
@@ -20,18 +20,16 @@ import com.devbrian.osebo.utils.Resource
 import com.devbrian.osebo.models.SaleData
 import com.devbrian.osebo.models.CartItem
 import com.devbrian.osebo.utils.CurrencyFormatter
-import dagger.hilt.android.AndroidEntryPoint
 import java.text.NumberFormat
 import java.util.*
-import javax.inject.Inject
+import org.koin.android.ext.android.inject
 
-@AndroidEntryPoint
 class PaymentFragment : Fragment() {
 
     private var _binding: FragmentPaymentBinding? = null
     private val binding get() = _binding!!
 
-    private val viewModel: SalesViewModel by viewModels()
+    private val viewModel: SalesViewModel by viewModel()
 
     private val args: PaymentFragmentArgs by navArgs()
 
@@ -41,8 +39,7 @@ class PaymentFragment : Fragment() {
 
     private var selectedPaymentMethod = "cash"
 
-    @Inject
-    lateinit var preferenceManager: PreferenceManager
+    private val preferenceManager: PreferenceManager by inject()
 
     
     private var saleResponseData: SaleData? = null

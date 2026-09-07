@@ -6,7 +6,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.PopupMenu
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
+import org.koin.androidx.viewmodel.ext.android.viewModel
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.devbrian.osebo.R
 import com.devbrian.osebo.adapters.CustomerAdapter
@@ -14,16 +14,14 @@ import com.devbrian.osebo.databinding.FragmentCustomersBinding
 import com.devbrian.osebo.databinding.DialogAddCustomerBinding
 import com.devbrian.osebo.models.Customer
 import com.devbrian.osebo.ui.viewmodels.CustomerViewModel
-import dagger.hilt.android.AndroidEntryPoint
 import java.text.NumberFormat
 import java.util.*
 
-@AndroidEntryPoint
 class CustomersFragment : Fragment() {
 
     private var _binding: FragmentCustomersBinding? = null
     private val binding get() = _binding!!
-    private val viewModel: CustomerViewModel by viewModels()
+    private val viewModel: CustomerViewModel by viewModel()
     private lateinit var customerAdapter: CustomerAdapter
     private val currencyFormat = NumberFormat.getCurrencyInstance(Locale.US).apply {
         currency = Currency.getInstance("UGX")

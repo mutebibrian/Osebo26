@@ -18,16 +18,13 @@ import com.devbrian.osebo.models.Sale
 import com.devbrian.osebo.models.SaleData
 import com.devbrian.osebo.utils.CurrencyFormatter
 import com.devbrian.osebo.utils.Resource
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.*
-import javax.inject.Inject
 
-@HiltViewModel
-class SalesViewModel @Inject constructor(
+class SalesViewModel(
     private val salesRepository: SalesRepository,
     private val productRepository: ProductRepository,
     private val customerRepository: CustomerRepository,

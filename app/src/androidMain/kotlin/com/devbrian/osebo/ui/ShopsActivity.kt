@@ -4,29 +4,24 @@ import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.ViewModelProvider
 import com.devbrian.osebo.data.PreferenceManager
 import com.devbrian.osebo.databinding.ActivityShopsBinding
 import com.devbrian.osebo.data.models.Shop
 import com.devbrian.osebo.utils.Resource
-import dagger.hilt.android.AndroidEntryPoint
-import javax.inject.Inject
+import org.koin.android.ext.android.inject
+import org.koin.androidx.viewmodel.ext.android.viewModel
 
-@AndroidEntryPoint
 class ShopsActivity : AppCompatActivity() {
 
-    @Inject
-    lateinit var preferenceManager: PreferenceManager
+    private val preferenceManager: PreferenceManager by inject()
+    private val shopViewModel: ShopViewModel by viewModel()
 
     private lateinit var binding: ActivityShopsBinding
-    private lateinit var shopViewModel: ShopViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityShopsBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
-        shopViewModel = ViewModelProvider(this)[ShopViewModel::class.java]
 
         setupObservers()
         loadShops()

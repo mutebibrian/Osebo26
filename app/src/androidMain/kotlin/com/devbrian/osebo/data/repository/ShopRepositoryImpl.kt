@@ -10,12 +10,9 @@ import com.devbrian.osebo.utils.Resource
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.io.IOException
-import javax.inject.Inject
-import javax.inject.Singleton
 import java.util.UUID
 
-@Singleton
-class ShopRepositoryImpl @Inject constructor(
+class ShopRepositoryImpl(
     private val apiService: ApiService,
     private val preferenceManager: PreferenceManager,
     private val database: AppDatabase
