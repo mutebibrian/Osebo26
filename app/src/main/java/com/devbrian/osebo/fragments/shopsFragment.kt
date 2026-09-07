@@ -34,6 +34,7 @@ class ShopsFragment : Fragment() {
     private val shopClickListener = object : OnShopClickListener {
         override fun onShopClick(shop: Shop) {
             if (shop.isSubscriptionActive) {
+                setActiveShop(shop)
                 navigateToShopDashboard(shop)
             } else {
                 showSubscriptionRequiredDialog(shop)
