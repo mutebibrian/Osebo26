@@ -112,6 +112,7 @@ class MainDashboardFragment : Fragment() {
             listener = object : OnShopClickListener {
                 override fun onShopClick(shop: Shop) {
                     if (shop.isSubscriptionActive) {
+                        setActiveShop(shop)
                         navigateToShopDashboard(shop)
                     } else {
                         showSubscriptionRequiredDialog(shop)
