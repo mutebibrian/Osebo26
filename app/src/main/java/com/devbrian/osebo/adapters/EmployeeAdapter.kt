@@ -120,70 +120,70 @@ class EmployeeAdapter(
         private var isExpanded: Boolean = false
 
         init {
-            // Whole item click
+            
             itemView.setOnClickListener {
                 currentEmployee?.let { employee ->
                     if (isSelectionMode) {
-                        // In selection mode, toggle selection
+                        
                         onItemClick(employee)
                     } else {
-                        // Normal mode, expand/collapse
+                        
                         toggleExpansion()
                         onItemClick(employee)
                     }
                 }
             }
 
-            // Avatar click
+            
             llEmployeeAvatar.setOnClickListener {
                 currentEmployee?.let { employee ->
                     onViewProfileClick(employee)
                 }
             }
 
-            // More options click
+            
             ivMoreOptions.setOnClickListener { view ->
                 currentEmployee?.let { employee ->
                     onMoreOptionsClick(employee, view)
                 }
             }
 
-            // View Profile button click
+            
             tvViewProfile.setOnClickListener {
                 currentEmployee?.let { employee ->
                     onViewProfileClick(employee)
                 }
             }
 
-            // View Attendance button click
+            
             tvViewAttendance.setOnClickListener {
                 currentEmployee?.let { employee ->
                     onViewAttendanceClick(employee)
                 }
             }
 
-            // Selection check click
+            
             ivSelectionCheck?.setOnClickListener {
                 currentEmployee?.let { employee ->
                     onItemClick(employee)
                 }
             }
 
-            // Show/hide action buttons based on configuration
+            
             llActionButtons.visibility = if (showActionButtons && isExpanded) View.VISIBLE else View.GONE
         }
 
         fun bind(employee: Employee) {
             currentEmployee = employee
 
-            // Set employee initial
+            
             val initial = employee.name.firstOrNull()?.toString()?.uppercase() ?: "?"
             tvEmployeeInitial.text = initial
 
-            // Set avatar background color based on name
+            
             llEmployeeAvatar.setBackgroundColor(getAvatarColor(employee.name))
 
-            // Set employee details
+            
             tvEmployeeName.text = employee.name
             tvEmployeeRole.text = Employee.getRoleDisplayText(employee.role)
             tvEmployeeDepartment.text = employee.department
@@ -191,31 +191,31 @@ class EmployeeAdapter(
             tvEmployeePhone.text = employee.phone
             tvHireDate.text = employee.hireDate ?: "Not set"
 
-            // Format salary
+            
             tvEmployeeSalary.text = if (employee.salary != null) {
                 formatCurrency(employee.salary)
             } else {
                 "Not set"
             }
 
-            // Set status with appropriate background
+            
             setEmployeeStatus(employee.status)
 
-            // Apply role-based styling
+            
             applyRoleBasedStyling(employee.role)
 
-            // Highlight new employees
+            
             if (isNewEmployee(employee.hireDate)) {
                 itemView.setBackgroundResource(R.drawable.bg_new_employee)
             } else {
                 itemView.setBackgroundColor(Color.TRANSPARENT)
             }
 
-            // Show/hide salary based on permissions/role
+            
             val isManager = employee.role.equals(Employee.ROLE_MANAGER, ignoreCase = true)
             tvEmployeeSalary.visibility = if (isManager) View.VISIBLE else View.GONE
 
-            // Selection mode UI
+            
             if (isSelectionMode) {
                 ivSelectionCheck.visibility = View.VISIBLE
                 ivMoreOptions.visibility = View.GONE
@@ -231,7 +231,7 @@ class EmployeeAdapter(
                 ivMoreOptions.visibility = View.VISIBLE
             }
 
-            // Show/hide action buttons
+            
             llActionButtons.visibility = if (showActionButtons && isExpanded) View.VISIBLE else View.GONE
         }
 
@@ -260,7 +260,7 @@ class EmployeeAdapter(
             isExpanded = !isExpanded
             llActionButtons.visibility = if (showActionButtons && isExpanded) View.VISIBLE else View.GONE
 
-            // Animate the expansion if desired
+            
             if (isExpanded) {
                 llActionButtons.alpha = 0f
                 llActionButtons.animate().alpha(1f).setDuration(200).start()
@@ -298,7 +298,7 @@ class EmployeeAdapter(
 
             tvEmployeeRole.setTextColor(ContextCompat.getColor(context, roleColorRes))
 
-            // Set avatar background based on role
+            
             val avatarColor = when (role.uppercase()) {
                 Employee.ROLE_MANAGER -> Color.parseColor("#9C27B0")
                 Employee.ROLE_SUPERVISOR -> Color.parseColor("#2196F3")
@@ -314,16 +314,16 @@ class EmployeeAdapter(
 
         private fun getAvatarColor(name: String): Int {
             val colors = listOf(
-                Color.parseColor("#FF6B6B"), // Coral Red
-                Color.parseColor("#4ECDC4"), // Tiffany Blue
-                Color.parseColor("#FFD166"), // Sunglow
-                Color.parseColor("#06D6A0"), // Emerald
-                Color.parseColor("#118AB2"), // Blue NCS
-                Color.parseColor("#EF476F"), // Paradise Pink
-                Color.parseColor("#073B4C"), // Midnight Green
-                Color.parseColor("#7209B7"), // Purple
-                Color.parseColor("#F72585"), // Pink
-                Color.parseColor("#3A86FF")  // Blue
+                Color.parseColor("#FF6B6B"), 
+                Color.parseColor("#4ECDC4"), 
+                Color.parseColor("#FFD166"), 
+                Color.parseColor("#06D6A0"), 
+                Color.parseColor("#118AB2"), 
+                Color.parseColor("#EF476F"), 
+                Color.parseColor("#073B4C"), 
+                Color.parseColor("#7209B7"), 
+                Color.parseColor("#F72585"), 
+                Color.parseColor("#3A86FF")  
             )
 
             val index = name.hashCode() % colors.size
@@ -349,7 +349,7 @@ class EmployeeAdapter(
                 val diffInMillis = currentDate.time - (hireDateObj?.time ?: 0)
                 val diffInDays = TimeUnit.MILLISECONDS.toDays(diffInMillis)
 
-                return diffInDays <= 30 // New if hired within last 30 days
+                return diffInDays <= 30 
             } catch (e: Exception) {
                 return false
             }
@@ -378,7 +378,7 @@ class EmployeeAdapter(
         }
     }
 
-    // ========== PUBLIC HELPER METHODS ==========
+    
 
     fun getEmployeeAtPosition(position: Int): Employee? {
         return if (position in 0 until itemCount) {
@@ -496,14 +496,16 @@ class EmployeeAdapter(
         return currentList.groupingBy { it.status }.eachCount()
     }
 
-    // Submit list with animation
+    
     fun submitEmployeeList(employees: List<Employee>) {
         submitList(employees)
     }
 
-    // Clear all data
+    
     fun clearAll() {
         submitList(emptyList())
         clearSelection()
     }
 }
+
+

@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -16,7 +15,7 @@
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             app:title="Employees"
-            app:menu="@menu/menu_employee"/>
+            app:menu="@menu/menu_employee_item" />
 
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -31,143 +30,188 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- Employee Stats -->
+            <!-- Employee Stats Cards -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:layout_marginBottom="24dp">
 
-                <!-- Total Employees -->
+                <!-- Total Employees Card -->
                 <androidx.cardview.widget.CardView
                     android:layout_width="0dp"
                     android:layout_height="120dp"
                     android:layout_weight="1"
                     android:layout_marginEnd="8dp"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="4dp">
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="4dp"
+                    app:cardBackgroundColor="@android:color/white">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:orientation="vertical"
                         android:gravity="center"
-                        android:padding="16dp">
+                        android:padding="12dp">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Total Employees"
-                            android:textSize="14sp"
-                            android:textColor="@color/text_secondary"/>
+                            android:textColor="#757575"
+                            android:textSize="12sp" />
 
                         <TextView
                             android:id="@+id/tv_total_employees"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="0"
-                            android:textSize="32sp"
-                            android:textColor="@color/colorPrimary"
+                            android:textColor="#2196F3"
+                            android:textSize="28sp"
                             android:textStyle="bold"
-                            android:layout_marginTop="8dp"/>
+                            android:layout_marginTop="4dp" />
 
                         <TextView
+                            android:id="@+id/tv_total_employees_stats"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="0 managers, 0 staff"
-                            android:textSize="12sp"
-                            android:textColor="@color/text_secondary"
-                            android:layout_marginTop="4dp"/>
+                            android:textColor="#9E9E9E"
+                            android:textSize="10sp"
+                            android:layout_marginTop="4dp" />
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
 
-                <!-- Active Today -->
+                <!-- Active Today Card -->
                 <androidx.cardview.widget.CardView
                     android:layout_width="0dp"
                     android:layout_height="120dp"
                     android:layout_weight="1"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="4dp">
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="4dp"
+                    app:cardBackgroundColor="@android:color/white">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:orientation="vertical"
                         android:gravity="center"
-                        android:padding="16dp">
+                        android:padding="12dp">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Active Today"
-                            android:textSize="14sp"
-                            android:textColor="@color/text_secondary"/>
+                            android:textColor="#757575"
+                            android:textSize="12sp" />
 
                         <TextView
                             android:id="@+id/tv_active_today"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="0"
-                            android:textSize="32sp"
-                            android:textColor="@color/green_success"
+                            android:textColor="#4CAF50"
+                            android:textSize="28sp"
                             android:textStyle="bold"
-                            android:layout_marginTop="8dp"/>
+                            android:layout_marginTop="4dp" />
 
                         <TextView
+                            android:id="@+id/tv_active_today_stats"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="No employees clocked in"
-                            android:textSize="12sp"
-                            android:textColor="@color/text_secondary"
-                            android:layout_marginTop="4dp"/>
+                            android:text="No clocked in"
+                            android:textColor="#9E9E9E"
+                            android:textSize="10sp"
+                            android:layout_marginTop="4dp" />
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
             </LinearLayout>
 
-            <!-- Add Employee Card -->
+            <!-- ✅ Add Employee Card - clickable on the CardView itself -->
             <androidx.cardview.widget.CardView
+                android:id="@+id/card_add_employee"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:cardCornerRadius="12dp"
+                android:layout_marginBottom="24dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
+                app:cardCornerRadius="20dp"
                 app:cardElevation="4dp"
-                android:layout_marginBottom="24dp">
+                app:cardBackgroundColor="@android:color/white">
 
+                <!-- ✅ Inner layout is NOT clickable so it doesn't intercept touches -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
+                    android:orientation="horizontal"
                     android:padding="20dp"
-                    android:gravity="center"
-                    android:background="?attr/selectableItemBackground"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:id="@+id/card_add_employee">
+                    android:gravity="center_vertical"
+                    android:clickable="false"
+                    android:focusable="false">
 
                     <ImageView
-                        android:layout_width="64dp"
-                        android:layout_height="64dp"
+                        android:layout_width="56dp"
+                        android:layout_height="56dp"
                         android:src="@drawable/ic_add_person"
-                        android:tint="@color/colorPrimary"/>
+                        android:tint="#2196F3"
+                        android:background="@drawable/bg_add_employee"
+                        android:padding="12dp"
+                        android:clickable="false"
+                        android:focusable="false" />
 
-                    <TextView
-                        android:layout_width="wrap_content"
+                    <LinearLayout
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:text="Add New Employee"
-                        android:textSize="18sp"
-                        android:textStyle="bold"
-                        android:layout_marginTop="12dp"/>
+                        android:layout_weight="1"
+                        android:layout_marginStart="16dp"
+                        android:orientation="vertical"
+                        android:clickable="false"
+                        android:focusable="false">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Add managers and staff to your shop"
-                        android:textSize="14sp"
-                        android:textColor="@color/text_secondary"
-                        android:layout_marginTop="4dp"/>
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Add New Employee"
+                            android:textColor="#212121"
+                            android:textSize="16sp"
+                            android:textStyle="bold"
+                            android:clickable="false"
+                            android:focusable="false" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Add managers and staff to your shop"
+                            android:textColor="#757575"
+                            android:textSize="13sp"
+                            android:layout_marginTop="4dp"
+                            android:clickable="false"
+                            android:focusable="false" />
+                    </LinearLayout>
+
+                    <!-- ✅ Arrow icon - not clickable, part of the card -->
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_arrow_forward"
+                        android:tint="#2196F3"
+                        android:clickable="false"
+                        android:focusable="false" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
-            <!-- Quick Actions -->
+            <!-- Quick Actions Section Header -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Quick Actions"
+                android:textColor="#212121"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="12dp" />
+
+            <!-- Quick Actions Grid -->
             <GridLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -177,226 +221,290 @@
                 android:columnOrderPreserved="false"
                 android:layout_marginBottom="24dp">
 
-                <!-- Attendance -->
+                <!-- Attendance Card -->
                 <androidx.cardview.widget.CardView
+                    android:id="@+id/card_attendance"
                     android:layout_width="0dp"
-                    android:layout_height="100dp"
+                    android:layout_height="110dp"
                     android:layout_columnWeight="1"
-                    android:layout_margin="4dp"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="2dp">
+                    android:layout_margin="6dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="2dp"
+                    app:cardBackgroundColor="@android:color/white">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:orientation="vertical"
                         android:gravity="center"
-                        android:background="?attr/selectableItemBackground"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:id="@+id/card_attendance">
+                        android:clickable="false"
+                        android:focusable="false"
+                        android:padding="12dp">
 
                         <ImageView
-                            android:layout_width="48dp"
-                            android:layout_height="48dp"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
                             android:src="@drawable/ic_attendance"
-                            android:tint="@color/colorPrimary"/>
+                            android:tint="#2196F3"
+                            android:clickable="false"
+                            android:focusable="false" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Attendance"
+                            android:textColor="#212121"
                             android:textSize="14sp"
-                            android:layout_marginTop="8dp"/>
+                            android:layout_marginTop="8dp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Track time"
+                            android:textColor="#9E9E9E"
+                            android:textSize="10sp" />
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
 
-                <!-- Schedule -->
+                <!-- Schedule Card -->
                 <androidx.cardview.widget.CardView
+                    android:id="@+id/card_schedule"
                     android:layout_width="0dp"
-                    android:layout_height="100dp"
+                    android:layout_height="110dp"
                     android:layout_columnWeight="1"
-                    android:layout_margin="4dp"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="2dp">
+                    android:layout_margin="6dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="2dp"
+                    app:cardBackgroundColor="@android:color/white">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:orientation="vertical"
                         android:gravity="center"
-                        android:background="?attr/selectableItemBackground"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:id="@+id/card_schedule">
+                        android:clickable="false"
+                        android:focusable="false"
+                        android:padding="12dp">
 
                         <ImageView
-                            android:layout_width="48dp"
-                            android:layout_height="48dp"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
                             android:src="@drawable/ic_schedule"
-                            android:tint="@color/colorPrimary"/>
+                            android:tint="#FF9800"
+                            android:clickable="false"
+                            android:focusable="false" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Schedule"
+                            android:textColor="#212121"
                             android:textSize="14sp"
-                            android:layout_marginTop="8dp"/>
+                            android:layout_marginTop="8dp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Manage shifts"
+                            android:textColor="#9E9E9E"
+                            android:textSize="10sp" />
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
 
-                <!-- Payroll -->
+                <!-- Payroll Card -->
                 <androidx.cardview.widget.CardView
+                    android:id="@+id/card_payroll"
                     android:layout_width="0dp"
-                    android:layout_height="100dp"
+                    android:layout_height="110dp"
                     android:layout_columnWeight="1"
-                    android:layout_margin="4dp"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="2dp">
+                    android:layout_margin="6dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="2dp"
+                    app:cardBackgroundColor="@android:color/white">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:orientation="vertical"
                         android:gravity="center"
-                        android:background="?attr/selectableItemBackground"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:id="@+id/card_payroll">
+                        android:clickable="false"
+                        android:focusable="false"
+                        android:padding="12dp">
 
                         <ImageView
-                            android:layout_width="48dp"
-                            android:layout_height="48dp"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
                             android:src="@drawable/ic_payroll"
-                            android:tint="@color/colorPrimary"/>
+                            android:tint="#4CAF50"
+                            android:clickable="false"
+                            android:focusable="false" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Payroll"
+                            android:textColor="#212121"
                             android:textSize="14sp"
-                            android:layout_marginTop="8dp"/>
+                            android:layout_marginTop="8dp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Process salary"
+                            android:textColor="#9E9E9E"
+                            android:textSize="10sp" />
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
 
-                <!-- Performance -->
+                <!-- Performance Card -->
                 <androidx.cardview.widget.CardView
+                    android:id="@+id/card_performance"
                     android:layout_width="0dp"
-                    android:layout_height="100dp"
+                    android:layout_height="110dp"
                     android:layout_columnWeight="1"
-                    android:layout_margin="4dp"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="2dp">
+                    android:layout_margin="6dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="2dp"
+                    app:cardBackgroundColor="@android:color/white">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:orientation="vertical"
                         android:gravity="center"
-                        android:background="?attr/selectableItemBackground"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:id="@+id/card_performance">
+                        android:clickable="false"
+                        android:focusable="false"
+                        android:padding="12dp">
 
                         <ImageView
-                            android:layout_width="48dp"
-                            android:layout_height="48dp"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
                             android:src="@drawable/ic_performance"
-                            android:tint="@color/colorPrimary"/>
+                            android:tint="#9C27B0"
+                            android:clickable="false"
+                            android:focusable="false" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Performance"
+                            android:textColor="#212121"
                             android:textSize="14sp"
-                            android:layout_marginTop="8dp"/>
+                            android:layout_marginTop="8dp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="View reports"
+                            android:textColor="#9E9E9E"
+                            android:textSize="10sp" />
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
             </GridLayout>
 
-            <!-- Employee List -->
-            <androidx.cardview.widget.CardView
+            <!-- Employee List Section -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                android:orientation="horizontal"
+                android:layout_marginBottom="12dp">
 
-                <LinearLayout
-                    android:layout_width="match_parent"
+                <TextView
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical">
+                    android:layout_weight="1"
+                    android:text="Employees List"
+                    android:textColor="#212121"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
 
-                    <!-- Header -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:padding="16dp"
-                        android:gravity="center_vertical">
+                <TextView
+                    android:id="@+id/tv_view_all_employees"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="View All"
+                    android:textColor="#2196F3"
+                    android:textSize="14sp"
+                    android:padding="4dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackground" />
+            </LinearLayout>
 
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Employees List"
-                            android:textSize="18sp"
-                            android:textStyle="bold"/>
+            <!-- Employees RecyclerView -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_employees"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"
+                android:visibility="gone" />
 
-                        <TextView
-                            android:id="@+id/tv_view_all_employees"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="View All"
-                            android:textColor="@color/colorPrimary"
-                            android:textSize="14sp"
-                            android:padding="8dp"
-                            android:clickable="true"
-                            android:focusable="true"/>
-                    </LinearLayout>
+            <!-- No Employees State -->
+            <LinearLayout
+                android:id="@+id/ll_no_employees"
+                android:layout_width="match_parent"
+                android:layout_height="200dp"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:padding="16dp"
+                android:visibility="visible"
+                android:background="@drawable/bg_empty_state">
 
-                    <!-- No Employees State -->
-                    <LinearLayout
-                        android:id="@+id/ll_no_employees"
-                        android:layout_width="match_parent"
-                        android:layout_height="200dp"
-                        android:orientation="vertical"
-                        android:gravity="center"
-                        android:padding="16dp"
-                        android:visibility="visible">
+                <ImageView
+                    android:layout_width="80dp"
+                    android:layout_height="80dp"
+                    android:src="@drawable/ic_empty_dashboard_24"
+                    android:tint="#E0E0E0" />
 
-                        <ImageView
-                            android:layout_width="80dp"
-                            android:layout_height="80dp"
-                            android:src="@drawable/ic_empty_dashboard_24"
-                            android:tint="@color/text_secondary"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="No Employees Yet"
+                    android:textColor="#212121"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:layout_marginTop="16dp" />
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="No Employees Yet"
-                            android:textSize="18sp"
-                            android:textStyle="bold"
-                            android:layout_marginTop="16dp"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Add your first employee to get started"
+                    android:textColor="#9E9E9E"
+                    android:textSize="14sp"
+                    android:layout_marginTop="4dp" />
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Add your first employee to get started"
-                            android:textSize="14sp"
-                            android:textColor="@color/text_secondary"
-                            android:layout_marginTop="4dp"/>
-                    </LinearLayout>
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_add_first_employee"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:layout_marginTop="16dp"
+                    android:text="Add Employee"
+                    android:textColor="@android:color/white"
+                    app:cornerRadius="20dp"
+                    android:backgroundTint="#2196F3" />
+            </LinearLayout>
 
-                    <!-- Employees List -->
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/rv_employees"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:padding="8dp"
-                        android:clipToPadding="false"
-                        android:visibility="gone"/>
-                </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            <!-- Progress Bar -->
+            <ProgressBar
+                android:id="@+id/progressBar"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_gravity="center"
+                android:visibility="gone"
+                android:layout_marginTop="24dp" />
+
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
@@ -408,6 +516,8 @@
         android:layout_gravity="bottom|end"
         android:layout_margin="16dp"
         android:src="@drawable/ic_add"
-        app:backgroundTint="@color/colorPrimary"
-        app:tint="@color/white"/>
+        app:backgroundTint="#2196F3"
+        app:tint="@android:color/white"
+        android:visibility="gone" />
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

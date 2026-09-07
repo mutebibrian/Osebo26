@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/cardView"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="8dp"
+    android:layout_marginVertical="6dp"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="1dp"
+    app:cardBackgroundColor="?attr/colorSurface">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp">
+
+        <!-- ===== GREEN RIBBON (top-left, rotated) ===== -->
+        <FrameLayout
+            android:id="@+id/ribbonContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <TextView
+                android:id="@+id/tvRibbon"
+                android:layout_width="100dp"
+                android:layout_height="28dp"
+                android:background="@drawable/ribbon_active"
+                android:gravity="center"
+                android:text="ACTIVE"
+                android:textColor="@android:color/white"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:rotation="-45"
+                android:translationX="-10dp"
+                android:translationY="-10dp" />
+        </FrameLayout>
+
+        <!-- Shop Logo -->
+        <com.google.android.material.imageview.ShapeableImageView
+            android:id="@+id/ivShopLogo"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:scaleType="centerCrop"
+            android:src="@drawable/ic_shop_placeholder"
+            android:contentDescription="Shop logo"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full" />
+
+        <!-- Shop Name -->
+        <TextView
+            android:id="@+id/tvShopName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="8dp"
+            android:text="Shop Name"
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:ellipsize="end"
+            app:layout_constraintEnd_toStartOf="@id/btnPrimaryAction"
+            app:layout_constraintStart_toEndOf="@id/ivShopLogo"
+            app:layout_constraintTop_toTopOf="@id/ivShopLogo" />
+
+        <!-- Shop Type -->
+        <TextView
+            android:id="@+id/tvShopCategory"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:drawableStart="@drawable/ic_category"
+            android:drawablePadding="4dp"
+            android:text="Retail Store"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textSize="12sp"
+            app:layout_constraintEnd_toStartOf="@id/btnPrimaryAction"
+            app:layout_constraintStart_toStartOf="@id/tvShopName"
+            app:layout_constraintTop_toBottomOf="@id/tvShopName" />
+
+        <!-- Shop Location -->
+        <TextView
+            android:id="@+id/tvShopLocation"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:drawableStart="@drawable/ic_location"
+            android:drawablePadding="4dp"
+            android:text="Location"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textSize="12sp"
+            app:layout_constraintEnd_toStartOf="@id/btnPrimaryAction"
+            app:layout_constraintStart_toStartOf="@id/tvShopName"
+            app:layout_constraintTop_toBottomOf="@id/tvShopCategory" />
+
+        <!-- Primary Action Button (right side) -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnPrimaryAction"
+            style="@style/Widget.Material3.Button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="View Shop"
+            android:textAllCaps="false"
+            android:textSize="12sp"
+            app:cornerRadius="8dp"
+            app:icon="@drawable/ic_arrow_forward"
+            app:iconGravity="textEnd"
+            app:iconSize="16dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/ivShopLogo" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</com.google.android.material.card.MaterialCardView>

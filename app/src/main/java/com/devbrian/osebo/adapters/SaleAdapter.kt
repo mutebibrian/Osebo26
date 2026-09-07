@@ -78,38 +78,49 @@ class SaleAdapter(
                 }
             }
 
-            // Show/hide footer based on configuration
+            
             llSaleFooter.visibility = if (showFooterActions) View.VISIBLE else View.GONE
         }
 
         fun bind(sale: Sale) {
             currentSale = sale
 
-            // Set basic sale info
-            tvSaleId.text = sale.id
+            
+            tvSaleId.text = sale.id.takeLast(8)
             tvCustomerName.text = sale.customerName
-            tvSaleAmount.text = formatCurrency(sale.amount)
-            tvSaleDate.text = sale.date
+
+            
+            if (sale.amount == 0.0) {
+                tvSaleAmount.text = "Quotation"
+                tvSaleAmount.setTextColor(ContextCompat.getColor(itemView.context, R.color.orange_warning))
+                
+            } else {
+                tvSaleAmount.text = formatCurrency(sale.amount)
+                tvSaleAmount.setTextColor(ContextCompat.getColor(itemView.context, R.color.colorPrimary))
+            }
+
+            
+            tvSaleDate.text = sale.getFormattedDate()
+            tvSaleTime.text = sale.getFormattedTime()
+
             tvItemsCount.text = "${sale.itemsCount} ${if (sale.itemsCount == 1) "item" else "items"}"
             tvPaymentMethod.text = sale.paymentMethod ?: "Cash"
 
-            // Parse date and time if available
-            if (sale.date.contains(" ")) {
-                val parts = sale.date.split(" ")
-                if (parts.size >= 2) {
-                    tvSaleDate.text = parts[0]
-                    tvSaleTime.text = parts[1]
-                }
-            }
-
-            // Set sale status with appropriate color
+            
             tvSaleStatus.text = sale.status
             setStatusBackground(sale.status)
 
-            // Set sale type icon based on payment method
+            
             setSaleTypeIcon(sale.paymentMethod)
 
-            // Highlight high-value sales
+            
+            if (sale.amount == 0.0) {
+                itemView.alpha = 0.7f
+            } else {
+                itemView.alpha = 1.0f
+            }
+
+            
             if (sale.amount > 100000) {
                 itemView.setBackgroundColor(
                     ContextCompat.getColor(itemView.context, R.color.high_value_sale_background)
@@ -121,7 +132,9 @@ class SaleAdapter(
 
         private fun setStatusBackground(status: String) {
             val context = itemView.context
-            val backgroundRes = when (status.uppercase()) {
+            val normalizedStatus = status.uppercase()
+
+            val backgroundRes = when (normalizedStatus) {
                 "COMPLETED" -> R.drawable.bg_status_completed
                 "PENDING" -> R.drawable.bg_status_pending
                 "CANCELLED" -> R.drawable.bg_status_cancelled
@@ -130,17 +143,8 @@ class SaleAdapter(
                 else -> R.drawable.bg_status_pending
             }
 
-            val textColor = when (status.uppercase()) {
-                "COMPLETED" -> R.color.white
-                "PENDING" -> R.color.white
-                "CANCELLED" -> R.color.white
-                "REFUNDED" -> R.color.white
-                "PARTIAL" -> R.color.white
-                else -> R.color.white
-            }
-
             tvSaleStatus.setBackgroundResource(backgroundRes)
-            tvSaleStatus.setTextColor(ContextCompat.getColor(context, textColor))
+            tvSaleStatus.text = normalizedStatus
         }
 
         private fun setSaleTypeIcon(paymentMethod: String?) {
@@ -199,7 +203,7 @@ class SaleAdapter(
         }
     }
 
-    // Helper methods
+    
     fun getSaleAtPosition(position: Int): Sale? {
         return if (position in 0 until itemCount) {
             getItem(position)
@@ -237,3 +241,5 @@ class SaleAdapter(
         }
     }
 }
+
+

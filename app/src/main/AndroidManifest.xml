@@ -2,42 +2,92 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+    <uses-permission android:name="android.permission.USB_PERMISSION" />
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="true" />
+    <uses-feature
+        android:name="android.hardware.telephony"
+        android:required="false" />
+
     <application
+        android:name=".OseboApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
+        android:enableOnBackInvokedCallback="true"
         android:fullBackupContent="@xml/backup_rules"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@drawable/osebolg"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:roundIcon="@drawable/osebolg"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Osebo">
-        <activity
-            android:name=".shop_creation"
-            android:exported="false" />
-        <activity
-            android:name=".ui.SignUpActivity"
-            android:exported="false" />
-        <activity
-            android:name=".ui.LoginActivity"
-            android:exported="false" />
+        android:theme="@style/Theme.Osebo"
+        tools:targetApi="31">
+
         <activity
             android:name=".ui.SplashActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".ui.LoginActivity"
+            android:exported="true" />
+
+        <activity
+            android:name=".ui.OtpVerificationActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.SelectAccountActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.SignUpActivity"
+            android:exported="false" />
+
         <activity
             android:name=".ui.MainActivity"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
+            android:exported="false" />
 
-                <category android:name="android.intent.category.LAUNCHER" />
+        <activity
+            android:name=".ui.ShopsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Osebo" />
+
+        <activity
+            android:name=".ui.ShopCreationActivity"
+            android:exported="false" />
+
+        <service
+            android:name="com.google.android.gms.auth.api.phone.SmsRetrieverService"
+            android:exported="true"
+            tools:ignore="ExportedService">
+            <intent-filter>
+                <action android:name="com.google.android.gms.auth.api.phone.SmsRetriever.API" />
             </intent-filter>
-        </activity>
+        </service>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.provider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 
 </manifest>

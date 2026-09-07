@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -16,7 +15,7 @@
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             app:title="Finance"
-            app:menu="@menu/menu_finance"/>
+            app:menu="@menu/menu_finance" />
 
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -59,7 +58,7 @@
                             android:layout_width="40dp"
                             android:layout_height="40dp"
                             android:src="@drawable/ic_income"
-                            android:tint="@color/white"/>
+                            android:tint="@color/white" />
 
                         <TextView
                             android:layout_width="wrap_content"
@@ -67,26 +66,27 @@
                             android:text="Income"
                             android:textSize="14sp"
                             android:textColor="@color/white"
-                            android:layout_marginTop="8dp"/>
+                            android:layout_marginTop="8dp" />
 
                         <TextView
                             android:id="@+id/tv_total_income"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="UGX 1,200,000"
+                            android:text="UGX 0"
                             android:textSize="20sp"
                             android:textColor="@color/white"
                             android:textStyle="bold"
-                            android:layout_marginTop="8dp"/>
+                            android:layout_marginTop="8dp" />
 
                         <TextView
                             android:id="@+id/tv_income_change"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="↑ 15% from last month"
+                            android:text="↑ 0% from last month"
                             android:textSize="12sp"
                             android:textColor="@color/white"
-                            android:layout_marginTop="4dp"/>
+                            android:layout_marginTop="4dp"
+                            android:visibility="gone" />
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
 
@@ -95,6 +95,7 @@
                     android:layout_width="0dp"
                     android:layout_height="140dp"
                     android:layout_weight="1"
+                    android:layout_marginStart="8dp"
                     app:cardCornerRadius="12dp"
                     app:cardElevation="4dp">
 
@@ -110,7 +111,7 @@
                             android:layout_width="40dp"
                             android:layout_height="40dp"
                             android:src="@drawable/ic_expense"
-                            app:tint="@color/white" />
+                            android:tint="@color/white" />
 
                         <TextView
                             android:layout_width="wrap_content"
@@ -118,26 +119,27 @@
                             android:text="Expenses"
                             android:textSize="14sp"
                             android:textColor="@color/white"
-                            android:layout_marginTop="8dp"/>
+                            android:layout_marginTop="8dp" />
 
                         <TextView
                             android:id="@+id/tv_total_expenses"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="UGX 300,000"
+                            android:text="UGX 0"
                             android:textSize="20sp"
                             android:textColor="@color/white"
                             android:textStyle="bold"
-                            android:layout_marginTop="8dp"/>
+                            android:layout_marginTop="8dp" />
 
                         <TextView
                             android:id="@+id/tv_expense_change"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="↓ 8% from last month"
+                            android:text="↓ 0% from last month"
                             android:textSize="12sp"
                             android:textColor="@color/white"
-                            android:layout_marginTop="4dp"/>
+                            android:layout_marginTop="4dp"
+                            android:visibility="gone" />
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
             </LinearLayout>
@@ -162,256 +164,27 @@
                         android:text="Net Profit"
                         android:textSize="18sp"
                         android:textStyle="bold"
-                        android:layout_marginBottom="12dp"/>
+                        android:layout_marginBottom="12dp" />
 
                     <TextView
                         android:id="@+id/tv_net_profit"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="UGX 900,000"
+                        android:text="UGX 0"
                         android:textSize="32sp"
                         android:textColor="@color/green_success"
-                        android:textStyle="bold"/>
+                        android:textStyle="bold" />
 
                     <TextView
                         android:id="@+id/tv_profit_period"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="This month • 23% profit margin"
+                        android:text="This month • 0% profit margin"
                         android:textSize="14sp"
                         android:textColor="@color/text_secondary"
-                        android:layout_marginTop="4dp"/>
+                        android:layout_marginTop="4dp" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
-
-            <!-- Quick Actions -->
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Quick Actions"
-                android:textSize="18sp"
-                android:textStyle="bold"
-                android:layout_marginBottom="16dp"/>
-
-            <GridLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:columnCount="2"
-                android:rowCount="3"
-                android:alignmentMode="alignMargins"
-                android:columnOrderPreserved="false"
-                android:layout_marginBottom="24dp">
-
-                <!-- Add Income -->
-                <androidx.cardview.widget.CardView
-                    android:id="@+id/card_add_income"
-                    android:layout_width="0dp"
-                    android:layout_height="100dp"
-                    android:layout_columnWeight="1"
-                    android:layout_rowWeight="1"
-                    android:layout_margin="4dp"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="2dp">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:orientation="vertical"
-                        android:gravity="center"
-                        android:background="?attr/selectableItemBackground"
-                        android:clickable="true"
-                        android:focusable="true">
-
-                        <ImageView
-                            android:layout_width="40dp"
-                            android:layout_height="40dp"
-                            android:src="@drawable/ic_add_income"
-                            app:tint="@color/green_success" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Add Income"
-                            android:textSize="14sp"
-                            android:layout_marginTop="8dp"/>
-                    </LinearLayout>
-                </androidx.cardview.widget.CardView>
-
-                <!-- Add Expense -->
-                <androidx.cardview.widget.CardView
-                    android:id="@+id/card_add_expense"
-                    android:layout_width="0dp"
-                    android:layout_height="100dp"
-                    android:layout_columnWeight="1"
-                    android:layout_rowWeight="1"
-                    android:layout_margin="4dp"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="2dp">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:orientation="vertical"
-                        android:gravity="center"
-                        android:background="?attr/selectableItemBackground"
-                        android:clickable="true"
-                        android:focusable="true">
-
-                        <ImageView
-                            android:layout_width="40dp"
-                            android:layout_height="40dp"
-                            android:src="@drawable/ic_add_expense"
-                            app:tint="@color/red_error" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Add Expense"
-                            android:textSize="14sp"
-                            android:layout_marginTop="8dp"/>
-                    </LinearLayout>
-                </androidx.cardview.widget.CardView>
-
-                <!-- View Reports -->
-                <androidx.cardview.widget.CardView
-                    android:id="@+id/card_view_reports"
-                    android:layout_width="0dp"
-                    android:layout_height="100dp"
-                    android:layout_columnWeight="1"
-                    android:layout_rowWeight="1"
-                    android:layout_margin="4dp"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="2dp">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:orientation="vertical"
-                        android:gravity="center"
-                        android:background="?attr/selectableItemBackground"
-                        android:clickable="true"
-                        android:focusable="true">
-
-                        <ImageView
-                            android:layout_width="40dp"
-                            android:layout_height="40dp"
-                            android:src="@drawable/ic_report"
-                            app:tint="@color/blue_info" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="View Reports"
-                            android:textSize="14sp"
-                            android:layout_marginTop="8dp"/>
-                    </LinearLayout>
-                </androidx.cardview.widget.CardView>
-
-                <!-- Manage Invoices -->
-                <androidx.cardview.widget.CardView
-                    android:id="@+id/card_invoices"
-                    android:layout_width="0dp"
-                    android:layout_height="100dp"
-                    android:layout_columnWeight="1"
-                    android:layout_rowWeight="1"
-                    android:layout_margin="4dp"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="2dp">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:orientation="vertical"
-                        android:gravity="center"
-                        android:background="?attr/selectableItemBackground"
-                        android:clickable="true"
-                        android:focusable="true">
-
-                        <ImageView
-                            android:layout_width="40dp"
-                            android:layout_height="40dp"
-                            android:src="@drawable/ic_invoice"
-                            android:tint="@color/purple_500"/>
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Invoices"
-                            android:textSize="14sp"
-                            android:layout_marginTop="8dp"/>
-                    </LinearLayout>
-                </androidx.cardview.widget.CardView>
-
-                <!-- Tax Summary -->
-                <androidx.cardview.widget.CardView
-                    android:id="@+id/card_tax"
-                    android:layout_width="0dp"
-                    android:layout_height="100dp"
-                    android:layout_columnWeight="1"
-                    android:layout_rowWeight="1"
-                    android:layout_margin="4dp"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="2dp">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:orientation="vertical"
-                        android:gravity="center"
-                        android:background="?attr/selectableItemBackground"
-                        android:clickable="true"
-                        android:focusable="true">
-
-                        <ImageView
-                            android:layout_width="40dp"
-                            android:layout_height="40dp"
-                            android:src="@drawable/ic_tax"
-                            android:tint="@color/orange_warning"/>
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Tax Summary"
-                            android:textSize="14sp"
-                            android:layout_marginTop="8dp"/>
-                    </LinearLayout>
-                </androidx.cardview.widget.CardView>
-
-                <!-- Budget Planning -->
-                <androidx.cardview.widget.CardView
-                    android:id="@+id/card_budget"
-                    android:layout_width="0dp"
-                    android:layout_height="100dp"
-                    android:layout_columnWeight="1"
-                    android:layout_rowWeight="1"
-                    android:layout_margin="4dp"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="2dp">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:orientation="vertical"
-                        android:gravity="center"
-                        android:background="?attr/selectableItemBackground"
-                        android:clickable="true"
-                        android:focusable="true">
-
-                        <ImageView
-                            android:layout_width="40dp"
-                            android:layout_height="40dp"
-                            android:src="@drawable/ic_budget"
-                            android:tint="@color/teal_500"/>
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Budget"
-                            android:textSize="14sp"
-                            android:layout_marginTop="8dp"/>
-                    </LinearLayout>
-                </androidx.cardview.widget.CardView>
-            </GridLayout>
 
             <!-- Period Selector -->
             <androidx.cardview.widget.CardView
@@ -434,15 +207,245 @@
                         android:layout_weight="1"
                         android:text="Period"
                         android:textSize="16sp"
-                        android:textStyle="bold"/>
+                        android:textStyle="bold" />
 
                     <Spinner
                         android:id="@+id/spinner_period"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:padding="8dp"/>
+                        android:padding="8dp"
+                        android:minWidth="150dp" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
+
+            <!-- Quick Actions -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Quick Actions"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="16dp" />
+
+            <GridLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:columnCount="2"
+                android:rowCount="3"
+                android:alignmentMode="alignMargins"
+                android:columnOrderPreserved="false"
+                android:layout_marginBottom="24dp">
+
+                <!-- Add Expense -->
+                <androidx.cardview.widget.CardView
+                    android:id="@+id/card_add_expense"
+                    android:layout_width="0dp"
+                    android:layout_height="100dp"
+                    android:layout_columnWeight="1"
+                    android:layout_rowWeight="1"
+                    android:layout_margin="4dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="2dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical"
+                        android:gravity="center">
+
+                        <ImageView
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:src="@drawable/ic_add_expense"
+                            android:tint="@color/red_error" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Add Expense"
+                            android:textSize="14sp"
+                            android:layout_marginTop="8dp" />
+                    </LinearLayout>
+                </androidx.cardview.widget.CardView>
+
+                <!-- View Reports -->
+                <androidx.cardview.widget.CardView
+                    android:id="@+id/card_view_reports"
+                    android:layout_width="0dp"
+                    android:layout_height="100dp"
+                    android:layout_columnWeight="1"
+                    android:layout_rowWeight="1"
+                    android:layout_margin="4dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="2dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical"
+                        android:gravity="center">
+
+                        <ImageView
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:src="@drawable/ic_report"
+                            android:tint="@color/blue_info" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="View Reports"
+                            android:textSize="14sp"
+                            android:layout_marginTop="8dp" />
+                    </LinearLayout>
+                </androidx.cardview.widget.CardView>
+
+                <!-- Expense Categories -->
+                <androidx.cardview.widget.CardView
+                    android:id="@+id/card_categories"
+                    android:layout_width="0dp"
+                    android:layout_height="100dp"
+                    android:layout_columnWeight="1"
+                    android:layout_rowWeight="1"
+                    android:layout_margin="4dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="2dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical"
+                        android:gravity="center">
+
+                        <ImageView
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:src="@drawable/ic_category"
+                            android:tint="@color/purple_500" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Categories"
+                            android:textSize="14sp"
+                            android:layout_marginTop="8dp" />
+                    </LinearLayout>
+                </androidx.cardview.widget.CardView>
+
+                <!-- Financial Statement -->
+                <androidx.cardview.widget.CardView
+                    android:id="@+id/card_statement"
+                    android:layout_width="0dp"
+                    android:layout_height="100dp"
+                    android:layout_columnWeight="1"
+                    android:layout_rowWeight="1"
+                    android:layout_margin="4dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="2dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical"
+                        android:gravity="center">
+
+                        <ImageView
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:src="@drawable/ic_statement"
+                            android:tint="@color/orange_warning" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Statement"
+                            android:textSize="14sp"
+                            android:layout_marginTop="8dp" />
+                    </LinearLayout>
+                </androidx.cardview.widget.CardView>
+
+                <!-- Export -->
+                <androidx.cardview.widget.CardView
+                    android:id="@+id/card_export"
+                    android:layout_width="0dp"
+                    android:layout_height="100dp"
+                    android:layout_columnWeight="1"
+                    android:layout_rowWeight="1"
+                    android:layout_margin="4dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="2dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical"
+                        android:gravity="center">
+
+                        <ImageView
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:src="@drawable/ic_export"
+                            android:tint="@color/teal_500" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Export"
+                            android:textSize="14sp"
+                            android:layout_marginTop="8dp" />
+                    </LinearLayout>
+                </androidx.cardview.widget.CardView>
+
+                <!-- Settings -->
+                <androidx.cardview.widget.CardView
+                    android:id="@+id/card_settings"
+                    android:layout_width="0dp"
+                    android:layout_height="100dp"
+                    android:layout_columnWeight="1"
+                    android:layout_rowWeight="1"
+                    android:layout_margin="4dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="2dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical"
+                        android:gravity="center">
+
+                        <ImageView
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:src="@drawable/ic_settings"
+                            android:tint="@color/gray_600" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Settings"
+                            android:textSize="14sp"
+                            android:layout_marginTop="8dp" />
+                    </LinearLayout>
+                </androidx.cardview.widget.CardView>
+            </GridLayout>
 
             <!-- Recent Transactions -->
             <LinearLayout
@@ -458,7 +461,7 @@
                     android:layout_weight="1"
                     android:text="Recent Transactions"
                     android:textSize="18sp"
-                    android:textStyle="bold"/>
+                    android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/tv_view_all_transactions"
@@ -469,7 +472,8 @@
                     android:textSize="14sp"
                     android:padding="8dp"
                     android:clickable="true"
-                    android:focusable="true"/>
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackground" />
             </LinearLayout>
 
             <!-- Transactions List -->
@@ -477,7 +481,7 @@
                 android:id="@+id/rv_transactions"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:nestedScrollingEnabled="false"/>
+                android:nestedScrollingEnabled="false" />
 
             <!-- No Transactions State -->
             <LinearLayout
@@ -493,7 +497,7 @@
                     android:layout_width="120dp"
                     android:layout_height="120dp"
                     android:src="@drawable/ic_empty"
-                    android:tint="@color/text_secondary"/>
+                    android:tint="@color/text_secondary" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -501,24 +505,24 @@
                     android:text="No Transactions Yet"
                     android:textSize="18sp"
                     android:textStyle="bold"
-                    android:layout_marginTop="16dp"/>
+                    android:layout_marginTop="16dp" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Add your first income or expense to get started"
+                    android:text="Add your first expense to get started"
                     android:textSize="14sp"
                     android:textColor="@color/text_secondary"
                     android:layout_marginTop="8dp"
-                    android:gravity="center"/>
+                    android:gravity="center" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_add_first_transaction"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Add First Transaction"
+                    android:text="Add First Expense"
                     android:layout_marginTop="24dp"
-                    app:cornerRadius="8dp"/>
+                    app:cornerRadius="8dp" />
             </LinearLayout>
 
             <!-- Loading State -->
@@ -528,7 +532,7 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:layout_marginTop="32dp"
-                android:visibility="gone"/>
+                android:visibility="gone" />
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
@@ -541,7 +545,9 @@
         android:layout_gravity="bottom|end"
         android:layout_margin="16dp"
         android:src="@drawable/ic_add"
+        android:clickable="true"
+        android:focusable="true"
         app:backgroundTint="@color/colorPrimary"
-        app:tint="@color/white"/>
+        app:tint="@color/white" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
