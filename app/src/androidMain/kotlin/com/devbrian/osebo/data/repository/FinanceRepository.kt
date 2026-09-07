@@ -10,11 +10,8 @@ import com.devbrian.osebo.data.remote.dto.response.SalesComparisonDto
 import com.devbrian.osebo.data.remote.dto.response.ShopSummaryDto
 import com.devbrian.osebo.models.*
 import com.google.gson.Gson
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class FinanceRepository @Inject constructor(
+class FinanceRepository(
     private val apiService: ApiService,
     private val preferenceManager: PreferenceManager
 ) {

@@ -9,19 +9,15 @@ import com.devbrian.osebo.data.repository.InventoryRepository
 import com.devbrian.osebo.models.Product
 import com.devbrian.osebo.utils.NetworkUtils
 import com.devbrian.osebo.utils.Resource
-import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
-import javax.inject.Inject
 import kotlin.coroutines.resume
 
-@HiltViewModel
-class InventoryViewModel @Inject constructor(
+class InventoryViewModel(
     private val repository: InventoryRepository,
-    @ApplicationContext private val context: Context
+    private val context: Context
 ) : ViewModel() {
 
     private val _products = MutableLiveData<List<Product>>(emptyList())

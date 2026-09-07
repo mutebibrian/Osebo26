@@ -8,7 +8,7 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
+import org.koin.androidx.viewmodel.ext.android.viewModel
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.devbrian.osebo.R
 import com.devbrian.osebo.adapters.SubscriptionPackageAdapter
@@ -18,17 +18,15 @@ import com.devbrian.osebo.models.SubscriptionPackage
 import com.devbrian.osebo.ui.viewmodels.SubscriptionViewModel
 import com.devbrian.osebo.utils.Resource
 import com.google.android.material.snackbar.Snackbar
-import dagger.hilt.android.AndroidEntryPoint
 import java.text.SimpleDateFormat
 import java.util.*
 
-@AndroidEntryPoint
 class SubscriptionOverviewFragment : Fragment() {
 
     private var _binding: FragmentSubscriptionOverviewBinding? = null
     private val binding get() = _binding!!
 
-    private val viewModel: SubscriptionViewModel by viewModels()
+    private val viewModel: SubscriptionViewModel by viewModel()
     private lateinit var packageAdapter: SubscriptionPackageAdapter
     private var shopId: String = ""
     private var currentSubscription: Subscription? = null

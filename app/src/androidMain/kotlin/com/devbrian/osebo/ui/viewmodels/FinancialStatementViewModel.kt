@@ -8,14 +8,11 @@ import com.devbrian.osebo.data.PreferenceManager
 import com.devbrian.osebo.data.repository.FinanceRepository
 import com.devbrian.osebo.models.FinancialStatement
 import com.devbrian.osebo.models.TimeSeriesData
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.util.*
-import javax.inject.Inject
 
-@HiltViewModel
-class FinancialStatementViewModel @Inject constructor(
+class FinancialStatementViewModel(
     private val repository: FinanceRepository,
     private val preferenceManager: PreferenceManager  
 ) : ViewModel() {

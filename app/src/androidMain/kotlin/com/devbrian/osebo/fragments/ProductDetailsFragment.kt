@@ -10,7 +10,7 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
+import org.koin.androidx.viewmodel.ext.android.viewModel
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import com.devbrian.osebo.R
@@ -18,18 +18,16 @@ import com.devbrian.osebo.databinding.FragmentProductDetailsBinding
 import com.devbrian.osebo.models.Product
 import com.devbrian.osebo.ui.viewmodels.InventoryViewModel
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import dagger.hilt.android.AndroidEntryPoint
 import java.text.NumberFormat
 import java.util.Locale
 import kotlin.apply
 
-@AndroidEntryPoint
 class ProductDetailsFragment : Fragment() {
 
     private var _binding: FragmentProductDetailsBinding? = null
     private val binding get() = _binding!!
 
-    private val viewModel: InventoryViewModel by viewModels()
+    private val viewModel: InventoryViewModel by viewModel()
     private val args: ProductDetailsFragmentArgs by navArgs()
 
     private var currentProduct: Product? = null

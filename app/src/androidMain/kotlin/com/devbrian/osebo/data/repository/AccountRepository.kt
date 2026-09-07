@@ -4,11 +4,8 @@ import com.devbrian.osebo.data.ApiService
 import com.devbrian.osebo.data.PreferenceManager
 import com.devbrian.osebo.data.mapper.AccountMapper
 import com.devbrian.osebo.domain.model.Account
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class AccountRepository @Inject constructor(
+class AccountRepository(
     private val apiService: ApiService,
     private val mapper: AccountMapper,
     private val preferenceManager: PreferenceManager

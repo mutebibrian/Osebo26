@@ -10,11 +10,8 @@ import com.devbrian.osebo.utils.NetworkUtils
 import com.devbrian.osebo.utils.Resource
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class InventoryRepository @Inject constructor(
+class InventoryRepository(
     private val database: AppDatabase,
     private val apiService: ApiService,
     private val preferenceManager: PreferenceManager

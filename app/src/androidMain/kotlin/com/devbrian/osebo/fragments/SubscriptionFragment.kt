@@ -9,7 +9,7 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
+import org.koin.androidx.viewmodel.ext.android.viewModel
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.devbrian.osebo.R
 import com.devbrian.osebo.adapters.PlanAdapter
@@ -21,17 +21,15 @@ import com.devbrian.osebo.ui.viewmodels.SubscriptionViewModel
 import com.devbrian.osebo.utils.Resource
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.tabs.TabLayoutMediator
-import dagger.hilt.android.AndroidEntryPoint
 import java.util.*
 
-@AndroidEntryPoint
 class SubscriptionFragment : Fragment() {
 
     private var _binding: FragmentSubscriptionBinding? = null
     private val binding get() = _binding!!
 
     private lateinit var planAdapter: PlanAdapter
-    private val viewModel: SubscriptionViewModel by viewModels()
+    private val viewModel: SubscriptionViewModel by viewModel()
 
     private var shopId: String = ""
     private var currentSubscription: Subscription? = null

@@ -15,14 +15,11 @@ import com.devbrian.osebo.models.Payment
 import com.devbrian.osebo.models.Subscription
 import com.devbrian.osebo.models.SubscriptionPackage
 import com.devbrian.osebo.utils.Resource
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
-@HiltViewModel
-class SubscriptionViewModel @Inject constructor(
+class SubscriptionViewModel(
     private val repository: SubscriptionRepository,
     private val application: Application
 ) : ViewModel() {

@@ -6,12 +6,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.devbrian.osebo.data.repository.AccountRepository
 import com.devbrian.osebo.domain.model.Account
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
-@HiltViewModel
-class AccountViewModel @Inject constructor(
+class AccountViewModel(
     private val accountRepository: AccountRepository
 ) : ViewModel() {
 

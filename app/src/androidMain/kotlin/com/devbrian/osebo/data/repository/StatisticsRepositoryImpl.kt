@@ -5,11 +5,8 @@ import com.devbrian.osebo.models.SalesDataPoint
 import com.devbrian.osebo.models.TopProduct
 import com.devbrian.osebo.ui.viewmodels.StatisticsViewModel
 import com.devbrian.osebo.utils.Resource
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class StatisticsRepositoryImpl @Inject constructor() : StatisticsRepository {
+class StatisticsRepositoryImpl() : StatisticsRepository {
 
     override suspend fun getStatisticsSummary(shopId: String, period: String): Resource<StatisticsViewModel.StatisticsSummary> {
         

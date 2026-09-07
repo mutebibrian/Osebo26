@@ -9,7 +9,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
+import org.koin.androidx.viewmodel.ext.android.viewModel
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.devbrian.osebo.R
@@ -27,19 +27,17 @@ import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
 import com.github.mikephil.charting.highlight.Highlight
 import com.github.mikephil.charting.listener.OnChartValueSelectedListener
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
 
-@AndroidEntryPoint
 class ShopStatisticsFragment : Fragment() {
 
     private var _binding: FragmentShopStatisticsBinding? = null
     private val binding get() = _binding!!
 
-    private val statisticsViewModel: StatisticsViewModel by viewModels()
+    private val statisticsViewModel: StatisticsViewModel by viewModel()
     private lateinit var topProductsAdapter: TopProductsAdapter
 
     companion object {

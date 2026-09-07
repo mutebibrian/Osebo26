@@ -19,7 +19,6 @@ import com.devbrian.osebo.models.CreateEmployeeResponse
 import com.devbrian.osebo.models.PermissionType
 import com.devbrian.osebo.models.Role
 import com.devbrian.osebo.utils.PermissionManager
-import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -27,19 +26,16 @@ import retrofit2.HttpException
 import retrofit2.Response
 import java.io.IOException
 import java.util.UUID
-import javax.inject.Inject
+import org.koin.android.ext.android.inject
 
-@AndroidEntryPoint
 class AddEmployeeDialogFragment : DialogFragment() {
 
     private var _binding: FragmentAddEmployeeDialogBinding? = null
     private val binding get() = _binding!!
 
-    @Inject
-    lateinit var preferenceManager: PreferenceManager
+    private val preferenceManager: PreferenceManager by inject()
 
-    @Inject
-    lateinit var apiService: ApiService
+    private val apiService: ApiService by inject()
 
     private lateinit var permissionManager: PermissionManager
     private var availableRoles: List<Role> = listOf()

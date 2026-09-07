@@ -6,7 +6,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.devbrian.osebo.R
@@ -19,9 +18,8 @@ import com.devbrian.osebo.ui.MainActivity
 import com.devbrian.osebo.ui.ShopViewModel
 import com.devbrian.osebo.utils.Resource
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import dagger.hilt.android.AndroidEntryPoint
+import org.koin.androidx.viewmodel.ext.android.viewModel
 
-@AndroidEntryPoint
 class ShopsFragment : Fragment() {
 
     private var _binding: FragmentShopsBinding? = null
@@ -29,7 +27,7 @@ class ShopsFragment : Fragment() {
 
     private lateinit var shopsAdapter: ShopsAdapter
     private lateinit var preferenceManager: PreferenceManager
-    private lateinit var shopViewModel: ShopViewModel
+    private val shopViewModel: ShopViewModel by viewModel()
 
     private val shopClickListener = object : OnShopClickListener {
         override fun onShopClick(shop: Shop) {
@@ -71,7 +69,6 @@ class ShopsFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         preferenceManager = PreferenceManager.getInstance(requireContext())
-        shopViewModel = ViewModelProvider(this).get(ShopViewModel::class.java)
 
         setupRecyclerView()
         setupClickListeners()

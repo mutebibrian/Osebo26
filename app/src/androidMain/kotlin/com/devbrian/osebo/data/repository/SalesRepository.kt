@@ -25,11 +25,8 @@ import kotlinx.coroutines.flow.flow
 import retrofit2.HttpException
 import java.text.SimpleDateFormat
 import java.util.*
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class SalesRepository @Inject constructor(
+class SalesRepository(
     private val database: AppDatabase,
     private val apiService: ApiService,
     private val preferenceManager: PreferenceManager,

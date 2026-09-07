@@ -6,7 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
+import org.koin.androidx.viewmodel.ext.android.viewModel
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import com.devbrian.osebo.R
@@ -16,22 +16,20 @@ import com.devbrian.osebo.databinding.FragmentPaymentStatusBinding
 import com.devbrian.osebo.fragments.subscription.PaymentStatusFragmentArgs
 import com.devbrian.osebo.ui.viewmodels.SubscriptionViewModel
 import com.devbrian.osebo.utils.Resource
-import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import javax.inject.Inject
+import org.koin.android.ext.android.inject
 
-@AndroidEntryPoint
 class PaymentStatusFragment : Fragment() {
 
     private var _binding: FragmentPaymentStatusBinding? = null
     private val binding get() = _binding!!
-    private val viewModel: SubscriptionViewModel by viewModels()
+    private val viewModel: SubscriptionViewModel by viewModel()
     private val args: PaymentStatusFragmentArgs by navArgs()
 
-    @Inject lateinit var shopRepository: ShopRepositoryImpl
+    private val shopRepository: ShopRepositoryImpl by inject()
 
     private lateinit var preferenceManager: PreferenceManager
     private var isPollingActive = true

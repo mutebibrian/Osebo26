@@ -5,7 +5,7 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.fragment.app.viewModels
+import org.koin.androidx.viewmodel.ext.android.viewModel
 import androidx.navigation.fragment.findNavController
 import com.devbrian.osebo.R
 import com.devbrian.osebo.databinding.FragmentAccountBinding
@@ -14,13 +14,11 @@ import com.devbrian.osebo.fragments.dialogs.PaymentMethodDialogFragment
 import com.devbrian.osebo.ui.AccountViewModel
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
-import dagger.hilt.android.AndroidEntryPoint  // Add this import
 
-@AndroidEntryPoint  // Add this annotation
 class AccountFragment : Fragment() {
 
     private lateinit var binding: FragmentAccountBinding
-    private val viewModel: AccountViewModel by viewModels()
+    private val viewModel: AccountViewModel by viewModel()
 
     override fun onCreateView(
         inflater: LayoutInflater,

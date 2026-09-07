@@ -21,23 +21,19 @@ import com.devbrian.osebo.databinding.DialogEditPermissionsBinding
 import com.devbrian.osebo.databinding.FragmentUserRolesBinding
 import com.devbrian.osebo.databinding.ItemRoleBinding
 import com.devbrian.osebo.models.*
-import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.UUID
-import javax.inject.Inject
+import org.koin.android.ext.android.inject
 
-@AndroidEntryPoint
 class UserRolesFragment : Fragment() {
 
     private var _binding: FragmentUserRolesBinding? = null
     private val binding get() = _binding!!
 
-    @Inject
-    lateinit var preferenceManager: PreferenceManager
+    private val preferenceManager: PreferenceManager by inject()
 
-    @Inject
-    lateinit var apiService: ApiService
+    private val apiService: ApiService by inject()
 
     private lateinit var rolesAdapter: RolesAdapter
     private var rolesList = mutableListOf<UserRole>()

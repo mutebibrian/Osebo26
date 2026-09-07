@@ -4,9 +4,8 @@ import com.devbrian.osebo.data.PreferenceManager
 import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
 import okhttp3.Response
-import javax.inject.Inject
 
-class AuthInterceptor @Inject constructor(
+class AuthInterceptor(
     private val preferenceManager: PreferenceManager,
     private val refreshToken: suspend () -> Boolean
 ) : Interceptor {

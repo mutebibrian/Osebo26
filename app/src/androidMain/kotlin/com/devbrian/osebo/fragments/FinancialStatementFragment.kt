@@ -6,7 +6,7 @@ import android.view.*
 import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
+import org.koin.androidx.viewmodel.ext.android.viewModel
 import com.devbrian.osebo.R
 import com.devbrian.osebo.databinding.FragmentFinancialStatementBinding
 import com.devbrian.osebo.ui.viewmodels.FinancialStatementViewModel
@@ -14,16 +14,14 @@ import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.data.*
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
 import com.github.mikephil.charting.formatter.ValueFormatter
-import dagger.hilt.android.AndroidEntryPoint
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
 
-@AndroidEntryPoint
 class FinancialStatementFragment : Fragment() {
     private var _binding: FragmentFinancialStatementBinding? = null
     private val binding get() = _binding!!
-    private val viewModel: FinancialStatementViewModel by viewModels()
+    private val viewModel: FinancialStatementViewModel by viewModel()
 
     private val periods = arrayOf(
         "This Week",

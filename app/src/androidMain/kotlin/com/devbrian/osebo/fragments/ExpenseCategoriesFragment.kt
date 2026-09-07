@@ -6,20 +6,18 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
+import org.koin.androidx.viewmodel.ext.android.viewModel
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.devbrian.osebo.R
 import com.devbrian.osebo.adapters.ExpenseCategoryAdapter
 import com.devbrian.osebo.databinding.FragmentExpenseCategoriesBinding
 import com.devbrian.osebo.models.ExpenseCategory
 import com.devbrian.osebo.ui.viewmodels.ExpenseCategoriesViewModel
-import dagger.hilt.android.AndroidEntryPoint
 
-@AndroidEntryPoint
 class ExpenseCategoriesFragment : Fragment() {
     private var _binding: FragmentExpenseCategoriesBinding? = null
     private val binding get() = _binding!!
-    private val viewModel: ExpenseCategoriesViewModel by viewModels()
+    private val viewModel: ExpenseCategoriesViewModel by viewModel()
     private lateinit var adapter: ExpenseCategoryAdapter
 
     override fun onCreateView(

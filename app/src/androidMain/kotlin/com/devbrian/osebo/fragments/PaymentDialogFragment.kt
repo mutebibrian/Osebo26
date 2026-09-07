@@ -8,7 +8,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.core.net.toUri
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.devbrian.osebo.R
@@ -16,17 +15,16 @@ import com.devbrian.osebo.databinding.FragmentPaymentDialogBinding
 import com.devbrian.osebo.ui.viewmodels.SubscriptionViewModel
 import com.devbrian.osebo.utils.Resource
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
-import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.koin.androidx.viewmodel.ext.android.activityViewModel
 
-@AndroidEntryPoint
 class PaymentDialogFragment : BottomSheetDialogFragment() {
 
     private var _binding: FragmentPaymentDialogBinding? = null
     private val binding get() = _binding!!
 
-    private lateinit var viewModel: SubscriptionViewModel
+    private val viewModel: SubscriptionViewModel by activityViewModel()
 
     private var shopId: String? = null
     private var packageId: String? = null // may be a comma-joined list of ids
@@ -81,8 +79,6 @@ class PaymentDialogFragment : BottomSheetDialogFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-        viewModel = ViewModelProvider(requireActivity())[SubscriptionViewModel::class.java]
 
         setupUI()
         setupListeners()

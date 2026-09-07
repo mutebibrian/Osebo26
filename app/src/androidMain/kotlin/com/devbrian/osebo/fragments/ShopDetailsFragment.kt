@@ -7,7 +7,7 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
+import org.koin.androidx.viewmodel.ext.android.viewModel
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
@@ -17,19 +17,17 @@ import com.devbrian.osebo.data.models.Shop
 import com.devbrian.osebo.ui.ShopViewModel
 import com.devbrian.osebo.utils.Resource
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
-@AndroidEntryPoint
 class ShopDetailsFragment : Fragment() {
 
     private var _binding: FragmentShopDetailsBinding? = null
     private val binding get() = _binding!!
 
     private val args: ShopDetailsFragmentArgs by navArgs()
-    private val shopViewModel: ShopViewModel by viewModels()
+    private val shopViewModel: ShopViewModel by viewModel()
 
     private lateinit var shop: Shop
 

@@ -15,11 +15,8 @@ import com.devbrian.osebo.data.remote.dto.response.SubscriptionResponse
 import com.devbrian.osebo.models.*
 import com.devbrian.osebo.utils.Resource
 import java.io.IOException
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class SubscriptionRepositoryImpl @Inject constructor(
+class SubscriptionRepositoryImpl(
     private val apiService: ApiService
 ) : SubscriptionRepository {
 
