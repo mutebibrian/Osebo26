@@ -8,6 +8,8 @@ data class SigninData(
     val accessToken: String,
     @SerializedName("refresh_token")
     val refreshToken: String,
+    @SerializedName("role")
+    val role: String? = null,
     @SerializedName("user")
     val user: UserDto
 )
