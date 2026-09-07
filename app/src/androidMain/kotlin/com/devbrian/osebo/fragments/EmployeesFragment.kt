@@ -24,25 +24,21 @@ import com.devbrian.osebo.models.Employee
 import com.devbrian.osebo.models.EmployeeResponse
 import com.devbrian.osebo.models.PermissionType
 import com.devbrian.osebo.utils.PermissionManager
-import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.util.UUID
-import javax.inject.Inject
+import org.koin.android.ext.android.inject
 
-@AndroidEntryPoint
 class EmployeesFragment : Fragment() {
 
     private var _binding: FragmentEmployeesBinding? = null
 
-    @Inject
-    lateinit var preferenceManager: PreferenceManager
+    private val preferenceManager: PreferenceManager by inject()
 
-    @Inject
-    lateinit var apiService: ApiService
+    private val apiService: ApiService by inject()
 
     private lateinit var employeeAdapter: EmployeeAdapter
     private lateinit var permissionManager: PermissionManager

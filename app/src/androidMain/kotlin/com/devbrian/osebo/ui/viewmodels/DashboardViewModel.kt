@@ -8,7 +8,6 @@ import com.devbrian.osebo.data.local.entity.DashboardSummaryEntity
 import com.devbrian.osebo.data.local.entity.TimeSeriesEntity
 import com.devbrian.osebo.data.local.entity.TopStockItemEntity
 import com.devbrian.osebo.data.remote.dto.response.TopStockItemDto
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,12 +18,10 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import javax.inject.Inject
 
 private const val TAG = "DashboardViewModel"
 
-@HiltViewModel
-class DashboardViewModel @Inject constructor(
+class DashboardViewModel(
     private val repository: DashboardRepository
 ) : ViewModel() {
 

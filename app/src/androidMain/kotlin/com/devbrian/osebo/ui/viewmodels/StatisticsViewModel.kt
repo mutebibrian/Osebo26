@@ -9,14 +9,11 @@ import com.devbrian.osebo.data.repository.StatisticsRepository
 import com.devbrian.osebo.models.SalesDataPoint
 import com.devbrian.osebo.models.TopProduct
 import com.devbrian.osebo.utils.Resource
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
-import javax.inject.Inject
 
-@HiltViewModel
-class StatisticsViewModel @Inject constructor(
+class StatisticsViewModel(
     private val repository: StatisticsRepository
 ) : ViewModel() {
 

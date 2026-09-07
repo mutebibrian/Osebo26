@@ -9,12 +9,9 @@ import com.devbrian.osebo.data.PreferenceManager
 import com.devbrian.osebo.data.remote.dto.response.SalesComparisonDto
 import com.devbrian.osebo.data.remote.dto.response.ShopSummaryDto
 import com.devbrian.osebo.data.repository.FinanceRepository
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
-@HiltViewModel
-class ReportsViewModel @Inject constructor(
+class ReportsViewModel(
     private val repository: FinanceRepository,
     private val preferenceManager: PreferenceManager
 ) : ViewModel() {

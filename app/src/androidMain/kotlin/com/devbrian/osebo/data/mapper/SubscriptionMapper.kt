@@ -7,11 +7,8 @@ import com.devbrian.osebo.domain.model.SubscriptionPlan
 import com.devbrian.osebo.models.Subscription
 import java.text.SimpleDateFormat
 import java.util.*
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class SubscriptionMapper @Inject constructor() {
+class SubscriptionMapper() {
 
     fun toDomain(dto: SubscriptionDto): Subscription {
         return Subscription(
