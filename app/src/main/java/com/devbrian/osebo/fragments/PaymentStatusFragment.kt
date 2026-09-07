@@ -255,6 +255,8 @@ class PaymentStatusFragment : Fragment() {
     private fun navigateToDashboard() {
         println("🔍 NAVIGATION: Attempting to navigate to dashboard")
 
+        (activity as? com.devbrian.osebo.ui.MainActivity)?.refreshNavigationMenu()
+
         try {
             val action = PaymentStatusFragmentDirections.actionPaymentStatusFragmentToMainDashboard()
             println("🔍 NAVIGATION: Action created, executing...")
