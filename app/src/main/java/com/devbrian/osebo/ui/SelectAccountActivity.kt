@@ -194,6 +194,7 @@ class SelectAccountActivity : AppCompatActivity() {
             preferenceManager.saveUserEmail(user.email ?: "")
             preferenceManager.saveUserPhone(user.phone ?: "")
             preferenceManager.saveUserId(user.id)
+            preferenceManager.saveUserRole(signinData.role ?: "owner")
 
             Log.d(TAG, "User data saved, navigating to Main")
             navigateToMain()
