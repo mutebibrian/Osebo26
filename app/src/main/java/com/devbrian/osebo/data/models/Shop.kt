@@ -1,8 +1,6 @@
 package com.devbrian.osebo.data.models
 
 import android.os.Parcelable
-import com.devbrian.osebo.models.Payment
-import com.devbrian.osebo.models.SubscriptionPackage
 import com.google.gson.annotations.SerializedName
 import kotlinx.parcelize.Parcelize
 import java.io.Serializable
@@ -12,91 +10,62 @@ import java.util.UUID
 data class Shop(
     @SerializedName("id")
     val id: String = "",
-
     @SerializedName("uuid")
     val uuid: String? = null,
-
     @SerializedName("name")
     val name: String = "",
-
     @SerializedName("address")
     val address: String? = null,
-
     @SerializedName("description")
     val description: String? = null,
-
     @SerializedName("shop_type")
     val shopType: String? = null,
-
     @SerializedName("logo_url")
     val logoUrl: String? = null,
-
     @SerializedName("registration_number")
     val registrationNumber: String? = null,
-
     @SerializedName("tax_identification_number")
     val taxIdentificationNumber: String? = null,
-
     @SerializedName("total_revenue")
     val totalRevenue: Double = 0.0,
-
     @SerializedName("total_expenses")
     val totalExpenses: Double = 0.0,
-
     @SerializedName("profit")
     val profit: Double = 0.0,
-
     @SerializedName("total_products")
     val totalProducts: Int = 0,
-
     @SerializedName("total_employees")
     val totalEmployees: Int = 0,
-
     @SerializedName("owner_id")
     val ownerId: String = "",
-
     @SerializedName("is_active")
     val isActive: Boolean = false,
-
     @SerializedName("subscription")
     val subscription: ShopSubscription? = null,
-
     @SerializedName("subscription_status")
     val subscriptionStatus: String = "inactive",
-
     @SerializedName("subscription_type")
     val subscriptionType: String? = null,
-
     @SerializedName("subscription_expiry")
     val subscriptionExpiry: String? = null,
-
     @SerializedName("plan_id")
     val planId: String? = null,
-
     @SerializedName("status")
     val status: String? = null,
-
     @SerializedName("phone")
     val phone: String? = null,
-
     @SerializedName("email")
     val email: String? = null,
-
     @SerializedName("website")
     val website: String? = null,
-
     @SerializedName("city")
     val city: String? = null,
-
     @SerializedName("country")
     val country: String? = null,
-
     @SerializedName("postal_code")
     val postalCode: String? = null,
-
     @SerializedName("created_at")
     val createdAt: String? = null,
-
     @SerializedName("updated_at")
     val updatedAt: String? = null
 ) : Parcelable, Serializable {
@@ -107,20 +76,25 @@ data class Shop(
     val effectiveUuid: String
         get() = uuid ?: (if (isValidUUID(id)) id else "")
 
-    /**
-     * ✅ IMPROVED: Checks both subscriptionStatus AND the nested subscription object
-     * This ensures that shops with trial/active subscriptions are correctly detected
-     */
+    // ✅ Robust subscription detection
     val isSubscriptionActive: Boolean
-        get() = subscriptionStatus.equals("active", ignoreCase = true) ||
-                subscriptionStatus.equals("trial", ignoreCase = true) ||
-                (subscription?.isActive == true) ||
-                (subscription?.isTrial == true)
+        get() {
+            if (subscriptionStatus.equals("active", ignoreCase = true) ||
+                subscriptionStatus.equals("trial", ignoreCase = true)) {
+                return true
+            }
+            if (status.equals("active", ignoreCase = true) ||
+                status.equals("trial", ignoreCase = true)) {
+                return true
+            }
+            if (subscription != null && (subscription.isActive || subscription.isTrial)) {
+                return true
+            }
+            return false
+        }
 
     val needsSubscription: Boolean
-        get() = subscriptionStatus.equals("inactive", ignoreCase = true) ||
-                subscriptionStatus.equals("expired", ignoreCase = true) ||
-                subscriptionStatus.equals("pending", ignoreCase = true)
+        get() = !isSubscriptionActive
 
     val location: String? get() = address
     val category: String? get() = shopType
@@ -164,25 +138,6 @@ data class Shop(
 
     companion object {
         val EMPTY = Shop()
-        val SAMPLE = Shop(
-            id = "shop_123",
-            name = "Main Electronics Store",
-            address = "Kampala Road",
-            description = "Electronics and gadgets",
-            shopType = "retail",
-            phone = "+256700123456",
-            email = "shop@example.com",
-            city = "Kampala",
-            country = "Uganda",
-            totalRevenue = 1500000.0,
-            totalExpenses = 450000.0,
-            profit = 1050000.0,
-            totalProducts = 120,
-            totalEmployees = 5,
-            subscriptionStatus = "active",
-            subscriptionType = "pro",
-            isActive = true
-        )
 
         fun isValidUUID(uuid: String): Boolean {
             return try {
@@ -195,35 +150,23 @@ data class Shop(
     }
 }
 
+// Simplified ShopSubscription – NO package or payment fields
 @Parcelize
 data class ShopSubscription(
     @SerializedName("id")
     val id: String? = "",
-
     @SerializedName("status")
     val status: String? = "",
-
     @SerializedName("package_type")
     val packageType: String? = null,
-
-    @SerializedName("package")
-    val subscriptionPackage: SubscriptionPackage? = null,
-
     @SerializedName("starts_at")
     val startsAt: String? = null,
-
     @SerializedName("ends_at")
     val endsAt: String? = null,
-
     @SerializedName("is_active")
     val isActive: Boolean = false,
-
     @SerializedName("duration_days")
     val durationDays: Int = 0,
-
     @SerializedName("is_trial")
-    val isTrial: Boolean = false,
-
-    @SerializedName("payment")
-    val payment: Payment? = null
+    val isTrial: Boolean = false
 ) : Parcelable, Serializable
