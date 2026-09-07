@@ -598,6 +598,6 @@
         app:itemTextAppearanceInactive="@style/BottomNavTextInactive"
         android:paddingTop="8dp"
         android:paddingBottom="12dp"
-        app:labelVisibilityMode="auto" />
+        app:labelVisibilityMode="labeled" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
