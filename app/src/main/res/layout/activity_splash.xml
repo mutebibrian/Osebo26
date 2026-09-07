@@ -1,11 +1,78 @@
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:background="@color/primary"
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@color/primary"
+    android:theme="@style/Theme.AppTheme.Splash">
 
-    <ImageView
+    <!-- Animated Circle Background -->
+    <View
+        android:id="@+id/circle_bg"
+        android:layout_width="220dp"
+        android:layout_height="220dp"
         android:layout_centerInParent="true"
-        android:src="@drawable/osebo"
-        android:layout_width="190dp"
-        android:layout_height="190dp"/>
-    </RelativeLayout>
+        android:background="@drawable/splash_circle_bg" />
+
+    <!-- Main Content Container -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:animateLayoutChanges="true">
+
+        <!-- App Icon with Scale Animation -->
+        <ImageView
+            android:id="@+id/iv_logo"
+            android:layout_width="190dp"
+            android:layout_height="190dp"
+            android:src="@drawable/oseboicon"
+            android:scaleType="fitCenter"
+            android:contentDescription="Osebo Logo"
+            android:elevation="4dp"
+            android:layout_marginBottom="16dp"/>
+
+        <!-- App Name with Fade and Slide Animation -->
+        <TextView
+            android:id="@+id/tv_app_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Osebo"
+            android:textSize="42sp"
+            android:textStyle="bold"
+            android:textColor="@android:color/white"
+            android:fontFamily="sans-serif-medium"
+            android:letterSpacing="0.15"
+            android:elevation="4dp"
+            android:alpha="0"
+            android:translationY="50dp"/>
+
+        <!-- Loading Indicator (Optional) -->
+        <ProgressBar
+            android:id="@+id/progress_bar"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginTop="32dp"
+            android:indeterminate="true"
+            android:visibility="gone"
+            android:alpha="0.8"/>
+
+    </LinearLayout>
+
+    <!-- Version Info at Bottom -->
+    <TextView
+        android:id="@+id/tv_version"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="24dp"
+        android:text="Version 1.0.0"
+        android:textColor="@android:color/white"
+        android:textSize="12sp"
+        android:alpha="0.6"/>
+
+</RelativeLayout>
