@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <!-- ProgressBar at the top -->
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="16dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Add New Role"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="@color/primary_text_color"
+            android:layout_marginBottom="24dp"
+            android:gravity="center"/>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/roleNameLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Role Name"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            app:errorEnabled="true"
+            android:layout_marginBottom="16dp">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/roleNameEditText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:maxLines="1"/>
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/roleDescriptionLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Role Description"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            app:errorEnabled="true"
+            android:layout_marginBottom="24dp">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/roleDescriptionEditText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:maxLines="3"/>
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Select Permissions:"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@color/primary_text_color"
+            android:layout_marginBottom="16dp"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="24dp">
+
+            <CheckBox
+                android:id="@+id/checkInventory"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Inventory Management"
+                android:textSize="14sp"/>
+
+            <CheckBox
+                android:id="@+id/checkReports"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="View Reports"
+                android:textSize="14sp"/>
+
+            <CheckBox
+                android:id="@+id/checkSales"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Sales Operations"
+                android:textSize="14sp"/>
+
+            <CheckBox
+                android:id="@+id/checkFinance"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Finance Management"
+                android:textSize="14sp"/>
+
+            <CheckBox
+                android:id="@+id/checkEmployees"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Manage Employees"
+                android:textSize="14sp"/>
+
+            <CheckBox
+                android:id="@+id/checkCustomers"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Manage Customers"
+                android:textSize="14sp"/>
+
+            <CheckBox
+                android:id="@+id/checkSuppliers"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Manage Suppliers"
+                android:textSize="14sp"/>
+
+            <CheckBox
+                android:id="@+id/checkSettings"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Access Settings"
+                android:textSize="14sp"/>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="end">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/cancelButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Cancel"
+                app:cornerRadius="8dp"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_marginEnd="8dp"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/saveButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Save"
+                app:cornerRadius="8dp"
+                style="@style/Widget.MaterialComponents.Button"/>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</ScrollView>

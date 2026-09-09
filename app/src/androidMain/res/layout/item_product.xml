@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="4dp"
+    android:layout_marginVertical="4dp"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground"
+    app:cardBackgroundColor="@android:color/white"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="2dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="12dp">
+
+        <!-- Product Header -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="4dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <!-- Product Image/Icon -->
+            <LinearLayout
+                android:id="@+id/ll_product_image"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/bg_product_image"
+                android:gravity="center">
+
+                <ImageView
+                    android:id="@+id/iv_product"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:src="@drawable/ic_product"
+                    app:tint="@color/white" />
+            </LinearLayout>
+
+            <!-- Product Details -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="4dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tv_product_name"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textColor="@color/text_primary"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    tools:text="iPhone 15 Pro" />
+
+                <TextView
+                    android:id="@+id/tv_product_sku"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:layout_marginTop="2dp"
+                    android:maxLines="1"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp"
+                    tools:text="SKU: IP15P-256" />
+            </LinearLayout>
+
+            <!-- Product Price -->
+            <TextView
+                android:id="@+id/tv_product_price"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:maxWidth="100dp"
+                android:textColor="@color/green_success"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                tools:text="UGX 1.5M" />
+        </LinearLayout>
+
+        <!-- Stock Information Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="4dp"
+            android:layout_marginTop="2dp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tv_stock_quantity"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="@color/text_primary"
+                android:textSize="12sp"
+                tools:text="In stock: 15" />
+
+            <TextView
+                android:id="@+id/tv_low_stock_warning"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:gravity="end"
+                android:maxLines="1"
+                android:textColor="@color/red_error"
+                android:textSize="12sp"
+                android:visibility="gone"
+                tools:text="Low Stock!" />
+        </LinearLayout>
+
+        <!-- Stock Progress Bar -->
+        <ProgressBar
+            android:id="@+id/pb_stock_level"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="2dp"
+            android:layout_marginTop="2dp"
+            android:backgroundTint="@color/divider"
+            android:max="100"
+            android:progress="60"
+            android:progressTint="@color/colorPrimary" />
+
+        <!-- Low Stock Warning Container (Visible when stock is low) -->
+        <LinearLayout
+            android:id="@+id/ll_low_stock_warning"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/tv_low_stock_warning_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="⚠️ Low Stock"
+                android:textColor="@color/red_error"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <!-- Cost Price (Hidden but required by adapter) -->
+        <TextView
+            android:id="@+id/tv_cost_price"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cost: N/A"
+            android:textSize="11sp"
+            android:textColor="@color/text_secondary"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
+        <!-- Product Category (Hidden but required by adapter) -->
+        <TextView
+            android:id="@+id/tv_product_category"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Category"
+            android:textSize="11sp"
+            android:textColor="@color/text_secondary"
+            android:visibility="gone" />
+
+        <!-- Barcode (Hidden but required by adapter) -->
+        <TextView
+            android:id="@+id/tv_barcode"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="No barcode"
+            android:textSize="10sp"
+            android:textColor="@color/text_secondary"
+            android:visibility="gone" />
+
+        <!-- More Options Button (Hidden but required by adapter) -->
+        <ImageView
+            android:id="@+id/iv_more_options"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_more_vert"
+            android:visibility="gone" />
+
+        <!-- Quick Actions Container (Hidden but required by adapter) -->
+        <LinearLayout
+            android:id="@+id/ll_quick_actions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal"
+            android:gravity="end"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/tv_view_details"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Details"
+                android:textColor="@color/colorPrimary"
+                android:padding="8dp"
+                android:clickable="true"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/tv_restock"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Restock"
+                android:textColor="@color/colorPrimary"
+                android:padding="8dp"
+                android:clickable="true"
+                android:visibility="gone" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+</androidx.cardview.widget.CardView>
