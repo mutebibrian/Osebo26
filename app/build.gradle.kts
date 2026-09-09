@@ -97,8 +97,8 @@ kotlin {
             implementation("com.hbb20:ccp:2.7.3")
 
             // Room
-            implementation("androidx.room:room-runtime:2.6.1")
-            implementation("androidx.room:room-ktx:2.6.1")
+            implementation("androidx.room:room-runtime:2.8.4")
+            implementation("androidx.room:room-ktx:2.8.4")
 
             // CameraX + ML Kit barcode scanning
             implementation("androidx.camera:camera-camera2:1.3.0")
@@ -175,7 +175,7 @@ android {
 // projects use per-target configuration names (kspAndroid) instead of the
 // deprecated catch-all ksp(...) that plain single-platform apps use.
 dependencies {
-    add("kspAndroid", "androidx.room:room-compiler:2.6.1")
+    add("kspAndroid", "androidx.room:room-compiler:2.8.4")
     add("kspAndroid", "com.github.bumptech.glide:ksp:4.15.1")
     debugImplementation(compose.uiTooling)
 }
@@ -184,7 +184,7 @@ dependencies {
 configurations.all {
     resolutionStrategy.eachDependency {
         if (requested.group == "androidx.room") {
-            useVersion("2.6.1")
+            useVersion("2.8.4")
         }
     }
 }
