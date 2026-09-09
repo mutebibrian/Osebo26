@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_add"
+        android:title="Add"
+        android:icon="@drawable/ic_add"
+        app:showAsAction="always" />
+
+    <item
+        android:id="@+id/cat_all"
+        android:icon="@drawable/ic_all"
+        android:title="All Products" />
+
+    <item
+        android:id="@+id/cat_electronics"
+        android:icon="@drawable/ic_electronics"
+        android:title="Electronics" />
+
+    <item
+        android:id="@+id/cat_clothing"
+        android:icon="@drawable/ic_clothing"
+        android:title="Clothing" />
+
+    <item
+        android:id="@+id/cat_food"
+        android:icon="@drawable/ic_food"
+        android:title="Food" />
+
+    <item
+        android:id="@+id/cat_beverages"
+        android:icon="@drawable/ic_beverages"
+        android:title="Beverages" />
+
+    <item
+        android:id="@+id/cat_furniture"
+        android:icon="@drawable/ic_furniture"
+        android:title="Furniture" />
+</menu>

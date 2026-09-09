@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <!-- View Details -->
+    <item
+        android:id="@+id/action_view_details"
+        android:icon="@drawable/ic_visibility"
+        android:title="View Details"
+        app:showAsAction="never"/>
+
+    <!-- Edit Customer -->
+    <item
+        android:id="@+id/action_edit_customer"
+        android:icon="@drawable/ic_edit"
+        android:title="Edit Customer"
+        app:showAsAction="never"/>
+
+    <!-- View Purchases -->
+    <item
+        android:id="@+id/action_view_purchases"
+        android:icon="@drawable/ic_history"
+        android:title="View Purchases"
+        app:showAsAction="never"/>
+
+    <!-- Send Message -->
+    <item
+        android:id="@+id/action_send_message"
+        android:icon="@drawable/ic_message"
+        android:title="Send Message"
+        app:showAsAction="never"/>
+
+    <!-- Add Loyalty Points -->
+    <item
+        android:id="@+id/action_add_loyalty"
+        android:icon="@drawable/ic_star_add"
+        android:title="Add Loyalty Points"
+        app:showAsAction="never"/>
+
+    <!-- Divider -->
+    <item
+        android:id="@+id/action_divider"
+        android:title="">
+        <menu>
+            <item android:title="">
+                <view
+                    class="android.view.View"
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/divider" />
+            </item>
+        </menu>
+    </item>
+
+    <!-- Delete Customer -->
+    <item
+        android:id="@+id/action_delete_customer"
+        android:icon="@drawable/ic_delete"
+        android:title="Delete Customer"
+        android:titleTextColor="@color/red_error"
+        app:showAsAction="never"/>
+
+</menu>
