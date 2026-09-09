@@ -7,79 +7,90 @@
     android:layout_height="match_parent"
     tools:context=".ui.MainActivity">
 
-    <!-- Main Content Area -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical">
-
-        <!-- Toolbar -->
-        <com.google.android.material.appbar.MaterialToolbar
-            android:id="@+id/topAppBar"
-            android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:background="?attr/colorPrimary"
-            android:theme="@style/ThemeOverlay.MaterialComponents.Dark.ActionBar"
-            app:title="Osebo" />
-
-        <!-- NavHostFragment Container -->
-        <androidx.fragment.app.FragmentContainerView
-            android:id="@+id/fragment_container"
-            android:name="androidx.navigation.fragment.NavHostFragment"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            app:defaultNavHost="true"
-            app:navGraph="@navigation/nav_graph" />
-    </LinearLayout>
-
-    <!-- FloatingActionButtons -->
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/mainFab"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_margin="16dp"
-        android:contentDescription="Quick Actions"
-        app:backgroundTint="@color/primary"
-        app:srcCompat="@drawable/ic_add" />
-
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fabSale"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_marginBottom="88dp"
-        android:layout_marginEnd="16dp"
-        android:visibility="gone"
-        app:backgroundTint="@color/green_500"
-        app:srcCompat="@drawable/ic_sale" />
-
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fabProduct"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_marginBottom="160dp"
-        android:layout_marginEnd="16dp"
-        android:visibility="gone"
-        app:backgroundTint="@color/blue_500"
-        app:srcCompat="@drawable/ic_product" />
-
-    <!-- Progress Overlay -->
+    <!-- Content wrapper: DrawerLayout treats any direct child whose layout_gravity has a
+         left/right (or start/end) component as a drawer view, not a positioned overlay. The
+         FABs and progress overlay below use gravity to position themselves, so they must live
+         inside a single non-gravity content child instead of directly under DrawerLayout -
+         otherwise DrawerLayout mistakes each of them for another drawer along the same edge
+         and crashes ("Child drawer has absolute gravity RIGHT..."). -->
     <FrameLayout
-        android:id="@+id/progressOverlay"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:visibility="gone"
-        android:background="#80000000"
-        android:clickable="true"
-        android:focusable="true">
+        android:layout_height="match_parent">
 
-        <ProgressBar
+        <!-- Main Content Area -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <!-- Toolbar -->
+            <com.google.android.material.appbar.MaterialToolbar
+                android:id="@+id/topAppBar"
+                android:layout_width="match_parent"
+                android:layout_height="?attr/actionBarSize"
+                android:background="?attr/colorPrimary"
+                android:theme="@style/ThemeOverlay.MaterialComponents.Dark.ActionBar"
+                app:title="Osebo" />
+
+            <!-- NavHostFragment Container -->
+            <androidx.fragment.app.FragmentContainerView
+                android:id="@+id/fragment_container"
+                android:name="androidx.navigation.fragment.NavHostFragment"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                app:defaultNavHost="true"
+                app:navGraph="@navigation/nav_graph" />
+        </LinearLayout>
+
+        <!-- FloatingActionButtons -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/mainFab"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center" />
+            android:layout_gravity="bottom|end"
+            android:layout_margin="16dp"
+            android:contentDescription="Quick Actions"
+            app:backgroundTint="@color/primary"
+            app:srcCompat="@drawable/ic_add" />
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fabSale"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_marginBottom="88dp"
+            android:layout_marginEnd="16dp"
+            android:visibility="gone"
+            app:backgroundTint="@color/green_500"
+            app:srcCompat="@drawable/ic_sale" />
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fabProduct"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_marginBottom="160dp"
+            android:layout_marginEnd="16dp"
+            android:visibility="gone"
+            app:backgroundTint="@color/blue_500"
+            app:srcCompat="@drawable/ic_product" />
+
+        <!-- Progress Overlay -->
+        <FrameLayout
+            android:id="@+id/progressOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone"
+            android:background="#80000000"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ProgressBar
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center" />
+        </FrameLayout>
     </FrameLayout>
 
     <!-- ===== NavigationView with Custom Header ===== -->
