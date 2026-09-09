@@ -11,7 +11,7 @@ import com.devbrian.osebo.ui.viewmodels.InventoryViewModel
 import com.devbrian.osebo.ui.viewmodels.LoginViewModel
 import com.devbrian.osebo.ui.viewmodels.ReportsViewModel
 import com.devbrian.osebo.ui.viewmodels.SalesViewModel
-import com.devbrian.osebo.ui.viewmodels.ShopViewModel
+import com.devbrian.osebo.ui.ShopViewModel
 import com.devbrian.osebo.ui.viewmodels.StatisticsViewModel
 import com.devbrian.osebo.ui.viewmodels.SubscriptionViewModel
 import com.devbrian.osebo.ui.viewmodels.TransactionViewModel
