@@ -74,6 +74,15 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         R.id.subscriptionDetailsFragment
     )
 
+    private val bottomNavDestinations = mapOf(
+        R.id.mainDashboardFragment to R.id.main_nav_dashboard,
+        R.id.shopsFragment to R.id.main_nav_shops,
+        R.id.reportsFragment to R.id.main_nav_reports,
+        R.id.transactionsFragment to R.id.main_nav_transactions,
+        R.id.accountFragment to R.id.main_nav_settings
+    )
+    private val bottomNavItemToDestination = bottomNavDestinations.entries.associate { (destId, itemId) -> itemId to destId }
+
     private var isFabMenuOpen = false
     private var subscriptionCheckInProgress = false
     private var currentShop: Shop? = null
@@ -102,6 +111,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         setupNavigation()
         setupHeaderView()
         setupFloatingActionButtons()
+        setupBottomNavigation()
         setupNavControllerListener()
 
         loadInitialData()
@@ -111,6 +121,32 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         setSupportActionBar(binding.topAppBar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.setHomeButtonEnabled(true)
+
+        binding.flNotificationBell.setOnClickListener {
+            Toast.makeText(this, "No new notifications", Toast.LENGTH_SHORT).show()
+        }
+
+        binding.flAvatar.setOnClickListener {
+            navController.navigate(R.id.accountFragment)
+        }
+    }
+
+    private fun setupBottomNavigation() {
+        binding.bottomNavMain.setOnItemSelectedListener { item ->
+            val destinationId = bottomNavItemToDestination[item.itemId] ?: return@setOnItemSelectedListener false
+            if (navController.currentDestination?.id == destinationId) {
+                return@setOnItemSelectedListener false
+            }
+            navController.navigate(
+                destinationId,
+                null,
+                androidx.navigation.NavOptions.Builder()
+                    .setPopUpTo(R.id.mainDashboardFragment, destinationId == R.id.mainDashboardFragment)
+                    .setLaunchSingleTop(true)
+                    .build()
+            )
+            true
+        }
     }
 
     private fun setupNavigation() {
@@ -198,6 +234,16 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 else -> {
                     supportActionBar?.title = destination.label
                 }
+            }
+
+            val bottomNavItemId = bottomNavDestinations[destination.id]
+            if (bottomNavItemId != null) {
+                binding.bottomNavMain.visibility = View.VISIBLE
+                if (binding.bottomNavMain.selectedItemId != bottomNavItemId) {
+                    binding.bottomNavMain.menu.findItem(bottomNavItemId)?.isChecked = true
+                }
+            } else {
+                binding.bottomNavMain.visibility = View.GONE
             }
 
             if (permissionManager.isShopOwner()) {
