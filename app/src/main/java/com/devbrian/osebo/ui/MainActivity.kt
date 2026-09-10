@@ -74,6 +74,17 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         R.id.subscriptionDetailsFragment
     )
 
+    private val topLevelDestinationIds = setOf(
+        R.id.mainDashboardFragment,
+        R.id.shopsFragment,
+        R.id.salesFragment,
+        R.id.financeFragment,
+        R.id.inventoryFragment,
+        R.id.employeesFragment,
+        R.id.userRolesFragment,
+        R.id.customersFragment
+    )
+
     private val bottomNavDestinations = mapOf(
         R.id.mainDashboardFragment to R.id.main_nav_dashboard,
         R.id.shopsFragment to R.id.main_nav_shops,
@@ -158,16 +169,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         Log.d("NavDrawer_DEBUG", "✅ NavController initialized")
 
         appBarConfiguration = AppBarConfiguration(
-            setOf(
-                R.id.mainDashboardFragment,
-                R.id.shopsFragment,
-                R.id.salesFragment,
-                R.id.financeFragment,
-                R.id.inventoryFragment,
-                R.id.employeesFragment,
-                R.id.userRolesFragment,
-                R.id.customersFragment
-            ),
+            topLevelDestinationIds,
             binding.drawerLayout
         )
 
@@ -234,6 +236,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 else -> {
                     supportActionBar?.title = destination.label
                 }
+            }
+
+            if (destination.id in topLevelDestinationIds) {
+                supportActionBar?.setHomeAsUpIndicator(R.drawable.ic_menu_custom)
             }
 
             val bottomNavItemId = bottomNavDestinations[destination.id]
