@@ -33,7 +33,7 @@ import com.devbrian.osebo.data.local.entity.*
         ExpenseEntity::class,
         ExpenseCategoryEntity::class
     ],
-    version = 10,
+    version = 11,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -59,6 +59,74 @@ abstract class AppDatabase : RoomDatabase() {
     companion object {
         @Volatile
         private var INSTANCE: AppDatabase? = null
+
+        // Migration from version 10 to 11 - Fix products table to match ProductEntity exactly
+        // (renamed unitMeasure -> unit, dropped isPendingSync/syncAction, and several columns
+        // that were NOT NULL with SQL defaults are now nullable in the entity with no default).
+        private val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                println("📦 Room Database - Migrating from version 10 to 11")
+                println("📦 Room Database - Fixing products table schema to match ProductEntity")
+
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS products_new (
+                        id TEXT NOT NULL,
+                        name TEXT NOT NULL,
+                        sku TEXT NOT NULL,
+                        description TEXT,
+                        category TEXT,
+                        categoryId TEXT,
+                        price REAL NOT NULL,
+                        cost REAL,
+                        stock REAL NOT NULL,
+                        lowStockThreshold INTEGER,
+                        imageUrl TEXT,
+                        barcode TEXT,
+                        supplierId TEXT,
+                        supplierName TEXT,
+                        taxRate REAL,
+                        weight REAL,
+                        dimensions TEXT,
+                        location TEXT,
+                        isActive INTEGER NOT NULL,
+                        maxDiscount REAL,
+                        unit TEXT,
+                        allowsFloatQuantity INTEGER NOT NULL,
+                        shopId TEXT,
+                        shopName TEXT,
+                        photos TEXT,
+                        createdAt TEXT,
+                        updatedAt TEXT,
+                        lastSyncedAt INTEGER NOT NULL,
+                        PRIMARY KEY(id)
+                    )
+                """)
+
+                try {
+                    database.execSQL("""
+                        INSERT INTO products_new (
+                            id, name, sku, description, category, categoryId, price, cost, stock,
+                            lowStockThreshold, imageUrl, barcode, supplierId, supplierName, taxRate,
+                            weight, dimensions, location, isActive, maxDiscount, unit,
+                            allowsFloatQuantity, shopId, shopName, photos, createdAt, updatedAt, lastSyncedAt
+                        )
+                        SELECT
+                            id, name, sku, description, category, categoryId, price, cost, stock,
+                            lowStockThreshold, imageUrl, barcode, supplierId, supplierName, taxRate,
+                            weight, dimensions, location, isActive, maxDiscount, unitMeasure,
+                            allowsFloatQuantity, shopId, shopName, photos, createdAt, updatedAt, lastSyncedAt
+                        FROM products
+                    """)
+                } catch (e: Exception) {
+                    println("❌ Room Database - Error copying products data during 10->11 migration: ${e.message}")
+                }
+
+                database.execSQL("DROP TABLE IF EXISTS products")
+                database.execSQL("ALTER TABLE products_new RENAME TO products")
+
+                println("📦 Room Database - Migration 10->11 completed successfully")
+            }
+        }
 
         // Migration from version 9 to 10 - Add expense tables
         private val MIGRATION_9_10 = object : Migration(9, 10) {
@@ -275,7 +343,8 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_6_7,
                         MIGRATION_7_8,
                         MIGRATION_8_9,
-                        MIGRATION_9_10
+                        MIGRATION_9_10,
+                        MIGRATION_10_11
                     )
                     .fallbackToDestructiveMigration()
                     .addCallback(object : RoomDatabase.Callback() {

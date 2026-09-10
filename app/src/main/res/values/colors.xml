@@ -5,7 +5,7 @@
     <color name="primary">#0074ba</color>          <!-- Main blue -->
     <color name="primary_dark">#075BB5</color>     <!-- Darker blue -->
     <color name="primary_light">#E7F1FC</color>    <!-- Light blue background -->
-    <color name="primary_10">#196200EE</color>
+    <color name="primary_10">#1F0074BA</color>
 
     <!-- Accent Colors -->
     <color name="accent">#0074ba</color>
@@ -95,6 +95,7 @@
     <color name="white_alpha_30">#4DFFFFFF</color>
     <color name="white_alpha_50">#80FFFFFF</color>
     <color name="white_alpha_70">#B3FFFFFF</color>
+    <color name="black_alpha_05">#0D000000</color>
     <color name="black_alpha_10">#1A000000</color>
     <color name="black_alpha_20">#33000000</color>
     <color name="black_alpha_30">#4D000000</color>

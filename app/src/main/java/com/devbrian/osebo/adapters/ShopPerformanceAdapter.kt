@@ -1,6 +1,5 @@
 package com.devbrian.osebo.adapters
 
-import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
@@ -8,8 +7,6 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.devbrian.osebo.databinding.ItemShopPerformanceBinding
 import com.devbrian.osebo.models.ShopPerformance
-import java.text.NumberFormat
-import java.util.*
 
 class ShopPerformanceAdapter(
     private val onItemClick: (String) -> Unit
@@ -46,18 +43,8 @@ class ShopPerformanceAdapter(
             binding.apply {
                 tvShopName.text = performance.shopName
                 tvShopLocation.text = performance.location
-
-                
                 tvSalesPercentage.text = formatCompactCurrency(performance.totalSales)
-
                 tvExpenses.text = formatCompactCurrency(performance.expenses)
-
-                
-                when (performance.subscriptionStatus.lowercase(Locale.getDefault())) {
-                    "active" -> tvSalesPercentage.setTextColor(Color.parseColor("#4CAF50"))
-                    "trial" -> tvSalesPercentage.setTextColor(Color.parseColor("#FF9800"))
-                    else -> tvSalesPercentage.setTextColor(Color.parseColor("#9E9E9E"))
-                }
             }
         }
 

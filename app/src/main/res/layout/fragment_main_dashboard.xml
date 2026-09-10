@@ -24,50 +24,92 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/bg_greeting_card"
+                android:padding="16dp"
                 android:layout_marginBottom="24dp">
 
-                <TextView
-                    android:id="@+id/tvWelcome"
-                    android:layout_width="wrap_content"
+                <LinearLayout
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:text="Good morning,"
-                    android:textColor="#7F8C8D"
-                    android:textSize="16sp"
-                    android:fontFamily="@font/poppins_regular" />
+                    android:layout_weight="1"
+                    android:orientation="vertical">
 
-                <TextView
-                    android:id="@+id/tvUserName"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    tools:text="Brian!"
-                    android:textColor="#2C3E50"
-                    android:textSize="28sp"
-                    android:textStyle="bold"
-                    android:fontFamily="@font/poppins_bold"
-                    android:layout_marginTop="-4dp" />
+                    <TextView
+                        android:id="@+id/tvWelcome"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Good morning,"
+                        android:textColor="#7F8C8D"
+                        android:textSize="16sp"
+                        android:fontFamily="@font/poppins_regular"
+                        app:drawableStartCompat="@drawable/ic_star"
+                        android:drawablePadding="6dp"
+                        android:gravity="center_vertical" />
 
-                <TextView
-                    android:id="@+id/tvCurrentDate"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    tools:text="Monday, 08 Mar 2026"
-                    android:textColor="#95A5A6"
-                    android:textSize="14sp"
-                    android:fontFamily="@font/poppins_regular"
-                    android:layout_marginTop="4dp" />
+                    <TextView
+                        android:id="@+id/tvUserName"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        tools:text="Brian!"
+                        android:textColor="#2C3E50"
+                        android:textSize="28sp"
+                        android:textStyle="bold"
+                        android:fontFamily="@font/poppins_bold"
+                        android:layout_marginTop="-4dp" />
+
+                    <TextView
+                        android:id="@+id/tvCurrentDate"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        tools:text="Monday, 08 Mar 2026"
+                        android:textColor="#95A5A6"
+                        android:textSize="14sp"
+                        android:fontFamily="@font/poppins_regular"
+                        android:layout_marginTop="4dp" />
+                </LinearLayout>
+
+                <ImageView
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:src="@drawable/ic_trend_up"
+                    app:tint="@color/primary_green"
+                    android:alpha="0.85" />
             </LinearLayout>
 
             <!-- 2. STAT TILES SECTION (2x3 Grid) -->
-            <TextView
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Overview"
-                android:textColor="#2C3E50"
-                android:textSize="18sp"
-                android:textStyle="bold"
-                android:fontFamily="@font/poppins_bold"
-                android:layout_marginBottom="12dp" />
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="12dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Overview"
+                    android:textColor="#2C3E50"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:fontFamily="@font/poppins_bold" />
+
+                <TextView
+                    android:id="@+id/tvViewDetails"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="View Details"
+                    android:textColor="@color/primary"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:fontFamily="@font/poppins_medium"
+                    android:drawableEnd="@drawable/ic_chevron_right"
+                    android:drawablePadding="2dp"
+                    android:background="?attr/selectableItemBackground"
+                    android:padding="4dp" />
+            </LinearLayout>
 
             <!-- Row 1: Today's Sales & Expenses -->
             <LinearLayout
@@ -96,18 +138,27 @@
                             android:layout_height="wrap_content"
                             android:orientation="horizontal"
                             android:gravity="center_vertical">
-                            <View
-                                android:layout_width="8dp"
-                                android:layout_height="8dp"
-                                android:background="@drawable/bg_dot_green"
+                            <ImageView
+                                android:layout_width="28dp"
+                                android:layout_height="28dp"
+                                android:padding="6dp"
+                                android:background="@drawable/bg_icon_circle_green"
+                                android:src="@drawable/ic_cash"
+                                app:tint="#27AE60"
                                 android:layout_marginEnd="8dp"/>
                             <TextView
-                                android:layout_width="wrap_content"
+                                android:layout_width="0dp"
                                 android:layout_height="wrap_content"
+                                android:layout_weight="1"
                                 android:text="Today's Sales"
                                 android:textColor="#7F8C8D"
                                 android:textSize="13sp"
                                 android:fontFamily="@font/poppins_medium" />
+                            <ImageView
+                                android:layout_width="16dp"
+                                android:layout_height="16dp"
+                                android:src="@drawable/ic_chevron_right"
+                                app:tint="#BDC3C7" />
                         </LinearLayout>
                         <TextView
                             android:id="@+id/tvTodaySales"
@@ -149,18 +200,27 @@
                             android:layout_height="wrap_content"
                             android:orientation="horizontal"
                             android:gravity="center_vertical">
-                            <View
-                                android:layout_width="8dp"
-                                android:layout_height="8dp"
-                                android:background="@drawable/bg_dot_red"
+                            <ImageView
+                                android:layout_width="28dp"
+                                android:layout_height="28dp"
+                                android:padding="6dp"
+                                android:background="@drawable/bg_icon_circle_red"
+                                android:src="@drawable/ic_person"
+                                app:tint="#E74C3C"
                                 android:layout_marginEnd="8dp"/>
                             <TextView
-                                android:layout_width="wrap_content"
+                                android:layout_width="0dp"
                                 android:layout_height="wrap_content"
+                                android:layout_weight="1"
                                 android:text="Today's Expenses"
                                 android:textColor="#7F8C8D"
                                 android:textSize="13sp"
                                 android:fontFamily="@font/poppins_medium" />
+                            <ImageView
+                                android:layout_width="16dp"
+                                android:layout_height="16dp"
+                                android:src="@drawable/ic_chevron_right"
+                                app:tint="#BDC3C7" />
                         </LinearLayout>
                         <TextView
                             android:id="@+id/tvTodayExpenses"
@@ -211,18 +271,27 @@
                             android:layout_height="wrap_content"
                             android:orientation="horizontal"
                             android:gravity="center_vertical">
-                            <View
-                                android:layout_width="8dp"
-                                android:layout_height="8dp"
-                                android:background="@drawable/bg_dot_blue"
+                            <ImageView
+                                android:layout_width="28dp"
+                                android:layout_height="28dp"
+                                android:padding="6dp"
+                                android:background="@drawable/bg_icon_circle_blue"
+                                android:src="@drawable/ic_price"
+                                app:tint="#2980B9"
                                 android:layout_marginEnd="8dp"/>
                             <TextView
-                                android:layout_width="wrap_content"
+                                android:layout_width="0dp"
                                 android:layout_height="wrap_content"
+                                android:layout_weight="1"
                                 android:text="Today's Balance"
                                 android:textColor="#7F8C8D"
                                 android:textSize="13sp"
                                 android:fontFamily="@font/poppins_medium" />
+                            <ImageView
+                                android:layout_width="16dp"
+                                android:layout_height="16dp"
+                                android:src="@drawable/ic_chevron_right"
+                                app:tint="#BDC3C7" />
                         </LinearLayout>
                         <TextView
                             android:id="@+id/tvTodayBalance"
@@ -264,18 +333,27 @@
                             android:layout_height="wrap_content"
                             android:orientation="horizontal"
                             android:gravity="center_vertical">
-                            <View
-                                android:layout_width="8dp"
-                                android:layout_height="8dp"
-                                android:background="@drawable/bg_dot_purple"
+                            <ImageView
+                                android:layout_width="28dp"
+                                android:layout_height="28dp"
+                                android:padding="6dp"
+                                android:background="@drawable/bg_icon_circle_purple"
+                                android:src="@drawable/ic_shopping_cart"
+                                app:tint="#8E44AD"
                                 android:layout_marginEnd="8dp"/>
                             <TextView
-                                android:layout_width="wrap_content"
+                                android:layout_width="0dp"
                                 android:layout_height="wrap_content"
+                                android:layout_weight="1"
                                 android:text="Total Shops"
                                 android:textColor="#7F8C8D"
                                 android:textSize="13sp"
                                 android:fontFamily="@font/poppins_medium" />
+                            <ImageView
+                                android:layout_width="16dp"
+                                android:layout_height="16dp"
+                                android:src="@drawable/ic_chevron_right"
+                                app:tint="#BDC3C7" />
                         </LinearLayout>
                         <TextView
                             android:id="@+id/tvTotalShops"
@@ -321,13 +399,33 @@
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
                         android:padding="16dp">
-                        <TextView
-                            android:layout_width="wrap_content"
+                        <LinearLayout
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Total Sales (All Time)"
-                            android:textColor="#7F8C8D"
-                            android:textSize="13sp"
-                            android:fontFamily="@font/poppins_medium" />
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
+                            <ImageView
+                                android:layout_width="28dp"
+                                android:layout_height="28dp"
+                                android:padding="6dp"
+                                android:background="@drawable/bg_icon_circle_green"
+                                android:src="@drawable/ic_income"
+                                app:tint="#27AE60"
+                                android:layout_marginEnd="8dp"/>
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="Total Sales (All Time)"
+                                android:textColor="#7F8C8D"
+                                android:textSize="13sp"
+                                android:fontFamily="@font/poppins_medium" />
+                            <ImageView
+                                android:layout_width="16dp"
+                                android:layout_height="16dp"
+                                android:src="@drawable/ic_chevron_right"
+                                app:tint="#BDC3C7" />
+                        </LinearLayout>
                         <TextView
                             android:id="@+id/tvTotalSales"
                             android:layout_width="wrap_content"
@@ -355,13 +453,33 @@
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
                         android:padding="16dp">
-                        <TextView
-                            android:layout_width="wrap_content"
+                        <LinearLayout
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Total Expenses (All Time)"
-                            android:textColor="#7F8C8D"
-                            android:textSize="13sp"
-                            android:fontFamily="@font/poppins_medium" />
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
+                            <ImageView
+                                android:layout_width="28dp"
+                                android:layout_height="28dp"
+                                android:padding="6dp"
+                                android:background="@drawable/bg_icon_circle_blue"
+                                android:src="@drawable/ic_business"
+                                app:tint="#2980B9"
+                                android:layout_marginEnd="8dp"/>
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="Total Expenses (All Time)"
+                                android:textColor="#7F8C8D"
+                                android:textSize="13sp"
+                                android:fontFamily="@font/poppins_medium" />
+                            <ImageView
+                                android:layout_width="16dp"
+                                android:layout_height="16dp"
+                                android:src="@drawable/ic_chevron_right"
+                                app:tint="#BDC3C7" />
+                        </LinearLayout>
                         <TextView
                             android:id="@+id/tvTotalExpenses"
                             android:layout_width="wrap_content"
