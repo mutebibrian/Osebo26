@@ -245,11 +245,9 @@ class ShopDashboardFragment : Fragment() {
         val totalExpenses = timeSeries.expenses.sum()
         val profit = totalSales - totalExpenses
 
-        binding.tvChartSummary.text = """
-            📊 Sales: ${formatCurrency(totalSales)}
-            💰 Expenses: ${formatCurrency(totalExpenses)}
-            💵 Profit: ${formatCurrency(profit)}
-        """.trimIndent()
+        binding.tvPerfSalesValue.text = formatCurrency(totalSales)
+        binding.tvPerfExpensesValue.text = formatCurrency(totalExpenses)
+        binding.tvPerfProfitValue.text = formatCurrency(profit)
     }
 
     private fun formatCurrency(amount: Double): String {
