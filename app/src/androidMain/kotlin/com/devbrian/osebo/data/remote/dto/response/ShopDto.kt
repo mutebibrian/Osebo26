@@ -58,7 +58,19 @@ data class ShopDto(
     val shopTypeObject: ShopTypeDto? = null,
 
     @SerializedName("employees")
-    val employees: EmployeesDto? = null
+    val employees: EmployeesDto? = null,
+
+    @SerializedName("total_revenue")
+    val totalRevenue: Double = 0.0,
+
+    @SerializedName("total_expenses")
+    val totalExpenses: Double = 0.0,
+
+    @SerializedName("profit")
+    val profit: Double = 0.0,
+
+    @SerializedName("total_products")
+    val totalProducts: Int = 0
 ) {
     // Helper property to get owner ID from madeBy
     val ownerId: String?

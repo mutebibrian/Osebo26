@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Vertical gap between a bottom nav item's icon and its label.
+         Material's own default is too tight and makes the icon look like
+         it's touching the text — this widens the breathing room between them. -->
+    <dimen name="design_bottom_navigation_margin">8dp</dimen>
+
+</resources>
