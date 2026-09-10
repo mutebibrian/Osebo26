@@ -33,7 +33,7 @@ import com.devbrian.osebo.data.local.entity.*
         ExpenseEntity::class,
         ExpenseCategoryEntity::class
     ],
-    version = 11,
+    version = 12,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -59,6 +59,21 @@ abstract class AppDatabase : RoomDatabase() {
     companion object {
         @Volatile
         private var INSTANCE: AppDatabase? = null
+
+        // Migration from version 11 to 12 - Add employeeId/employeeName/servedBy to sales
+        // (SaleEntity gained these nullable columns but no migration ever added them on-disk).
+        private val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                println("📦 Room Database - Migrating from version 11 to 12")
+                println("📦 Room Database - Adding employeeId/employeeName/servedBy to sales table")
+
+                database.execSQL("ALTER TABLE sales ADD COLUMN employeeId TEXT")
+                database.execSQL("ALTER TABLE sales ADD COLUMN employeeName TEXT")
+                database.execSQL("ALTER TABLE sales ADD COLUMN servedBy TEXT")
+
+                println("📦 Room Database - Migration 11->12 completed successfully")
+            }
+        }
 
         // Migration from version 10 to 11 - Fix products table to match ProductEntity exactly
         // (renamed unitMeasure -> unit, dropped isPendingSync/syncAction, and several columns
@@ -344,7 +359,8 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_7_8,
                         MIGRATION_8_9,
                         MIGRATION_9_10,
-                        MIGRATION_10_11
+                        MIGRATION_10_11,
+                        MIGRATION_11_12
                     )
                     .fallbackToDestructiveMigration()
                     .addCallback(object : RoomDatabase.Callback() {
