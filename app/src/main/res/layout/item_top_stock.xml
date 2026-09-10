@@ -11,7 +11,7 @@
     android:clickable="true"
     android:focusable="true"
     android:foreground="?attr/selectableItemBackground"
-    app:cardCornerRadius="12dp"
+    app:cardCornerRadius="16dp"
     app:cardElevation="2dp"
     app:cardUseCompatPadding="true">
 
@@ -30,7 +30,8 @@
             android:text="Product Name"
             android:textSize="14sp"
             android:textStyle="bold"
-            android:textColor="@color/text_primary"
+            android:textColor="@android:color/white"
+            android:fontFamily="@font/poppins_semibold"
             android:maxLines="2"
             android:ellipsize="end"
             android:gravity="center_horizontal" />
@@ -41,7 +42,8 @@
             android:layout_height="wrap_content"
             android:text="Qty: 0"
             android:textSize="13sp"
-            android:textColor="@color/text_secondary"
+            android:textColor="@color/white_alpha_70"
+            android:fontFamily="@font/poppins_regular"
             android:layout_marginTop="4dp" />
 
         <TextView
@@ -51,7 +53,8 @@
             android:text="UGX 0"
             android:textSize="16sp"
             android:textStyle="bold"
-            android:textColor="@color/africa_black"
+            android:textColor="@android:color/white"
+            android:fontFamily="@font/poppins_bold"
             android:layout_marginTop="6dp" />
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>
