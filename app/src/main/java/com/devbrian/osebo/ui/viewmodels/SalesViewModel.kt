@@ -269,6 +269,12 @@ class SalesViewModel @Inject constructor(
         }
     }
 
+    fun refreshCustomersFromServer() {
+        viewModelScope.launch {
+            customerRepository.refreshCustomers()
+        }
+    }
+
     fun addToCart(product: Product) {
         println("📱 VIEWMODEL - addToCart called with: ${product.name}")
         val currentCart = _cartItems.value?.toMutableList() ?: mutableListOf()
@@ -387,6 +393,13 @@ class SalesViewModel @Inject constructor(
         _selectedCustomer.value = customer
         _successMessage.value = "Customer selected: ${customer.name}"
         println("📱 VIEWMODEL - Customer selected: ${customer.name} (${customer.id})")
+    }
+
+    // Same as selectCustomer() but without the success toast - for auto-selecting the shop's
+    // default/walk-in customer once it syncs in, rather than a message the cashier didn't ask for.
+    fun setDefaultCustomerSilently(customer: Customer) {
+        _selectedCustomer.value = customer
+        println("📱 VIEWMODEL - Default customer auto-selected: ${customer.name} (${customer.id})")
     }
 
     fun clearSelectedCustomer() {
