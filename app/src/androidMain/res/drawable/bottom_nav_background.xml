@@ -1,15 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Shadow -->
-    <item>
+    <!-- Soft outer shadow (faint, wide) -->
+    <item android:top="0dp">
+        <shape>
+            <solid android:color="@color/black_alpha_05" />
+            <corners android:topLeftRadius="22dp" android:topRightRadius="22dp" />
+        </shape>
+    </item>
+
+    <!-- Tighter shadow (closer, slightly darker) -->
+    <item android:top="1dp">
         <shape>
             <solid android:color="@color/black_alpha_10" />
-            <corners android:topLeftRadius="20dp" android:topRightRadius="20dp" />
+            <corners android:topLeftRadius="21dp" android:topRightRadius="21dp" />
         </shape>
     </item>
 
     <!-- Main Background -->
-    <item android:top="2dp">
+    <item android:top="3dp">
         <shape>
             <solid android:color="@color/white" />
             <corners

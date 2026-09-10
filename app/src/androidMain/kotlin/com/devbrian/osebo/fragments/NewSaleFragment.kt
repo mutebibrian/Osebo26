@@ -478,7 +478,7 @@ class NewSaleFragment : Fragment() {
     }
 
     private fun proceedToPayment() {
-        val customer = viewModel.selectedCustomer.value ?: walkInCustomer
+        val selectedCustomer = viewModel.selectedCustomer.value
         val cartItems = viewModel.cartItems.value
         val totalAmount = viewModel.getCartSummary().total.toFloat()
 
@@ -507,7 +507,12 @@ class NewSaleFragment : Fragment() {
             val itemsArray = itemsList.toTypedArray()
 
             val action = NewSaleFragmentDirections.actionNewSaleFragmentToPaymentFragment(
-                customerId = customer.id,
+                // walkInCustomer is a local UI placeholder with a hardcoded UUID that only
+                // exists as a real customer under whichever shop it was created in — sending
+                // it as customer_id gets sales rejected for every other shop. Only pass an ID
+                // when a real customer was picked; null lets PaymentFragment's existing
+                // walk-in handling take over.
+                customerId = selectedCustomer?.id?.takeIf { it != walkInCustomer.id },
                 cartItems = itemsArray,
                 totalAmount = totalAmount
             )

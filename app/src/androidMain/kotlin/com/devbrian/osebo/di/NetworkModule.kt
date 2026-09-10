@@ -45,7 +45,15 @@ val networkModule = module {
                 requestBuilder.addHeader("Authorization", "Bearer $token")
             }
 
-            val shopUuid = preferenceManager.getCurrentShopUuid()
+            // A per-call @Header("X-Shop") on the Retrofit method (e.g. fetching a
+            // specific shop's summary while looping over several shops) must win over
+            // the globally "active" shop — otherwise every such call silently queries
+            // whatever shop happens to be current instead of the one it asked for.
+            val explicitShopUuid = originalRequest.header("X-Shop")
+                ?: originalRequest.header("x-shop")
+                ?: originalRequest.header("x-shop-id")
+
+            val shopUuid = explicitShopUuid ?: preferenceManager.getCurrentShopUuid()
             requestBuilder.removeHeader("X-Shop")
             requestBuilder.removeHeader("x-shop")
             requestBuilder.removeHeader("x-shop-id")

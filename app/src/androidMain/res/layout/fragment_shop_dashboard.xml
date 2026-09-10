@@ -592,6 +592,7 @@
         app:elevation="8dp"
         app:itemIconTint="@color/bottom_nav_selector"
         app:itemTextColor="@color/bottom_nav_selector"
+        app:itemRippleColor="@color/primary_10"
         app:itemActiveIndicatorStyle="@style/Widget.Material3.BottomNavigationView.ActiveIndicator"
         app:itemIconSize="24dp"
         app:itemTextAppearanceActive="@style/BottomNavTextActive"
