@@ -258,6 +258,10 @@ class MainDashboardFragment : Fragment() {
         binding.tvToday.setOnClickListener { filterShopsByTime("today") }
         binding.tvAllShops.setOnClickListener { filterShopsByTime("all") }
 
+        binding.tvViewDetails.setOnClickListener {
+            findNavController().navigate(R.id.reportsFragment)
+        }
+
         binding.llAddProduct.setOnClickListener {
             if (hasActiveShopWithSubscription()) findNavController().navigate(R.id.addProductFragment)
             else showNoActiveShopDialog()

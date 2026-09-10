@@ -28,9 +28,66 @@
                 android:id="@+id/topAppBar"
                 android:layout_width="match_parent"
                 android:layout_height="?attr/actionBarSize"
-                android:background="?attr/colorPrimary"
+                android:background="@drawable/bg_dashboard_header_gradient"
                 android:theme="@style/ThemeOverlay.MaterialComponents.Dark.ActionBar"
-                app:title="Osebo" />
+                app:titleTextColor="@android:color/white"
+                app:title="Osebo">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="end|center_vertical"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <FrameLayout
+                        android:id="@+id/flNotificationBell"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:layout_marginEnd="4dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:contentDescription="Notifications">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_notifications"
+                            app:tint="@android:color/white" />
+
+                        <View
+                            android:layout_width="9dp"
+                            android:layout_height="9dp"
+                            android:layout_gravity="top|end"
+                            android:layout_marginTop="7dp"
+                            android:layout_marginEnd="7dp"
+                            android:background="@drawable/bg_notification_badge" />
+                    </FrameLayout>
+
+                    <FrameLayout
+                        android:id="@+id/flAvatar"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:layout_marginEnd="4dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:contentDescription="Account">
+
+                        <ImageView
+                            android:layout_width="34dp"
+                            android:layout_height="34dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_person"
+                            android:background="@drawable/bg_avatar_white_circle"
+                            android:padding="6dp"
+                            app:tint="@color/primary" />
+                    </FrameLayout>
+                </LinearLayout>
+
+            </com.google.android.material.appbar.MaterialToolbar>
 
             <!-- NavHostFragment Container -->
             <androidx.fragment.app.FragmentContainerView
@@ -41,6 +98,25 @@
                 android:layout_weight="1"
                 app:defaultNavHost="true"
                 app:navGraph="@navigation/nav_graph" />
+
+            <!-- Global Bottom Navigation -->
+            <com.google.android.material.bottomnavigation.BottomNavigationView
+                android:id="@+id/bottomNavMain"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bottom_nav_background"
+                app:elevation="8dp"
+                app:itemIconTint="@color/bottom_nav_selector"
+                app:itemTextColor="@color/bottom_nav_selector"
+                app:itemRippleColor="@color/primary_10"
+                app:itemActiveIndicatorStyle="@style/Widget.Material3.BottomNavigationView.ActiveIndicator"
+                app:itemIconSize="24dp"
+                app:itemTextAppearanceActive="@style/BottomNavTextActive"
+                app:itemTextAppearanceInactive="@style/BottomNavTextInactive"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                app:menu="@menu/main_bottom_nav_menu"
+                app:labelVisibilityMode="labeled" />
         </LinearLayout>
 
         <!-- FloatingActionButtons -->
@@ -49,7 +125,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="bottom|end"
-            android:layout_margin="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="96dp"
             android:contentDescription="Quick Actions"
             app:backgroundTint="@color/primary"
             app:srcCompat="@drawable/ic_add" />
@@ -59,7 +136,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="bottom|end"
-            android:layout_marginBottom="88dp"
+            android:layout_marginBottom="168dp"
             android:layout_marginEnd="16dp"
             android:visibility="gone"
             app:backgroundTint="@color/green_500"
@@ -70,7 +147,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="bottom|end"
-            android:layout_marginBottom="160dp"
+            android:layout_marginBottom="240dp"
             android:layout_marginEnd="16dp"
             android:visibility="gone"
             app:backgroundTint="@color/blue_500"
