@@ -33,7 +33,7 @@ import com.devbrian.osebo.data.local.entity.*
         ExpenseEntity::class,
         ExpenseCategoryEntity::class
     ],
-    version = 13,
+    version = 14,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -59,6 +59,87 @@ abstract class AppDatabase : RoomDatabase() {
     companion object {
         @Volatile
         private var INSTANCE: AppDatabase? = null
+
+        // Migration from version 13 to 14 - Recreate expenses/expense_categories to match entities
+        // (ExpenseEntity/ExpenseCategoryEntity declare no @Index annotations, but MIGRATION_9_10
+        // created indices on both tables via raw SQL; Room's Expected schema has no indices for
+        // either entity, so the on-disk indices caused "Migration didn't properly handle" even
+        // though the columns matched. Also, isPendingSync on expenses was created with a SQL
+        // DEFAULT 0, which the entity doesn't declare via @ColumnInfo, another mismatch. Fixed by
+        // recreating both tables without indices and without SQL defaults.)
+        private val MIGRATION_13_14 = object : Migration(13, 14) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                println("📦 Room Database - Migrating from version 13 to 14")
+                println("📦 Room Database - Recreating expenses/expense_categories to match entities")
+
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS expenses_new (
+                        id TEXT NOT NULL,
+                        name TEXT NOT NULL,
+                        description TEXT,
+                        amount REAL NOT NULL,
+                        expenseCategoryId TEXT NOT NULL,
+                        expenseCategoryName TEXT,
+                        date TEXT NOT NULL,
+                        shopId TEXT NOT NULL,
+                        paymentMethod TEXT,
+                        receiptUrl TEXT,
+                        createdAt TEXT NOT NULL,
+                        updatedAt TEXT,
+                        isPendingSync INTEGER NOT NULL,
+                        syncAction TEXT,
+                        PRIMARY KEY(id)
+                    )
+                """)
+
+                try {
+                    database.execSQL("""
+                        INSERT INTO expenses_new (
+                            id, name, description, amount, expenseCategoryId, expenseCategoryName,
+                            date, shopId, paymentMethod, receiptUrl, createdAt, updatedAt,
+                            isPendingSync, syncAction
+                        )
+                        SELECT
+                            id, name, description, amount, expenseCategoryId, expenseCategoryName,
+                            date, shopId, paymentMethod, receiptUrl, createdAt, updatedAt,
+                            isPendingSync, syncAction
+                        FROM expenses
+                    """)
+                } catch (e: Exception) {
+                    println("❌ Room Database - Error copying expenses data during 13->14 migration: ${e.message}")
+                }
+
+                database.execSQL("DROP TABLE IF EXISTS expenses")
+                database.execSQL("ALTER TABLE expenses_new RENAME TO expenses")
+
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS expense_categories_new (
+                        id TEXT NOT NULL,
+                        name TEXT NOT NULL,
+                        description TEXT,
+                        shopId TEXT NOT NULL,
+                        createdAt TEXT NOT NULL,
+                        updatedAt TEXT,
+                        PRIMARY KEY(id)
+                    )
+                """)
+
+                try {
+                    database.execSQL("""
+                        INSERT INTO expense_categories_new (id, name, description, shopId, createdAt, updatedAt)
+                        SELECT id, name, description, shopId, createdAt, updatedAt
+                        FROM expense_categories
+                    """)
+                } catch (e: Exception) {
+                    println("❌ Room Database - Error copying expense_categories data during 13->14 migration: ${e.message}")
+                }
+
+                database.execSQL("DROP TABLE IF EXISTS expense_categories")
+                database.execSQL("ALTER TABLE expense_categories_new RENAME TO expense_categories")
+
+                println("📦 Room Database - Migration 13->14 completed successfully")
+            }
+        }
 
         // Migration from version 12 to 13 - Recreate dashboard/cache tables to match entities
         // (DashboardSummaryEntity gained totalExpenses with no migration; the other 4 tables
@@ -440,7 +521,8 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_9_10,
                         MIGRATION_10_11,
                         MIGRATION_11_12,
-                        MIGRATION_12_13
+                        MIGRATION_12_13,
+                        MIGRATION_13_14
                     )
                     .fallbackToDestructiveMigration()
                     .addCallback(object : RoomDatabase.Callback() {
