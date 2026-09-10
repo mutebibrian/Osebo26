@@ -33,7 +33,7 @@ import com.devbrian.osebo.data.local.entity.*
         ExpenseEntity::class,
         ExpenseCategoryEntity::class
     ],
-    version = 12,
+    version = 13,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -59,6 +59,85 @@ abstract class AppDatabase : RoomDatabase() {
     companion object {
         @Volatile
         private var INSTANCE: AppDatabase? = null
+
+        // Migration from version 12 to 13 - Recreate dashboard/cache tables to match entities
+        // (DashboardSummaryEntity gained totalExpenses with no migration; the other 4 tables
+        // live in the same file and are pure network-refreshed caches with no data worth
+        // preserving, so they're recreated here too as a preventive fix rather than waiting
+        // for each one to surface the same crash separately).
+        private val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                println("📦 Room Database - Migrating from version 12 to 13")
+                println("📦 Room Database - Recreating dashboard cache tables to match entities")
+
+                database.execSQL("DROP TABLE IF EXISTS dashboard_summary")
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS dashboard_summary (
+                        id TEXT NOT NULL,
+                        employeesCount INTEGER NOT NULL,
+                        suppliersCount INTEGER NOT NULL,
+                        customersCount INTEGER NOT NULL,
+                        totalSales REAL NOT NULL,
+                        totalExpenses REAL NOT NULL,
+                        lastUpdated INTEGER NOT NULL,
+                        PRIMARY KEY(id)
+                    )
+                """)
+
+                database.execSQL("DROP TABLE IF EXISTS time_series")
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS time_series (
+                        id TEXT NOT NULL,
+                        xAxis TEXT NOT NULL,
+                        sales TEXT NOT NULL,
+                        expenses TEXT NOT NULL,
+                        lastUpdated INTEGER NOT NULL,
+                        PRIMARY KEY(id)
+                    )
+                """)
+
+                database.execSQL("DROP TABLE IF EXISTS shop_summary")
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS shop_summary (
+                        shopId TEXT NOT NULL,
+                        shopName TEXT NOT NULL,
+                        totalEmployees INTEGER NOT NULL,
+                        totalCustomers INTEGER NOT NULL,
+                        totalSuppliers INTEGER NOT NULL,
+                        totalSales REAL NOT NULL,
+                        lastUpdated INTEGER NOT NULL,
+                        PRIMARY KEY(shopId)
+                    )
+                """)
+
+                database.execSQL("DROP TABLE IF EXISTS financial_statement")
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS financial_statement (
+                        id TEXT NOT NULL,
+                        totalSales REAL NOT NULL,
+                        totalCreditSales REAL NOT NULL,
+                        totalProcurements REAL NOT NULL,
+                        totalExpenses REAL NOT NULL,
+                        lastUpdated INTEGER NOT NULL,
+                        PRIMARY KEY(id)
+                    )
+                """)
+
+                database.execSQL("DROP TABLE IF EXISTS top_stock_items")
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS top_stock_items (
+                        id TEXT NOT NULL,
+                        name TEXT NOT NULL,
+                        quantity INTEGER NOT NULL,
+                        sales REAL NOT NULL,
+                        lastUpdated INTEGER NOT NULL,
+                        PRIMARY KEY(id)
+                    )
+                """)
+
+                println("📦 Room Database - Migration 12->13 completed successfully")
+            }
+        }
 
         // Migration from version 11 to 12 - Add employeeId/employeeName/servedBy to sales
         // (SaleEntity gained these nullable columns but no migration ever added them on-disk).
@@ -360,7 +439,8 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_8_9,
                         MIGRATION_9_10,
                         MIGRATION_10_11,
-                        MIGRATION_11_12
+                        MIGRATION_11_12,
+                        MIGRATION_12_13
                     )
                     .fallbackToDestructiveMigration()
                     .addCallback(object : RoomDatabase.Callback() {
