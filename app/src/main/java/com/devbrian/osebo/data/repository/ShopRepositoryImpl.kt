@@ -53,10 +53,7 @@ class ShopRepositoryImpl @Inject constructor(
     suspend fun refreshShops(): Resource<Boolean> {
         val token = preferenceManager.getAuthToken()
         val userId = preferenceManager.getUserId()
-        val userRole = preferenceManager.getUserRole()
-        val isOwner = userRole.equals("owner", ignoreCase = true) || userRole.equals("admin", ignoreCase = true)
 
-        println("🔍 Refreshing shops - User: $userId, Role: $userRole, IsOwner: $isOwner")
         println("🔍 Token exists: ${token.isNotEmpty()}, Token length: ${token.length}")
 
         if (token.isEmpty()) {
@@ -68,6 +65,11 @@ class ShopRepositoryImpl @Inject constructor(
             if (!NetworkUtils.isNetworkAvailable(preferenceManager.getContext())) {
                 return Resource.Error("No internet connection. Showing cached shops.")
             }
+
+            val userRole = preferenceManager.getUserRole()
+            val isOwner = userRole.equals("owner", ignoreCase = true) || userRole.equals("admin", ignoreCase = true)
+
+            println("🔍 Refreshing shops - User: $userId, Role: $userRole, IsOwner: $isOwner")
 
             // FIXED: Use getShopsWithAuth instead of getShops
             val response = apiService.getShopsWithAuth("Bearer $token")
