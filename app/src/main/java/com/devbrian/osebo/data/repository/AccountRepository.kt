@@ -3,8 +3,8 @@ package com.devbrian.osebo.data.repository
 import com.devbrian.osebo.data.ApiService
 import com.devbrian.osebo.data.PreferenceManager
 import com.devbrian.osebo.data.mapper.AccountMapper
+import com.devbrian.osebo.data.UpdateProfileRequest
 import com.devbrian.osebo.data.remote.dto.request.ChangePasswordRequest
-import com.devbrian.osebo.data.remote.dto.request.UpdateProfileRequest
 import com.devbrian.osebo.data.remote.dto.response.UserDto
 import com.devbrian.osebo.domain.model.Account
 import javax.inject.Inject
