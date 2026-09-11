@@ -1,176 +1,223 @@
 package com.devbrian.osebo.fragments
 
+import android.net.Uri
 import android.os.Bundle
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import org.koin.androidx.viewmodel.ext.android.viewModel
+import android.widget.ArrayAdapter
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
+import com.bumptech.glide.Glide
 import com.devbrian.osebo.R
+import com.devbrian.osebo.data.remote.dto.response.UserDto
 import com.devbrian.osebo.databinding.FragmentAccountBinding
-import com.devbrian.osebo.fragments.EditAccountDialogFragment
-import com.devbrian.osebo.fragments.dialogs.PaymentMethodDialogFragment
-import com.devbrian.osebo.ui.AccountViewModel
+import com.devbrian.osebo.ui.viewmodels.ProfileViewModel
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
+import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class AccountFragment : Fragment() {
 
-    private lateinit var binding: FragmentAccountBinding
-    private val viewModel: AccountViewModel by viewModel()
+    private var _binding: FragmentAccountBinding? = null
+    private val binding get() = _binding!!
+
+    private val viewModel: ProfileViewModel by viewModel()
+
+    private val titles = arrayOf("Mr", "Mrs", "Ms", "Miss", "Dr")
+    private var selectedPhotoUri: Uri? = null
+
+    private val pickPhotoLauncher = registerForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let {
+            selectedPhotoUri = it
+            Glide.with(this)
+                .load(it)
+                .placeholder(R.drawable.ic_person)
+                .circleCrop()
+                .into(binding.ivProfilePhoto)
+            // No confirmed avatar-upload endpoint exists yet - this previews the pick
+            // locally only. Uploading it to the server is a follow-up once that endpoint
+            // is available.
+            Toast.makeText(requireContext(), "Photo selected (not yet uploaded to server)", Toast.LENGTH_LONG).show()
+        }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        binding = FragmentAccountBinding.inflate(inflater, container, false)
+        _binding = FragmentAccountBinding.inflate(inflater, container, false)
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        binding.toolbar.setNavigationOnClickListener {
+            findNavController().navigateUp()
+        }
+
+        setupTitleDropdown()
         setupObservers()
         setupClickListeners()
-        setupToolbar()  // Add this to handle back navigation
+        prefillFromCache()
     }
 
-    private fun setupToolbar() {
-        // If you have a toolbar in your layout
-        try {
-            binding.toolbar.setNavigationOnClickListener {
-                requireActivity().onBackPressed()
-            }
-        } catch (e: Exception) {
-            // Toolbar might not exist in this fragment
-        }
+    private fun setupTitleDropdown() {
+        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, titles)
+        binding.spinnerTitle.setAdapter(adapter)
+    }
+
+    private fun prefillFromCache() {
+        binding.etFirstName.setText(viewModel.cachedFirstName())
+        binding.etLastName.setText(viewModel.cachedLastName())
+        binding.tvVerifiedEmail.text = viewModel.cachedEmail().ifEmpty { "No email on file" }
+        binding.etPhone.setText(stripCountryCode(viewModel.cachedPhone()))
+    }
+
+    private fun stripCountryCode(fullPhone: String): String {
+        if (fullPhone.isEmpty()) return ""
+        val prefix = binding.ccp.selectedCountryCodeWithPlus
+        return if (fullPhone.startsWith(prefix)) fullPhone.removePrefix(prefix) else fullPhone
     }
 
     private fun setupObservers() {
-        viewModel.accountData.observe(viewLifecycleOwner) { account ->
-            account?.let {
-                binding.businessNameValue.text = it.businessName
-                binding.businessTypeValue.text = it.businessType
-                binding.registrationValue.text = it.registrationNumber
-                binding.taxIdValue.text = it.taxId
-                binding.addressValue.text = it.address
-                binding.paymentMethodValue.text = it.paymentMethod
-                binding.billingCycleValue.text = it.billingCycle
-                binding.nextBillingValue.text = it.nextBillingDate
+        viewModel.profile.observe(viewLifecycleOwner) { profile ->
+            profile?.let { applyProfile(it) }
+        }
 
-                when (it.status) {
-                    "active" -> {
-                        binding.statusChip.text = "Active"
-                        binding.statusChip.setChipBackgroundColorResource(R.color.success_green)
-                    }
-                    "suspended" -> {
-                        binding.statusChip.text = "Suspended"
-                        binding.statusChip.setChipBackgroundColorResource(R.color.error_red)
-                    }
-                    "pending" -> {
-                        binding.statusChip.text = "Pending"
-                        binding.statusChip.setChipBackgroundColorResource(R.color.warning_yellow)
-                    }
-                }
+        viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
+            binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
+        }
 
-                binding.twoFactorSwitch.isChecked = it.twoFactorEnabled
-                binding.loginNotificationsSwitch.isChecked = it.loginNotificationsEnabled
+        viewModel.isSavingProfile.observe(viewLifecycleOwner) { saving ->
+            binding.btnSaveUpdates.isEnabled = !saving
+            binding.progressBottom.visibility = if (saving) View.VISIBLE else View.GONE
+        }
+
+        viewModel.isSavingPassword.observe(viewLifecycleOwner) { saving ->
+            binding.btnSavePassword.isEnabled = !saving
+        }
+
+        viewModel.successMessage.observe(viewLifecycleOwner) { message ->
+            message?.let {
+                showSnackbar(it)
+                viewModel.clearMessages()
             }
         }
 
-        viewModel.updateSuccess.observe(viewLifecycleOwner) { success ->
-            if (success) {
-                showSnackbar("Account updated successfully")
+        viewModel.errorMessage.observe(viewLifecycleOwner) { message ->
+            message?.let {
+                showSnackbar(it)
+                viewModel.clearMessages()
             }
         }
+    }
 
-        // Add loading and error observers
-        viewModel.loading.observe(viewLifecycleOwner) { isLoading ->
-            // Show/hide progress bar if you have one
-            try {
-                binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
-            } catch (e: Exception) {
-                // Progress bar might not exist
+    private fun applyProfile(profile: UserDto) {
+        profile.title?.let { title ->
+            if (titles.any { it.equals(title, ignoreCase = true) }) {
+                binding.spinnerTitle.setText(title, false)
             }
         }
+        if (!profile.firstName.isNullOrEmpty()) binding.etFirstName.setText(profile.firstName)
+        if (!profile.lastName.isNullOrEmpty()) binding.etLastName.setText(profile.lastName)
+        if (!profile.email.isNullOrEmpty()) binding.tvVerifiedEmail.text = profile.email
+        if (!profile.phone.isNullOrEmpty()) binding.etPhone.setText(stripCountryCode(profile.phone))
 
-        viewModel.error.observe(viewLifecycleOwner) { error ->
-            if (error.isNotEmpty()) {
-                showSnackbar(error)
-            }
+        binding.chipVerified.visibility = if (profile.isEmailVerified == false) View.GONE else View.VISIBLE
+
+        if (!profile.photo.isNullOrEmpty() && selectedPhotoUri == null) {
+            Glide.with(this)
+                .load(profile.photo)
+                .placeholder(R.drawable.ic_person)
+                .circleCrop()
+                .into(binding.ivProfilePhoto)
         }
     }
 
     private fun setupClickListeners() {
-        binding.editAccountButton.setOnClickListener {
-            openEditAccountDialog()
+        binding.btnUploadPhoto.setOnClickListener {
+            pickPhotoLauncher.launch("image/*")
         }
 
-        binding.updatePaymentButton.setOnClickListener {
-            openPaymentMethodDialog()
+        binding.btnResetPhoto.setOnClickListener {
+            selectedPhotoUri = null
+            binding.ivProfilePhoto.setImageResource(R.drawable.ic_person)
         }
 
-        binding.twoFactorSwitch.setOnCheckedChangeListener { _, isChecked ->
-            viewModel.updateTwoFactorAuth(isChecked)
+        binding.btnChangeEmail.setOnClickListener {
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Change Email")
+                .setMessage("Email can only be added or changed through the verification flow. This isn't available yet in the app.")
+                .setPositiveButton("OK", null)
+                .show()
         }
 
-        binding.loginNotificationsSwitch.setOnCheckedChangeListener { _, isChecked ->
-            viewModel.updateLoginNotifications(isChecked)
+        binding.btnSaveUpdates.setOnClickListener {
+            saveProfile()
         }
 
-        binding.sessionButton.setOnClickListener {
-            openSessionManagement()
-        }
-
-        binding.deactivateButton.setOnClickListener {
-            showDeactivateConfirmation()
-        }
-
-        binding.deleteButton.setOnClickListener {
-            showDeleteConfirmation()
+        binding.btnSavePassword.setOnClickListener {
+            savePassword()
         }
     }
 
-    private fun openEditAccountDialog() {
-        val dialog = EditAccountDialogFragment()
-        dialog.show(childFragmentManager, "EditAccountDialog")
+    private fun saveProfile() {
+        val title = binding.spinnerTitle.text?.toString()?.trim().takeUnless { it.isNullOrEmpty() }
+        val firstName = binding.etFirstName.text?.toString()?.trim().orEmpty()
+        val lastName = binding.etLastName.text?.toString()?.trim().orEmpty()
+        val phoneDigits = binding.etPhone.text?.toString()?.trim().orEmpty()
+
+        if (firstName.isEmpty() || lastName.isEmpty()) {
+            Toast.makeText(requireContext(), "First and last name are required", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val fullPhone = if (phoneDigits.isNotEmpty()) {
+            binding.ccp.selectedCountryCodeWithPlus + phoneDigits
+        } else {
+            ""
+        }
+
+        viewModel.saveProfile(title, firstName, lastName, fullPhone)
     }
 
-    private fun openPaymentMethodDialog() {
-        val dialog = PaymentMethodDialogFragment()
-        dialog.show(childFragmentManager, "PaymentMethodDialog")
-    }
+    private fun savePassword() {
+        val currentPassword = binding.etCurrentPassword.text?.toString().orEmpty()
+        val newPassword = binding.etNewPassword.text?.toString().orEmpty()
+        val confirmPassword = binding.etConfirmPassword.text?.toString().orEmpty()
 
-    private fun openSessionManagement() {
-        val action = AccountFragmentDirections.actionAccountFragmentToSessionsFragment()
-        findNavController().navigate(action)
-    }
+        if (newPassword.isEmpty()) {
+            Toast.makeText(requireContext(), "Enter a new password", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (newPassword.length < 8) {
+            Toast.makeText(requireContext(), "Password must be at least 8 characters", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (newPassword != confirmPassword) {
+            Toast.makeText(requireContext(), "Passwords don't match", Toast.LENGTH_SHORT).show()
+            return
+        }
 
-    private fun showDeactivateConfirmation() {
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Deactivate Account")
-            .setMessage("Are you sure you want to deactivate your account? You can reactivate it later.")
-            .setPositiveButton("Deactivate") { _, _ ->
-                viewModel.deactivateAccount()
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
-    }
-
-    private fun showDeleteConfirmation() {
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Delete Account")
-            .setMessage("This action cannot be undone. All your data will be permanently deleted.")
-            .setPositiveButton("Delete Account") { _, _ ->
-                viewModel.deleteAccount()
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
+        viewModel.savePassword(currentPassword, newPassword)
+        binding.etCurrentPassword.text?.clear()
+        binding.etNewPassword.text?.clear()
+        binding.etConfirmPassword.text?.clear()
     }
 
     private fun showSnackbar(message: String) {
         Snackbar.make(binding.root, message, Snackbar.LENGTH_SHORT).show()
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 }

@@ -804,4 +804,22 @@
         android:paddingBottom="8dp"
         app:labelVisibilityMode="labeled" />
 
+    <!-- Quick New Sale FAB -->
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/fabQuickNewSale"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="84dp"
+        android:text="New Sale"
+        android:textColor="@android:color/white"
+        android:textAllCaps="false"
+        android:fontFamily="@font/poppins_semibold"
+        app:icon="@drawable/ic_sale"
+        app:iconTint="@android:color/white"
+        app:backgroundTint="#27AE60"
+        app:elevation="8dp"
+        app:rippleColor="#33FFFFFF" />
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
