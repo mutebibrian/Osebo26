@@ -82,7 +82,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         R.id.inventoryFragment,
         R.id.employeesFragment,
         R.id.userRolesFragment,
-        R.id.customersFragment
+        R.id.customersFragment,
+        R.id.aiHubFragment
     )
 
     private val bottomNavDestinations = mapOf(
@@ -548,6 +549,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         menu.findItem(R.id.nav_shops).isVisible = isOwner
         menu.findItem(R.id.nav_shop_home).isVisible = hasShops
 
+        // AI Assistant - available once a shop is selected
+        menu.findItem(R.id.nav_ai).isVisible = hasShops
+
         // Business operations based on permissions
         val businessItems = mapOf(
             R.id.nav_sales to PermissionType.VIEW_SALES,
@@ -612,6 +616,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 if (preferenceManager.hasShop()) navController.navigate(R.id.shopDashboardFragment)
                 else showSelectShopFirstDialog()
             }
+            R.id.nav_ai -> {
+                if (preferenceManager.hasShop()) navController.navigate(R.id.aiHubFragment)
+                else showSelectShopFirstDialog()
+            }
             R.id.nav_sales -> {
                 if (permissionManager.hasPermission(PermissionType.VIEW_SALES)) navController.navigate(R.id.salesFragment)
                 else showPermissionDeniedDialog("sales")
@@ -638,7 +646,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 else showPermissionDeniedDialog("customer management")
             }
             R.id.nav_subscription -> {
-                if (permissionManager.isShopOwner()) navigateToSubscriptionPackages()
+                if (permissionManager.isShopOwner()) navigateToSubscriptionOverview()
                 else showPermissionDeniedDialog("subscription management")
             }
             R.id.nav_user_roles -> {
@@ -814,6 +822,13 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private fun navigateToSubscriptionPackages() {
         if (!preferenceManager.hasShop()) { showSelectShopFirstDialog(); return }
         navController.navigate(R.id.subscriptionPackagesFragment)
+    }
+
+    // Drawer entry point — lands on the billing/overview screen (active bundles, renew,
+    // cancel renewal) rather than jumping straight into the plan picker.
+    private fun navigateToSubscriptionOverview() {
+        if (!preferenceManager.hasShop()) { showSelectShopFirstDialog(); return }
+        navController.navigate(R.id.subscriptionOverviewFragment)
     }
 
     // ===== LOGOUT =====

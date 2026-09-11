@@ -33,7 +33,7 @@ import com.devbrian.osebo.data.local.entity.*
         ExpenseEntity::class,
         ExpenseCategoryEntity::class
     ],
-    version = 12,
+    version = 15,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -59,6 +59,237 @@ abstract class AppDatabase : RoomDatabase() {
     companion object {
         @Volatile
         private var INSTANCE: AppDatabase? = null
+
+        // Migration from version 14 to 15 - Recreate shops to match ShopEntity
+        // (MIGRATION_6_7 created the shops table with SQL DEFAULT values on totalRevenue,
+        // totalExpenses, profit, totalProducts, totalEmployees, subscriptionStatus, isActive
+        // and status, but ShopEntity declares none of those via @ColumnInfo(defaultValue=...),
+        // so Room's Expected schema has no defaults there - the same latent-mismatch pattern as
+        // expenses/expense_categories, just not yet hit because nothing had upgraded past v14.)
+        private val MIGRATION_14_15 = object : Migration(14, 15) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                println("📦 Room Database - Migrating from version 14 to 15")
+                println("📦 Room Database - Recreating shops table to match ShopEntity")
+
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS shops_new (
+                        id TEXT NOT NULL,
+                        uuid TEXT,
+                        name TEXT NOT NULL,
+                        address TEXT,
+                        description TEXT,
+                        shopType TEXT,
+                        phone TEXT,
+                        email TEXT,
+                        registrationNumber TEXT,
+                        taxIdentificationNumber TEXT,
+                        logoUrl TEXT,
+                        totalRevenue REAL NOT NULL,
+                        totalExpenses REAL NOT NULL,
+                        profit REAL NOT NULL,
+                        totalProducts INTEGER NOT NULL,
+                        totalEmployees INTEGER NOT NULL,
+                        subscriptionStatus TEXT NOT NULL,
+                        subscriptionType TEXT,
+                        subscriptionExpiry TEXT,
+                        planId TEXT,
+                        isActive INTEGER NOT NULL,
+                        status TEXT NOT NULL,
+                        ownerId TEXT NOT NULL,
+                        createdAt TEXT,
+                        updatedAt TEXT,
+                        lastSyncedAt INTEGER NOT NULL,
+                        PRIMARY KEY(id)
+                    )
+                """)
+
+                try {
+                    database.execSQL("""
+                        INSERT INTO shops_new (
+                            id, uuid, name, address, description, shopType, phone, email,
+                            registrationNumber, taxIdentificationNumber, logoUrl, totalRevenue,
+                            totalExpenses, profit, totalProducts, totalEmployees,
+                            subscriptionStatus, subscriptionType, subscriptionExpiry, planId,
+                            isActive, status, ownerId, createdAt, updatedAt, lastSyncedAt
+                        )
+                        SELECT
+                            id, uuid, name, address, description, shopType, phone, email,
+                            registrationNumber, taxIdentificationNumber, logoUrl, totalRevenue,
+                            totalExpenses, profit, totalProducts, totalEmployees,
+                            subscriptionStatus, subscriptionType, subscriptionExpiry, planId,
+                            isActive, status, ownerId, createdAt, updatedAt, lastSyncedAt
+                        FROM shops
+                    """)
+                } catch (e: Exception) {
+                    println("❌ Room Database - Error copying shops data during 14->15 migration: ${e.message}")
+                }
+
+                database.execSQL("DROP TABLE IF EXISTS shops")
+                database.execSQL("ALTER TABLE shops_new RENAME TO shops")
+
+                println("📦 Room Database - Migration 14->15 completed successfully")
+            }
+        }
+
+        // Migration from version 13 to 14 - Recreate expenses/expense_categories to match entities
+        // (ExpenseEntity/ExpenseCategoryEntity declare no @Index annotations, but MIGRATION_9_10
+        // created indices on both tables via raw SQL; Room's Expected schema has no indices for
+        // either entity, so the on-disk indices caused "Migration didn't properly handle" even
+        // though the columns matched. Also, isPendingSync on expenses was created with a SQL
+        // DEFAULT 0, which the entity doesn't declare via @ColumnInfo, another mismatch. Fixed by
+        // recreating both tables without indices and without SQL defaults.)
+        private val MIGRATION_13_14 = object : Migration(13, 14) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                println("📦 Room Database - Migrating from version 13 to 14")
+                println("📦 Room Database - Recreating expenses/expense_categories to match entities")
+
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS expenses_new (
+                        id TEXT NOT NULL,
+                        name TEXT NOT NULL,
+                        description TEXT,
+                        amount REAL NOT NULL,
+                        expenseCategoryId TEXT NOT NULL,
+                        expenseCategoryName TEXT,
+                        date TEXT NOT NULL,
+                        shopId TEXT NOT NULL,
+                        paymentMethod TEXT,
+                        receiptUrl TEXT,
+                        createdAt TEXT NOT NULL,
+                        updatedAt TEXT,
+                        isPendingSync INTEGER NOT NULL,
+                        syncAction TEXT,
+                        PRIMARY KEY(id)
+                    )
+                """)
+
+                try {
+                    database.execSQL("""
+                        INSERT INTO expenses_new (
+                            id, name, description, amount, expenseCategoryId, expenseCategoryName,
+                            date, shopId, paymentMethod, receiptUrl, createdAt, updatedAt,
+                            isPendingSync, syncAction
+                        )
+                        SELECT
+                            id, name, description, amount, expenseCategoryId, expenseCategoryName,
+                            date, shopId, paymentMethod, receiptUrl, createdAt, updatedAt,
+                            isPendingSync, syncAction
+                        FROM expenses
+                    """)
+                } catch (e: Exception) {
+                    println("❌ Room Database - Error copying expenses data during 13->14 migration: ${e.message}")
+                }
+
+                database.execSQL("DROP TABLE IF EXISTS expenses")
+                database.execSQL("ALTER TABLE expenses_new RENAME TO expenses")
+
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS expense_categories_new (
+                        id TEXT NOT NULL,
+                        name TEXT NOT NULL,
+                        description TEXT,
+                        shopId TEXT NOT NULL,
+                        createdAt TEXT NOT NULL,
+                        updatedAt TEXT,
+                        PRIMARY KEY(id)
+                    )
+                """)
+
+                try {
+                    database.execSQL("""
+                        INSERT INTO expense_categories_new (id, name, description, shopId, createdAt, updatedAt)
+                        SELECT id, name, description, shopId, createdAt, updatedAt
+                        FROM expense_categories
+                    """)
+                } catch (e: Exception) {
+                    println("❌ Room Database - Error copying expense_categories data during 13->14 migration: ${e.message}")
+                }
+
+                database.execSQL("DROP TABLE IF EXISTS expense_categories")
+                database.execSQL("ALTER TABLE expense_categories_new RENAME TO expense_categories")
+
+                println("📦 Room Database - Migration 13->14 completed successfully")
+            }
+        }
+
+        // Migration from version 12 to 13 - Recreate dashboard/cache tables to match entities
+        // (DashboardSummaryEntity gained totalExpenses with no migration; the other 4 tables
+        // live in the same file and are pure network-refreshed caches with no data worth
+        // preserving, so they're recreated here too as a preventive fix rather than waiting
+        // for each one to surface the same crash separately).
+        private val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                println("📦 Room Database - Migrating from version 12 to 13")
+                println("📦 Room Database - Recreating dashboard cache tables to match entities")
+
+                database.execSQL("DROP TABLE IF EXISTS dashboard_summary")
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS dashboard_summary (
+                        id TEXT NOT NULL,
+                        employeesCount INTEGER NOT NULL,
+                        suppliersCount INTEGER NOT NULL,
+                        customersCount INTEGER NOT NULL,
+                        totalSales REAL NOT NULL,
+                        totalExpenses REAL NOT NULL,
+                        lastUpdated INTEGER NOT NULL,
+                        PRIMARY KEY(id)
+                    )
+                """)
+
+                database.execSQL("DROP TABLE IF EXISTS time_series")
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS time_series (
+                        id TEXT NOT NULL,
+                        xAxis TEXT NOT NULL,
+                        sales TEXT NOT NULL,
+                        expenses TEXT NOT NULL,
+                        lastUpdated INTEGER NOT NULL,
+                        PRIMARY KEY(id)
+                    )
+                """)
+
+                database.execSQL("DROP TABLE IF EXISTS shop_summary")
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS shop_summary (
+                        shopId TEXT NOT NULL,
+                        shopName TEXT NOT NULL,
+                        totalEmployees INTEGER NOT NULL,
+                        totalCustomers INTEGER NOT NULL,
+                        totalSuppliers INTEGER NOT NULL,
+                        totalSales REAL NOT NULL,
+                        lastUpdated INTEGER NOT NULL,
+                        PRIMARY KEY(shopId)
+                    )
+                """)
+
+                database.execSQL("DROP TABLE IF EXISTS financial_statement")
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS financial_statement (
+                        id TEXT NOT NULL,
+                        totalSales REAL NOT NULL,
+                        totalCreditSales REAL NOT NULL,
+                        totalProcurements REAL NOT NULL,
+                        totalExpenses REAL NOT NULL,
+                        lastUpdated INTEGER NOT NULL,
+                        PRIMARY KEY(id)
+                    )
+                """)
+
+                database.execSQL("DROP TABLE IF EXISTS top_stock_items")
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS top_stock_items (
+                        id TEXT NOT NULL,
+                        name TEXT NOT NULL,
+                        quantity INTEGER NOT NULL,
+                        sales REAL NOT NULL,
+                        lastUpdated INTEGER NOT NULL,
+                        PRIMARY KEY(id)
+                    )
+                """)
+
+                println("📦 Room Database - Migration 12->13 completed successfully")
+            }
+        }
 
         // Migration from version 11 to 12 - Add employeeId/employeeName/servedBy to sales
         // (SaleEntity gained these nullable columns but no migration ever added them on-disk).
@@ -360,7 +591,10 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_8_9,
                         MIGRATION_9_10,
                         MIGRATION_10_11,
-                        MIGRATION_11_12
+                        MIGRATION_11_12,
+                        MIGRATION_12_13,
+                        MIGRATION_13_14,
+                        MIGRATION_14_15
                     )
                     .fallbackToDestructiveMigration()
                     .addCallback(object : RoomDatabase.Callback() {
