@@ -5,7 +5,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.devbrian.osebo.data.PreferenceManager
-import com.devbrian.osebo.data.remote.dto.request.UpdateProfileRequest
+import com.devbrian.osebo.data.UpdateProfileRequest
 import com.devbrian.osebo.data.remote.dto.response.UserDto
 import com.devbrian.osebo.data.repository.AccountRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -59,12 +59,13 @@ class ProfileViewModel @Inject constructor(
         viewModelScope.launch {
             _isSavingProfile.value = true
             try {
+                // The endpoint's actual bound DTO (com.devbrian.osebo.data.UpdateProfileRequest)
+                // has no title field, so title is kept in the UI but not sent to the server.
                 val updated = accountRepository.updateProfile(
                     UpdateProfileRequest(
-                        title = title,
                         firstName = firstName,
                         lastName = lastName,
-                        phoneNumber = phone
+                        phone = phone
                     )
                 )
                 _profile.value = updated
