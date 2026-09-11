@@ -71,6 +71,18 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         R.id.subscriptionDetailsFragment
     )
 
+    private val topLevelDestinationIds = setOf(
+        R.id.mainDashboardFragment,
+        R.id.shopsFragment,
+        R.id.salesFragment,
+        R.id.financeFragment,
+        R.id.inventoryFragment,
+        R.id.employeesFragment,
+        R.id.userRolesFragment,
+        R.id.customersFragment,
+        R.id.aiHubFragment
+    )
+
     private val bottomNavDestinations = mapOf(
         R.id.mainDashboardFragment to R.id.main_nav_dashboard,
         R.id.shopsFragment to R.id.main_nav_shops,
@@ -155,16 +167,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         Log.d("NavDrawer_DEBUG", "✅ NavController initialized")
 
         appBarConfiguration = AppBarConfiguration(
-            setOf(
-                R.id.mainDashboardFragment,
-                R.id.shopsFragment,
-                R.id.salesFragment,
-                R.id.financeFragment,
-                R.id.inventoryFragment,
-                R.id.employeesFragment,
-                R.id.userRolesFragment,
-                R.id.customersFragment
-            ),
+            topLevelDestinationIds,
             binding.drawerLayout
         )
 
@@ -231,6 +234,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 else -> {
                     supportActionBar?.title = destination.label
                 }
+            }
+
+            if (destination.id in topLevelDestinationIds) {
+                supportActionBar?.setHomeAsUpIndicator(R.drawable.ic_menu_custom)
             }
 
             val bottomNavItemId = bottomNavDestinations[destination.id]
@@ -539,6 +546,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         menu.findItem(R.id.nav_shops).isVisible = isOwner
         menu.findItem(R.id.nav_shop_home).isVisible = hasShops
 
+        // AI Assistant - available once a shop is selected
+        menu.findItem(R.id.nav_ai).isVisible = hasShops
+
         // Business operations based on permissions
         val businessItems = mapOf(
             R.id.nav_sales to PermissionType.VIEW_SALES,
@@ -603,6 +613,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 if (preferenceManager.hasShop()) navController.navigate(R.id.shopDashboardFragment)
                 else showSelectShopFirstDialog()
             }
+            R.id.nav_ai -> {
+                if (preferenceManager.hasShop()) navController.navigate(R.id.aiHubFragment)
+                else showSelectShopFirstDialog()
+            }
             R.id.nav_sales -> {
                 if (permissionManager.hasPermission(PermissionType.VIEW_SALES)) navController.navigate(R.id.salesFragment)
                 else showPermissionDeniedDialog("sales")
@@ -629,7 +643,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 else showPermissionDeniedDialog("customer management")
             }
             R.id.nav_subscription -> {
-                if (permissionManager.isShopOwner()) navigateToSubscriptionPackages()
+                if (permissionManager.isShopOwner()) navigateToSubscriptionOverview()
                 else showPermissionDeniedDialog("subscription management")
             }
             R.id.nav_user_roles -> {
@@ -805,6 +819,13 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private fun navigateToSubscriptionPackages() {
         if (!preferenceManager.hasShop()) { showSelectShopFirstDialog(); return }
         navController.navigate(R.id.subscriptionPackagesFragment)
+    }
+
+    // Drawer entry point — lands on the billing/overview screen (active bundles, renew,
+    // cancel renewal) rather than jumping straight into the plan picker.
+    private fun navigateToSubscriptionOverview() {
+        if (!preferenceManager.hasShop()) { showSelectShopFirstDialog(); return }
+        navController.navigate(R.id.subscriptionOverviewFragment)
     }
 
     // ===== LOGOUT =====
