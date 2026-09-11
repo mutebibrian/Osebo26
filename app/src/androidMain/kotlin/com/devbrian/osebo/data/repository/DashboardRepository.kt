@@ -42,6 +42,16 @@ class DashboardRepository(
         return (System.currentTimeMillis() - lastUpdate) < CACHE_VALIDITY_PERIOD
     }
 
+    suspend fun refreshTopStockItems() {
+        val shopUuid = preferences.getCurrentShopUuid().takeIf { it.isNotEmpty() }
+            ?: preferences.getCurrentShopId()
+        if (shopUuid.isEmpty()) {
+            Log.e(TAG, "❌ No shop selected – cannot refresh top stock items")
+            return
+        }
+        fetchAndSaveTopStockItems(shopUuid)
+    }
+
     suspend fun refreshDashboardData() {
         val shopUuid = preferences.getCurrentShopUuid().takeIf { it.isNotEmpty() }
             ?: preferences.getCurrentShopId()

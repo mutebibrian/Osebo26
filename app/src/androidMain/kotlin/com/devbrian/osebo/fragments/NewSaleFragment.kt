@@ -17,7 +17,6 @@ import com.devbrian.osebo.data.PreferenceManager
 import com.devbrian.osebo.data.local.AppDatabase
 import com.devbrian.osebo.data.local.entity.ProductEntity
 import com.devbrian.osebo.databinding.FragmentNewSaleBinding
-import com.devbrian.osebo.models.Customer
 import com.devbrian.osebo.ui.viewmodels.SalesViewModel
 import com.devbrian.osebo.utils.CurrencyFormatter
 import kotlinx.coroutines.launch
@@ -31,14 +30,6 @@ class NewSaleFragment : Fragment() {
     private lateinit var productAdapter: ProductAdapter
     private lateinit var cartAdapter: CartAdapter
     private lateinit var preferenceManager: PreferenceManager
-
-    private val walkInCustomer = Customer(
-        id = "797231da-d7c2-4f8c-bf13-1e3fc08b2e8e",
-        name = "Walk-in Customer",
-        phone = "",
-        email = "",
-        address = ""
-    )
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -99,7 +90,8 @@ class NewSaleFragment : Fragment() {
 
         viewModel.loadProducts()
         viewModel.loadCustomers()
-        viewModel.selectCustomer(walkInCustomer)
+        viewModel.refreshCustomersFromServer()
+        viewModel.clearSelectedCustomer()
 
         debugShopInfo()
 
@@ -502,17 +494,23 @@ class NewSaleFragment : Fragment() {
             return
         }
 
+        // The server rejects sales with no customer_id (it must be a real UUID), so the shop's
+        // default/walk-in customer must have synced in before checkout can proceed.
+        if (selectedCustomer == null) {
+            Toast.makeText(
+                requireContext(),
+                "Still loading customer info, please wait a moment and try again",
+                Toast.LENGTH_LONG
+            ).show()
+            return
+        }
+
         try {
             val itemsList = ArrayList(cartItems)
             val itemsArray = itemsList.toTypedArray()
 
             val action = NewSaleFragmentDirections.actionNewSaleFragmentToPaymentFragment(
-                // walkInCustomer is a local UI placeholder with a hardcoded UUID that only
-                // exists as a real customer under whichever shop it was created in — sending
-                // it as customer_id gets sales rejected for every other shop. Only pass an ID
-                // when a real customer was picked; null lets PaymentFragment's existing
-                // walk-in handling take over.
-                customerId = selectedCustomer?.id?.takeIf { it != walkInCustomer.id },
+                customerId = selectedCustomer.id,
                 cartItems = itemsArray,
                 totalAmount = totalAmount
             )
@@ -580,6 +578,18 @@ class NewSaleFragment : Fragment() {
             } ?: run {
                 binding.selectedCustomerTextView?.text = "Walk-in Customer"
                 binding.customerPhoneTextView?.text = "Default customer"
+            }
+        }
+
+        // The server requires a real customer_id (a bare walk-in sale is rejected), and every
+        // shop has its own backend-assigned default/walk-in customer flagged isDefault - once
+        // the real customer list syncs in, auto-select that one instead of leaving the selection
+        // empty, so proceedToPayment() has a valid per-shop ID to send.
+        viewModel.customers.observe(viewLifecycleOwner) { customers ->
+            if (viewModel.selectedCustomer.value == null) {
+                customers.firstOrNull { it.isDefault }?.let { defaultCustomer ->
+                    viewModel.setDefaultCustomerSilently(defaultCustomer)
+                }
             }
         }
 
@@ -685,8 +695,12 @@ class NewSaleFragment : Fragment() {
     }
 
     private fun showCustomerSelectionDialog() {
-        val customers = listOf(walkInCustomer)
-        val customerNames = customers.map { it.name }.toTypedArray()
+        val customers = viewModel.customers.value.orEmpty()
+        if (customers.isEmpty()) {
+            Toast.makeText(requireContext(), "Customers are still loading, please wait", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val customerNames = customers.map { if (it.isDefault) "${it.name} (default)" else it.name }.toTypedArray()
 
         android.app.AlertDialog.Builder(requireContext())
             .setTitle("Select Customer")

@@ -151,6 +151,9 @@ class ShopDashboardFragment : Fragment() {
         binding.fabNewSale.setOnClickListener {
             findNavController().navigate(R.id.newSaleFragment)
         }
+        binding.fabQuickNewSale.setOnClickListener {
+            findNavController().navigate(R.id.newSaleFragment)
+        }
         binding.fabAddProduct.setOnClickListener {
             findNavController().navigate(R.id.addProductFragment)
         }
