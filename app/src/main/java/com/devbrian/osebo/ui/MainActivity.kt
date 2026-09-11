@@ -646,7 +646,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 else showPermissionDeniedDialog("customer management")
             }
             R.id.nav_subscription -> {
-                if (permissionManager.isShopOwner()) navigateToSubscriptionPackages()
+                if (permissionManager.isShopOwner()) navigateToSubscriptionOverview()
                 else showPermissionDeniedDialog("subscription management")
             }
             R.id.nav_user_roles -> {
@@ -822,6 +822,13 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private fun navigateToSubscriptionPackages() {
         if (!preferenceManager.hasShop()) { showSelectShopFirstDialog(); return }
         navController.navigate(R.id.subscriptionPackagesFragment)
+    }
+
+    // Drawer entry point — lands on the billing/overview screen (active bundles, renew,
+    // cancel renewal) rather than jumping straight into the plan picker.
+    private fun navigateToSubscriptionOverview() {
+        if (!preferenceManager.hasShop()) { showSelectShopFirstDialog(); return }
+        navController.navigate(R.id.subscriptionOverviewFragment)
     }
 
     // ===== LOGOUT =====
