@@ -82,11 +82,14 @@ data class EmployeeData(
     @SerializedName("kin_phone")
     val kinPhone: String?,
 
+    // The real API returns this as a plain string (e.g. "admin"), not the RoleDto object
+    // shape used elsewhere - a mismatch that crashed Gson with "Expected BEGIN_OBJECT but
+    // was STRING" on every employees list load.
     @SerializedName("role")
-    val roleDto: RoleDto?,
+    val roleRaw: String?,
 
     @SerializedName("shopId")
     val shopId: String? = null
 ) {
-    val role: String get() = roleDto?.name ?: "staff"
+    val role: String get() = roleRaw ?: "staff"
 }

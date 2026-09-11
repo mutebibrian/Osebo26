@@ -1000,4 +1000,23 @@
 
     </fragment>
 
+    <!-- AI Hub Fragment -->
+    <fragment
+        android:id="@+id/aiHubFragment"
+        android:name="com.devbrian.osebo.fragments.AiHubFragment"
+        android:label="AI Assistant"
+        tools:layout="@layout/fragment_ai_hub">
+
+        <action
+            android:id="@+id/action_aiHubFragment_to_aiChatFragment"
+            app:destination="@id/aiChatFragment" />
+    </fragment>
+
+    <!-- AI Chat Fragment -->
+    <fragment
+        android:id="@+id/aiChatFragment"
+        android:name="com.devbrian.osebo.fragments.AiChatFragment"
+        android:label="Osebo AI"
+        tools:layout="@layout/fragment_ai_chat" />
+
 </navigation>

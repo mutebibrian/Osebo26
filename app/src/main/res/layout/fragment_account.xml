@@ -1,575 +1,512 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="@color/background_grey">
+    android:background="@color/light_background"
+    tools:context=".fragments.AccountFragment">
 
-    <!-- Add Toolbar -->
-    <com.google.android.material.appbar.MaterialToolbar
-        android:id="@+id/toolbar"
+    <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:background="?attr/colorPrimary"
-        app:navigationIcon="?attr/homeAsUpIndicator"
-        app:title="Account"
-        app:titleTextColor="@android:color/white" />
+        android:layout_height="wrap_content"
+        android:theme="@style/ThemeOverlay.MaterialComponents.Dark.ActionBar">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            app:navigationIcon="@drawable/ic_arrow_back"
+            app:title="Account" />
+
+    </com.google.android.material.appbar.AppBarLayout>
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-        <androidx.constraintlayout.widget.ConstraintLayout
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:orientation="vertical"
             android:padding="16dp">
 
-            <!-- Progress Bar (Loading State) -->
+            <!-- Header -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_rounded_light"
+                android:backgroundTint="@color/primary_light"
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:layout_marginBottom="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Account Settings"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/black" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="Settings · Account Settings"
+                    android:textSize="13sp"
+                    android:textColor="@color/grey_600" />
+
+            </LinearLayout>
+
             <ProgressBar
                 android:id="@+id/progressBar"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
+                android:layout_marginBottom="16dp"
                 android:visibility="gone"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent" />
+                tools:visibility="visible" />
 
-            <!-- Header Card -->
+            <!-- Change Profile -->
             <com.google.android.material.card.MaterialCardView
-                android:id="@+id/headerCard"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 app:cardCornerRadius="12dp"
-                app:cardElevation="2dp"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent">
+                app:cardElevation="1dp"
+                app:strokeColor="@color/grey_200"
+                app:strokeWidth="1dp">
 
-                <androidx.constraintlayout.widget.ConstraintLayout
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:orientation="vertical"
                     android:padding="16dp">
 
                     <TextView
-                        android:id="@+id/accountTitle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Account"
-                        android:textSize="20sp"
-                        android:textStyle="bold"
-                        android:textColor="@android:color/black"
-                        app:layout_constraintTop_toTopOf="parent"
-                        app:layout_constraintStart_toStartOf="parent" />
-
-                    <TextView
-                        android:id="@+id/accountSubtitle"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Manage your account settings"
-                        android:textSize="14sp"
-                        android:textColor="@color/grey_600"
-                        android:layout_marginTop="4dp"
-                        app:layout_constraintTop_toBottomOf="@id/accountTitle"
-                        app:layout_constraintStart_toStartOf="parent" />
-
-                </androidx.constraintlayout.widget.ConstraintLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Account Details Section -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/accountDetailsCard"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="2dp"
-                app:layout_constraintTop_toBottomOf="@id/headerCard"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent">
-
-                <androidx.constraintlayout.widget.ConstraintLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:padding="16dp">
-
-                    <TextView
-                        android:id="@+id/accountDetailsTitle"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Account Details"
+                        android:text="Change Profile"
                         android:textSize="16sp"
                         android:textStyle="bold"
-                        android:textColor="@android:color/black"
-                        app:layout_constraintTop_toTopOf="parent"
-                        app:layout_constraintStart_toStartOf="parent" />
-
-                    <!-- Business Name -->
-                    <TextView
-                        android:id="@+id/businessNameLabel"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Business Name"
-                        android:textSize="14sp"
-                        android:textColor="@color/grey_700"
-                        android:layout_marginTop="16dp"
-                        app:layout_constraintTop_toBottomOf="@id/accountDetailsTitle"
-                        app:layout_constraintStart_toStartOf="parent" />
+                        android:textColor="@color/black" />
 
                     <TextView
-                        android:id="@+id/businessNameValue"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Loading..."
-                        android:textSize="14sp"
-                        android:textColor="@android:color/black"
-                        android:layout_marginTop="4dp"
-                        app:layout_constraintTop_toBottomOf="@id/businessNameLabel"
-                        app:layout_constraintStart_toStartOf="parent" />
-
-                    <!-- Business Type -->
-                    <TextView
-                        android:id="@+id/businessTypeLabel"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Business Type"
-                        android:textSize="14sp"
-                        android:textColor="@color/grey_700"
-                        android:layout_marginTop="16dp"
-                        app:layout_constraintTop_toBottomOf="@id/businessNameValue"
-                        app:layout_constraintStart_toStartOf="parent" />
-
-                    <TextView
-                        android:id="@+id/businessTypeValue"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Loading..."
-                        android:textSize="14sp"
-                        android:textColor="@android:color/black"
-                        android:layout_marginTop="4dp"
-                        app:layout_constraintTop_toBottomOf="@id/businessTypeLabel"
-                        app:layout_constraintStart_toStartOf="parent" />
-
-                    <!-- Registration Number -->
-                    <TextView
-                        android:id="@+id/registrationLabel"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Registration Number"
-                        android:textSize="14sp"
-                        android:textColor="@color/grey_700"
-                        android:layout_marginTop="16dp"
-                        app:layout_constraintTop_toBottomOf="@id/businessTypeValue"
-                        app:layout_constraintStart_toStartOf="parent" />
-
-                    <TextView
-                        android:id="@+id/registrationValue"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Loading..."
-                        android:textSize="14sp"
-                        android:textColor="@android:color/black"
-                        android:layout_marginTop="4dp"
-                        app:layout_constraintTop_toBottomOf="@id/registrationLabel"
-                        app:layout_constraintStart_toStartOf="parent" />
-
-                    <!-- Tax ID -->
-                    <TextView
-                        android:id="@+id/taxIdLabel"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Tax ID"
-                        android:textSize="14sp"
-                        android:textColor="@color/grey_700"
-                        android:layout_marginTop="16dp"
-                        app:layout_constraintTop_toBottomOf="@id/registrationValue"
-                        app:layout_constraintStart_toStartOf="parent" />
-
-                    <TextView
-                        android:id="@+id/taxIdValue"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Loading..."
-                        android:textSize="14sp"
-                        android:textColor="@android:color/black"
-                        android:layout_marginTop="4dp"
-                        app:layout_constraintTop_toBottomOf="@id/taxIdLabel"
-                        app:layout_constraintStart_toStartOf="parent" />
-
-                    <!-- Address -->
-                    <TextView
-                        android:id="@+id/addressLabel"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Business Address"
-                        android:textSize="14sp"
-                        android:textColor="@color/grey_700"
-                        android:layout_marginTop="16dp"
-                        app:layout_constraintTop_toBottomOf="@id/taxIdValue"
-                        app:layout_constraintStart_toStartOf="parent" />
-
-                    <TextView
-                        android:id="@+id/addressValue"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Loading..."
-                        android:textSize="14sp"
-                        android:textColor="@android:color/black"
-                        android:layout_marginTop="4dp"
-                        app:layout_constraintTop_toBottomOf="@id/addressLabel"
-                        app:layout_constraintStart_toStartOf="parent" />
-
-                    <!-- Account Status -->
-                    <TextView
-                        android:id="@+id/statusLabel"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Account Status"
-                        android:textSize="14sp"
-                        android:textColor="@color/grey_700"
-                        android:layout_marginTop="16dp"
-                        app:layout_constraintTop_toBottomOf="@id/addressValue"
-                        app:layout_constraintStart_toStartOf="parent" />
-
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/statusChip"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Active"
-                        android:textColor="@android:color/white"
-                        app:chipBackgroundColor="@color/success_green"
-                        android:layout_marginTop="4dp"
-                        app:layout_constraintTop_toBottomOf="@id/statusLabel"
-                        app:layout_constraintStart_toStartOf="parent" />
-
-                    <!-- Edit Button -->
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/editAccountButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Edit Account"
-                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                        android:layout_marginTop="24dp"
-                        app:layout_constraintTop_toBottomOf="@id/statusChip"
-                        app:layout_constraintStart_toStartOf="parent" />
-
-                </androidx.constraintlayout.widget.ConstraintLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Billing Information Section -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/billingCard"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="2dp"
-                app:layout_constraintTop_toBottomOf="@id/accountDetailsCard"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent">
-
-                <androidx.constraintlayout.widget.ConstraintLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:padding="16dp">
-
-                    <TextView
-                        android:id="@+id/billingTitle"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Billing Information"
-                        android:textSize="16sp"
-                        android:textStyle="bold"
-                        android:textColor="@android:color/black"
-                        app:layout_constraintTop_toTopOf="parent"
-                        app:layout_constraintStart_toStartOf="parent" />
-
-                    <!-- Payment Method -->
-                    <TextView
-                        android:id="@+id/paymentMethodLabel"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Payment Method"
-                        android:textSize="14sp"
-                        android:textColor="@color/grey_700"
-                        android:layout_marginTop="16dp"
-                        app:layout_constraintTop_toBottomOf="@id/billingTitle"
-                        app:layout_constraintStart_toStartOf="parent" />
-
-                    <TextView
-                        android:id="@+id/paymentMethodValue"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Loading..."
-                        android:textSize="14sp"
-                        android:textColor="@android:color/black"
-                        android:layout_marginTop="4dp"
-                        app:layout_constraintTop_toBottomOf="@id/paymentMethodLabel"
-                        app:layout_constraintStart_toStartOf="parent" />
-
-                    <!-- Billing Cycle -->
-                    <TextView
-                        android:id="@+id/billingCycleLabel"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Billing Cycle"
-                        android:textSize="14sp"
-                        android:textColor="@color/grey_700"
-                        android:layout_marginTop="16dp"
-                        app:layout_constraintTop_toBottomOf="@id/paymentMethodValue"
-                        app:layout_constraintStart_toStartOf="parent" />
-
-                    <TextView
-                        android:id="@+id/billingCycleValue"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Loading..."
-                        android:textSize="14sp"
-                        android:textColor="@android:color/black"
-                        android:layout_marginTop="4dp"
-                        app:layout_constraintTop_toBottomOf="@id/billingCycleLabel"
-                        app:layout_constraintStart_toStartOf="parent" />
-
-                    <!-- Next Billing Date -->
-                    <TextView
-                        android:id="@+id/nextBillingLabel"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Next Billing Date"
-                        android:textSize="14sp"
-                        android:textColor="@color/grey_700"
-                        android:layout_marginTop="16dp"
-                        app:layout_constraintTop_toBottomOf="@id/billingCycleValue"
-                        app:layout_constraintStart_toStartOf="parent" />
-
-                    <TextView
-                        android:id="@+id/nextBillingValue"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Loading..."
-                        android:textSize="14sp"
-                        android:textColor="@android:color/black"
-                        android:layout_marginTop="4dp"
-                        app:layout_constraintTop_toBottomOf="@id/nextBillingLabel"
-                        app:layout_constraintStart_toStartOf="parent" />
-
-                    <!-- Update Payment Button -->
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/updatePaymentButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Update Payment Method"
-                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                        android:layout_marginTop="24dp"
-                        app:layout_constraintTop_toBottomOf="@id/nextBillingValue"
-                        app:layout_constraintStart_toStartOf="parent" />
-
-                </androidx.constraintlayout.widget.ConstraintLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Security Settings -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/securityCard"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="2dp"
-                android:layout_marginBottom="16dp"
-                app:layout_constraintTop_toBottomOf="@id/billingCard"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent">
-
-                <androidx.constraintlayout.widget.ConstraintLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:padding="16dp">
-
-                    <TextView
-                        android:id="@+id/securityTitle"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Security Settings"
-                        android:textSize="16sp"
-                        android:textStyle="bold"
-                        android:textColor="@android:color/black"
-                        app:layout_constraintTop_toTopOf="parent"
-                        app:layout_constraintStart_toStartOf="parent" />
-
-                    <!-- Two-Factor Authentication -->
-                    <androidx.constraintlayout.widget.ConstraintLayout
-                        android:id="@+id/twoFactorItem"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:paddingVertical="12dp"
-                        app:layout_constraintTop_toBottomOf="@id/securityTitle"
-                        app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintEnd_toEndOf="parent">
-
-                        <TextView
-                            android:id="@+id/twoFactorLabel"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:text="Two-Factor Authentication"
-                            android:textSize="14sp"
-                            android:textColor="@android:color/black"
-                            app:layout_constraintStart_toStartOf="parent"
-                            app:layout_constraintTop_toTopOf="parent"
-                            app:layout_constraintBottom_toBottomOf="parent"
-                            app:layout_constraintEnd_toStartOf="@id/twoFactorSwitch" />
-
-                        <com.google.android.material.switchmaterial.SwitchMaterial
-                            android:id="@+id/twoFactorSwitch"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            app:layout_constraintEnd_toEndOf="parent"
-                            app:layout_constraintTop_toTopOf="parent"
-                            app:layout_constraintBottom_toBottomOf="parent" />
-
-                    </androidx.constraintlayout.widget.ConstraintLayout>
-
-                    <!-- View separator -->
-                    <View
-                        android:id="@+id/separator1"
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:background="@color/grey_200"
-                        android:layout_marginTop="12dp"
-                        app:layout_constraintTop_toBottomOf="@id/twoFactorItem"
-                        app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintEnd_toEndOf="parent" />
-
-                    <!-- Login Notifications -->
-                    <androidx.constraintlayout.widget.ConstraintLayout
-                        android:id="@+id/loginNotificationsItem"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:paddingVertical="12dp"
-                        app:layout_constraintTop_toBottomOf="@id/separator1"
-                        app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintEnd_toEndOf="parent">
-
-                        <TextView
-                            android:id="@+id/loginNotificationsLabel"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:text="Login Notifications"
-                            android:textSize="14sp"
-                            android:textColor="@android:color/black"
-                            app:layout_constraintStart_toStartOf="parent"
-                            app:layout_constraintTop_toTopOf="parent"
-                            app:layout_constraintBottom_toBottomOf="parent"
-                            app:layout_constraintEnd_toStartOf="@id/loginNotificationsSwitch" />
-
-                        <com.google.android.material.switchmaterial.SwitchMaterial
-                            android:id="@+id/loginNotificationsSwitch"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            app:layout_constraintEnd_toEndOf="parent"
-                            app:layout_constraintTop_toTopOf="parent"
-                            app:layout_constraintBottom_toBottomOf="parent" />
-
-                    </androidx.constraintlayout.widget.ConstraintLayout>
-
-                    <!-- View separator -->
-                    <View
-                        android:id="@+id/separator2"
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:background="@color/grey_200"
-                        android:layout_marginTop="12dp"
-                        app:layout_constraintTop_toBottomOf="@id/loginNotificationsItem"
-                        app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintEnd_toEndOf="parent" />
-
-                    <!-- Session Management -->
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/sessionButton"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Manage Active Sessions"
-                        style="@style/Widget.MaterialComponents.Button.TextButton"
-                        android:textColor="@color/primary_color"
-                        android:layout_marginTop="12dp"
-                        app:layout_constraintTop_toBottomOf="@id/separator2"
-                        app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintEnd_toEndOf="parent" />
-
-                </androidx.constraintlayout.widget.ConstraintLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Danger Zone -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/dangerZoneCard"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="2dp"
-                app:cardBackgroundColor="@color/error_light"
-                app:layout_constraintTop_toBottomOf="@id/securityCard"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent">
-
-                <androidx.constraintlayout.widget.ConstraintLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:padding="16dp">
-
-                    <TextView
-                        android:id="@+id/dangerZoneTitle"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Danger Zone"
-                        android:textSize="16sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/error_red"
-                        app:layout_constraintTop_toTopOf="parent"
-                        app:layout_constraintStart_toStartOf="parent" />
-
-                    <TextView
-                        android:id="@+id/dangerZoneSubtitle"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Irreversible actions"
-                        android:textSize="12sp"
-                        android:textColor="@color/error_red"
                         android:layout_marginTop="2dp"
-                        app:layout_constraintTop_toBottomOf="@id/dangerZoneTitle"
-                        app:layout_constraintStart_toStartOf="parent" />
+                        android:layout_marginBottom="16dp"
+                        android:text="Change your profile picture from here"
+                        android:textSize="13sp"
+                        android:textColor="@color/grey_600" />
 
-                    <!-- Deactivate Account -->
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/deactivateButton"
+                    <ImageView
+                        android:id="@+id/ivProfilePhoto"
+                        android:layout_width="110dp"
+                        android:layout_height="110dp"
+                        android:layout_gravity="center_horizontal"
+                        android:background="@drawable/bg_avatar_circle"
+                        android:contentDescription="@null"
+                        android:padding="18dp"
+                        android:scaleType="centerCrop"
+                        android:src="@drawable/ic_person" />
+
+                    <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Deactivate Account"
-                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                        android:textColor="@color/error_red"
+                        android:layout_gravity="center_horizontal"
                         android:layout_marginTop="16dp"
-                        app:layout_constraintTop_toBottomOf="@id/dangerZoneSubtitle"
-                        app:layout_constraintStart_toStartOf="parent" />
+                        android:orientation="horizontal">
 
-                    <!-- Delete Account -->
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/deleteButton"
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnUploadPhoto"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Upload"
+                            android:textAllCaps="false"
+                            style="@style/Widget.MaterialComponents.Button" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnResetPhoto"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:text="Reset"
+                            android:textAllCaps="false"
+                            android:textColor="@color/error_red"
+                            app:backgroundTint="@color/red_50"
+                            app:rippleColor="@color/red_200"
+                            style="@style/Widget.MaterialComponents.Button.UnelevatedButton" />
+
+                    </LinearLayout>
+
+                    <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Delete Account"
-                        style="@style/Widget.MaterialComponents.Button.TextButton"
-                        android:textColor="@color/error_red"
-                        android:layout_marginStart="16dp"
-                        app:layout_constraintTop_toTopOf="@id/deactivateButton"
-                        app:layout_constraintStart_toEndOf="@id/deactivateButton"
-                        app:layout_constraintBottom_toBottomOf="@id/deactivateButton" />
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginTop="12dp"
+                        android:text="Allowed JPG, GIF or PNG. Max size of 800K"
+                        android:textSize="12sp"
+                        android:textColor="@color/grey_600" />
 
-                </androidx.constraintlayout.widget.ConstraintLayout>
+                </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-        </androidx.constraintlayout.widget.ConstraintLayout>
+            <!-- Set or Change Password -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="1dp"
+                app:strokeColor="@color/grey_200"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Set or Change Password"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/black" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:layout_marginBottom="16dp"
+                        android:text="Add a password for the first time or change your existing password here."
+                        android:textSize="13sp"
+                        android:textColor="@color/grey_600" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Current Password (optional)"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/black"
+                        android:layout_marginBottom="6dp" />
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="Leave blank if you are setting a password for the first time"
+                        app:passwordToggleEnabled="true"
+                        android:layout_marginBottom="16dp">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etCurrentPassword"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="textPassword" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="New Password"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/black"
+                        android:layout_marginBottom="6dp" />
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:passwordToggleEnabled="true"
+                        android:layout_marginBottom="16dp">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etNewPassword"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="textPassword" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Confirm Password"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/black"
+                        android:layout_marginBottom="6dp" />
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:passwordToggleEnabled="true"
+                        android:layout_marginBottom="20dp">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etConfirmPassword"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="textPassword" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnSavePassword"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="end"
+                        android:text="Save Password"
+                        android:textAllCaps="false"
+                        style="@style/Widget.MaterialComponents.Button" />
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Personal Details -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="1dp"
+                app:strokeColor="@color/grey_200"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Personal Details"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/black" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:layout_marginBottom="16dp"
+                        android:text="To change your personal detail, edit and save from here"
+                        android:textSize="13sp"
+                        android:textColor="@color/grey_600" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Title"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/black"
+                        android:layout_marginBottom="6dp" />
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp">
+
+                        <AutoCompleteTextView
+                            android:id="@+id/spinnerTitle"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="none" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="First Name"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/black"
+                        android:layout_marginBottom="6dp" />
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etFirstName"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="textPersonName" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Last Name"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/black"
+                        android:layout_marginBottom="6dp" />
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etLastName"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="textPersonName" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- Verified email -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        app:cardCornerRadius="8dp"
+                        app:cardElevation="0dp"
+                        app:strokeColor="@color/grey_200"
+                        app:strokeWidth="1dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="top"
+                            android:padding="16dp">
+
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Verified email"
+                                    android:textSize="13sp"
+                                    android:textStyle="bold"
+                                    android:textColor="@color/black" />
+
+                                <TextView
+                                    android:id="@+id/tvVerifiedEmail"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="2dp"
+                                    android:text="you@example.com"
+                                    android:textSize="14sp"
+                                    android:textColor="@color/grey_700"
+                                    tools:text="mutebibrian256@gmail.com" />
+
+                                <com.google.android.material.chip.Chip
+                                    android:id="@+id/chipVerified"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="6dp"
+                                    android:text="Verified"
+                                    android:textSize="11sp"
+                                    app:chipBackgroundColor="@color/green_50"
+                                    android:textColor="@color/success_green"
+                                    app:chipMinHeight="24dp" />
+
+                                <TextView
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="6dp"
+                                    android:text="Email can only be added or changed through the verification flow."
+                                    android:textSize="11sp"
+                                    android:textColor="@color/grey_600" />
+
+                            </LinearLayout>
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnChangeEmail"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Change email"
+                                android:textAllCaps="false"
+                                android:textSize="12sp"
+                                style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Phone number"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/black"
+                        android:layout_marginBottom="6dp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="20dp">
+
+                        <com.hbb20.CountryCodePicker
+                            android:id="@+id/ccp"
+                            android:layout_width="wrap_content"
+                            android:layout_height="56dp"
+                            android:background="@drawable/bg_input"
+                            android:gravity="center"
+                            app:ccp_autoDetectCountry="true"
+                            app:ccp_defaultNameCode="UG"
+                            app:ccp_showFlag="true"
+                            app:ccp_showFullName="false"
+                            app:ccp_showNameCode="false"
+                            app:ccp_showPhoneCode="true"
+                            app:ccp_showArrow="true" />
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginStart="8dp">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/etPhone"
+                                android:layout_width="match_parent"
+                                android:layout_height="56dp"
+                                android:inputType="phone" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                    </LinearLayout>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnSaveUpdates"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="end"
+                        android:text="Save Updates"
+                        android:textAllCaps="false"
+                        style="@style/Widget.MaterialComponents.Button" />
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <ProgressBar
+                android:id="@+id/progressBottom"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginTop="16dp"
+                android:visibility="gone" />
+
+        </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
-</LinearLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
