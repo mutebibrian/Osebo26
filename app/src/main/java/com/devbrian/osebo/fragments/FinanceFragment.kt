@@ -14,6 +14,7 @@ import com.devbrian.osebo.adapters.TransactionAdapter
 import com.devbrian.osebo.databinding.FragmentFinanceBinding
 import com.devbrian.osebo.models.Transaction
 import com.devbrian.osebo.ui.viewmodels.FinanceViewModel
+import com.devbrian.osebo.utils.FinancialStatementExportUtils
 import dagger.hilt.android.AndroidEntryPoint
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
@@ -401,7 +402,25 @@ class FinanceFragment : Fragment() {
     }
 
     private fun showFilterDialog() { Toast.makeText(requireContext(), "Filter coming soon", Toast.LENGTH_SHORT).show() }
-    private fun exportFinancialData() { Toast.makeText(requireContext(), "Export coming soon", Toast.LENGTH_SHORT).show() }
+
+    private fun exportFinancialData() {
+        val statement = viewModel.financialStatement.value
+        if (statement == null) {
+            Toast.makeText(requireContext(), "No financial data to export yet", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val (startDate, endDate) = getDateRangeForPeriod(selectedPeriod)
+        val dateRangeLabel = if (startDate != null && endDate != null) "$startDate to $endDate" else ""
+
+        FinancialStatementExportUtils.showExportDialog(
+            fragment = this,
+            shopName = viewModel.getCurrentShopName(),
+            periodLabel = selectedPeriod,
+            dateRangeLabel = dateRangeLabel,
+            statement = statement
+        )
+    }
     private fun refreshData() { loadFinancialData(); Toast.makeText(requireContext(), "Refreshing data...", Toast.LENGTH_SHORT).show() }
     private fun navigateToFinanceSettings() { findNavController().navigate(R.id.financeSettingsFragment) }
 

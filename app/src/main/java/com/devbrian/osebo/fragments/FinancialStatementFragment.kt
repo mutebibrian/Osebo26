@@ -8,8 +8,10 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import com.devbrian.osebo.R
+import com.devbrian.osebo.data.PreferenceManager
 import com.devbrian.osebo.databinding.FragmentFinancialStatementBinding
 import com.devbrian.osebo.ui.viewmodels.FinancialStatementViewModel
+import com.devbrian.osebo.utils.FinancialStatementExportUtils
 import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.data.*
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
@@ -303,8 +305,24 @@ class FinancialStatementFragment : Fragment() {
     }
 
     private fun exportToExcel() {
-        Toast.makeText(requireContext(), "Exporting to Excel...", Toast.LENGTH_SHORT).show()
-        viewModel.exportToExcel()
+        val statement = viewModel.financialStatement.value
+        if (statement == null) {
+            Toast.makeText(requireContext(), "No financial data to export yet", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val (startDate, endDate) = getDateRangeForPeriod(selectedPeriod)
+        val dateRangeLabel = if (startDate != null && endDate != null) "$startDate to $endDate" else ""
+        val shopName = PreferenceManager.getInstance(requireContext()).getCurrentShopName()
+            .ifEmpty { "My Shop" }
+
+        FinancialStatementExportUtils.showExportDialog(
+            fragment = this,
+            shopName = shopName,
+            periodLabel = selectedPeriod,
+            dateRangeLabel = dateRangeLabel,
+            statement = statement
+        )
     }
 
     private fun printStatement() {
