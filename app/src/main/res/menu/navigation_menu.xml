@@ -16,6 +16,16 @@
             android:title="Shops" />
     </group>
 
+    <!-- AI SECTION -->
+    <group
+        android:id="@+id/group_ai"
+        android:checkableBehavior="none">
+        <item
+            android:id="@+id/nav_ai"
+            android:icon="@drawable/ic_ai"
+            android:title="AI Assistant" />
+    </group>
+
     <!-- SHOP SECTION -->
     <group
         android:id="@+id/group_shop"
