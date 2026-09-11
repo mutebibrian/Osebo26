@@ -33,6 +33,7 @@ class ProductDetailsFragment : Fragment() {
     private val args: ProductDetailsFragmentArgs by navArgs()
 
     private var currentProduct: Product? = null
+    private var awaitingProductLoad = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -99,13 +100,31 @@ class ProductDetailsFragment : Fragment() {
     }
 
     private fun loadProduct() {
-        val product = viewModel.getProductById(args.productId)
-        if (product != null) {
-            currentProduct = product
-            displayProductDetails(product)
-        } else {
-            Toast.makeText(requireContext(), "Product not found", Toast.LENGTH_SHORT).show()
-            findNavController().navigateUp()
+        // This screen has its own InventoryViewModel instance, and its product list loads
+        // asynchronously (a Flow collected in the ViewModel's init block) - it's essentially
+        // always still empty at this exact point, so a synchronous getProductById() lookup
+        // here would wrongly report "not found" on every single navigation. Try the immediate
+        // (already-warm) case first, then fall back to waiting for the list to actually load.
+        val immediate = viewModel.getProductById(args.productId)
+        if (immediate != null) {
+            currentProduct = immediate
+            displayProductDetails(immediate)
+            return
+        }
+
+        awaitingProductLoad = true
+        viewModel.products.observe(viewLifecycleOwner) { products ->
+            if (!awaitingProductLoad || products.isEmpty()) return@observe
+
+            awaitingProductLoad = false
+            val product = products.find { it.id == args.productId }
+            if (product != null) {
+                currentProduct = product
+                displayProductDetails(product)
+            } else {
+                Toast.makeText(requireContext(), "Product not found", Toast.LENGTH_SHORT).show()
+                findNavController().navigateUp()
+            }
         }
     }
 
