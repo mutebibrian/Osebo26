@@ -1,9 +1,11 @@
 [versions]
-agp = "8.2.2"
-kotlin = "1.9.22"  # Consistent version
-hilt = "2.48"
+agp = "8.11.1"
+kotlin = "2.2.21"
+ksp = "2.2.21-2.0.5"
+composeMultiplatform = "1.8.2"
+koin = "4.2.2"
 navigation = "2.7.7"
-room = "2.6.1"
+room = "2.8.4"
 lifecycle = "2.6.2"
 coroutines = "1.7.3"
 retrofit = "2.9.0"
@@ -48,7 +50,7 @@ lifecycle-viewmodel-ktx = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx
 lifecycle-livedata-ktx = { module = "androidx.lifecycle:lifecycle-livedata-ktx", version.ref = "lifecycle" }
 lifecycle-runtime-ktx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "lifecycle" }
 
-# Room - UPDATED to 2.7.0
+# Room
 room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
 room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
@@ -56,13 +58,12 @@ room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
 # WorkManager
 work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version = "2.9.0" }
 
-# Hilt
-hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
-hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hilt" }
-hilt-work = { module = "androidx.hilt:hilt-work", version = "1.1.0" }
-hilt-work-compiler = { module = "androidx.hilt:hilt-compiler", version = "1.1.0" }
+# Koin
+koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
+koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin" }
 
 # Coroutines
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
 
 # Retrofit
@@ -94,8 +95,10 @@ activity = { group = "androidx.activity", name = "activity", version.ref = "acti
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
-android-library = { id = "com.android.library", version.ref = "agp" }        # ADD THIS
+android-library = { id = "com.android.library", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
-kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }  # ADD THIS
-hilt-android = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+kotlin-compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 navigation-safe-args = { id = "androidx.navigation.safeargs.kotlin", version.ref = "navigation" }

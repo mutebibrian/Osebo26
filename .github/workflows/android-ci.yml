@@ -1,0 +1,206 @@
+name: Android CI
+
+on:
+  push:
+    branches: [master, dev]
+  pull_request:
+    branches: [master, dev]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint (Static Analysis)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run Android Lint
+        run: ./gradlew lintDebug --stacktrace
+
+      - name: Upload lint report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-report
+          path: app/build/reports/lint-results-debug.html
+          retention-days: 7
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run unit tests
+        run: ./gradlew testDebugUnitTest --stacktrace
+
+      - name: Upload unit test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-report
+          path: app/build/reports/tests/testDebugUnitTest
+          retention-days: 7
+
+  instrumentation-tests:
+    name: Instrumentation Tests
+    needs: [lint, unit-tests]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        api-level: [30]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run instrumentation tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api-level }}
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          script: ./gradlew connectedDebugAndroidTest --stacktrace
+
+      - name: Upload instrumentation test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: instrumentation-test-report
+          path: app/build/reports/androidTests/connected
+          retention-days: 7
+
+  # Runs on every push to `dev`. Gated by the "development" GitHub Environment
+  # (Settings > Environments > development) so its secrets stay scoped to
+  # this job — no manual approval required, builds should reach internal
+  # testers fast.
+  deploy-dev:
+    name: Deploy to Development
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    needs: [lint, unit-tests]
+    runs-on: ubuntu-latest
+    environment: development
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build debug APK
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: osebo-dev-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 14
+
+      # Optional: wire up internal distribution once the "development"
+      # environment has a FIREBASE_APP_ID / CREDENTIAL_FILE_CONTENT secret.
+      # - name: Distribute to Firebase App Distribution
+      #   uses: wzieba/Firebase-Distribution-Github-Action@v1
+      #   with:
+      #     appId: ${{ secrets.FIREBASE_DEV_APP_ID }}
+      #     serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+      #     groups: internal-testers
+      #     file: app/build/outputs/apk/debug/app-debug.apk
+
+  # Runs on every push to `master` (production). Gated by the "production"
+  # GitHub Environment, which should have required reviewers configured
+  # (Settings > Environments > production > Required reviewers) so a real
+  # release build waits for a human approval before it runs.
+  deploy-production:
+    name: Deploy to Production
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs: [lint, unit-tests, instrumentation-tests]
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # Requires signing secrets on the "production" environment:
+      # RELEASE_KEYSTORE_BASE64, RELEASE_KEYSTORE_PASSWORD,
+      # RELEASE_KEY_ALIAS, RELEASE_KEY_PASSWORD. See app/build.gradle.kts
+      # signingConfigs.release, which reads these via project properties.
+      - name: Decode release keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > release.keystore
+          fi
+
+      - name: Build release bundle
+        env:
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: ./gradlew bundleRelease --stacktrace
+
+      - name: Upload release bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: osebo-production-release-aab
+          path: app/build/outputs/bundle/release/*.aab
+          retention-days: 90
+
+      # Optional: publish straight to the Play Store once the "production"
+      # environment has a Play Console service account secret.
+      # - name: Upload to Play Store (internal track)
+      #   uses: r0adkll/upload-google-play@v1
+      #   with:
+      #     serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+      #     packageName: com.devbrian.osebo
+      #     releaseFiles: app/build/outputs/bundle/release/*.aab
+      #     track: internal
