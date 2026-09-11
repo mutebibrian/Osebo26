@@ -17,6 +17,7 @@ import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.devbrian.osebo.R
 import com.devbrian.osebo.adapters.SaleAdapter
+import com.devbrian.osebo.adapters.TopSellingProductAdapter
 import com.devbrian.osebo.databinding.FragmentSalesBinding
 import com.devbrian.osebo.ui.viewmodels.SalesViewModel
 import com.devbrian.osebo.utils.CurrencyFormatter
@@ -27,6 +28,7 @@ class SalesFragment : Fragment() {
     private var _binding: FragmentSalesBinding? = null
     private val binding get() = _binding!!
     private lateinit var saleAdapter: SaleAdapter
+    private lateinit var topSellingProductAdapter: TopSellingProductAdapter
     private val viewModel: SalesViewModel by viewModels()
 
     override fun onCreateView(
@@ -48,8 +50,9 @@ class SalesFragment : Fragment() {
         setupSwipeRefresh()
 
 
-        
+
         viewModel.loadRecentSales()
+        viewModel.loadTopSellingProducts()
     }
 
     private fun setupRecyclerView() {
@@ -70,6 +73,18 @@ class SalesFragment : Fragment() {
             adapter = saleAdapter
             setHasFixedSize(true)
         }
+
+        topSellingProductAdapter = TopSellingProductAdapter(
+            onItemClick = { product ->
+                Toast.makeText(requireContext(), product.name, Toast.LENGTH_SHORT).show()
+            }
+        )
+
+        binding.rvTopSellingProducts.apply {
+            layoutManager = LinearLayoutManager(requireContext())
+            adapter = topSellingProductAdapter
+            isNestedScrollingEnabled = false
+        }
     }
 
     private fun setupClickListeners() {
@@ -83,6 +98,10 @@ class SalesFragment : Fragment() {
 
         binding.tvViewAll.setOnClickListener {
             navigateToAllSales()
+        }
+
+        binding.tvViewAllProducts.setOnClickListener {
+            findNavController().navigate(R.id.inventoryFragment)
         }
 
         binding.fabNewSale.setOnClickListener {
@@ -124,6 +143,17 @@ class SalesFragment : Fragment() {
         viewModel.monthSalesCount.observe(viewLifecycleOwner) { count ->
             println("📱 Month's count from ViewModel: $count")
             binding.tvMonthTransactions.text = "$count transactions"
+        }
+
+        viewModel.topSellingProducts.observe(viewLifecycleOwner) { products ->
+            if (products.isEmpty()) {
+                binding.tvEmptyTopProducts.visibility = View.VISIBLE
+                binding.rvTopSellingProducts.visibility = View.GONE
+            } else {
+                binding.tvEmptyTopProducts.visibility = View.GONE
+                binding.rvTopSellingProducts.visibility = View.VISIBLE
+                topSellingProductAdapter.submitList(products.take(5))
+            }
         }
 
         viewModel.successMessage.observe(viewLifecycleOwner) { message ->
