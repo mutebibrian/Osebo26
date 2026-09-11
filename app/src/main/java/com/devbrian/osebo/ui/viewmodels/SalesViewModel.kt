@@ -8,7 +8,9 @@ import com.devbrian.osebo.data.ApiService
 import com.devbrian.osebo.data.PreferenceManager
 import com.devbrian.osebo.data.local.AppDatabase
 import com.devbrian.osebo.data.local.entity.ProductEntity
+import com.devbrian.osebo.data.local.entity.TopStockItemEntity
 import com.devbrian.osebo.data.repository.CustomerRepository
+import com.devbrian.osebo.data.repository.DashboardRepository
 import com.devbrian.osebo.data.repository.ProductRepository
 import com.devbrian.osebo.data.repository.SalesRepository
 import com.devbrian.osebo.models.CartItem
@@ -31,6 +33,7 @@ class SalesViewModel @Inject constructor(
     private val salesRepository: SalesRepository,
     private val productRepository: ProductRepository,
     private val customerRepository: CustomerRepository,
+    private val dashboardRepository: DashboardRepository,
     private val apiService: ApiService,
     private val preferences: PreferenceManager,
     private val database: AppDatabase
@@ -75,8 +78,25 @@ class SalesViewModel @Inject constructor(
     private val _selectedCustomer = MutableLiveData<Customer?>()
     val selectedCustomer: LiveData<Customer?> = _selectedCustomer
 
+    private val _topSellingProducts = MutableLiveData<List<TopStockItemEntity>>(emptyList())
+    val topSellingProducts: LiveData<List<TopStockItemEntity>> = _topSellingProducts
+
     init {
         loadRecentSales()
+    }
+
+    fun loadTopSellingProducts() {
+        viewModelScope.launch {
+            try {
+                dashboardRepository.refreshTopStockItems()
+            } catch (e: Exception) {
+                println("❌ SalesViewModel - Error refreshing top selling products: ${e.message}")
+            }
+
+            dashboardRepository.getTopStockItems().collect { items ->
+                _topSellingProducts.value = items
+            }
+        }
     }
 
     fun loadProducts() {
