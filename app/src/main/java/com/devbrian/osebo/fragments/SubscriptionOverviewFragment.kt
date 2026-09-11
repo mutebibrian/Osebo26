@@ -7,12 +7,15 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
+import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.devbrian.osebo.R
 import com.devbrian.osebo.adapters.SubscriptionPackageAdapter
 import com.devbrian.osebo.databinding.FragmentSubscriptionOverviewBinding
+import com.devbrian.osebo.models.RenewSubscriptionRequest
 import com.devbrian.osebo.models.Subscription
 import com.devbrian.osebo.models.SubscriptionPackage
 import com.devbrian.osebo.ui.viewmodels.SubscriptionViewModel
@@ -67,7 +70,8 @@ class SubscriptionOverviewFragment : Fragment() {
     }
 
     private fun setupObservers() {
-        // Drives the "Active Bundles" overview card — matches web's Shop Billing screen
+        // Drives the "Active Bundles" overview card and the "Current Bundle Access" table —
+        // matches web's Shop Billing screen
         viewModel.shopSubscriptionStatus.observe(viewLifecycleOwner) { resource ->
             when (resource) {
                 is Resource.Success -> {
@@ -79,13 +83,19 @@ class SubscriptionOverviewFragment : Fragment() {
                     val activeBundleCount = data?.subscription?.let { 1 } ?: 0
                     binding.tvActiveBundles.text = activeBundleCount.toString()
 
-                    if (data?.isActive == true) {
+                    if (data?.isActive == true && data.subscription != null) {
+                        currentSubscription = data.subscription
                         binding.noSubscriptionLayout.visibility = View.GONE
                         binding.subscriptionDetailsLayout.visibility = View.VISIBLE
-                        data.subscription?.let { displaySubscriptionData(it) }
+                        binding.bundleAccessCard.visibility = View.VISIBLE
+                        binding.topActionButtonsRow.visibility = View.VISIBLE
+                        displaySubscriptionData(data.subscription)
                     } else {
+                        currentSubscription = null
                         binding.noSubscriptionLayout.visibility = View.VISIBLE
                         binding.subscriptionDetailsLayout.visibility = View.GONE
+                        binding.bundleAccessCard.visibility = View.GONE
+                        binding.topActionButtonsRow.visibility = View.GONE
                         binding.subscribeNowButton.text =
                             if (canActivateTrial) "Start Free Trial" else "Manage Bundles"
                     }
@@ -134,32 +144,59 @@ class SubscriptionOverviewFragment : Fragment() {
                 is Resource.Loading -> {}
             }
         }
+
+        viewModel.renewSubscriptionResult.observe(viewLifecycleOwner) { resource ->
+            when (resource) {
+                is Resource.Success -> {
+                    showSnackbar("Renewal payment initiated! Please check your phone.")
+                    loadSubscriptionData()
+                }
+                is Resource.Error -> {
+                    showSnackbar(resource.message ?: "Failed to renew subscription")
+                }
+                is Resource.Loading -> {}
+            }
+        }
+
+        viewModel.cancelSubscriptionResult.observe(viewLifecycleOwner) { resource ->
+            when (resource) {
+                is Resource.Success -> {
+                    showSnackbar("Renewal cancelled")
+                    // cancelSubscription() refreshes a different LiveData internally
+                    // (currentSubscription, not shopSubscriptionStatus) - reload the one
+                    // this screen actually observes so the table/overview reflect it.
+                    loadSubscriptionData()
+                }
+                is Resource.Error -> {
+                    showSnackbar(resource.message ?: "Failed to cancel renewal")
+                }
+                is Resource.Loading -> {}
+            }
+        }
+
+        viewModel.errorMessage.observe(viewLifecycleOwner) { message ->
+            message?.let { showSnackbar(it) }
+        }
     }
 
     private fun displaySubscriptionData(subscription: Subscription) {
         binding.tvShopName.text = getCurrentShopName()
         binding.planNameTextView.text = subscription.displayPackage ?: subscription.packageType
-        binding.priceTextView.text = if (subscription.isTrial) "Free Trial" else subscription.formattedAmount
+        binding.priceTextView.text = if (subscription.isTrial) "Free Trial" else subscription.monthlyPrice
 
         val expiryDate = formatDateForDisplay(subscription.endDate)
         binding.expiresValue.text = expiryDate
-        binding.endDateTextView.text = expiryDate
-        binding.startDateTextView.text = formatDateForDisplay(subscription.startDate)
 
         val daysLeft = subscription.daysRemaining
-        binding.daysLeftValue.text = daysLeft.toString()
         val daysColor = when {
             daysLeft < 3 -> R.color.error_red
             daysLeft < 7 -> R.color.warning_orange
             else -> R.color.success_green
         }
+        binding.daysLeftValue.text = subscription.displayDaysRemaining
         binding.daysLeftValue.setTextColor(ContextCompat.getColor(requireContext(), daysColor))
-        binding.daysLeftTextView.text = "$daysLeft days"
-        binding.daysLeftTextView.setTextColor(ContextCompat.getColor(requireContext(), daysColor))
 
-        binding.statusTextView.text = subscription.displayStatus
         binding.statusChip.text = subscription.displayStatus
-
         val statusColor = when {
             subscription.isTrialActive -> R.color.info_blue
             subscription.isActiveStatus -> R.color.success_green
@@ -167,26 +204,25 @@ class SubscriptionOverviewFragment : Fragment() {
             subscription.isPending -> R.color.warning_orange
             else -> R.color.gray
         }
-        binding.statusTextView.setTextColor(ContextCompat.getColor(requireContext(), statusColor))
         binding.statusChip.setChipBackgroundColorResource(statusColor)
 
-        binding.autoRenewTextView.text = if (subscription.autoRenew) "Enabled" else "Disabled"
-        binding.paymentMethodTextView.text = subscription.paymentMethod?.let {
-            when (it.uppercase()) {
-                "MOBILE_MONEY" -> "Mobile Money"
-                "CREDIT_CARD" -> "Credit Card"
-                "BANK_TRANSFER" -> "Bank Transfer"
-                else -> it
-            }
-        } ?: "Not set"
+        // Current Bundle Access table row
+        binding.tvBundleName.text = subscription.displayPackage
+        binding.tvBundleType.text = subscription.packageTier.uppercase().ifEmpty { "BASE" }
+        binding.tvBundleEnds.text = expiryDate
+        binding.tvBundleDaysLeft.text = subscription.displayDaysRemaining
+        binding.tvBundleMonthlyRate.text = if (subscription.isTrial) "Free Trial" else subscription.formattedAmount
+        binding.tvMonthlyTotalCost.text = if (subscription.isTrial) "Free Trial" else subscription.formattedAmount
 
-        binding.renewButton.visibility = if (subscription.isActiveStatus || subscription.isTrialActive) View.VISIBLE else View.GONE
-        binding.renewShopSubscription.visibility = binding.renewButton.visibility
+        binding.btnCancelRenewal.visibility =
+            if (subscription.isActiveStatus || subscription.isTrialActive) View.VISIBLE else View.GONE
     }
 
     private fun showNoSubscriptionState() {
         binding.noSubscriptionLayout.visibility = View.VISIBLE
         binding.subscriptionDetailsLayout.visibility = View.GONE
+        binding.bundleAccessCard.visibility = View.GONE
+        binding.topActionButtonsRow.visibility = View.GONE
         binding.tvShopName.text = getCurrentShopName()
         binding.subscribeNowButton.text = if (canActivateTrial) "Start Free Trial" else "Manage Bundles"
     }
@@ -199,16 +235,27 @@ class SubscriptionOverviewFragment : Fragment() {
     }
 
     private fun setupClickListeners() {
-        binding.upgradePlanButton.setOnClickListener {
+        binding.tabOverviewButton.setOnClickListener {
+            // Already on Overview - no-op, kept as a visible active tab
+        }
+
+        binding.tabHistoryButton.setOnClickListener {
+            findNavController().navigate(
+                R.id.paymentHistoryFragment,
+                bundleOf("subscriptionId" to currentSubscription?.id)
+            )
+        }
+
+        binding.btnManageBundles.setOnClickListener {
             binding.plansRecyclerView.smoothScrollToPosition(0)
         }
 
-        binding.renewButton.setOnClickListener {
-            currentSubscription?.let { showRenewDialog(it) } ?: showSnackbar("No active subscription to renew")
+        binding.btnRenewBundlesActive.setOnClickListener {
+            currentSubscription?.let { showRenewPaymentDialog(it) } ?: showSnackbar("No active subscription to renew")
         }
 
-        binding.renewShopSubscription.setOnClickListener {
-            currentSubscription?.let { showRenewDialog(it) } ?: showSnackbar("No active subscription to renew")
+        binding.btnCancelRenewal.setOnClickListener {
+            currentSubscription?.let { showCancelRenewalDialog(it) }
         }
 
         // "Start Free Trial" / "Manage Bundles" — both scroll to bundle picker,
@@ -246,12 +293,36 @@ class SubscriptionOverviewFragment : Fragment() {
         showPaymentDialog(selectedPackages)
     }
 
-    private fun showRenewDialog(subscription: Subscription) {
+    private fun showRenewPaymentDialog(subscription: Subscription) {
+        if (shopId.isEmpty()) {
+            showSnackbar("No shop selected")
+            return
+        }
+        val dialog = PaymentDialogFragment.newInstance(
+            shopId = shopId,
+            packageId = subscription.actualPackageId,
+            packageName = subscription.displayPackage,
+            amount = subscription.amount
+        )
+        dialog.setPaymentListener { phoneNumber, _, months, _ ->
+            viewModel.renewSubscription(
+                shopId,
+                RenewSubscriptionRequest(phoneNumber = phoneNumber, months = months, autoRenew = true)
+            )
+        }
+        dialog.show(parentFragmentManager, "RenewPaymentDialog")
+    }
+
+    private fun showCancelRenewalDialog(subscription: Subscription) {
         androidx.appcompat.app.AlertDialog.Builder(requireContext())
-            .setTitle("Renew Subscription")
-            .setMessage("Do you want to renew your ${subscription.displayPackage}?")
-            .setPositiveButton("Renew Now") { _, _ -> binding.plansRecyclerView.smoothScrollToPosition(0) }
-            .setNegativeButton("Cancel", null)
+            .setTitle("Cancel Renewal")
+            .setMessage("This stops ${subscription.displayPackage} from renewing automatically. You'll keep access until ${formatDateForDisplay(subscription.endDate)}.")
+            .setPositiveButton("Cancel Renewal") { _, _ ->
+                if (shopId.isNotEmpty() && subscription.id.isNotEmpty()) {
+                    viewModel.cancelSubscription(shopId, subscription.id)
+                }
+            }
+            .setNegativeButton("Keep Renewal", null)
             .show()
     }
 
