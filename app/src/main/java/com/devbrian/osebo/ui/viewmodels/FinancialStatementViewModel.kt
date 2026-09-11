@@ -181,11 +181,6 @@ class FinancialStatementViewModel @Inject constructor(
         }
     }
 
-    fun exportToExcel() {
-        
-        _error.value = "Export feature coming soon"
-    }
-
     fun clearError() {
         _error.value = null
     }
