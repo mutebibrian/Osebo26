@@ -38,6 +38,46 @@
                 tools:text="BK Enterprise" />
         </LinearLayout>
 
+        <!-- Overview / History Tabs -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="1dp"
+            app:strokeColor="@color/grey_200"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="8dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/tabOverviewButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Overview"
+                    android:textAllCaps="false"
+                    app:icon="@drawable/ic_list"
+                    app:iconGravity="textStart"
+                    style="@style/Widget.MaterialComponents.Button" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/tabHistoryButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text="History"
+                    android:textAllCaps="false"
+                    app:icon="@drawable/ic_sort"
+                    app:iconGravity="textStart"
+                    style="@style/Widget.MaterialComponents.Button.TextButton" />
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -84,7 +124,71 @@
                 app:layout_constraintEnd_toEndOf="parent"
                 tools:visibility="gone" />
 
-            <!-- Active Bundles Card — matches web's "Subscription Overview" card -->
+            <!-- Section label -->
+            <TextView
+                android:id="@+id/overviewSectionLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="SHOP SUBSCRIPTION"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:textColor="@color/grey_600"
+                android:letterSpacing="0.05"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toStartOf="parent" />
+
+            <TextView
+                android:id="@+id/overviewSectionTitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Subscription Overview"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:textColor="@color/black"
+                android:layout_marginTop="2dp"
+                app:layout_constraintTop_toBottomOf="@id/overviewSectionLabel"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/topActionButtonsRow" />
+
+            <!-- Manage Bundles / Renew Bundles — always-visible actions matching the web billing screen -->
+            <LinearLayout
+                android:id="@+id/topActionButtonsRow"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                app:layout_constraintTop_toTopOf="@id/overviewSectionLabel"
+                app:layout_constraintEnd_toEndOf="parent">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnManageBundles"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Manage Bundles"
+                    android:textAllCaps="false"
+                    android:textSize="12sp"
+                    app:icon="@drawable/ic_add"
+                    app:iconGravity="textStart"
+                    app:iconSize="16dp"
+                    app:backgroundTint="@color/success_green"
+                    style="@style/Widget.MaterialComponents.Button" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnRenewBundlesActive"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text="Renew Bundles"
+                    android:textAllCaps="false"
+                    android:textSize="12sp"
+                    app:icon="@drawable/ic_refresh"
+                    app:iconGravity="textStart"
+                    app:iconSize="16dp"
+                    style="@style/Widget.MaterialComponents.Button" />
+
+            </LinearLayout>
+
+            <!-- Active Bundles Card -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/activeBundlesCard"
                 android:layout_width="wrap_content"
@@ -93,9 +197,9 @@
                 app:cardElevation="1dp"
                 app:strokeColor="@color/grey_200"
                 app:strokeWidth="1dp"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="16dp"
                 android:layout_marginBottom="16dp"
-                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/overviewSectionTitle"
                 app:layout_constraintStart_toStartOf="parent">
 
                 <LinearLayout
@@ -151,7 +255,7 @@
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintEnd_toEndOf="parent" />
 
-                <!-- Buttons row: Start Free Trial / Manage Bundles + Renew Bundles -->
+                <!-- Buttons row: Start Free Trial / Manage Bundles -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -164,30 +268,19 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/subscribeNowButton"
-                        android:layout_width="0dp"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginEnd="8dp"
                         android:text="Start Free Trial"
                         android:textAllCaps="false"
                         app:backgroundTint="@color/success_green"
                         style="@style/Widget.MaterialComponents.Button"
                         tools:text="Start Free Trial" />
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/renewBundlesButton"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Renew Bundles"
-                        android:textAllCaps="false"
-                        style="@style/Widget.MaterialComponents.Button" />
-
                 </LinearLayout>
 
             </androidx.constraintlayout.widget.ConstraintLayout>
 
-            <!-- Subscription Details -->
+            <!-- Subscription Details (at-a-glance header only) -->
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/subscriptionDetailsLayout"
                 android:layout_width="match_parent"
@@ -251,6 +344,7 @@
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
                     android:layout_marginTop="16dp"
+                    android:layout_marginBottom="16dp"
                     app:layout_constraintTop_toBottomOf="@id/priceTextView"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintEnd_toEndOf="parent">
@@ -278,20 +372,8 @@
                         android:textSize="14sp"
                         android:textStyle="bold"
                         android:textColor="@color/black"
+                        android:layout_marginEnd="16dp"
                         tools:text="Mar 19, 2026" />
-                </LinearLayout>
-
-                <!-- Days Left Section -->
-                <LinearLayout
-                    android:id="@+id/daysLeftSection"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_marginTop="12dp"
-                    app:layout_constraintTop_toBottomOf="@id/expirySection"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent">
 
                     <ImageView
                         android:layout_width="20dp"
@@ -301,213 +383,240 @@
                         android:layout_marginEnd="8dp" />
 
                     <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Days Left"
-                        android:textSize="14sp"
-                        android:textColor="@color/grey_600"
-                        android:layout_marginEnd="8dp" />
-
-                    <TextView
                         android:id="@+id/daysLeftValue"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="14"
+                        android:text="14 days left"
                         android:textSize="14sp"
                         android:textStyle="bold"
                         android:textColor="@color/success_green"
-                        tools:text="14" />
+                        tools:text="14 days left" />
                 </LinearLayout>
 
-                <!-- Divider -->
-                <View
-                    android:id="@+id/divider"
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="@color/grey_200"
-                    android:layout_marginTop="24dp"
-                    app:layout_constraintTop_toBottomOf="@id/daysLeftSection"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent" />
-
-                <!-- Subscription Details Table -->
-                <TextView
-                    android:id="@+id/startDateLabel"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Start Date:"
-                    android:textSize="14sp"
-                    android:textColor="@color/grey_600"
-                    android:layout_marginTop="24dp"
-                    app:layout_constraintTop_toBottomOf="@id/divider"
-                    app:layout_constraintStart_toStartOf="parent" />
-
-                <TextView
-                    android:id="@+id/startDateTextView"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Dec 10, 2025"
-                    android:textSize="14sp"
-                    android:textColor="@color/black"
-                    app:layout_constraintTop_toTopOf="@id/startDateLabel"
-                    app:layout_constraintStart_toEndOf="@id/startDateLabel"
-                    android:layout_marginStart="16dp"
-                    app:layout_constraintBottom_toBottomOf="@id/startDateLabel" />
-
-                <TextView
-                    android:id="@+id/endDateLabel"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="End Date:"
-                    android:textSize="14sp"
-                    android:textColor="@color/grey_600"
-                    android:layout_marginTop="16dp"
-                    app:layout_constraintTop_toBottomOf="@id/startDateLabel"
-                    app:layout_constraintStart_toStartOf="parent" />
-
-                <TextView
-                    android:id="@+id/endDateTextView"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Jan 10, 2026"
-                    android:textSize="14sp"
-                    android:textColor="@color/black"
-                    app:layout_constraintTop_toTopOf="@id/endDateLabel"
-                    app:layout_constraintStart_toEndOf="@id/endDateLabel"
-                    android:layout_marginStart="16dp"
-                    app:layout_constraintBottom_toBottomOf="@id/endDateLabel" />
-
-                <TextView
-                    android:id="@+id/daysLeftLabel"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Days Left:"
-                    android:textSize="14sp"
-                    android:textColor="@color/grey_600"
-                    android:layout_marginTop="16dp"
-                    app:layout_constraintTop_toBottomOf="@id/endDateLabel"
-                    app:layout_constraintStart_toStartOf="parent" />
-
-                <TextView
-                    android:id="@+id/daysLeftTextView"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="30 days"
-                    android:textSize="14sp"
-                    android:textColor="@color/error_red"
-                    app:layout_constraintTop_toTopOf="@id/daysLeftLabel"
-                    app:layout_constraintStart_toEndOf="@id/daysLeftLabel"
-                    android:layout_marginStart="16dp"
-                    app:layout_constraintBottom_toBottomOf="@id/daysLeftLabel" />
-
-                <TextView
-                    android:id="@+id/statusLabel"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Status:"
-                    android:textSize="14sp"
-                    android:textColor="@color/grey_600"
-                    android:layout_marginTop="16dp"
-                    app:layout_constraintTop_toBottomOf="@id/daysLeftLabel"
-                    app:layout_constraintStart_toStartOf="parent" />
-
-                <TextView
-                    android:id="@+id/statusTextView"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Active"
-                    android:textSize="14sp"
-                    android:textColor="@color/success_green"
-                    app:layout_constraintTop_toTopOf="@id/statusLabel"
-                    app:layout_constraintStart_toEndOf="@id/statusLabel"
-                    android:layout_marginStart="16dp"
-                    app:layout_constraintBottom_toBottomOf="@id/statusLabel" />
-
-                <TextView
-                    android:id="@+id/autoRenewLabel"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Auto Renew:"
-                    android:textSize="14sp"
-                    android:textColor="@color/grey_600"
-                    android:layout_marginTop="16dp"
-                    app:layout_constraintTop_toBottomOf="@id/statusLabel"
-                    app:layout_constraintStart_toStartOf="parent" />
-
-                <TextView
-                    android:id="@+id/autoRenewTextView"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Yes"
-                    android:textSize="14sp"
-                    android:textColor="@color/black"
-                    app:layout_constraintTop_toTopOf="@id/autoRenewLabel"
-                    app:layout_constraintStart_toEndOf="@id/autoRenewLabel"
-                    android:layout_marginStart="16dp"
-                    app:layout_constraintBottom_toBottomOf="@id/autoRenewLabel" />
-
-                <TextView
-                    android:id="@+id/paymentMethodLabel"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Payment Method:"
-                    android:textSize="14sp"
-                    android:textColor="@color/grey_600"
-                    android:layout_marginTop="16dp"
-                    app:layout_constraintTop_toBottomOf="@id/autoRenewLabel"
-                    app:layout_constraintStart_toStartOf="parent" />
-
-                <TextView
-                    android:id="@+id/paymentMethodTextView"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Mobile Money"
-                    android:textSize="14sp"
-                    android:textColor="@color/black"
-                    app:layout_constraintTop_toTopOf="@id/paymentMethodLabel"
-                    app:layout_constraintStart_toEndOf="@id/paymentMethodLabel"
-                    android:layout_marginStart="16dp"
-                    app:layout_constraintBottom_toBottomOf="@id/paymentMethodLabel" />
-
-                <!-- Action Buttons -->
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/upgradePlanButton"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:text="Upgrade Plan"
-                    style="@style/Widget.MaterialComponents.Button"
-                    android:layout_marginTop="32dp"
-                    app:layout_constraintTop_toBottomOf="@id/paymentMethodLabel"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintEnd_toStartOf="@id/renewButton"
-                    android:layout_marginEnd="8dp" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/renewButton"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:text="Renew"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    app:layout_constraintTop_toTopOf="@id/upgradePlanButton"
-                    app:layout_constraintStart_toEndOf="@id/upgradePlanButton"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintBottom_toBottomOf="@id/upgradePlanButton" />
-
-                <!-- Alternative Renew Button (matches image) -->
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/renewShopSubscription"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Renew Shop Subscription"
-                    style="@style/Widget.MaterialComponents.Button"
-                    android:layout_marginTop="16dp"
-                    android:visibility="gone"
-                    app:layout_constraintTop_toBottomOf="@id/renewButton"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    tools:visibility="visible" />
-
             </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <!-- Current Bundle Access — matches web's "Subscribed Bundles" table -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/bundleAccessCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="gone"
+                app:cardCornerRadius="8dp"
+                app:cardElevation="1dp"
+                app:strokeColor="@color/grey_200"
+                app:strokeWidth="1dp"
+                android:layout_marginTop="8dp"
+                app:layout_constraintTop_toBottomOf="@id/subscriptionDetailsLayout"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                tools:visibility="visible">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="SUBSCRIBED BUNDLES"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/grey_600"
+                        android:letterSpacing="0.05" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Current Bundle Access"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/black"
+                        android:layout_marginTop="2dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="These are the active bundles currently available to this shop."
+                        android:textSize="13sp"
+                        android:textColor="@color/grey_600"
+                        android:layout_marginTop="2dp"
+                        android:layout_marginBottom="16dp" />
+
+                    <!-- Table header -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:paddingBottom="8dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1.2"
+                            android:text="BUNDLE"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/grey_600" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="0.8"
+                            android:text="TYPE"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/grey_600" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="ENDS"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/grey_600" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1.2"
+                            android:text="MONTHLY RATE"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/grey_600" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1.2"
+                            android:text="ACTION"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/grey_600"
+                            android:gravity="end" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="@color/grey_200"
+                        android:layout_marginBottom="12dp" />
+
+                    <!-- Data row -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:paddingBottom="12dp">
+
+                        <TextView
+                            android:id="@+id/tvBundleName"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1.2"
+                            android:text="Basic"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/black"
+                            tools:text="Basic" />
+
+                        <TextView
+                            android:id="@+id/tvBundleType"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="0.8"
+                            android:text="BASE"
+                            android:textSize="12sp"
+                            android:textColor="@color/grey_600"
+                            tools:text="BASE" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/tvBundleEnds"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Sep 16, 2026"
+                                android:textSize="13sp"
+                                android:textColor="@color/black"
+                                tools:text="Sep 16, 2026" />
+
+                            <TextView
+                                android:id="@+id/tvBundleDaysLeft"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="6 days left"
+                                android:textSize="11sp"
+                                android:textColor="@color/grey_600"
+                                tools:text="6 days left" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/tvBundleMonthlyRate"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1.2"
+                            android:text="UGX 20,000"
+                            android:textSize="14sp"
+                            android:textColor="@color/black"
+                            tools:text="UGX 20,000" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnCancelRenewal"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1.2"
+                            android:text="Cancel Renewal"
+                            android:textAllCaps="false"
+                            android:textSize="11sp"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="@color/grey_200"
+                        android:layout_marginBottom="12dp" />
+
+                    <!-- Monthly total -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Monthly bundle total cost:"
+                            android:textSize="13sp"
+                            android:textColor="@color/grey_700" />
+
+                        <TextView
+                            android:id="@+id/tvMonthlyTotalCost"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="UGX 20,000"
+                            android:textSize="16sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/black"
+                            tools:text="UGX 20,000" />
+                    </LinearLayout>
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
 
             <!-- Available Plans Section -->
             <TextView
@@ -519,7 +628,7 @@
                 android:textStyle="bold"
                 android:textColor="@color/black"
                 android:layout_marginTop="24dp"
-                app:layout_constraintTop_toBottomOf="@id/subscriptionDetailsLayout"
+                app:layout_constraintTop_toBottomOf="@id/bundleAccessCard"
                 app:layout_constraintStart_toStartOf="parent" />
 
             <!-- Plans RecyclerView -->

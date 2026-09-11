@@ -24,6 +24,7 @@ class AddProductFragment : Fragment() {
 
     private var isEditMode = false
     private var productId: String? = null
+    private var fieldsPopulated = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -122,9 +123,23 @@ class AddProductFragment : Fragment() {
     }
 
     private fun loadProductForEdit(productId: String) {
-        val product = viewModel.getProductById(productId)
-        product?.let {
-            populateFields(it)
+        // Fresh InventoryViewModel instance for this screen - its product list loads
+        // asynchronously (a Flow collected in the ViewModel's init block), so it's almost
+        // always still empty right here. Falling straight through to product?.let{} silently
+        // left the edit form blank instead of populated. Wait for the list if it's not warm yet.
+        val immediate = viewModel.getProductById(productId)
+        if (immediate != null) {
+            fieldsPopulated = true
+            populateFields(immediate)
+            return
+        }
+
+        viewModel.products.observe(viewLifecycleOwner) { products ->
+            if (fieldsPopulated || products.isEmpty()) return@observe
+            products.find { it.id == productId }?.let {
+                fieldsPopulated = true
+                populateFields(it)
+            }
         }
     }
 
