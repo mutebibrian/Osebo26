@@ -293,118 +293,28 @@
                             android:textStyle="bold"
                             android:layout_marginBottom="16dp" />
 
-                        <!-- Product 1 -->
-                        <LinearLayout
+                        <!-- Empty State -->
+                        <TextView
+                            android:id="@+id/tv_empty_top_products"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:paddingVertical="12dp"
-                            android:background="?attr/selectableItemBackground"
-                            android:clickable="true"
-                            android:focusable="true">
+                            android:text="No sales yet to rank products"
+                            android:textSize="14sp"
+                            android:textColor="@color/text_secondary"
+                            android:gravity="center"
+                            android:padding="16dp"
+                            android:visibility="gone" />
 
-                            <ImageView
-                                android:layout_width="48dp"
-                                android:layout_height="48dp"
-                                android:src="@drawable/ic_product"
-                                android:background="@color/colorPrimaryLight"
-                                android:padding="8dp"
-                                android:clipToOutline="true"
-                                android:contentDescription="@string/product_image" />
-
-                            <LinearLayout
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:orientation="vertical"
-                                android:layout_marginStart="12dp">
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="iPhone 15 Pro"
-                                    android:textSize="16sp"
-                                    android:textStyle="bold" />
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="Sold: 45 units"
-                                    android:textSize="14sp"
-                                    android:textColor="@color/text_secondary"
-                                    android:layout_marginTop="2dp" />
-                            </LinearLayout>
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="UGX 4.5M"
-                                android:textSize="16sp"
-                                android:textColor="@color/green_success"
-                                android:textStyle="bold" />
-                        </LinearLayout>
-
-                        <!-- Divider -->
-                        <View
-                            android:layout_width="match_parent"
-                            android:layout_height="1dp"
-                            android:background="@color/divider"
-                            android:layout_marginVertical="8dp" />
-
-                        <!-- Product 2 -->
-                        <LinearLayout
+                        <androidx.recyclerview.widget.RecyclerView
+                            android:id="@+id/rv_top_selling_products"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:paddingVertical="12dp"
-                            android:background="?attr/selectableItemBackground"
-                            android:clickable="true"
-                            android:focusable="true">
-
-                            <ImageView
-                                android:layout_width="48dp"
-                                android:layout_height="48dp"
-                                android:src="@drawable/ic_product"
-                                android:background="@color/colorPrimaryLight"
-                                android:padding="8dp"
-                                android:clipToOutline="true"
-                                android:contentDescription="@string/product_image" />
-
-                            <LinearLayout
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:orientation="vertical"
-                                android:layout_marginStart="12dp"
-                                tools:ignore="ExtraText">
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="@string/samsung_tv_55"
-                                    android:textSize="16sp"
-                                    android:textStyle="bold" />
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="Sold: 28 units"
-                                    android:textSize="14sp"
-                                    android:textColor="@color/text_secondary"
-                                    android:layout_marginTop="2dp" />
-                            </LinearLayout>
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="UGX 3.2M"
-                                android:textSize="16sp"
-                                android:textColor="@color/green_success"
-                                android:textStyle="bold" />
-                        </LinearLayout>
+                            tools:listitem="@layout/item_top_selling_product"
+                            tools:itemCount="3" />
 
                         <!-- View All Products Link -->
                         <TextView
+                            android:id="@+id/tv_view_all_products"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="View All Products"

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="10dp"
+    android:gravity="start"
+    android:orientation="horizontal">
+
+    <ImageView
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:layout_marginEnd="8dp"
+        android:background="@drawable/bg_ai_avatar_circle"
+        android:contentDescription="@null"
+        android:padding="6dp"
+        android:src="@drawable/ic_ai"
+        app:tint="@android:color/white" />
+
+    <TextView
+        android:id="@+id/messageTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="48dp"
+        android:background="@drawable/bg_chat_bubble_ai"
+        android:fontFamily="@font/poppins_regular"
+        android:paddingStart="16dp"
+        android:paddingTop="10dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="10dp"
+        android:textColor="@color/text_primary"
+        android:textSize="14sp"
+        tools:text="I'm not connected to the AI service yet." />
+
+</LinearLayout>
