@@ -178,11 +178,6 @@ class FinancialStatementViewModel(
         }
     }
 
-    fun exportToExcel() {
-        
-        _error.value = "Export feature coming soon"
-    }
-
     fun clearError() {
         _error.value = null
     }
