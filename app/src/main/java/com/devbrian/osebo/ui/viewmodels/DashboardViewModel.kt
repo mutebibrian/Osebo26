@@ -3,6 +3,7 @@ package com.devbrian.osebo.ui.viewmodels
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.devbrian.osebo.data.repository.CashBookSummaryData
 import com.devbrian.osebo.data.repository.DashboardRepository
 import com.devbrian.osebo.data.local.entity.DashboardSummaryEntity
 import com.devbrian.osebo.data.local.entity.TimeSeriesEntity
@@ -42,6 +43,9 @@ class DashboardViewModel @Inject constructor(
 
     private val _lastUpdated = MutableStateFlow<String?>(null)
     val lastUpdated: StateFlow<String?> = _lastUpdated.asStateFlow()
+
+    private val _cashBookSummary = MutableStateFlow<CashBookSummaryData?>(null)
+    val cashBookSummary: StateFlow<CashBookSummaryData?> = _cashBookSummary.asStateFlow()
 
     private var isInitialLoadComplete = false
 
@@ -176,6 +180,7 @@ class DashboardViewModel @Inject constructor(
             if (!_isOffline.value) {
                 Log.d(TAG, "📡 Online - refreshing dashboard data")
                 repository.refreshDashboardData()
+                loadCashBookSummary()
             } else {
                 Log.d(TAG, "📴 Offline - checking cached data")
                 val hasData = repository.hasCachedData()
@@ -201,6 +206,7 @@ class DashboardViewModel @Inject constructor(
             if (!_isOffline.value) {
                 Log.d(TAG, "📡 Online - refreshing data")
                 repository.refreshDashboardData()
+                loadCashBookSummary()
                 updateLastUpdated()
                 Log.d(TAG, "✅ Refresh complete")
             } else {
@@ -226,6 +232,12 @@ class DashboardViewModel @Inject constructor(
             } else {
                 Log.d(TAG, "⏭️ No refresh needed")
             }
+        }
+    }
+
+    private fun loadCashBookSummary() {
+        viewModelScope.launch {
+            _cashBookSummary.value = repository.fetchCashBookSummary()
         }
     }
 

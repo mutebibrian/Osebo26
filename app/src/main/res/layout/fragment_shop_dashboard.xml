@@ -551,6 +551,345 @@
                         </LinearLayout>
                     </androidx.cardview.widget.CardView>
 
+                    <!-- Cash Book Summary -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Cash Book Summary"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:textColor="#2C3E50"
+                        android:fontFamily="@font/poppins_bold"
+                        android:layout_marginBottom="12dp" />
+
+                    <!-- Opening Balance -->
+                    <androidx.cardview.widget.CardView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="10dp"
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="#E8F8F4">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:padding="16dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Opening Balance"
+                                android:textSize="13sp"
+                                android:textColor="#7F8C8D"
+                                android:fontFamily="@font/poppins_medium" />
+
+                            <TextView
+                                android:id="@+id/tvOpeningBalance"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="UGX 0"
+                                android:textSize="18sp"
+                                android:textStyle="bold"
+                                android:textColor="#2C3E50"
+                                android:fontFamily="@font/poppins_bold"
+                                android:layout_marginTop="2dp" />
+                        </LinearLayout>
+                    </androidx.cardview.widget.CardView>
+
+                    <!-- Row: Total Sales / Expenses -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:weightSum="2"
+                        android:layout_marginBottom="10dp">
+
+                        <androidx.cardview.widget.CardView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginEnd="6dp"
+                            app:cardCornerRadius="16dp"
+                            app:cardElevation="0dp"
+                            app:cardBackgroundColor="#EAEFFD">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical"
+                                android:padding="14dp">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Today's Total Sales"
+                                    android:textSize="12sp"
+                                    android:textColor="#5B6FE8"
+                                    android:fontFamily="@font/poppins_medium" />
+
+                                <TextView
+                                    android:id="@+id/tvCbTotalSales"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="UGX 0"
+                                    android:textSize="16sp"
+                                    android:textStyle="bold"
+                                    android:textColor="#2C3E50"
+                                    android:fontFamily="@font/poppins_bold"
+                                    android:maxLines="1"
+                                    android:ellipsize="end"
+                                    android:layout_marginTop="4dp" />
+                            </LinearLayout>
+                        </androidx.cardview.widget.CardView>
+
+                        <androidx.cardview.widget.CardView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginStart="6dp"
+                            app:cardCornerRadius="16dp"
+                            app:cardElevation="0dp"
+                            app:cardBackgroundColor="#FFF6E5">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical"
+                                android:padding="14dp">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Today's Expenses"
+                                    android:textSize="12sp"
+                                    android:textColor="#F5A623"
+                                    android:fontFamily="@font/poppins_medium" />
+
+                                <TextView
+                                    android:id="@+id/tvCbExpenses"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="UGX 0"
+                                    android:textSize="16sp"
+                                    android:textStyle="bold"
+                                    android:textColor="#2C3E50"
+                                    android:fontFamily="@font/poppins_bold"
+                                    android:maxLines="1"
+                                    android:ellipsize="end"
+                                    android:layout_marginTop="4dp" />
+                            </LinearLayout>
+                        </androidx.cardview.widget.CardView>
+                    </LinearLayout>
+
+                    <!-- Row: Deposits & advance payments / Credit Sales -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:weightSum="2"
+                        android:layout_marginBottom="10dp">
+
+                        <androidx.cardview.widget.CardView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginEnd="6dp"
+                            app:cardCornerRadius="16dp"
+                            app:cardElevation="0dp"
+                            app:cardBackgroundColor="#E8FBF5">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical"
+                                android:padding="14dp">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Deposits &amp; advance payments"
+                                    android:textSize="12sp"
+                                    android:textColor="#1ABC9C"
+                                    android:fontFamily="@font/poppins_medium" />
+
+                                <TextView
+                                    android:id="@+id/tvCbDeposits"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="UGX 0"
+                                    android:textSize="16sp"
+                                    android:textStyle="bold"
+                                    android:textColor="#2C3E50"
+                                    android:fontFamily="@font/poppins_bold"
+                                    android:maxLines="1"
+                                    android:ellipsize="end"
+                                    android:layout_marginTop="4dp" />
+                            </LinearLayout>
+                        </androidx.cardview.widget.CardView>
+
+                        <androidx.cardview.widget.CardView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginStart="6dp"
+                            app:cardCornerRadius="16dp"
+                            app:cardElevation="0dp"
+                            app:cardBackgroundColor="#FDEDEA">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical"
+                                android:padding="14dp">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Today's Credit Sales"
+                                    android:textSize="12sp"
+                                    android:textColor="#E8735C"
+                                    android:fontFamily="@font/poppins_medium" />
+
+                                <TextView
+                                    android:id="@+id/tvCbCreditSales"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="UGX 0"
+                                    android:textSize="16sp"
+                                    android:textStyle="bold"
+                                    android:textColor="#2C3E50"
+                                    android:fontFamily="@font/poppins_bold"
+                                    android:maxLines="1"
+                                    android:ellipsize="end"
+                                    android:layout_marginTop="4dp" />
+                            </LinearLayout>
+                        </androidx.cardview.widget.CardView>
+                    </LinearLayout>
+
+                    <!-- Row: Cash Sales / Old Balance Payments -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:weightSum="2"
+                        android:layout_marginBottom="10dp">
+
+                        <androidx.cardview.widget.CardView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginEnd="6dp"
+                            app:cardCornerRadius="16dp"
+                            app:cardElevation="0dp"
+                            app:cardBackgroundColor="#EEF1F8">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical"
+                                android:padding="14dp">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Today's Cash Sales"
+                                    android:textSize="12sp"
+                                    android:textColor="#E8735C"
+                                    android:fontFamily="@font/poppins_medium" />
+
+                                <TextView
+                                    android:id="@+id/tvCbCashSales"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="UGX 0"
+                                    android:textSize="16sp"
+                                    android:textStyle="bold"
+                                    android:textColor="#2C3E50"
+                                    android:fontFamily="@font/poppins_bold"
+                                    android:maxLines="1"
+                                    android:ellipsize="end"
+                                    android:layout_marginTop="4dp" />
+                            </LinearLayout>
+                        </androidx.cardview.widget.CardView>
+
+                        <androidx.cardview.widget.CardView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginStart="6dp"
+                            app:cardCornerRadius="16dp"
+                            app:cardElevation="0dp"
+                            app:cardBackgroundColor="#EAEFFD">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical"
+                                android:padding="14dp">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Old Balance Payments"
+                                    android:textSize="12sp"
+                                    android:textColor="#5B6FE8"
+                                    android:fontFamily="@font/poppins_medium" />
+
+                                <TextView
+                                    android:id="@+id/tvCbOldBalancePayments"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="UGX 0"
+                                    android:textSize="16sp"
+                                    android:textStyle="bold"
+                                    android:textColor="#2C3E50"
+                                    android:fontFamily="@font/poppins_bold"
+                                    android:maxLines="1"
+                                    android:ellipsize="end"
+                                    android:layout_marginTop="4dp" />
+                            </LinearLayout>
+                        </androidx.cardview.widget.CardView>
+                    </LinearLayout>
+
+                    <!-- Closing Balance -->
+                    <androidx.cardview.widget.CardView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="#D9F2E8">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:padding="16dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Closing Balance"
+                                android:textSize="13sp"
+                                android:textStyle="bold"
+                                android:textColor="#1E8F6E"
+                                android:fontFamily="@font/poppins_medium" />
+
+                            <TextView
+                                android:id="@+id/tvClosingBalance"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="UGX 0"
+                                android:textSize="18sp"
+                                android:textStyle="bold"
+                                android:textColor="#2C3E50"
+                                android:fontFamily="@font/poppins_bold"
+                                android:layout_marginTop="2dp" />
+                        </LinearLayout>
+                    </androidx.cardview.widget.CardView>
+
                     <!-- Quick Actions -->
                     <TextView
                         android:layout_width="wrap_content"

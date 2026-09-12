@@ -21,6 +21,27 @@ data class ShopSummaryDto(
     @SerializedName("todayExpenses")
     val todayExpenses: Double = 0.0,
 
+    // Cash-book fields: unconfirmed field names, kept nullable so a missing/renamed
+    // backend field never crashes Gson parsing - DashboardRepository.fetchCashBookSummary()
+    // falls back to 0.0 (or a derived value for closingBalance) when null.
+    @SerializedName("openingBalance")
+    val openingBalance: Double? = null,
+
+    @SerializedName("closingBalance")
+    val closingBalance: Double? = null,
+
+    @SerializedName("todayCreditSales")
+    val todayCreditSales: Double? = null,
+
+    @SerializedName("todayCashSales")
+    val todayCashSales: Double? = null,
+
+    @SerializedName("depositsAndAdvancePayments")
+    val depositsAndAdvancePayments: Double? = null,
+
+    @SerializedName("oldBalancePayments")
+    val oldBalancePayments: Double? = null,
+
     @SerializedName("topRevenueStockItem")
     val topRevenueStockItem: StockItemSummaryDto? = null,
 

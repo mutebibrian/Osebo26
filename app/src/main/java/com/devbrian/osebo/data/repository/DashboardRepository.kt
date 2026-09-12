@@ -80,6 +80,38 @@ class DashboardRepository @Inject constructor(
         }
     }
 
+    // Cash-book summary is fetched live (not cached in Room) since its backend field
+    // names aren't confirmed yet - keeping it network-only avoids adding another
+    // Room schema migration for fields that may still need to be renamed.
+    suspend fun fetchCashBookSummary(): CashBookSummaryData? {
+        val shopUuid = preferences.getCurrentShopUuid().takeIf { it.isNotEmpty() }
+            ?: preferences.getCurrentShopId()
+        if (shopUuid.isEmpty()) return null
+
+        return try {
+            val response = apiService.getShopSummary(shopUuid)
+            if (response.isSuccessful && response.body()?.success == true) {
+                response.body()?.data?.let { summary ->
+                    val opening = summary.openingBalance ?: 0.0
+                    CashBookSummaryData(
+                        openingBalance = opening,
+                        todayTotalSales = summary.todaySales,
+                        todayExpenses = summary.todayExpenses,
+                        depositsAndAdvancePayments = summary.depositsAndAdvancePayments ?: 0.0,
+                        todayCreditSales = summary.todayCreditSales ?: 0.0,
+                        todayCashSales = summary.todayCashSales ?: 0.0,
+                        oldBalancePayments = summary.oldBalancePayments ?: 0.0,
+                        closingBalance = summary.closingBalance
+                            ?: (opening + summary.todaySales - summary.todayExpenses)
+                    )
+                }
+            } else null
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching cash book summary: ${e.message}")
+            null
+        }
+    }
+
     // ===== NEW HELPER: fetch summary for ANY shop (without changing current shop) =====
     suspend fun fetchShopSummary(shopUuid: String): ShopSummaryData? {
         return try {
@@ -222,4 +254,16 @@ data class ShopSummaryData(
     val totalSuppliers: Int,
     val totalSales: Double,
     val totalExpenses: Double
+)
+
+// Data class for the Cash Book Summary section on the shop dashboard
+data class CashBookSummaryData(
+    val openingBalance: Double,
+    val todayTotalSales: Double,
+    val todayExpenses: Double,
+    val depositsAndAdvancePayments: Double,
+    val todayCreditSales: Double,
+    val todayCashSales: Double,
+    val oldBalancePayments: Double,
+    val closingBalance: Double
 )
