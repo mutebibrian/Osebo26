@@ -224,6 +224,12 @@ class ShopDashboardFragment : Fragment() {
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.cashBookSummary.collect { summary ->
+                summary?.let { updateCashBookSummary(it) }
+            }
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
             viewModel.lastUpdated.collect { lastUpdated ->
                 lastUpdated?.let {
                     binding.tvLastUpdated.text = "Last updated: $it"
@@ -241,6 +247,21 @@ class ShopDashboardFragment : Fragment() {
 
         val profit = data.totalSales * 0.3
         binding.tvProfit.text = formatCurrency(profit)
+    }
+
+    private fun updateCashBookSummary(summary: com.devbrian.osebo.data.repository.CashBookSummaryData) {
+        binding.tvOpeningBalance.text = formatCurrencyExact(summary.openingBalance)
+        binding.tvCbTotalSales.text = formatCurrencyExact(summary.todayTotalSales)
+        binding.tvCbExpenses.text = formatCurrencyExact(summary.todayExpenses)
+        binding.tvCbDeposits.text = formatCurrencyExact(summary.depositsAndAdvancePayments)
+        binding.tvCbCreditSales.text = formatCurrencyExact(summary.todayCreditSales)
+        binding.tvCbCashSales.text = formatCurrencyExact(summary.todayCashSales)
+        binding.tvCbOldBalancePayments.text = formatCurrencyExact(summary.oldBalancePayments)
+        binding.tvClosingBalance.text = formatCurrencyExact(summary.closingBalance)
+    }
+
+    private fun formatCurrencyExact(amount: Double): String {
+        return String.format("UGX %,.0f", amount)
     }
 
     private fun updateChart(timeSeries: DashboardViewModel.TimeSeriesDto) {
