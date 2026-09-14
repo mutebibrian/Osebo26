@@ -14,6 +14,7 @@ import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import com.devbrian.osebo.R
@@ -70,24 +71,52 @@ class ShopDashboardFragment : Fragment() {
         binding.bottomNavigation.setOnItemSelectedListener { menuItem ->
             when (menuItem.itemId) {
                 R.id.nav_home -> {
-                    
+
                     true
                 }
                 R.id.nav_sales -> {
-                    findNavController().navigate(R.id.salesFragment)
+                    runIfSubscribed { findNavController().navigate(R.id.salesFragment) }
                     true
                 }
                 R.id.nav_expenses -> {
-                    findNavController().navigate(R.id.financeFragment)
+                    runIfSubscribed { findNavController().navigate(R.id.financeFragment) }
                     true
                 }
                 R.id.nav_restock -> {
-                    findNavController().navigate(R.id.inventoryFragment)
+                    runIfSubscribed { findNavController().navigate(R.id.inventoryFragment) }
                     true
                 }
                 else -> false
             }
         }
+    }
+
+    // Sales/Finance/Inventory/Employees stay reachable only while the active shop has an
+    // active subscription (or unexpired trial) - matches the web app's locked-until-you-
+    // subscribe treatment of the same sections.
+    private fun hasBusinessAccess(): Boolean {
+        val prefs = PreferenceManager.getInstance(requireContext())
+        if (!prefs.hasActiveSubscription()) return false
+        return !(prefs.isTrial() && prefs.isTrialExpired())
+    }
+
+    private fun runIfSubscribed(action: () -> Unit) {
+        if (hasBusinessAccess()) {
+            action()
+        } else {
+            showSubscriptionRequiredDialog()
+        }
+    }
+
+    private fun showSubscriptionRequiredDialog() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Subscription Required")
+            .setMessage("This shop doesn't have an active subscription. Activate one to unlock Sales, Finance, Inventory and more.")
+            .setPositiveButton("Activate Now") { _, _ ->
+                findNavController().navigate(R.id.subscriptionPackagesFragment)
+            }
+            .setNegativeButton("Later", null)
+            .show()
     }
 
     // Material's own icon-to-label gap in BottomNavigationView is too tight and
@@ -139,31 +168,31 @@ class ShopDashboardFragment : Fragment() {
 
     private fun setupClickListeners() {
         binding.cardEmployees.setOnClickListener {
-            findNavController().navigate(R.id.employeesFragment)
+            runIfSubscribed { findNavController().navigate(R.id.employeesFragment) }
         }
         binding.cardSuppliers.setOnClickListener {
-            findNavController().navigate(R.id.suppliersFragment)
+            runIfSubscribed { findNavController().navigate(R.id.suppliersFragment) }
         }
         binding.cardCustomers.setOnClickListener {
-            findNavController().navigate(R.id.customersFragment)
+            runIfSubscribed { findNavController().navigate(R.id.customersFragment) }
         }
         binding.cardSales.setOnClickListener {
-            findNavController().navigate(R.id.salesFragment)
+            runIfSubscribed { findNavController().navigate(R.id.salesFragment) }
         }
         binding.fabNewSale.setOnClickListener {
-            findNavController().navigate(R.id.newSaleFragment)
+            runIfSubscribed { findNavController().navigate(R.id.newSaleFragment) }
         }
         binding.fabQuickNewSale.setOnClickListener {
-            findNavController().navigate(R.id.newSaleFragment)
+            runIfSubscribed { findNavController().navigate(R.id.newSaleFragment) }
         }
         binding.fabAddProduct.setOnClickListener {
-            findNavController().navigate(R.id.addProductFragment)
+            runIfSubscribed { findNavController().navigate(R.id.addProductFragment) }
         }
         binding.fabAddExpense.setOnClickListener {
-            findNavController().navigate(R.id.addExpenseFragment)
+            runIfSubscribed { findNavController().navigate(R.id.addExpenseFragment) }
         }
         binding.tvViewAllTopStock.setOnClickListener {
-            findNavController().navigate(R.id.inventoryFragment)
+            runIfSubscribed { findNavController().navigate(R.id.inventoryFragment) }
         }
         binding.btnRetry.setOnClickListener {
             binding.errorLayout.visibility = View.GONE

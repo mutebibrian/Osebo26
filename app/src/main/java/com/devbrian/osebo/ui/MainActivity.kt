@@ -560,15 +560,26 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             R.id.nav_employees to PermissionType.VIEW_EMPLOYEES,
             R.id.nav_customers to PermissionType.VIEW_CUSTOMERS
         )
+        // Sales/Finance/Inventory/etc. stay visible to whoever has the role permission for
+        // them, but get greyed out and unclickable when the active shop has no active
+        // subscription - matching the web app's "locked until you subscribe" treatment.
+        val hasSubscriptionAccess = hasAccessToBusinessOperations()
         businessItems.forEach { (itemId, permission) ->
             val isVisible = hasShops && permissionManager.hasPermission(permission)
-            menu.findItem(itemId).isVisible = isVisible
-            Log.d("NavDrawer_DEBUG", "  Menu item $itemId: visible=$isVisible, permission=$permission")
+            val item = menu.findItem(itemId)
+            item.isVisible = isVisible
+            item.isEnabled = hasSubscriptionAccess
+            Log.d("NavDrawer_DEBUG", "  Menu item $itemId: visible=$isVisible, enabled=$hasSubscriptionAccess, permission=$permission")
         }
 
-        menu.findItem(R.id.nav_suppliers).isVisible = hasShops &&
-                permissionManager.hasPermission(PermissionType.VIEW_INVENTORY)
-        menu.findItem(R.id.nav_transfers).isVisible = hasShops
+        menu.findItem(R.id.nav_suppliers).apply {
+            isVisible = hasShops && permissionManager.hasPermission(PermissionType.VIEW_INVENTORY)
+            isEnabled = hasSubscriptionAccess
+        }
+        menu.findItem(R.id.nav_transfers).apply {
+            isVisible = hasShops
+            isEnabled = hasSubscriptionAccess
+        }
 
         // Subscription - only for owners
         val subscriptionItem = menu.findItem(R.id.nav_subscription)
