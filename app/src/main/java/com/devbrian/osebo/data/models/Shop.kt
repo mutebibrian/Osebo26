@@ -76,15 +76,13 @@ data class Shop(
     val effectiveUuid: String
         get() = uuid ?: (if (isValidUUID(id)) id else "")
 
-    // ✅ Robust subscription detection
+    // NOTE: `status` is the shop's general enabled/disabled flag (defaults to "active"
+    // even when the API omits it entirely), NOT the subscription state - it must never be
+    // used here, or every shop reads as having an active subscription regardless of reality.
     val isSubscriptionActive: Boolean
         get() {
             if (subscriptionStatus.equals("active", ignoreCase = true) ||
                 subscriptionStatus.equals("trial", ignoreCase = true)) {
-                return true
-            }
-            if (status.equals("active", ignoreCase = true) ||
-                status.equals("trial", ignoreCase = true)) {
                 return true
             }
             if (subscription != null && (subscription.isActive || subscription.isTrial)) {
