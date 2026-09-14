@@ -1092,6 +1092,7 @@
                                 android:layout_marginBottom="8dp" />
 
                             <LinearLayout
+                                android:id="@+id/emptyTransactionsState"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:orientation="vertical"
@@ -1114,6 +1115,15 @@
                                     android:fontFamily="@font/poppins_medium"
                                     android:layout_marginTop="12dp" />
                             </LinearLayout>
+
+                            <androidx.recyclerview.widget.RecyclerView
+                                android:id="@+id/rvRecentTransactions"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:nestedScrollingEnabled="false"
+                                android:visibility="gone"
+                                tools:listitem="@layout/item_recent_transaction"
+                                tools:visibility="visible" />
                         </LinearLayout>
                     </androidx.cardview.widget.CardView>
 
