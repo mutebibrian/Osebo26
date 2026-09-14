@@ -54,6 +54,13 @@ class ShopsFragment : Fragment() {
         }
 
         override fun onSubscribeClick(shop: Shop) {
+            // The Choose Bundles screen's "Trial Available" badges come from
+            // GET /api/v1/package, which the AuthInterceptor scopes to whichever shop UUID
+            // is currently saved as active (X-Shop header) - not the shop argument passed
+            // through navigation. Without switching context here first, tapping "Activate
+            // Shop Subscription" on shop B while shop A is still active would show A's trial
+            // eligibility instead of B's.
+            setActiveShop(shop)
             navigateToSubscriptionPackages(shop)
         }
     }
