@@ -33,7 +33,7 @@ import com.devbrian.osebo.data.local.entity.*
         ExpenseEntity::class,
         ExpenseCategoryEntity::class
     ],
-    version = 15,
+    version = 16,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -59,6 +59,23 @@ abstract class AppDatabase : RoomDatabase() {
     companion object {
         @Volatile
         private var INSTANCE: AppDatabase? = null
+
+        // Migration from version 15 to 16 - Add packageKind to shops
+        // (needed to tell a core plan like Basic/Pro apart from a single-purpose addon like
+        // "Transfers", which the backend does NOT grant Sales/Finance/Inventory access for
+        // even though its subscription itself is active/paid).
+        private val MIGRATION_15_16 = object : Migration(15, 16) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                println("📦 Room Database - Migrating from version 15 to 16")
+                println("📦 Room Database - Adding packageKind to shops table")
+
+                if (!columnExists(database, "shops", "packageKind")) {
+                    database.execSQL("ALTER TABLE shops ADD COLUMN packageKind TEXT")
+                }
+
+                println("📦 Room Database - Migration 15->16 completed successfully")
+            }
+        }
 
         // Migration from version 14 to 15 - Recreate shops to match ShopEntity
         // (MIGRATION_6_7 created the shops table with SQL DEFAULT values on totalRevenue,
@@ -614,7 +631,8 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_11_12,
                         MIGRATION_12_13,
                         MIGRATION_13_14,
-                        MIGRATION_14_15
+                        MIGRATION_14_15,
+                        MIGRATION_15_16
                     )
                     .fallbackToDestructiveMigration()
                     .addCallback(object : RoomDatabase.Callback() {

@@ -97,7 +97,11 @@ class ShopDashboardFragment : Fragment() {
     private fun hasBusinessAccess(): Boolean {
         val prefs = PreferenceManager.getInstance(requireContext())
         if (!prefs.hasActiveSubscription()) return false
-        return !(prefs.isTrial() && prefs.isTrialExpired())
+        if (prefs.isTrial() && prefs.isTrialExpired()) return false
+        // A "custom" package (e.g. a standalone "Transfers" add-on) is a real, active
+        // subscription, but the backend still returns 403 on Sales/Finance/Inventory/
+        // Customers for it - only a base plan (Basic/Pro/etc.) unlocks those.
+        return !prefs.getPackageKind().equals("custom", ignoreCase = true)
     }
 
     private fun runIfSubscribed(action: () -> Unit) {

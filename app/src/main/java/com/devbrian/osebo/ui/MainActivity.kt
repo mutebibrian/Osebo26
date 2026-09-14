@@ -760,7 +760,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     preferenceManager.saveSubscriptionStatus("expired")
                     return false
                 }
-                hasActiveSub || (isInTrial && !isTrialExpired(expiry))
+                val isCorePackage = !preferenceManager.getPackageKind().equals("custom", ignoreCase = true)
+                (hasActiveSub || (isInTrial && !isTrialExpired(expiry))) && isCorePackage
             } else {
                 true
             }
