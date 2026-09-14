@@ -5,10 +5,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.devbrian.osebo.data.repository.CashBookSummaryData
 import com.devbrian.osebo.data.repository.DashboardRepository
+import com.devbrian.osebo.data.repository.SalesRepository
 import com.devbrian.osebo.data.local.entity.DashboardSummaryEntity
 import com.devbrian.osebo.data.local.entity.TimeSeriesEntity
 import com.devbrian.osebo.data.local.entity.TopStockItemEntity
 import com.devbrian.osebo.data.remote.dto.response.TopStockItemDto
+import com.devbrian.osebo.models.Sale
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,7 +28,8 @@ private const val TAG = "DashboardViewModel"
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
-    private val repository: DashboardRepository
+    private val repository: DashboardRepository,
+    private val salesRepository: SalesRepository
 ) : ViewModel() {
 
     private val _dashboardState = MutableStateFlow<DashboardState>(DashboardState.Loading)
@@ -47,11 +50,29 @@ class DashboardViewModel @Inject constructor(
     private val _cashBookSummary = MutableStateFlow<CashBookSummaryData?>(null)
     val cashBookSummary: StateFlow<CashBookSummaryData?> = _cashBookSummary.asStateFlow()
 
+    private val _recentTransactions = MutableStateFlow<List<Sale>>(emptyList())
+    val recentTransactions: StateFlow<List<Sale>> = _recentTransactions.asStateFlow()
+
     private var isInitialLoadComplete = false
 
     init {
         Log.d(TAG, "🏁 ViewModel initialized")
         observeDatabase()
+        observeRecentTransactions()
+    }
+
+    // Same local-cache-backed source the Sales screen itself uses
+    // (SalesRepository.getRecentSales() reads Room's sales table, ordered
+    // by createdAt DESC) - the "Recent Transactions" card was previously
+    // hardcoded markup with no data binding at all, so it always showed
+    // the empty state regardless of real data.
+    private fun observeRecentTransactions() {
+        salesRepository.getRecentSales(limit = 5)
+            .onEach { sales ->
+                Log.d(TAG, "🧾 Recent transactions flow emitted: ${sales.size} sales")
+                _recentTransactions.value = sales
+            }
+            .launchIn(viewModelScope)
     }
 
     private fun observeDatabase() {

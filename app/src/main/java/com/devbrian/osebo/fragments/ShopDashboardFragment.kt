@@ -20,6 +20,8 @@ import dagger.hilt.android.AndroidEntryPoint
 import com.devbrian.osebo.R
 import com.devbrian.osebo.data.PreferenceManager
 import com.devbrian.osebo.databinding.FragmentShopDashboardBinding
+import com.devbrian.osebo.databinding.ItemRecentTransactionBinding
+import com.devbrian.osebo.models.Sale
 import com.devbrian.osebo.ui.viewmodels.DashboardViewModel
 import com.devbrian.osebo.utils.NetworkUtils
 import kotlinx.coroutines.launch
@@ -35,6 +37,7 @@ class ShopDashboardFragment : Fragment() {
     private val viewModel: DashboardViewModel by viewModels()
 
     private lateinit var topStockAdapter: TopStockAdapter
+    private lateinit var recentTransactionsAdapter: RecentTransactionsAdapter
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -162,6 +165,13 @@ class ShopDashboardFragment : Fragment() {
             setHasFixedSize(true)
             isNestedScrollingEnabled = false
         }
+
+        recentTransactionsAdapter = RecentTransactionsAdapter()
+        binding.rvRecentTransactions.apply {
+            layoutManager = LinearLayoutManager(requireContext())
+            adapter = recentTransactionsAdapter
+            isNestedScrollingEnabled = false
+        }
     }
 
     private fun setupSwipeRefresh() {
@@ -259,6 +269,14 @@ class ShopDashboardFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.cashBookSummary.collect { summary ->
                 summary?.let { updateCashBookSummary(it) }
+            }
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.recentTransactions.collect { sales ->
+                recentTransactionsAdapter.submitList(sales)
+                binding.emptyTransactionsState.visibility = if (sales.isEmpty()) View.VISIBLE else View.GONE
+                binding.rvRecentTransactions.visibility = if (sales.isEmpty()) View.GONE else View.VISIBLE
             }
         }
 
@@ -428,3 +446,36 @@ data class TopStockItem(
     val quantity: Int,
     val sales: Double
 )
+
+class RecentTransactionsAdapter : RecyclerView.Adapter<RecentTransactionsAdapter.ViewHolder>() {
+
+    private var items = listOf<Sale>()
+
+    fun submitList(newItems: List<Sale>) {
+        items = newItems
+        notifyDataSetChanged()
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+        val binding = ItemRecentTransactionBinding.inflate(
+            LayoutInflater.from(parent.context), parent, false
+        )
+        return ViewHolder(binding)
+    }
+
+    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+        holder.bind(items[position])
+    }
+
+    override fun getItemCount() = items.size
+
+    class ViewHolder(private val binding: ItemRecentTransactionBinding) :
+        RecyclerView.ViewHolder(binding.root) {
+
+        fun bind(sale: Sale) {
+            binding.tvTransactionTitle.text = sale.customerName.ifBlank { "Sale" }
+            binding.tvTransactionSubtitle.text = "${sale.getFormattedDate()} • ${sale.getFormattedTime()}"
+            binding.tvTransactionAmount.text = sale.displayAmount
+        }
+    }
+}
