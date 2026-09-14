@@ -50,6 +50,8 @@ data class Shop(
     val subscriptionExpiry: String? = null,
     @SerializedName("plan_id")
     val planId: String? = null,
+    @SerializedName("package_kind")
+    val packageKind: String? = null,
     @SerializedName("status")
     val status: String? = null,
     @SerializedName("phone")
@@ -93,6 +95,14 @@ data class Shop(
 
     val needsSubscription: Boolean
         get() = !isSubscriptionActive
+
+    // "custom" packages (e.g. a standalone "Transfers" add-on) are active/paid subscriptions
+    // that the backend still returns 403 "Please upgrade your subscription to access this
+    // feature" for on Sales/Finance/Inventory/Customers - only a base plan (Basic/Pro/etc.)
+    // unlocks those. A null packageKind (no package info available) is treated as unlocked
+    // rather than blocking access on missing data.
+    val hasCoreBusinessAccess: Boolean
+        get() = isSubscriptionActive && !packageKind.equals("custom", ignoreCase = true)
 
     val location: String? get() = address
     val category: String? get() = shopType

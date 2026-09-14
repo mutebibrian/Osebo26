@@ -29,6 +29,7 @@ data class ShopEntity(
     val subscriptionType: String?,
     val subscriptionExpiry: String?,
     val planId: String?,
+    val packageKind: String?,
     val isActive: Boolean,
     val status: String,
     val ownerId: String,
@@ -58,6 +59,7 @@ data class ShopEntity(
             subscriptionType = this.subscriptionType,
             subscriptionExpiry = this.subscriptionExpiry,
             planId = this.planId,
+            packageKind = this.packageKind,
             isActive = this.isActive,
             status = this.status,
             ownerId = this.ownerId,
@@ -81,6 +83,7 @@ data class ShopEntity(
             val subscriptionExpiry = dto.subscriptionExpiryString
             val subscriptionType = dto.subscriptionTypeString
             val planId = dto.subscription?.packageDetails?.id
+            val packageKind = dto.subscription?.packageSubscriptions?.firstOrNull()?.packageInfo?.kind
 
             // Get shop type name - use shopTypeObject if available, otherwise shopType string
             val shopTypeName = dto.shopTypeObject?.name ?: dto.shopType
@@ -109,6 +112,7 @@ data class ShopEntity(
                 subscriptionType = subscriptionType,
                 subscriptionExpiry = subscriptionExpiry,
                 planId = planId,
+                packageKind = packageKind,
                 isActive = dto.isActive,
                 status = dto.status ?: "active",
                 ownerId = dto.ownerId ?: userId,

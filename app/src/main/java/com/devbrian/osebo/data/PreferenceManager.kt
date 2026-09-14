@@ -322,9 +322,21 @@ class PreferenceManager private constructor(private val context: Context) {
     fun savePackageId(packageId: String) { prefs.edit().putString("package_id", packageId).apply() }
     fun getPackageId(): String = prefs.getString("package_id", "") ?: ""
 
+    // "custom" packages (e.g. a standalone "Transfers" add-on) can be active/paid while still
+    // NOT granting Sales/Finance/Inventory/Customers access - the backend enforces this itself
+    // (403 "Please upgrade your subscription to access this feature"), this just lets the app
+    // grey those sections out up front instead of letting the user tap in and hit that error.
+    fun savePackageKind(packageKind: String?) { prefs.edit().putString("package_kind", packageKind ?: "").apply() }
+    fun getPackageKind(): String = prefs.getString("package_kind", "") ?: ""
+
     fun hasActiveSubscription(): Boolean {
         val status = getSubscriptionStatus().uppercase()
         return status == "ACTIVE" || status == "TRIAL"
+    }
+
+    fun hasCoreBusinessAccess(): Boolean {
+        if (!hasActiveSubscription()) return false
+        return !getPackageKind().equals("custom", ignoreCase = true)
     }
 
     fun isTrial(): Boolean = getSubscriptionStatus().uppercase() == "TRIAL"

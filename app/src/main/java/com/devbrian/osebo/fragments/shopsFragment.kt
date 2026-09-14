@@ -217,7 +217,9 @@ class ShopsFragment : Fragment() {
 
         // Save subscription info if active
         if (shop.isSubscriptionActive) {
-            val status = if (shop.subscription?.isTrial == true) "TRIAL" else "ACTIVE"
+            // shop.subscription is always null here (ShopEntity.toShop() doesn't round-trip
+            // it through Room), so read status from the preserved subscriptionStatus string.
+            val status = if (shop.subscriptionStatus.equals("TRIAL", ignoreCase = true)) "TRIAL" else "ACTIVE"
             preferenceManager.saveSubscriptionInfo(
                 subscriptionId = shop.subscription?.id,
                 status = status,
@@ -228,6 +230,7 @@ class ShopsFragment : Fragment() {
         } else {
             preferenceManager.clearSubscriptionInfo()
         }
+        preferenceManager.savePackageKind(shop.packageKind)
 
         // Update UI in MainActivity
         (activity as? MainActivity)?.apply {
