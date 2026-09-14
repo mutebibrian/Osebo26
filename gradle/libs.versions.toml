@@ -23,6 +23,7 @@ androidx-preference = "1.2.1"
 navigation-fragment-ktx = "2.9.7"
 navigation-ui-ktx = "2.9.7"
 activity = "1.13.0"
+elevenlabs = "0.12.2"
 
 [libraries]
 # Kotlin
@@ -91,6 +92,9 @@ play-services-games = { module = "com.google.android.gms:play-services-games", v
 androidx-navigation-fragment-ktx = { group = "androidx.navigation", name = "navigation-fragment-ktx", version.ref = "navigation-fragment-ktx" }
 androidx-navigation-ui-ktx = { group = "androidx.navigation", name = "navigation-ui-ktx", version.ref = "navigation-ui-ktx" }
 activity = { group = "androidx.activity", name = "activity", version.ref = "activity" }
+
+# ElevenLabs Conversational AI
+elevenlabs-android = { module = "io.elevenlabs:elevenlabs-android", version.ref = "elevenlabs" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
