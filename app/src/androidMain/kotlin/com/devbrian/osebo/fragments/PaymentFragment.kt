@@ -44,10 +44,10 @@ class PaymentFragment : Fragment() {
     
     private var saleResponseData: SaleData? = null
 
-    private val customerId: String by lazy {
+    private val customerId: String? by lazy {
         args.customerId ?: run {
-            println("❌ PaymentFragment - customerId is null, using default Walk-in Customer")
-            "797231da-d7c2-4f8c-bf13-1e3fc08b2e8e"
+            println("ℹ️ PaymentFragment - customerId is null, proceeding as Walk-in Customer")
+            null
         }
     }
 
@@ -145,7 +145,7 @@ class PaymentFragment : Fragment() {
 
     private fun displayCustomerInfo() {
         binding.tvCustomerInfo.visibility = View.VISIBLE
-        binding.tvCustomerInfo.text = "Customer ID: $customerId"
+        binding.tvCustomerInfo.text = customerId?.let { "Customer ID: $it" } ?: "Walk-in Customer"
     }
 
     private fun displayCartSummary() {
