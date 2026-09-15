@@ -2,9 +2,9 @@ name: Android CI
 
 on:
   push:
-    branches: [master, dev]
+    branches: [main, dev]
   pull_request:
-    branches: [master, dev]
+    branches: [main, dev]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -153,7 +153,7 @@ jobs:
   # release build waits for a human approval before it runs.
   deploy-production:
     name: Deploy to Production
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [lint, unit-tests, instrumentation-tests]
     runs-on: ubuntu-latest
     environment: production
