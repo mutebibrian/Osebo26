@@ -1,4 +1,13 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
+
+val localProperties = Properties().apply {
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        localPropertiesFile.inputStream().use { load(it) }
+    }
+}
+val elevenLabsApiKey: String = localProperties.getProperty("ELEVENLABS_API_KEY") ?: ""
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
@@ -143,6 +152,10 @@ android {
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Add ELEVENLABS_API_KEY=<your key> to local.properties (gitignored) to enable
+        // voice-to-text in the AI chat. Empty by default so the app still builds without it.
+        buildConfigField("String", "ELEVENLABS_API_KEY", "\"$elevenLabsApiKey\"")
     }
 
     lint {
