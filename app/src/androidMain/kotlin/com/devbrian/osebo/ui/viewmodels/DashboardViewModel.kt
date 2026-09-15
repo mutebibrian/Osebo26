@@ -3,11 +3,14 @@ package com.devbrian.osebo.ui.viewmodels
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.devbrian.osebo.data.repository.CashBookSummaryData
 import com.devbrian.osebo.data.repository.DashboardRepository
+import com.devbrian.osebo.data.repository.SalesRepository
 import com.devbrian.osebo.data.local.entity.DashboardSummaryEntity
 import com.devbrian.osebo.data.local.entity.TimeSeriesEntity
 import com.devbrian.osebo.data.local.entity.TopStockItemEntity
 import com.devbrian.osebo.data.remote.dto.response.TopStockItemDto
+import com.devbrian.osebo.models.Sale
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,7 +25,8 @@ import java.util.Locale
 private const val TAG = "DashboardViewModel"
 
 class DashboardViewModel(
-    private val repository: DashboardRepository
+    private val repository: DashboardRepository,
+    private val salesRepository: SalesRepository
 ) : ViewModel() {
 
     private val _dashboardState = MutableStateFlow<DashboardState>(DashboardState.Loading)
@@ -40,11 +44,32 @@ class DashboardViewModel(
     private val _lastUpdated = MutableStateFlow<String?>(null)
     val lastUpdated: StateFlow<String?> = _lastUpdated.asStateFlow()
 
+    private val _cashBookSummary = MutableStateFlow<CashBookSummaryData?>(null)
+    val cashBookSummary: StateFlow<CashBookSummaryData?> = _cashBookSummary.asStateFlow()
+
+    private val _recentTransactions = MutableStateFlow<List<Sale>>(emptyList())
+    val recentTransactions: StateFlow<List<Sale>> = _recentTransactions.asStateFlow()
+
     private var isInitialLoadComplete = false
 
     init {
         Log.d(TAG, "🏁 ViewModel initialized")
         observeDatabase()
+        observeRecentTransactions()
+    }
+
+    // Same local-cache-backed source the Sales screen itself uses
+    // (SalesRepository.getRecentSales() reads Room's sales table, ordered
+    // by createdAt DESC) - the "Recent Transactions" card was previously
+    // hardcoded markup with no data binding at all, so it always showed
+    // the empty state regardless of real data.
+    private fun observeRecentTransactions() {
+        salesRepository.getRecentSales(limit = 5)
+            .onEach { sales ->
+                Log.d(TAG, "🧾 Recent transactions flow emitted: ${sales.size} sales")
+                _recentTransactions.value = sales
+            }
+            .launchIn(viewModelScope)
     }
 
     private fun observeDatabase() {
@@ -173,6 +198,7 @@ class DashboardViewModel(
             if (!_isOffline.value) {
                 Log.d(TAG, "📡 Online - refreshing dashboard data")
                 repository.refreshDashboardData()
+                loadCashBookSummary()
             } else {
                 Log.d(TAG, "📴 Offline - checking cached data")
                 val hasData = repository.hasCachedData()
@@ -198,6 +224,7 @@ class DashboardViewModel(
             if (!_isOffline.value) {
                 Log.d(TAG, "📡 Online - refreshing data")
                 repository.refreshDashboardData()
+                loadCashBookSummary()
                 updateLastUpdated()
                 Log.d(TAG, "✅ Refresh complete")
             } else {
@@ -223,6 +250,12 @@ class DashboardViewModel(
             } else {
                 Log.d(TAG, "⏭️ No refresh needed")
             }
+        }
+    }
+
+    private fun loadCashBookSummary() {
+        viewModelScope.launch {
+            _cashBookSummary.value = repository.fetchCashBookSummary()
         }
     }
 

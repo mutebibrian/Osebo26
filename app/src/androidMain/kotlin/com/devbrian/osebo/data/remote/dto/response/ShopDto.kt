@@ -79,10 +79,7 @@ data class ShopDto(
     // Helper property to check if shop has active subscription
     // Use isActive from subscription if available
     val hasActiveSubscription: Boolean
-        get() = subscription?.isActive == true ||
-                subscription?.isTrialActive == true ||
-                subscription?.status.equals("ACTIVE", ignoreCase = true) == true ||
-                subscription?.status.equals("TRIAL", ignoreCase = true) == true
+        get() = subscription?.isActiveStatus == true || subscription?.isTrialActive == true
 
     // Helper property to get subscription status string
     val subscriptionStatusString: String

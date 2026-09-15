@@ -113,6 +113,9 @@ kotlin {
 
             // WorkManager
             implementation("androidx.work:work-runtime-ktx:2.9.0")
+
+            // ElevenLabs Conversational AI (voice agent)
+            implementation(libs.elevenlabs.android)
         }
 
         androidUnitTest.dependencies {

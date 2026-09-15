@@ -167,13 +167,20 @@ class PaymentStatusFragment : Fragment() {
                             }
 
                             preferenceManager.saveSubscriptionStatus(subscriptionStatus)
+                            // Bug: this used to pass subscriptionId (a subscription's own ID,
+                            // not a shop ID) into saveCurrentShopUuid(), silently corrupting the
+                            // X-Shop header every subsequent API call sends - e.g. GET
+                            // /api/v1/package would then be scoped to a nonexistent "shop"
+                            // (really a subscription UUID) and return generic/wrong canTry data.
                             statusResponse.subscriptionId?.let {
                                 preferenceManager.saveSubscriptionId(it)
-                                preferenceManager.saveCurrentShopUuid(it)
                             }
                             statusResponse.type?.let { preferenceManager.saveSubscriptionType(it) }
                             statusResponse.expiryDate?.let { preferenceManager.saveSubscriptionExpiry(it) }
-                            statusResponse.shopId?.let { preferenceManager.saveCurrentShopId(it) }
+                            statusResponse.shopId?.let {
+                                preferenceManager.saveCurrentShopId(it)
+                                preferenceManager.saveCurrentShopUuid(it)
+                            }
 
                             println("✅ Saved subscription to preferences: $subscriptionStatus")
                             preferenceManager.debugSubscriptionInfo()

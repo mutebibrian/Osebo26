@@ -308,8 +308,10 @@ class SubscriptionViewModel(
                                 )
                                 statusResponse.subscriptionId?.let {
                                     prefs.saveSubscriptionId(it)
-                                    prefs.saveCurrentShopUuid(it)
                                 }
+                                // Was passing the subscription's own ID here, not a shop ID -
+                                // corrupted the X-Shop header every subsequent request sends.
+                                prefs.saveCurrentShopUuid(shopId)
                                 statusResponse.type?.let { prefs.saveSubscriptionType(it) }
                                 statusResponse.expiryDate?.let { prefs.saveSubscriptionExpiry(it) }
                             } else {
@@ -345,7 +347,9 @@ class SubscriptionViewModel(
                                 if (subscription.isTrial) "TRIAL" else subscription.effectiveStatus
                             )
                             prefs.saveSubscriptionId(subscription.id)
-                            prefs.saveCurrentShopUuid(subscription.id)
+                            // Was passing the subscription's own ID here, not a shop ID -
+                            // corrupted the X-Shop header every subsequent request sends.
+                            prefs.saveCurrentShopUuid(shopId)
                             prefs.saveSubscriptionType(subscription.packageType)
                             subscription.endDate?.let { prefs.saveSubscriptionExpiry(it) }
                             _currentSubscription.value = Resource.Success(subscription)

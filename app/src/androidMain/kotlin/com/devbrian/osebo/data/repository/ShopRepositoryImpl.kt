@@ -117,6 +117,9 @@ class ShopRepositoryImpl(
                         preferenceManager.saveSubscriptionId(activeShop.subscription?.id ?: "")
                         preferenceManager.saveSubscriptionType(activeShop.subscription?.packageType ?: "")
                         preferenceManager.saveSubscriptionExpiry(activeShop.subscription?.endsAt ?: "")
+                        preferenceManager.savePackageKind(
+                            activeShop.subscription?.packageSubscriptions?.firstOrNull()?.packageInfo?.kind
+                        )
 
                         println("✅ Auto-activated shop: ${activeShop.name}")
                         preferenceManager.debugSubscriptionInfo()

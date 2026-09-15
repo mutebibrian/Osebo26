@@ -22,22 +22,32 @@ data class ShopSubscriptionDto(
     val endsAt: String? = null,
 
     @SerializedName("is_active")
-    val isActive: Boolean = false,  
+    val isActive: Boolean = false,
 
     @SerializedName("duration_days")
     val durationDays: Int = 0,
 
     @SerializedName("is_trial")
-    val isTrial: Boolean = false
-) {
-    
-    
-    val isActiveStatus: Boolean
-        get() = isActive || status.equals("ACTIVE", ignoreCase = true)
+    val isTrial: Boolean = false,
 
-    
+    // The real /api/v1/shops response nests subscription status under these two fields
+    // instead of the is_active/is_trial pair above (those are kept for other callers that
+    // may populate them, e.g. sample/test data).
+    @SerializedName("is_paid")
+    val isPaid: Boolean = false,
+
+    @SerializedName("packageSubscriptions")
+    val packageSubscriptions: List<PaymentCheckPackageSubscription>? = null
+) {
+
+
+    val isActiveStatus: Boolean
+        get() = isActive || isPaid || status.equals("ACTIVE", ignoreCase = true)
+
+
     val isTrialActive: Boolean
-        get() = isTrial && isActiveStatus
+        get() = (isTrial && isActiveStatus) ||
+                (isPaid && packageSubscriptions?.firstOrNull()?.isTrial == true)
 
     
     val displayStatus: String

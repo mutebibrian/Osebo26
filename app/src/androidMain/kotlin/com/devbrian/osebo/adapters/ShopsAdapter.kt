@@ -100,7 +100,10 @@ class ShopsAdapter(
 
                 if (isActive && isSubActive) {
                     ribbonContainer.visibility = View.VISIBLE
-                    tvRibbon.text = if (shop.subscription?.isTrial == true) "TRIAL" else "ACTIVE"
+                    // shop.subscription is always null here (ShopEntity.toShop() doesn't
+                    // round-trip it through Room), so read the trial flag from the
+                    // preserved subscriptionStatus string instead.
+                    tvRibbon.text = if (shop.subscriptionStatus.equals("TRIAL", ignoreCase = true)) "TRIAL" else "ACTIVE"
                 } else {
                     ribbonContainer.visibility = View.GONE
                 }

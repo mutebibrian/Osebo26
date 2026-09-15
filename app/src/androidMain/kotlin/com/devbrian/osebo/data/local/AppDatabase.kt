@@ -33,7 +33,7 @@ import com.devbrian.osebo.data.local.entity.*
         ExpenseEntity::class,
         ExpenseCategoryEntity::class
     ],
-    version = 15,
+    version = 16,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -59,6 +59,23 @@ abstract class AppDatabase : RoomDatabase() {
     companion object {
         @Volatile
         private var INSTANCE: AppDatabase? = null
+
+        // Migration from version 15 to 16 - Add packageKind to shops
+        // (needed to tell a core plan like Basic/Pro apart from a single-purpose addon like
+        // "Transfers", which the backend does NOT grant Sales/Finance/Inventory access for
+        // even though its subscription itself is active/paid).
+        private val MIGRATION_15_16 = object : Migration(15, 16) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                println("📦 Room Database - Migrating from version 15 to 16")
+                println("📦 Room Database - Adding packageKind to shops table")
+
+                if (!columnExists(database, "shops", "packageKind")) {
+                    database.execSQL("ALTER TABLE shops ADD COLUMN packageKind TEXT")
+                }
+
+                println("📦 Room Database - Migration 15->16 completed successfully")
+            }
+        }
 
         // Migration from version 14 to 15 - Recreate shops to match ShopEntity
         // (MIGRATION_6_7 created the shops table with SQL DEFAULT values on totalRevenue,
@@ -291,6 +308,20 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // Checks whether a column already exists on a table, so column-adding migrations
+        // are safe to re-run on installs where the column got there by some other path
+        // (e.g. MIGRATION_11_12 below hit "duplicate column name: employeeId" on a device
+        // whose sales table already had it while Room still tracked schema version 11).
+        private fun columnExists(database: SupportSQLiteDatabase, table: String, column: String): Boolean {
+            database.query("PRAGMA table_info($table)").use { cursor ->
+                val nameIndex = cursor.getColumnIndex("name")
+                while (cursor.moveToNext()) {
+                    if (cursor.getString(nameIndex) == column) return true
+                }
+            }
+            return false
+        }
+
         // Migration from version 11 to 12 - Add employeeId/employeeName/servedBy to sales
         // (SaleEntity gained these nullable columns but no migration ever added them on-disk).
         private val MIGRATION_11_12 = object : Migration(11, 12) {
@@ -298,9 +329,15 @@ abstract class AppDatabase : RoomDatabase() {
                 println("📦 Room Database - Migrating from version 11 to 12")
                 println("📦 Room Database - Adding employeeId/employeeName/servedBy to sales table")
 
-                database.execSQL("ALTER TABLE sales ADD COLUMN employeeId TEXT")
-                database.execSQL("ALTER TABLE sales ADD COLUMN employeeName TEXT")
-                database.execSQL("ALTER TABLE sales ADD COLUMN servedBy TEXT")
+                if (!columnExists(database, "sales", "employeeId")) {
+                    database.execSQL("ALTER TABLE sales ADD COLUMN employeeId TEXT")
+                }
+                if (!columnExists(database, "sales", "employeeName")) {
+                    database.execSQL("ALTER TABLE sales ADD COLUMN employeeName TEXT")
+                }
+                if (!columnExists(database, "sales", "servedBy")) {
+                    database.execSQL("ALTER TABLE sales ADD COLUMN servedBy TEXT")
+                }
 
                 println("📦 Room Database - Migration 11->12 completed successfully")
             }
@@ -594,7 +631,8 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_11_12,
                         MIGRATION_12_13,
                         MIGRATION_13_14,
-                        MIGRATION_14_15
+                        MIGRATION_14_15,
+                        MIGRATION_15_16
                     )
                     .fallbackToDestructiveMigration()
                     .addCallback(object : RoomDatabase.Callback() {

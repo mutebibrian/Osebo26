@@ -21,6 +21,29 @@ data class ShopSummaryDto(
     @SerializedName("todayExpenses")
     val todayExpenses: Double = 0.0,
 
+    // Cash-book fields - confirmed against a real /api/v1/analytics/shop-summary response:
+    // {"totalEmployees":0,"totalCustomers":1,"totalSuppliers":0,"totalSales":0,"todaySales":0,
+    //  "todayExpenses":0,"todayCashIn":0,"todayCashOut":0,"todayPaidSales":0,"advancePayments":0,
+    //  "todayCreditSales":0,"oldBalances":0,"openingBalance":0,"closingBalance":0,...}
+    // Still nullable so an unexpected future rename falls back to 0.0 instead of crashing Gson.
+    @SerializedName("openingBalance")
+    val openingBalance: Double? = null,
+
+    @SerializedName("closingBalance")
+    val closingBalance: Double? = null,
+
+    @SerializedName("todayCreditSales")
+    val todayCreditSales: Double? = null,
+
+    @SerializedName("todayPaidSales")
+    val todayCashSales: Double? = null,
+
+    @SerializedName("advancePayments")
+    val depositsAndAdvancePayments: Double? = null,
+
+    @SerializedName("oldBalances")
+    val oldBalancePayments: Double? = null,
+
     @SerializedName("topRevenueStockItem")
     val topRevenueStockItem: StockItemSummaryDto? = null,
 

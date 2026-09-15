@@ -28,7 +28,7 @@ val viewModelModule = module {
     viewModel { AddExpenseViewModel(get()) }
     viewModel { AiViewModel(get()) }
     viewModel { CustomerViewModel(get()) }
-    viewModel { DashboardViewModel(get()) }
+    viewModel { DashboardViewModel(get(), get()) }
     viewModel { ExpenseCategoriesViewModel(get()) }
     viewModel { FinanceSettingsViewModel(get(), get()) }
     viewModel { FinanceViewModel(get(), get()) }

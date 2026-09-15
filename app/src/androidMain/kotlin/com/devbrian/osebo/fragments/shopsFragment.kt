@@ -52,6 +52,13 @@ class ShopsFragment : Fragment() {
         }
 
         override fun onSubscribeClick(shop: Shop) {
+            // The Choose Bundles screen's "Trial Available" badges come from
+            // GET /api/v1/package, which the AuthInterceptor scopes to whichever shop UUID
+            // is currently saved as active (X-Shop header) - not the shop argument passed
+            // through navigation. Without switching context here first, tapping "Activate
+            // Shop Subscription" on shop B while shop A is still active would show A's trial
+            // eligibility instead of B's.
+            setActiveShop(shop)
             navigateToSubscriptionPackages(shop)
         }
     }
@@ -214,7 +221,9 @@ class ShopsFragment : Fragment() {
 
         // Save subscription info if active
         if (shop.isSubscriptionActive) {
-            val status = if (shop.subscription?.isTrial == true) "TRIAL" else "ACTIVE"
+            // shop.subscription is always null here (ShopEntity.toShop() doesn't round-trip
+            // it through Room), so read status from the preserved subscriptionStatus string.
+            val status = if (shop.subscriptionStatus.equals("TRIAL", ignoreCase = true)) "TRIAL" else "ACTIVE"
             preferenceManager.saveSubscriptionInfo(
                 subscriptionId = shop.subscription?.id,
                 status = status,
@@ -225,6 +234,7 @@ class ShopsFragment : Fragment() {
         } else {
             preferenceManager.clearSubscriptionInfo()
         }
+        preferenceManager.savePackageKind(shop.packageKind)
 
         // Update UI in MainActivity
         (activity as? MainActivity)?.apply {

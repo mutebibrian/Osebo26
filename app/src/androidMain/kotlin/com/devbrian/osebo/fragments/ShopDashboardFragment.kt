@@ -14,10 +14,13 @@ import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.devbrian.osebo.R
 import com.devbrian.osebo.data.PreferenceManager
 import com.devbrian.osebo.databinding.FragmentShopDashboardBinding
+import com.devbrian.osebo.databinding.ItemRecentTransactionBinding
+import com.devbrian.osebo.models.Sale
 import com.devbrian.osebo.ui.viewmodels.DashboardViewModel
 import com.devbrian.osebo.utils.NetworkUtils
 import kotlinx.coroutines.launch
@@ -32,6 +35,7 @@ class ShopDashboardFragment : Fragment() {
     private val viewModel: DashboardViewModel by viewModel()
 
     private lateinit var topStockAdapter: TopStockAdapter
+    private lateinit var recentTransactionsAdapter: RecentTransactionsAdapter
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -68,24 +72,56 @@ class ShopDashboardFragment : Fragment() {
         binding.bottomNavigation.setOnItemSelectedListener { menuItem ->
             when (menuItem.itemId) {
                 R.id.nav_home -> {
-                    
+
                     true
                 }
                 R.id.nav_sales -> {
-                    findNavController().navigate(R.id.salesFragment)
+                    runIfSubscribed { findNavController().navigate(R.id.salesFragment) }
                     true
                 }
                 R.id.nav_expenses -> {
-                    findNavController().navigate(R.id.financeFragment)
+                    runIfSubscribed { findNavController().navigate(R.id.financeFragment) }
                     true
                 }
                 R.id.nav_restock -> {
-                    findNavController().navigate(R.id.inventoryFragment)
+                    runIfSubscribed { findNavController().navigate(R.id.inventoryFragment) }
                     true
                 }
                 else -> false
             }
         }
+    }
+
+    // Sales/Finance/Inventory/Employees stay reachable only while the active shop has an
+    // active subscription (or unexpired trial) - matches the web app's locked-until-you-
+    // subscribe treatment of the same sections.
+    private fun hasBusinessAccess(): Boolean {
+        val prefs = PreferenceManager.getInstance(requireContext())
+        if (!prefs.hasActiveSubscription()) return false
+        if (prefs.isTrial() && prefs.isTrialExpired()) return false
+        // A "custom" package (e.g. a standalone "Transfers" add-on) is a real, active
+        // subscription, but the backend still returns 403 on Sales/Finance/Inventory/
+        // Customers for it - only a base plan (Basic/Pro/etc.) unlocks those.
+        return !prefs.getPackageKind().equals("custom", ignoreCase = true)
+    }
+
+    private fun runIfSubscribed(action: () -> Unit) {
+        if (hasBusinessAccess()) {
+            action()
+        } else {
+            showSubscriptionRequiredDialog()
+        }
+    }
+
+    private fun showSubscriptionRequiredDialog() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Subscription Required")
+            .setMessage("This shop doesn't have an active subscription. Activate one to unlock Sales, Finance, Inventory and more.")
+            .setPositiveButton("Activate Now") { _, _ ->
+                findNavController().navigate(R.id.subscriptionPackagesFragment)
+            }
+            .setNegativeButton("Later", null)
+            .show()
     }
 
     // Material's own icon-to-label gap in BottomNavigationView is too tight and
@@ -127,6 +163,13 @@ class ShopDashboardFragment : Fragment() {
             setHasFixedSize(true)
             isNestedScrollingEnabled = false
         }
+
+        recentTransactionsAdapter = RecentTransactionsAdapter()
+        binding.rvRecentTransactions.apply {
+            layoutManager = LinearLayoutManager(requireContext())
+            adapter = recentTransactionsAdapter
+            isNestedScrollingEnabled = false
+        }
     }
 
     private fun setupSwipeRefresh() {
@@ -137,31 +180,31 @@ class ShopDashboardFragment : Fragment() {
 
     private fun setupClickListeners() {
         binding.cardEmployees.setOnClickListener {
-            findNavController().navigate(R.id.employeesFragment)
+            runIfSubscribed { findNavController().navigate(R.id.employeesFragment) }
         }
         binding.cardSuppliers.setOnClickListener {
-            findNavController().navigate(R.id.suppliersFragment)
+            runIfSubscribed { findNavController().navigate(R.id.suppliersFragment) }
         }
         binding.cardCustomers.setOnClickListener {
-            findNavController().navigate(R.id.customersFragment)
+            runIfSubscribed { findNavController().navigate(R.id.customersFragment) }
         }
         binding.cardSales.setOnClickListener {
-            findNavController().navigate(R.id.salesFragment)
+            runIfSubscribed { findNavController().navigate(R.id.salesFragment) }
         }
         binding.fabNewSale.setOnClickListener {
-            findNavController().navigate(R.id.newSaleFragment)
+            runIfSubscribed { findNavController().navigate(R.id.newSaleFragment) }
         }
         binding.fabQuickNewSale.setOnClickListener {
-            findNavController().navigate(R.id.newSaleFragment)
+            runIfSubscribed { findNavController().navigate(R.id.newSaleFragment) }
         }
         binding.fabAddProduct.setOnClickListener {
-            findNavController().navigate(R.id.addProductFragment)
+            runIfSubscribed { findNavController().navigate(R.id.addProductFragment) }
         }
         binding.fabAddExpense.setOnClickListener {
-            findNavController().navigate(R.id.addExpenseFragment)
+            runIfSubscribed { findNavController().navigate(R.id.addExpenseFragment) }
         }
         binding.tvViewAllTopStock.setOnClickListener {
-            findNavController().navigate(R.id.inventoryFragment)
+            runIfSubscribed { findNavController().navigate(R.id.inventoryFragment) }
         }
         binding.btnRetry.setOnClickListener {
             binding.errorLayout.visibility = View.GONE
@@ -222,6 +265,20 @@ class ShopDashboardFragment : Fragment() {
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.cashBookSummary.collect { summary ->
+                summary?.let { updateCashBookSummary(it) }
+            }
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.recentTransactions.collect { sales ->
+                recentTransactionsAdapter.submitList(sales)
+                binding.emptyTransactionsState.visibility = if (sales.isEmpty()) View.VISIBLE else View.GONE
+                binding.rvRecentTransactions.visibility = if (sales.isEmpty()) View.GONE else View.VISIBLE
+            }
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
             viewModel.lastUpdated.collect { lastUpdated ->
                 lastUpdated?.let {
                     binding.tvLastUpdated.text = "Last updated: $it"
@@ -239,6 +296,21 @@ class ShopDashboardFragment : Fragment() {
 
         val profit = data.totalSales * 0.3
         binding.tvProfit.text = formatCurrency(profit)
+    }
+
+    private fun updateCashBookSummary(summary: com.devbrian.osebo.data.repository.CashBookSummaryData) {
+        binding.tvOpeningBalance.text = formatCurrencyExact(summary.openingBalance)
+        binding.tvCbTotalSales.text = formatCurrencyExact(summary.todayTotalSales)
+        binding.tvCbExpenses.text = formatCurrencyExact(summary.todayExpenses)
+        binding.tvCbDeposits.text = formatCurrencyExact(summary.depositsAndAdvancePayments)
+        binding.tvCbCreditSales.text = formatCurrencyExact(summary.todayCreditSales)
+        binding.tvCbCashSales.text = formatCurrencyExact(summary.todayCashSales)
+        binding.tvCbOldBalancePayments.text = formatCurrencyExact(summary.oldBalancePayments)
+        binding.tvClosingBalance.text = formatCurrencyExact(summary.closingBalance)
+    }
+
+    private fun formatCurrencyExact(amount: Double): String {
+        return String.format("UGX %,.0f", amount)
     }
 
     private fun updateChart(timeSeries: DashboardViewModel.TimeSeriesDto) {
@@ -372,3 +444,36 @@ data class TopStockItem(
     val quantity: Int,
     val sales: Double
 )
+
+class RecentTransactionsAdapter : RecyclerView.Adapter<RecentTransactionsAdapter.ViewHolder>() {
+
+    private var items = listOf<Sale>()
+
+    fun submitList(newItems: List<Sale>) {
+        items = newItems
+        notifyDataSetChanged()
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+        val binding = ItemRecentTransactionBinding.inflate(
+            LayoutInflater.from(parent.context), parent, false
+        )
+        return ViewHolder(binding)
+    }
+
+    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+        holder.bind(items[position])
+    }
+
+    override fun getItemCount() = items.size
+
+    class ViewHolder(private val binding: ItemRecentTransactionBinding) :
+        RecyclerView.ViewHolder(binding.root) {
+
+        fun bind(sale: Sale) {
+            binding.tvTransactionTitle.text = sale.customerName.ifBlank { "Sale" }
+            binding.tvTransactionSubtitle.text = "${sale.getFormattedDate()} • ${sale.getFormattedTime()}"
+            binding.tvTransactionAmount.text = sale.displayAmount
+        }
+    }
+}
