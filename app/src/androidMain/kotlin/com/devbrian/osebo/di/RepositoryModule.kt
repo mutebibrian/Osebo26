@@ -16,6 +16,7 @@ import com.devbrian.osebo.data.repository.StatisticsRepository
 import com.devbrian.osebo.data.repository.StatisticsRepositoryImpl
 import com.devbrian.osebo.data.repository.SubscriptionRepository
 import com.devbrian.osebo.data.repository.SubscriptionRepositoryImpl
+import org.koin.dsl.bind
 import org.koin.dsl.module
 
 val repositoryModule = module {
@@ -37,7 +38,7 @@ val repositoryModule = module {
     single { DashboardRepository(get(), get(), get()) }
 
     // Interface-bound repositories
-    single<ShopRepository> { ShopRepositoryImpl(get(), get(), get()) }
+    single { ShopRepositoryImpl(get(), get(), get()) } bind ShopRepository::class
     single<SubscriptionRepository> { SubscriptionRepositoryImpl(get()) }
     single<StatisticsRepository> { StatisticsRepositoryImpl() }
 }
