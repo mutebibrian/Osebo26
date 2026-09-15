@@ -58,6 +58,7 @@ class ShopDashboardFragment : Fragment() {
         setupSwipeRefresh()
         setupClickListeners()
         setupBottomNavigation()
+        addBottomNavLabelSpacing()
         observeViewModel()
 
         viewModel.loadDashboardData()
@@ -83,6 +84,30 @@ class ShopDashboardFragment : Fragment() {
                     true
                 }
                 else -> false
+            }
+        }
+    }
+
+    // Material's own icon-to-label gap in BottomNavigationView is too tight and
+    // renders as if the icon is touching the text. Overriding the library's dimen
+    // resource wasn't enough (it isn't necessarily what this item view reads at
+    // this Material version/theme combo), so this sets the gap directly on the
+    // rendered label view, which works regardless of the widget's internals.
+    private fun addBottomNavLabelSpacing() {
+        binding.bottomNavigation.post {
+            val menuView = binding.bottomNavigation.getChildAt(0) as? ViewGroup ?: return@post
+            val extraSpacingPx = (6 * resources.displayMetrics.density).toInt()
+
+            for (i in 0 until menuView.childCount) {
+                val itemView = menuView.getChildAt(i) as? ViewGroup ?: continue
+                val labelGroup = itemView.findViewById<View>(
+                    com.google.android.material.R.id.navigation_bar_item_labels_group
+                )
+                val params = labelGroup?.layoutParams as? ViewGroup.MarginLayoutParams
+                if (labelGroup != null && params != null) {
+                    params.topMargin = extraSpacingPx
+                    labelGroup.layoutParams = params
+                }
             }
         }
     }
@@ -124,6 +149,9 @@ class ShopDashboardFragment : Fragment() {
             findNavController().navigate(R.id.salesFragment)
         }
         binding.fabNewSale.setOnClickListener {
+            findNavController().navigate(R.id.newSaleFragment)
+        }
+        binding.fabQuickNewSale.setOnClickListener {
             findNavController().navigate(R.id.newSaleFragment)
         }
         binding.fabAddProduct.setOnClickListener {
@@ -218,11 +246,9 @@ class ShopDashboardFragment : Fragment() {
         val totalExpenses = timeSeries.expenses.sum()
         val profit = totalSales - totalExpenses
 
-        binding.tvChartSummary.text = """
-            📊 Sales: ${formatCurrency(totalSales)}
-            💰 Expenses: ${formatCurrency(totalExpenses)}
-            💵 Profit: ${formatCurrency(profit)}
-        """.trimIndent()
+        binding.tvPerfSalesValue.text = formatCurrency(totalSales)
+        binding.tvPerfExpensesValue.text = formatCurrency(totalExpenses)
+        binding.tvPerfProfitValue.text = formatCurrency(profit)
     }
 
     private fun formatCurrency(amount: Double): String {

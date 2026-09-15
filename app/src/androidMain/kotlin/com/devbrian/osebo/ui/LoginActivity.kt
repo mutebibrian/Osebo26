@@ -144,8 +144,18 @@ class LoginActivity : AppCompatActivity() {
 
         currentPhoneNumber = ccp.selectedCountryCodeWithPlus + phoneRaw
 
-        if (isOtpMode) verifyOtp()
-        else requestOtp()
+        if (isOtpMode) {
+            verifyOtp()
+            return
+        }
+
+        val password = etPassword.text.toString().trim()
+        if (password.isNotEmpty()) {
+            // Password provided: skip OTP entirely
+            loginWithPassword(currentPhoneNumber, password)
+        } else {
+            requestOtp()
+        }
     }
 
     private fun requestOtp() {
@@ -234,23 +244,32 @@ class LoginActivity : AppCompatActivity() {
             return
         }
 
+        loginWithPassword(email, password)
+    }
+
+    private fun loginWithPassword(identifier: String, password: String) {
+        if (!NetworkUtils.isNetworkAvailable(this)) {
+            showError("No internet")
+            return
+        }
+
         showLoading(true)
 
         CoroutineScope(Dispatchers.IO).launch {
-            val result = authRepository.loginWithPassword(email, password)
+            val result = authRepository.loginWithPassword(identifier, password)
 
             withContext(Dispatchers.Main) {
                 showLoading(false)
 
                 if (result.isSuccess) {
                     val preAuth = result.getOrNull()!!
-                    // Navigate to SelectAccountActivity
+                    // Navigate to SelectAccountActivity — no OTP needed
                     val intent = Intent(this@LoginActivity, SelectAccountActivity::class.java)
                     intent.putExtra(SelectAccountActivity.EXTRA_PRE_AUTH_DATA, preAuth)
                     startActivity(intent)
                     finish()
                 } else {
-                    showError("Login failed")
+                    showError(result.exceptionOrNull()?.message ?: "Login failed")
                 }
             }
         }
