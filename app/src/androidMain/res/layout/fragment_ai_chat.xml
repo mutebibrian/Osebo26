@@ -178,6 +178,19 @@
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/micButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="8dp"
+            android:contentDescription="Voice input"
+            android:src="@drawable/ic_mic"
+            app:backgroundTint="@color/secondary_text_color"
+            app:elevation="0dp"
+            app:fabCustomSize="48dp"
+            app:maxImageSize="20dp"
+            app:tint="@android:color/white" />
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/sendButton"
             android:layout_width="48dp"
             android:layout_height="48dp"

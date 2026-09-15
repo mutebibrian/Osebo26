@@ -26,7 +26,7 @@ import org.koin.dsl.module
 val viewModelModule = module {
     viewModel { AccountViewModel(get()) }
     viewModel { AddExpenseViewModel(get()) }
-    viewModel { AiViewModel(get()) }
+    viewModel { AiViewModel(get(), get()) }
     viewModel { CustomerViewModel(get()) }
     viewModel { DashboardViewModel(get()) }
     viewModel { ExpenseCategoriesViewModel(get()) }
