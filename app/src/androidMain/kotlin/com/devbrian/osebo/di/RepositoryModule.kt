@@ -16,6 +16,7 @@ import com.devbrian.osebo.data.repository.StatisticsRepository
 import com.devbrian.osebo.data.repository.StatisticsRepositoryImpl
 import com.devbrian.osebo.data.repository.SubscriptionRepository
 import com.devbrian.osebo.data.repository.SubscriptionRepositoryImpl
+import org.koin.dsl.bind
 import org.koin.dsl.module
 
 val repositoryModule = module {
@@ -37,7 +38,12 @@ val repositoryModule = module {
     single { DashboardRepository(get(), get(), get()) }
 
     // Interface-bound repositories
-    single<ShopRepository> { ShopRepositoryImpl(get(), get(), get()) }
+    // ShopRepositoryImpl also gets bound to its ShopRepository interface: some
+    // call sites (MainActivity, MainDashboardFragment, PaymentStatusFragment)
+    // inject the concrete class directly for methods not on the interface
+    // (refreshShops, getActiveShop, getShopsFlow), while ShopViewModel injects
+    // the interface — both need to resolve to the same singleton.
+    single { ShopRepositoryImpl(get(), get(), get()) } bind ShopRepository::class
     single<SubscriptionRepository> { SubscriptionRepositoryImpl(get()) }
     single<StatisticsRepository> { StatisticsRepositoryImpl() }
 }
