@@ -13,3 +13,10 @@
 .externalNativeBuild
 .cxx
 release.keystore
+
+*.log
+hs_err_pid*.log
+replay_pid*.log
+build_log.txt
+full_log.txt
+.kotlin/errors/
