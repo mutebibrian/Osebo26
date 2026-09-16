@@ -63,7 +63,7 @@ class CreateTransferViewModel(
         viewModelScope.launch {
             inventoryRepository.refreshProducts()
             inventoryRepository.getProductsByShop(sourceShopId).collect { products ->
-                allItems = products.map { product ->
+                allItems = products.filter { it.id.isNotBlank() }.map { product ->
                     TransferItemUi(
                         id = product.id,
                         name = product.name,
