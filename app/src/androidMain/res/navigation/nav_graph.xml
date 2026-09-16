@@ -492,7 +492,17 @@
                 app:argType="string" />
         </action>
 
+        <action
+            android:id="@+id/action_inventory_to_createTransfer"
+            app:destination="@id/createTransferFragment" />
+
     </fragment>
+
+    <!-- Create Transfer Fragment -->
+    <fragment
+        android:id="@+id/createTransferFragment"
+        android:name="com.devbrian.osebo.fragments.CreateTransferFragment"
+        android:label="Bulk Transfer" />
 
     <!-- Suppliers Fragment -->
     <fragment
