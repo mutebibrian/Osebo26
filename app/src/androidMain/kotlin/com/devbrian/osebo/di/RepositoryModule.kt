@@ -6,6 +6,7 @@ import com.devbrian.osebo.data.repository.AccountRepository
 import com.devbrian.osebo.data.repository.AiRepository
 import com.devbrian.osebo.data.repository.CustomerRepository
 import com.devbrian.osebo.data.repository.DashboardRepository
+import com.devbrian.osebo.data.repository.ElevenLabsRepository
 import com.devbrian.osebo.data.repository.FinanceRepository
 import com.devbrian.osebo.data.repository.InventoryRepository
 import com.devbrian.osebo.data.repository.ProductRepository
@@ -29,6 +30,7 @@ val repositoryModule = module {
     // Hilt setup declared these both via @Provides *and* via @Inject
     // constructor, which is a duplicate binding Dagger would have rejected)
     single { AiRepository(get()) }
+    single { ElevenLabsRepository(get()) }
     single { FinanceRepository(get(), get()) }
     single { ProductRepository(get(), get(), get()) }
     single { SalesRepository(get(), get(), get(), get()) }
