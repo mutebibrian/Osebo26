@@ -494,6 +494,18 @@
 
         <action
             android:id="@+id/action_inventory_to_createTransfer"
+            app:destination="@id/transfersListFragment" />
+
+    </fragment>
+
+    <!-- Transfers List Fragment -->
+    <fragment
+        android:id="@+id/transfersListFragment"
+        android:name="com.devbrian.osebo.fragments.TransfersListFragment"
+        android:label="Transfers">
+
+        <action
+            android:id="@+id/action_transfersList_to_createTransfer"
             app:destination="@id/createTransferFragment" />
 
     </fragment>
