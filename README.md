@@ -1,5 +1,5 @@
 [README.md](https://github.com/user-attachments/files/32243160/README.md)
-# Osebo
+# Osebo Mobile App
 
 Kotlin Multiplatform (KMP) rewrite of the Osebo app — Compose Multiplatform UI, Koin dependency injection, shared code targeting Android and iOS.
 
