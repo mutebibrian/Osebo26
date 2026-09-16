@@ -61,7 +61,7 @@ class TransfersListViewModel(
         products: List<Product>,
         shopNames: Map<String, String>
     ): List<TransferListItemUi> = coroutineScope {
-        products.map { product ->
+        products.filter { it.id.isNotBlank() }.map { product ->
             async {
                 when (val result = transferRepository.getTransfersForItem(shopId, product.id)) {
                     is Resource.Success -> result.data.map { it.toUiModel(product, shopNames) }
