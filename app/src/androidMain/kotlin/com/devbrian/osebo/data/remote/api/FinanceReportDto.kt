@@ -139,7 +139,7 @@ interface OseboApiService {
     ): Response<ApiResponse<List<TransferDto>>>  
 
     @POST("transfers")
-    suspend fun createTransfer(@Body request: CreateTransferRequest): Response<ApiResponse<TransferDto>>  
+    suspend fun createTransfer(@Body request: CreateMultiStockTransferRequest): Response<ApiResponse<TransferDto>>
 
     
     

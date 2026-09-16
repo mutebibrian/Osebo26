@@ -3,6 +3,7 @@ package com.devbrian.osebo.di
 import com.devbrian.osebo.ui.AccountViewModel
 import com.devbrian.osebo.ui.viewmodels.AddExpenseViewModel
 import com.devbrian.osebo.ui.viewmodels.AiViewModel
+import com.devbrian.osebo.ui.viewmodels.CreateTransferViewModel
 import com.devbrian.osebo.ui.viewmodels.CustomerViewModel
 import com.devbrian.osebo.ui.viewmodels.DashboardViewModel
 import com.devbrian.osebo.ui.viewmodels.ExpenseCategoriesViewModel
@@ -27,6 +28,7 @@ val viewModelModule = module {
     viewModel { AccountViewModel(get()) }
     viewModel { AddExpenseViewModel(get()) }
     viewModel { AiViewModel(get()) }
+    viewModel { CreateTransferViewModel(get(), get(), get(), get()) }
     viewModel { CustomerViewModel(get()) }
     viewModel { DashboardViewModel(get()) }
     viewModel { ExpenseCategoriesViewModel(get()) }
