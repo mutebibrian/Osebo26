@@ -255,6 +255,10 @@ class InventoryFragment : Fragment() {
                 syncNow()
                 true
             }
+            R.id.action_transfer_stock -> {
+                findNavController().navigate(R.id.action_inventory_to_createTransfer)
+                true
+            }
             else -> super.onOptionsItemSelected(item)
         }
     }
