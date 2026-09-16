@@ -6,6 +6,7 @@ import com.devbrian.osebo.data.remote.api.InventoryReportDto
 import com.devbrian.osebo.data.remote.api.NotificationDto
 import com.devbrian.osebo.data.remote.api.SalesReportDto
 import com.devbrian.osebo.data.remote.api.SupportTicketDto
+import com.devbrian.osebo.data.remote.api.TransferDto
 import com.devbrian.osebo.data.remote.dto.request.*
 import com.devbrian.osebo.data.remote.dto.request.UpdateCustomerRequest
 import com.devbrian.osebo.data.remote.dto.request.UpdateProductRequest
@@ -251,6 +252,42 @@ interface ApiService {
         @Header("X-Shop") shopId: String,
         @Query("q") query: String
     ): Response<ApiResponse<List<Product>>>
+
+    // ==================== STOCK TRANSFER ENDPOINTS ====================
+
+    @GET("api/v1/stock-item/{stockItemId}/stock-transfer")
+    suspend fun getStockTransfers(
+        @Header("X-Shop") shopId: String,
+        @Path("stockItemId") stockItemId: String
+    ): Response<ApiResponse<List<TransferDto>>>
+
+    @GET("api/v1/stock-item/{stockItemId}/stock-transfer/{transferId}")
+    suspend fun getStockTransfer(
+        @Header("X-Shop") shopId: String,
+        @Path("stockItemId") stockItemId: String,
+        @Path("transferId") transferId: String
+    ): Response<ApiResponse<TransferDto>>
+
+    @POST("api/v1/stock-item/{stockItemId}/stock-transfer")
+    suspend fun createStockTransfer(
+        @Header("X-Shop") shopId: String,
+        @Path("stockItemId") stockItemId: String,
+        @Body request: CreateStockTransferRequest
+    ): Response<ApiResponse<TransferDto>>
+
+    @POST("api/v1/stock-item/stock-transfer/multi")
+    suspend fun createMultiStockTransfer(
+        @Header("X-Shop") shopId: String,
+        @Body request: CreateMultiStockTransferRequest
+    ): Response<ApiResponse<TransferDto>>
+
+    @PATCH("api/v1/stock-item/{stockItemId}/stock-transfer/{transferId}/approval")
+    suspend fun updateStockTransferApproval(
+        @Header("X-Shop") shopId: String,
+        @Path("stockItemId") stockItemId: String,
+        @Path("transferId") transferId: String,
+        @Body request: TransferApprovalRequest
+    ): Response<ApiResponse<TransferDto>>
 
     // ==================== CUSTOMER ENDPOINTS ====================
 
