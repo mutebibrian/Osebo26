@@ -20,3 +20,5 @@ replay_pid*.log
 build_log.txt
 full_log.txt
 .kotlin/errors/
+
+.kotlin/metadata/
