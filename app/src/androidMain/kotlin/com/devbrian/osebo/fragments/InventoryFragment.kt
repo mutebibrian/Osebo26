@@ -256,7 +256,9 @@ class InventoryFragment : Fragment() {
                 true
             }
             R.id.action_transfer_stock -> {
-                findNavController().navigate(R.id.action_inventory_to_createTransfer)
+                if ((activity as? com.devbrian.osebo.ui.MainActivity)?.requireActiveSubscriptionOrRedirect() == true) {
+                    findNavController().navigate(R.id.action_inventory_to_createTransfer)
+                }
                 true
             }
             else -> super.onOptionsItemSelected(item)

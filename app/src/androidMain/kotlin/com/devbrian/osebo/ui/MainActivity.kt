@@ -630,8 +630,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 else showPermissionDeniedDialog("inventory")
             }
             R.id.nav_transfers -> {
-                if (permissionManager.hasPermission(PermissionType.VIEW_INVENTORY)) navController.navigate(R.id.transfersListFragment)
-                else showPermissionDeniedDialog("transfers")
+                if (!permissionManager.hasPermission(PermissionType.VIEW_INVENTORY)) showPermissionDeniedDialog("transfers")
+                else if (!hasAccessToBusinessOperations()) navigateToSubscriptionOverview()
+                else navController.navigate(R.id.transfersListFragment)
             }
             R.id.nav_employees -> {
                 if (permissionManager.hasPermission(PermissionType.VIEW_EMPLOYEES)) navController.navigate(R.id.employeesFragment)
@@ -829,6 +830,14 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private fun navigateToSubscriptionOverview() {
         if (!preferenceManager.hasShop()) { showSelectShopFirstDialog(); return }
         navController.navigate(R.id.subscriptionOverviewFragment)
+    }
+
+    // Lets fragments (e.g. the Inventory menu's "Transfer Stock" action) reuse the same
+    // subscription gate as the drawer instead of duplicating the access check.
+    fun requireActiveSubscriptionOrRedirect(): Boolean {
+        if (hasAccessToBusinessOperations()) return true
+        navigateToSubscriptionOverview()
+        return false
     }
 
     // ===== LOGOUT =====
