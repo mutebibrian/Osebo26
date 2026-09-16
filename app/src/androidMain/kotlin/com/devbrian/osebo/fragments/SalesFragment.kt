@@ -99,7 +99,9 @@ class SalesFragment : Fragment() {
         }
 
         binding.tvViewAllProducts.setOnClickListener {
-            findNavController().navigate(R.id.inventoryFragment)
+            if ((activity as? com.devbrian.osebo.ui.MainActivity)?.requireActiveSubscriptionOrRedirect() == true) {
+                findNavController().navigate(R.id.inventoryFragment)
+            }
         }
 
         binding.fabNewSale.setOnClickListener {

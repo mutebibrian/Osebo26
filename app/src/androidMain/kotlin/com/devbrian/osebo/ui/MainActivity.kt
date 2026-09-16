@@ -626,8 +626,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 else showPermissionDeniedDialog("finance")
             }
             R.id.nav_inventory -> {
-                if (permissionManager.hasPermission(PermissionType.VIEW_INVENTORY)) navController.navigate(R.id.inventoryFragment)
-                else showPermissionDeniedDialog("inventory")
+                if (!permissionManager.hasPermission(PermissionType.VIEW_INVENTORY)) showPermissionDeniedDialog("inventory")
+                else if (!hasAccessToBusinessOperations()) navigateToSubscriptionOverview()
+                else navController.navigate(R.id.inventoryFragment)
             }
             R.id.nav_transfers -> {
                 if (!permissionManager.hasPermission(PermissionType.VIEW_INVENTORY)) showPermissionDeniedDialog("transfers")

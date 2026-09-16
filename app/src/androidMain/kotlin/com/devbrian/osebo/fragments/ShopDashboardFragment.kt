@@ -80,7 +80,9 @@ class ShopDashboardFragment : Fragment() {
                     true
                 }
                 R.id.nav_restock -> {
-                    findNavController().navigate(R.id.inventoryFragment)
+                    if ((activity as? com.devbrian.osebo.ui.MainActivity)?.requireActiveSubscriptionOrRedirect() == true) {
+                        findNavController().navigate(R.id.inventoryFragment)
+                    }
                     true
                 }
                 else -> false
@@ -161,7 +163,9 @@ class ShopDashboardFragment : Fragment() {
             findNavController().navigate(R.id.addExpenseFragment)
         }
         binding.tvViewAllTopStock.setOnClickListener {
-            findNavController().navigate(R.id.inventoryFragment)
+            if ((activity as? com.devbrian.osebo.ui.MainActivity)?.requireActiveSubscriptionOrRedirect() == true) {
+                findNavController().navigate(R.id.inventoryFragment)
+            }
         }
         binding.btnRetry.setOnClickListener {
             binding.errorLayout.visibility = View.GONE
