@@ -577,8 +577,7 @@
     <fragment
         android:id="@+id/customersFragment"
         android:name="com.devbrian.osebo.fragments.CustomersFragment"
-        android:label="Customers"
-        tools:layout="@layout/fragment_customers" />
+        android:label="Customers" />
 
     <!-- Contact Us Fragment -->
     <fragment
@@ -604,8 +603,7 @@
     <fragment
         android:id="@+id/userRolesFragment"
         android:name="com.devbrian.osebo.fragments.UserRolesFragment"
-        android:label="User Roles"
-        tools:layout="@layout/fragment_user_roles" />
+        android:label="User Roles" />
 
     <!-- Account Fragment -->
     <fragment
