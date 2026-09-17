@@ -51,7 +51,7 @@ class TransfersListViewModel(
             val products: List<Product> = inventoryRepository.getProductsByShop(shopId).first()
 
             val results = fetchTransfersForItems(products, shopNames)
-            allTransfers = results.sortedByDescending { it.createdAt }
+            allTransfers = results.distinctBy { it.id }.sortedByDescending { it.createdAt }
             applyFilter(_uiState.value.searchQuery)
             update { it.copy(isLoading = false) }
         }
