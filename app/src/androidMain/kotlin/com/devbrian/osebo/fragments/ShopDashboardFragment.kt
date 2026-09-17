@@ -61,7 +61,31 @@ class ShopDashboardFragment : Fragment() {
         addBottomNavLabelSpacing()
         observeViewModel()
 
-        viewModel.loadDashboardData()
+        if (checkSubscriptionAccess()) {
+            viewModel.loadDashboardData()
+        }
+    }
+
+    // Shows an in-place "subscribe to continue" state instead of loading dashboard
+    // data when the shop has no active subscription, rather than letting the user
+    // land on a dashboard that will just fail its API calls.
+    private fun checkSubscriptionAccess(): Boolean {
+        val hasAccess = (activity as? com.devbrian.osebo.ui.MainActivity)?.hasActiveBusinessSubscription() ?: true
+        if (hasAccess) {
+            binding.subscriptionRequiredLayout.visibility = View.GONE
+            return true
+        }
+
+        binding.shimmerLayout.visibility = View.GONE
+        binding.errorLayout.visibility = View.GONE
+        binding.contentLayout.visibility = View.GONE
+        binding.fabQuickNewSale.visibility = View.GONE
+        binding.subscriptionRequiredLayout.visibility = View.VISIBLE
+        binding.swipeRefresh.isRefreshing = false
+        binding.btnSubscribeNow.setOnClickListener {
+            (activity as? com.devbrian.osebo.ui.MainActivity)?.requireActiveSubscriptionOrRedirect()
+        }
+        return false
     }
 
     private fun setupBottomNavigation() {
@@ -133,7 +157,9 @@ class ShopDashboardFragment : Fragment() {
 
     private fun setupSwipeRefresh() {
         binding.swipeRefresh.setOnRefreshListener {
-            viewModel.refreshData()
+            if (checkSubscriptionAccess()) {
+                viewModel.refreshData()
+            }
         }
     }
 
@@ -306,7 +332,9 @@ class ShopDashboardFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        viewModel.refreshDataIfNeeded()
+        if (checkSubscriptionAccess()) {
+            viewModel.refreshDataIfNeeded()
+        }
     }
 
     override fun onDestroyView() {

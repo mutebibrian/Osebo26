@@ -841,6 +841,11 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         return false
     }
 
+    // Read-only variant for fragments (e.g. ShopDashboardFragment) that need to decide
+    // what to render — an in-place "subscribe to continue" state — rather than being
+    // redirected away immediately.
+    fun hasActiveBusinessSubscription(): Boolean = hasAccessToBusinessOperations()
+
     // ===== LOGOUT =====
     private fun logout() {
         AlertDialog.Builder(this)
