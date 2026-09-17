@@ -1,5 +1,7 @@
 # workspace notes - screens/api stuff
 
+checking this against `dev` now. some of the earlier notes were from `main`, which has screens that haven't reached `dev` yet. use the code on this branch when we start each screen.
+
 base - https://prod-api.osebo.ai
 
 main api  = `data/ApiService.kt`.
@@ -33,16 +35,14 @@ manifest count = 8 activities.
 
 # main nav graph screens
 
-`nav_graph.xml` is the one inflated by `activity_main.xml`. 45 declarations in it (44 fragment tags + one dialog tag).
+`nav_graph.xml` is the one inflated by `activity_main.xml`. 41 declarations in it (40 fragment tags + one dialog tag).
 
 # dashboard / reporting
 
-- `mainDashboardFragment` -> `MainDashboardFragment` + shared `DashboardScreen` compose UI
+- `mainDashboardFragment` -> `MainDashboardFragment` (XML UI on `dev`)
   - `GET api/v1/shops`
-  - `GET api/v1/analytics/shop-summary` (also loops over shops with each shop id)
-  - `GET api/v1/analytics/time-series?range=monthly`
-  - `GET api/v1/analytics/top-stock-items`
-  - `GET api/v1/analytics/shop-financial-statement?range=yearly`
+  - `GET api/v1/analytics/shop-summary` (loops over shops with each shop id)
+  - also refreshes dashboard data through `DashboardRepository`
 - `shopDashboardFragment` -> `ShopDashboardFragment` (old XML UI)
   - same 4 analytics refresh calls: shop-summary, time-series, top-stock-items, shop-financial-statement
 - `reportsFragment` -> `ReportsFragment`
@@ -97,15 +97,7 @@ manifest count = 8 activities.
 - `restockFragment` -> `RestockFragment`
   - `GET api/v1/stock-item`
   - `PUT api/v1/stock/{productId}` for selected product updates
-- `transfersListFragment` -> `TransfersListFragment` + shared `TransfersListScreen` compose UI
-  - target/shop names come from Room
-  - `GET api/v1/stock-item`
-  - then for each item: `GET api/v1/stock-item/{stockItemId}/stock-transfer`
-- `createTransferFragment` -> `CreateTransferFragment` + shared `CreateTransferScreen` compose UI
-  - shops from Room
-  - `GET api/v1/stock-item`
-  - submit manual selection: `POST api/v1/stock-item/stock-transfer/multi`
-  - CSV/template/upload mode says not wired yet
+- transfer list/create screens are on `main`, not on this `dev` branch yet. no transfer destinations in this branch's main nav graph.
 - `suppliersFragment` -> `SuppliersFragment`
   - hardcoded sample suppliers. add/edit/delete are toast/local only. no API.
 
@@ -164,11 +156,7 @@ manifest count = 8 activities.
   - static args/UI, no API
 - `faq_detail_dialog` also maps to `FaqDetailDialogFragment` (same class a second time)
   - no API
-- `aiHubFragment` -> `AiHubFragment`
-  - just opens chat. no API.
-- `aiChatFragment` -> `AiChatFragment`
-  - typed AI reply is a canned placeholder (`AiRepository` has a TODO saying no backend AI endpoint yet)
-  - microphone transcription is real external call: `POST v1/speech-to-text` on `api.elevenlabs.io` (multipart)
+- AI hub/chat screens are on `main`, not on this `dev` branch yet.
 
 # subscription/billing (there are too many versions of this flow)
 
@@ -244,19 +232,17 @@ there is a `ShopDetailsPagerAdapter` for Overview/Subscription/Statistics/Settin
 
 # compose screen files already there
 
-under commonMain:
+under commonMain on `dev`:
 
-- `DashboardScreen.kt` - actually used inside MainDashboardFragment ComposeView (endpoints listed above)
-- `TransfersListScreen.kt` - used inside TransfersListFragment ComposeView
-- `CreateTransferScreen.kt` - used inside CreateTransferFragment ComposeView
 - `TransactionsScreenDemo.kt` - hardcoded demo data only. `App()` renders this; iOS entry currently gets this demo screen.
+- `ui/theme` and `ui/components` already have the Poppins theme, colors, shapes and reusable Compose bits.
 
-so Android is not purely XML anymore, but most screens still are. current Compose migration is basically dashboard + transfer list/create + a transactions design demo.
+android screens are still XML/fragments on this branch. `App()` is not wired into an android activity yet. `main` has compose dashboard + transfer list/create files, so check there if we need to bring any of that work over.
 
 ## stale stuff
 
 - `nav_graph_subscription.xml` looks unused (`activity_main` only loads `nav_graph.xml`). it duplicates 6 subscription destinations and one points to a nonexistent `fragments.subscription.PaymentStatusFragment` package. treat it as stale until confirmed otherwise.
-- main graph has 45 destination declarations, but FAQ detail class is declared twice and UsageStatistics class name is broken.
+- main graph has 41 destination declarations, but FAQ detail class is declared twice and UsageStatistics class name is broken.
 - `paymentHistoryFragment` is a stub while `SubscriptionHistoryFragment` is the real API-backed list nested in a pager.
 - `OseboApiService` contains nice-looking endpoints for suppliers, sessions, contact, FAQs, dashboards etc, but it has no consumer. those are not current screen endpoints.
 - product create/delete Retrofit methods exist but current UI saves/deletes locally. only product refresh and update are actually networked.
