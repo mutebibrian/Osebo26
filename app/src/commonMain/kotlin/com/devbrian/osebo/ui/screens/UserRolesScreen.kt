@@ -27,7 +27,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -84,16 +83,19 @@ fun UserRolesScreen(
     Scaffold(
         containerColor = OseboColors.Background,
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(if (state.shopLabel.isNotEmpty()) "${state.shopLabel} · User Roles" else "Shops · User Roles")
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+                }
+                Text(
+                    if (state.shopLabel.isNotEmpty()) "${state.shopLabel} · User Roles" else "Shops · User Roles",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = OseboColors.OnSurface,
+                )
+            }
         },
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
@@ -167,14 +169,19 @@ private fun EditPermissionsDialog(
         Scaffold(
             containerColor = OseboColors.Background,
             topBar = {
-                TopAppBar(
-                    title = { Text("Edit Permissions - ${state.role.name}") },
-                    navigationIcon = {
-                        IconButton(onClick = onDismiss) {
-                            Icon(Icons.Filled.Close, contentDescription = "Close")
-                        }
-                    },
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Filled.Close, contentDescription = "Close")
+                    }
+                    Text(
+                        "Edit Permissions - ${state.role.name}",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = OseboColors.OnSurface,
+                    )
+                }
             },
             bottomBar = {
                 Box(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
