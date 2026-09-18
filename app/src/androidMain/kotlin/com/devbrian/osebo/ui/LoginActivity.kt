@@ -3,7 +3,6 @@ package com.devbrian.osebo.ui
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import android.view.LayoutInflater
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -55,7 +54,6 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -63,7 +61,6 @@ import com.devbrian.osebo.R
 import com.devbrian.osebo.data.repository.AuthRepository
 import com.devbrian.osebo.ui.theme.oseboFontFamily
 import com.devbrian.osebo.utils.NetworkUtils
-import com.hbb20.CountryCodePicker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -118,7 +115,13 @@ class LoginActivity : AppCompatActivity() {
         val keyboardController = LocalSoftwareKeyboardController.current
         BoxWithConstraints(
             modifier = Modifier.fillMaxSize().background(
-                Brush.verticalGradient(0f to Color.White, 0.58f to Color(0xFFFAFDFF), 1f to Color(0xFFE9F5FC))
+                Brush.verticalGradient(
+                    0f to Color(0xFF5AB5E3),
+                    0.22f to Color(0xFF9BD4EF),
+                    0.46f to Color(0xFFE4F6FE),
+                    0.68f to Color.White,
+                    1f to Color.White
+                )
             ).imePadding().authBackSwipe { onBackPressedDispatcher.onBackPressed() }.pointerInput(Unit) {
                 detectTapGestures {
                     focusManager.clearFocus()
@@ -165,15 +168,7 @@ class LoginActivity : AppCompatActivity() {
                 if (method == "Phone") {
                     FieldLabel("Phone number", poppins, ink)
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                        AndroidView(
-                            factory = { context ->
-                                (LayoutInflater.from(context).inflate(R.layout.view_signup_country_picker, null) as CountryCodePicker).apply {
-                                    countryCode = selectedCountryCodeWithPlus
-                                    setOnCountryChangeListener { countryCode = selectedCountryCodeWithPlus }
-                                }
-                            },
-                            modifier = Modifier.width(64.dp).height(54.dp).clip(RoundedCornerShape(27.dp)).background(fieldColor)
-                        )
+                        AuthCountryCodePicker(countryCode, { countryCode = it }, !loading)
                         PillField(phone, { phone = it.take(9); error = null }, "Phone number", !loading, poppins, Modifier.weight(1f), KeyboardType.Phone)
                     }
                 } else {
