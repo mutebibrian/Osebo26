@@ -50,6 +50,7 @@
 
         <activity
             android:name=".ui.LoginActivity"
+            android:theme="@style/Theme.AppTheme.Auth"
             android:exported="true" />
 
         <activity
@@ -62,6 +63,7 @@
 
         <activity
             android:name=".ui.SignUpActivity"
+            android:theme="@style/Theme.AppTheme.Auth"
             android:exported="false" />
 
         <activity
