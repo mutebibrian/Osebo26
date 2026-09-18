@@ -41,6 +41,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.devbrian.osebo.R
 import com.devbrian.osebo.data.PreferenceManager
+import com.devbrian.osebo.ui.theme.oseboFontFamily
 import kotlinx.coroutines.delay
 
 class SplashActivity : AppCompatActivity() {
@@ -59,7 +60,7 @@ class SplashActivity : AppCompatActivity() {
                     val destination = if (preferenceManager.isLoggedIn()) {
                         MainActivity::class.java
                     } else {
-                        LoginActivity::class.java
+                        WelcomeActivity::class.java
                     }
                     startActivity(Intent(this@SplashActivity, destination))
                     overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
@@ -72,6 +73,7 @@ class SplashActivity : AppCompatActivity() {
 
 @Composable
 private fun SplashScreen(onFinished: () -> Unit) {
+    val poppins = oseboFontFamily()
     val wordAlpha = remember { Animatable(0f) }
     val screenAlpha = remember { Animatable(1f) }
     var showMark by remember { mutableStateOf(false) }
@@ -111,16 +113,17 @@ private fun SplashScreen(onFinished: () -> Unit) {
                         Image(
                             painter = painterResource(R.drawable.oseboicon),
                             contentDescription = null,
-                            modifier = Modifier.size(58.dp)
+                            modifier = Modifier.size(54.dp)
                         )
-                        Spacer(modifier = Modifier.size(15.dp))
+                        Spacer(modifier = Modifier.size(12.dp))
                     }
                 }
                 Text(
                     text = "Osebo",
                     color = Color.White,
-                    fontSize = 48.sp,
+                    fontSize = 42.sp,
                     fontWeight = FontWeight.SemiBold,
+                    fontFamily = poppins,
                     letterSpacing = (-1.5).sp,
                     modifier = Modifier.graphicsLayer { alpha = wordAlpha.value }
                 )
