@@ -47,6 +47,7 @@ kotlin {
 
         androidMain.dependencies {
             implementation(compose.preview)
+            implementation("androidx.graphics:graphics-path:1.1.0")
 
             // Core AndroidX
             implementation(libs.androidx.core.ktx)
@@ -106,10 +107,10 @@ kotlin {
             implementation("androidx.room:room-ktx:2.8.4")
 
             // CameraX + ML Kit barcode scanning
-            implementation("androidx.camera:camera-camera2:1.3.0")
-            implementation("androidx.camera:camera-lifecycle:1.3.0")
-            implementation("androidx.camera:camera-view:1.3.0")
-            implementation("com.google.mlkit:barcode-scanning:17.2.0")
+            implementation("androidx.camera:camera-camera2:1.6.2")
+            implementation("androidx.camera:camera-lifecycle:1.6.2")
+            implementation("androidx.camera:camera-view:1.6.2")
+            implementation("com.google.mlkit:barcode-scanning:17.3.0")
 
             // WorkManager
             implementation("androidx.work:work-runtime-ktx:2.9.0")
