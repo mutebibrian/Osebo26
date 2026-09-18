@@ -4,7 +4,6 @@ import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.util.Patterns
-import android.view.LayoutInflater
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -13,6 +12,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -69,7 +69,6 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -78,7 +77,6 @@ import com.devbrian.osebo.data.remote.dto.request.SignUpRequest
 import com.devbrian.osebo.data.repository.AuthRepository
 import com.devbrian.osebo.ui.theme.oseboFontFamily
 import com.devbrian.osebo.utils.NetworkUtils
-import com.hbb20.CountryCodePicker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -139,9 +137,11 @@ class SignUpActivity : AppCompatActivity() {
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        0f to Color.White,
-                        0.58f to Color(0xFFFAFDFF),
-                        1f to Color(0xFFE9F5FC)
+                        0f to Color(0xFF5AB5E3),
+                        0.22f to Color(0xFF9BD4EF),
+                        0.46f to Color(0xFFE4F6FE),
+                        0.68f to Color.White,
+                        1f to Color.White
                     )
                 )
                 .imePadding()
@@ -194,7 +194,8 @@ class SignUpActivity : AppCompatActivity() {
                         .fillMaxWidth()
                         .height(54.dp)
                         .clip(RoundedCornerShape(27.dp))
-                        .background(fieldColor)
+                        .background(Color.White)
+                        .border(1.dp, Color(0xFFD7E7F1), RoundedCornerShape(27.dp))
                         .clickable(
                             enabled = !isLoading,
                             indication = null,
@@ -263,19 +264,7 @@ class SignUpActivity : AppCompatActivity() {
 
             FieldLabel("Phone number", poppins, ink)
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                AndroidView(
-                    factory = { context ->
-                        (LayoutInflater.from(context).inflate(R.layout.view_signup_country_picker, null) as CountryCodePicker).apply {
-                            countryCode = selectedCountryCodeWithPlus
-                            setOnCountryChangeListener { countryCode = selectedCountryCodeWithPlus }
-                        }
-                    },
-                    modifier = Modifier
-                        .width(64.dp)
-                        .height(54.dp)
-                        .clip(RoundedCornerShape(27.dp))
-                        .background(fieldColor)
-                )
+                AuthCountryCodePicker(countryCode, { countryCode = it }, !isLoading)
                 PillField(
                     value = phone,
                     onValueChange = { phone = it.take(9); phoneError = null },
@@ -551,12 +540,13 @@ internal fun PillField(
         modifier = modifier
             .heightIn(min = 54.dp)
             .clip(RoundedCornerShape(27.dp))
-            .background(Color(0xFFF1F6FA))
+            .background(Color.White)
+            .border(1.dp, Color(0xFFD7E7F1), RoundedCornerShape(27.dp))
             .padding(horizontal = 18.dp, vertical = 16.dp),
         decorationBox = { innerTextField ->
             Box(contentAlignment = Alignment.CenterStart) {
                 if (value.isEmpty()) {
-                    Text(placeholder, color = Color(0xFF99AAB7), fontFamily = fontFamily, fontSize = 15.sp)
+                    Text(placeholder, color = Color(0xFF8195A5), fontFamily = fontFamily, fontSize = 15.sp)
                 }
                 innerTextField()
             }
