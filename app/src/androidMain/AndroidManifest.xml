@@ -53,6 +53,11 @@
             android:exported="true" />
 
         <activity
+            android:name=".ui.ForgotPasswordActivity"
+            android:theme="@style/Theme.AppTheme.Auth"
+            android:exported="false" />
+
+        <activity
             android:name=".ui.OtpVerificationActivity"
             android:exported="false" />
 
