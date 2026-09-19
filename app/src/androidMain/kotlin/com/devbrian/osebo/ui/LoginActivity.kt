@@ -4,9 +4,7 @@ import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.activity.OnBackPressedCallback
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -60,7 +58,6 @@ import androidx.core.view.WindowInsetsControllerCompat
 import com.devbrian.osebo.R
 import com.devbrian.osebo.data.repository.AuthRepository
 import com.devbrian.osebo.ui.theme.oseboFontFamily
-import com.devbrian.osebo.utils.NetworkUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -73,12 +70,8 @@ class LoginActivity : AppCompatActivity() {
     private var countryCode by mutableStateOf("+256")
     private var email by mutableStateOf("")
     private var password by mutableStateOf("")
-    private var otp by mutableStateOf("")
-    private var otpMode by mutableStateOf(false)
     private var loading by mutableStateOf(false)
     private var error by mutableStateOf<String?>(null)
-    private var currentPhoneNumber = ""
-    private var currentUserId: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -88,19 +81,6 @@ class LoginActivity : AppCompatActivity() {
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
         WindowCompat.setDecorFitsSystemWindows(window, false)
         WindowInsetsControllerCompat(window, window.decorView).hide(WindowInsetsCompat.Type.systemBars())
-        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() {
-                if (otpMode) {
-                    otpMode = false
-                    currentUserId = null
-                    otp = ""
-                    error = null
-                } else {
-                    isEnabled = false
-                    onBackPressedDispatcher.onBackPressed()
-                }
-            }
-        })
         setContentView(ComposeView(this).apply { setContent { LoginScreen() } })
     }
 
@@ -151,9 +131,6 @@ class LoginActivity : AppCompatActivity() {
                                 .background(if (selected) blue else Color.Transparent)
                                 .clickable(enabled = !loading, indication = null, interactionSource = remember { MutableInteractionSource() }) {
                                     method = option
-                                    otpMode = false
-                                    currentUserId = null
-                                    otp = ""
                                     error = null
                                     focusManager.clearFocus()
                                     keyboardController?.hide()
@@ -174,25 +151,20 @@ class LoginActivity : AppCompatActivity() {
                 } else {
                     FieldLabel("Email", poppins, ink)
                     PillField(email, { email = it; error = null }, "Enter your email", !loading, poppins, Modifier.fillMaxWidth(), KeyboardType.Email)
-                    Spacer(Modifier.height(14.dp))
-                    FieldLabel("Password", poppins, ink)
-                    PillField(password, { password = it; error = null }, "Enter your password", !loading, poppins, Modifier.fillMaxWidth(), KeyboardType.Password, PasswordVisualTransformation())
-                    Text(
-                        "Forgot password?", color = blue, fontFamily = poppins, fontWeight = FontWeight.Medium, fontSize = 14.sp,
-                        modifier = Modifier.align(Alignment.End).clickable {
-                            Toast.makeText(this@LoginActivity, "Reset coming soon", Toast.LENGTH_SHORT).show()
-                        }.padding(top = 12.dp, bottom = 4.dp)
-                    )
                 }
-                if (otpMode && method == "Phone") {
-                    Spacer(Modifier.height(14.dp))
-                    FieldLabel("Verification code", poppins, ink)
-                    PillField(otp, { otp = it.filter(Char::isDigit).take(6); error = null }, "Enter 6-digit code", !loading, poppins, Modifier.fillMaxWidth(), KeyboardType.Number)
-                    Text(
-                        "Resend code", color = blue, fontFamily = poppins, fontWeight = FontWeight.Medium, fontSize = 14.sp,
-                        modifier = Modifier.align(Alignment.End).clickable(enabled = !loading) { resendOtp() }.padding(top = 8.dp, bottom = 4.dp)
-                    )
-                }
+                Spacer(Modifier.height(14.dp))
+                FieldLabel("Password", poppins, ink)
+                PillField(password, { password = it; error = null }, "Enter your password", !loading, poppins, Modifier.fillMaxWidth(), KeyboardType.Password, PasswordVisualTransformation())
+                Text(
+                    "Forgot password?",
+                    color = blue,
+                    fontFamily = poppins,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 14.sp,
+                    modifier = Modifier.align(Alignment.End).clickable {
+                        startActivity(Intent(this@LoginActivity, ForgotPasswordActivity::class.java))
+                    }.padding(top = 12.dp, bottom = 4.dp)
+                )
                 if (error != null) FieldError(error!!, poppins)
                 Spacer(Modifier.height(24.dp))
                 Button(
@@ -200,18 +172,7 @@ class LoginActivity : AppCompatActivity() {
                     shape = RoundedCornerShape(27.dp), colors = ButtonDefaults.buttonColors(containerColor = blue)
                 ) {
                     if (loading) CircularProgressIndicator(Modifier.size(22.dp), color = Color.White, strokeWidth = 2.dp)
-                    else Text(if (otpMode && method == "Phone") "Verify code" else "Sign In", fontFamily = poppins, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-                }
-                Spacer(Modifier.height(22.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Don't have an account? ", color = secondary, fontFamily = poppins, fontSize = 14.sp)
-                    Text(
-                        "Create account", color = blue, fontFamily = poppins, fontWeight = FontWeight.SemiBold, fontSize = 14.sp,
-                        modifier = Modifier.clickable {
-                            startActivity(Intent(this@LoginActivity, SignUpActivity::class.java))
-                            finish()
-                        }
-                    )
+                    else Text("Sign In", fontFamily = poppins, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
                 }
             }
         }
@@ -219,67 +180,25 @@ class LoginActivity : AppCompatActivity() {
 
     private fun attemptLogin() {
         error = null
-        if (method == "Email") attemptEmailLogin()
-        else if (otpMode) verifyOtp()
-        else requestOtp()
-    }
-
-    private fun requestOtp() {
-        val phoneRaw = phone.trim()
-        if (phoneRaw.isBlank()) { error = "Phone required"; return }
-        if (!NetworkUtils.isNetworkAvailable(this)) { error = "No internet"; return }
-        currentPhoneNumber = countryCode + phoneRaw
-        loading = true
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val result = authRepository.requestOtp(currentPhoneNumber)
-                withContext(Dispatchers.Main) {
-                    loading = false
-                    if (result.isSuccess) {
-                        currentUserId = result.getOrNull()?.userId
-                        otpMode = true
-                        Toast.makeText(this@LoginActivity, "OTP sent to $currentPhoneNumber", Toast.LENGTH_SHORT).show()
-                    } else error = result.exceptionOrNull()?.message ?: "OTP failed"
-                }
-            } catch (exception: Exception) {
-                withContext(Dispatchers.Main) { loading = false; error = exception.message ?: "OTP failed" }
-            }
+        val identifier = if (method == "Phone") {
+            val phoneValue = phone.trim()
+            if (phoneValue.isBlank()) { error = "Phone required"; return }
+            countryCode + phoneValue
+        } else {
+            val emailValue = email.trim()
+            if (emailValue.isBlank()) { error = "Email required"; return }
+            emailValue
         }
-    }
-
-    private fun verifyOtp() {
-        val code = otp.trim()
-        if (code.length != 6) { error = "Enter 6-digit OTP"; return }
-        val userId = currentUserId
-        if (userId == null) { error = "Session expired"; otpMode = false; otp = ""; return }
-        loading = true
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val result = authRepository.verify2fa(userId, code)
-                withContext(Dispatchers.Main) {
-                    loading = false
-                    if (result.isSuccess) openAccountSelection(result.getOrNull()!!)
-                    else error = result.exceptionOrNull()?.message ?: "Invalid OTP"
-                }
-            } catch (exception: Exception) {
-                withContext(Dispatchers.Main) { loading = false; error = exception.message ?: "Invalid OTP" }
-            }
-        }
-    }
-
-    private fun attemptEmailLogin() {
-        val emailValue = email.trim()
-        val passwordValue = password.trim()
-        if (emailValue.isBlank()) { error = "Email required"; return }
+        val passwordValue = password
         if (passwordValue.isBlank()) { error = "Password required"; return }
         loading = true
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val result = authRepository.loginWithPassword(emailValue, passwordValue)
+                val result = authRepository.loginWithPassword(identifier, passwordValue)
                 withContext(Dispatchers.Main) {
                     loading = false
                     if (result.isSuccess) openAccountSelection(result.getOrNull()!!)
-                    else error = "Login failed"
+                    else error = result.exceptionOrNull()?.message ?: "Login failed"
                 }
             } catch (exception: Exception) {
                 withContext(Dispatchers.Main) { loading = false; error = exception.message ?: "Login failed" }
@@ -294,9 +213,4 @@ class LoginActivity : AppCompatActivity() {
         finish()
     }
 
-    private fun resendOtp() {
-        val userId = currentUserId
-        if (userId == null) { requestOtp(); return }
-        CoroutineScope(Dispatchers.IO).launch { authRepository.resendOtp(userId) }
-    }
 }

@@ -1,8 +1,10 @@
 package com.devbrian.osebo.data.repository
 
 import com.devbrian.osebo.data.remote.dto.request.SignUpRequest
+import com.devbrian.osebo.data.remote.dto.request.ForgotPasswordRequest
 import com.devbrian.osebo.data.remote.dto.request.VerifyOtpRequest
 import com.devbrian.osebo.data.remote.dto.response.*
+import com.devbrian.osebo.models.ApiResponse
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import okio.IOException
@@ -32,6 +34,9 @@ class AuthRepository {
 
         @POST("api/v1/auth/signin/password")
         suspend fun signInWithPassword(@Body request: Map<String, String>): Response<BaseResponse<PreAuthData>>
+
+        @POST("auth/forgot-password")
+        suspend fun forgotPassword(@Body request: ForgotPasswordRequest): Response<ApiResponse<Unit>>
     }
 
     private val apiService: LocalApiService by lazy {
@@ -39,7 +44,7 @@ class AuthRepository {
         val BASE_URL = "https://prod-api.osebo.ai/"
 
         val loggingInterceptor = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            level = HttpLoggingInterceptor.Level.BASIC
         }
 
         val client = OkHttpClient.Builder()
@@ -134,9 +139,9 @@ class AuthRepository {
         }
     }
 
-    suspend fun loginWithPassword(email: String, password: String): Result<PreAuthData> {
+    suspend fun loginWithPassword(username: String, password: String): Result<PreAuthData> {
         return try {
-            val response = apiService.signInWithPassword(mapOf("username" to email, "password" to password))
+            val response = apiService.signInWithPassword(mapOf("username" to username, "password" to password))
             if (response.isSuccessful && response.body()?.success == true) {
                 val data = response.body()?.data
                 if (data != null && data.preAuthToken.isNotEmpty() && data.accounts.isNotEmpty()) {
@@ -149,6 +154,19 @@ class AuthRepository {
             }
         } catch (e: Exception) {
             Result.failure(Exception("Login error: ${e.message}"))
+        }
+    }
+
+    suspend fun requestPasswordReset(email: String): Result<Unit> {
+        return try {
+            val response = apiService.forgotPassword(ForgotPasswordRequest(email))
+            if (response.isSuccessful && response.body()?.success == true) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception(extractErrorMessage(response)))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception("Reset request failed: ${e.message}"))
         }
     }
 
