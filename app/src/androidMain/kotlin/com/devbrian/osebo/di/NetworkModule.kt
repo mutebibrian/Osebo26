@@ -2,7 +2,13 @@ package com.devbrian.osebo.di
 
 import com.devbrian.osebo.BuildConfig
 import com.devbrian.osebo.data.ApiService
+import com.devbrian.osebo.data.AuthSessionStore
 import com.devbrian.osebo.data.PreferenceManager
+import com.devbrian.osebo.data.PreferenceAuthSessionStore
+import com.devbrian.osebo.data.SessionAuthenticator
+import com.devbrian.osebo.data.TokenRefreshApi
+import com.devbrian.osebo.data.TokenRefreshService
+import com.devbrian.osebo.data.remote.dto.request.RefreshTokenRequest
 import com.devbrian.osebo.data.remote.api.OseboApiService
 import com.google.gson.Gson
 import okhttp3.Interceptor
@@ -19,6 +25,32 @@ private const val BASE_URL = "https://prod-api.osebo.ai"
 val networkModule = module {
 
     single { PreferenceManager.getInstance(androidContext()) }
+
+    single<TokenRefreshApi> {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .client(
+                OkHttpClient.Builder()
+                    .connectTimeout(30, TimeUnit.SECONDS)
+                    .readTimeout(30, TimeUnit.SECONDS)
+                    .writeTimeout(30, TimeUnit.SECONDS)
+                    .retryOnConnectionFailure(true)
+                    .build()
+            )
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(TokenRefreshApi::class.java)
+    }
+
+    single<TokenRefreshService> {
+        val tokenRefreshApi = get<TokenRefreshApi>()
+        TokenRefreshService { refreshToken ->
+            tokenRefreshApi.refreshToken(RefreshTokenRequest(refreshToken)).execute()
+        }
+    }
+
+    single<AuthSessionStore> { PreferenceAuthSessionStore(get()) }
+    single { SessionAuthenticator(get(), get()) }
 
     single {
         val preferenceManager = get<PreferenceManager>()
@@ -69,6 +101,7 @@ val networkModule = module {
 
         OkHttpClient.Builder()
             .addInterceptor(authInterceptor)
+            .authenticator(get<SessionAuthenticator>())
             .addInterceptor(loggingInterceptor)
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)

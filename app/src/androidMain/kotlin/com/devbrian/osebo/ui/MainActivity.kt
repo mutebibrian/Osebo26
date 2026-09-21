@@ -399,17 +399,23 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                         } ?: false
 
                         if (isAuthError) {
-                            println("🔐 Token expired — forcing logout and redirecting to login")
-                            runOnUiThread {
-                                preferenceManager.clearAll()
-                                Toast.makeText(
-                                    this@MainActivity,
-                                    "Your session has expired. Please log in again.",
-                                    Toast.LENGTH_LONG
-                                ).show()
-                                forceLogoutToLogin(reason = "session_expired")
+                            if (!preferenceManager.isLoggedIn()) {
+                                println("🔐 Refresh token rejected — redirecting to login")
+                                runOnUiThread {
+                                    Toast.makeText(
+                                        this@MainActivity,
+                                        "Your session has expired. Please log in again.",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                    forceLogoutToLogin(reason = "session_expired")
+                                }
+                                return@launch
                             }
-                            return@launch
+
+                            // The access token was rejected but the refresh attempt
+                            // failed transiently. Preserve the persisted session and
+                            // cached data so reopening the app can retry later.
+                            println("⚠️ Session refresh unavailable — keeping saved session")
                         }
 
                         loadCurrentShopData()

@@ -43,9 +43,8 @@ interface ApiService {
     @POST("api/v1/auth/verify-2fa")
     suspend fun verifyTwoFactor(@Body request: VerifyTwoFactorRequest): Response<AuthResponse>
 
-    // Not confirmed against real backend — no "api/" prefix originally, left as-is
-    @POST("auth/refresh")
-    suspend fun refreshToken(@Body request: String): Response<AuthResponse>
+    @POST("api/v1/auth/refresh")
+    suspend fun refreshToken(@Body request: RefreshTokenRequest): Response<AuthResponse>
 
     @GET("api/v1/shop-type")
     suspend fun getShopTypes(): Response<BaseResponse<List<ShopType>>>
