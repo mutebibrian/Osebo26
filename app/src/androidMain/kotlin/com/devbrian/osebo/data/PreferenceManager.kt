@@ -8,6 +8,12 @@ class PreferenceManager private constructor(private val context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("OseboPrefs", Context.MODE_PRIVATE)
 
     companion object {
+        private const val KEY_AUTH_TOKEN = "auth_token"
+        private const val KEY_REFRESH_TOKEN = "refresh_token"
+        private const val KEY_USER_LOGGED_IN = "user_logged_in"
+        private const val KEY_LAST_LOGIN = "last_login"
+        private const val KEY_LAST_SESSION_ACTIVITY = "last_session_activity"
+
         @Volatile
         private var instance: PreferenceManager? = null
 
@@ -23,29 +29,29 @@ class PreferenceManager private constructor(private val context: Context) {
     // ==================== AUTH TOKEN METHODS ====================
 
     fun saveAuthToken(token: String) {
-        prefs.edit().putString("auth_token", token).apply()
+        prefs.edit().putString(KEY_AUTH_TOKEN, token).commit()
     }
 
     fun getAuthToken(): String {
-        return prefs.getString("auth_token", "") ?: ""
+        return prefs.getString(KEY_AUTH_TOKEN, "") ?: ""
     }
 
     fun clearAuthToken() {
-        prefs.edit().remove("auth_token").apply()
+        prefs.edit().remove(KEY_AUTH_TOKEN).apply()
     }
 
     // ==================== REFRESH TOKEN METHODS ====================
 
     fun saveRefreshToken(token: String) {
-        prefs.edit().putString("refresh_token", token).apply()
+        prefs.edit().putString(KEY_REFRESH_TOKEN, token).commit()
     }
 
     fun getRefreshToken(): String {
-        return prefs.getString("refresh_token", "") ?: ""
+        return prefs.getString(KEY_REFRESH_TOKEN, "") ?: ""
     }
 
     fun clearRefreshToken() {
-        prefs.edit().remove("refresh_token").apply()
+        prefs.edit().remove(KEY_REFRESH_TOKEN).apply()
     }
 
     // ==================== TEMPORARY CREDENTIALS ====================
@@ -115,15 +121,71 @@ class PreferenceManager private constructor(private val context: Context) {
 
     // ==================== USER SESSION METHODS ====================
 
-    fun setUserLoggedIn(loggedIn: Boolean) { prefs.edit().putBoolean("user_logged_in", loggedIn).apply() }
-    fun isUserLoggedIn(): Boolean = prefs.getBoolean("user_logged_in", false)
-
-    fun isLoggedIn(): Boolean {
-        return getAuthToken().isNotEmpty() || isUserLoggedIn()
+    fun setUserLoggedIn(loggedIn: Boolean) {
+        prefs.edit().putBoolean(KEY_USER_LOGGED_IN, loggedIn).apply()
     }
 
-    fun setLastLoginTimestamp(timestamp: Long) { prefs.edit().putLong("last_login", timestamp).apply() }
-    fun getLastLoginTimestamp(): Long = prefs.getLong("last_login", 0)
+    fun isUserLoggedIn(): Boolean = prefs.getBoolean(KEY_USER_LOGGED_IN, false)
+
+    fun saveSession(
+        accessToken: String,
+        refreshToken: String,
+        timestamp: Long = System.currentTimeMillis()
+    ) {
+        prefs.edit().apply {
+            putString(KEY_AUTH_TOKEN, accessToken)
+            putString(KEY_REFRESH_TOKEN, refreshToken)
+            putBoolean(KEY_USER_LOGGED_IN, true)
+            putLong(KEY_LAST_LOGIN, timestamp)
+            putLong(KEY_LAST_SESSION_ACTIVITY, timestamp)
+        }.commit()
+    }
+
+    fun updateSessionTokens(accessToken: String?, refreshToken: String?) {
+        prefs.edit().apply {
+            if (!accessToken.isNullOrBlank()) putString(KEY_AUTH_TOKEN, accessToken)
+            if (!refreshToken.isNullOrBlank()) putString(KEY_REFRESH_TOKEN, refreshToken)
+        }.commit()
+    }
+
+    fun isLoggedIn(): Boolean {
+        return isSessionValid()
+    }
+
+    fun setLastLoginTimestamp(timestamp: Long) {
+        prefs.edit().putLong(KEY_LAST_LOGIN, timestamp).apply()
+    }
+
+    fun getLastLoginTimestamp(): Long = prefs.getLong(KEY_LAST_LOGIN, 0)
+
+    fun getLastSessionActivityTimestamp(): Long =
+        prefs.getLong(KEY_LAST_SESSION_ACTIVITY, 0)
+
+    @Synchronized
+    fun isSessionValid(now: Long = System.currentTimeMillis()): Boolean {
+        val hasStoredSession = getAuthToken().isNotBlank() || getRefreshToken().isNotBlank()
+        if (!hasStoredSession) return false
+
+        // Older app versions persisted the token and login marker separately.
+        // Treat the token pair as the source of truth and repair missing metadata.
+        val lastActivity = getLastSessionActivityTimestamp().takeIf { it > 0L }
+            ?: getLastLoginTimestamp().takeIf { it > 0L }
+            ?: now
+        prefs.edit().apply {
+            if (!isUserLoggedIn()) putBoolean(KEY_USER_LOGGED_IN, true)
+            if (getLastLoginTimestamp() <= 0L) putLong(KEY_LAST_LOGIN, lastActivity)
+            putLong(KEY_LAST_SESSION_ACTIVITY, now)
+        }.commit()
+
+        return true
+    }
+
+    @Synchronized
+    fun recordSessionActivity(now: Long = System.currentTimeMillis()): Boolean {
+        if (!isSessionValid(now)) return false
+        prefs.edit().putLong(KEY_LAST_SESSION_ACTIVITY, now).apply()
+        return true
+    }
 
     // ==================== CLEAR DATA METHODS ====================
 
@@ -142,10 +204,21 @@ class PreferenceManager private constructor(private val context: Context) {
     }
 
     fun clearAllAuthData() {
-        clearAuthToken()
-        clearRefreshToken()
-        clearUserData()
-        setUserLoggedIn(false)
+        prefs.edit().apply {
+            remove(KEY_AUTH_TOKEN)
+            remove(KEY_REFRESH_TOKEN)
+            remove(KEY_USER_LOGGED_IN)
+            remove(KEY_LAST_LOGIN)
+            remove(KEY_LAST_SESSION_ACTIVITY)
+            remove("user_id")
+            remove("user_email")
+            remove("user_name")
+            remove("first_name")
+            remove("last_name")
+            remove("user_phone")
+            remove("user_role")
+            remove("user_verified")
+        }.commit()
         clearTempCredentials()
     }
 
