@@ -41,6 +41,9 @@ import com.devbrian.osebo.databinding.ActivityMainBinding
 import com.devbrian.osebo.fragments.MainDashboardFragment
 import com.devbrian.osebo.data.models.Shop
 import com.devbrian.osebo.models.PermissionType
+import com.devbrian.osebo.ui.components.MoreMenuItem
+import com.devbrian.osebo.ui.components.MoreMenuSection
+import com.devbrian.osebo.ui.components.MoreMenuSheet
 import com.devbrian.osebo.ui.components.UserBottomNavigation
 import com.devbrian.osebo.ui.components.UserNavigationItem
 import com.devbrian.osebo.ui.theme.OseboTheme
@@ -87,12 +90,28 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         R.id.subscriptionDetailsFragment
     )
 
+    private val inventoryBottomNavigationDestinations = setOf(
+        R.id.inventoryFragment,
+        R.id.addProductFragment,
+        R.id.productDetailsFragment,
+        R.id.restockFragment,
+    )
+
+    private val salesBottomNavigationDestinations = setOf(
+        R.id.salesFragment,
+        R.id.newSaleFragment,
+        R.id.paymentFragment,
+        R.id.receiptFragment,
+    )
+
     private var isFabMenuOpen = false
     private var subscriptionCheckInProgress = false
     private var currentShop: Shop? = null
     private var isDataLoading = false
     private val selectedBottomNavigationItem: MutableState<UserNavigationItem> =
         mutableStateOf(UserNavigationItem.Home)
+    private val isMoreMenuVisible: MutableState<Boolean> = mutableStateOf(false)
+    private val moreMenuSections: MutableState<List<MoreMenuSection>> = mutableStateOf(emptyList())
 
     // Header views (cached)
     private lateinit var tvUserName: TextView
@@ -155,6 +174,14 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                             ).show()
                         },
                     )
+
+                    if (isMoreMenuVisible.value) {
+                        MoreMenuSheet(
+                            sections = moreMenuSections.value,
+                            onDismiss = ::dismissMoreMenu,
+                            onItemSelected = ::handleMoreMenuSelection,
+                        )
+                    }
                 }
             }
         }
@@ -192,9 +219,85 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             }
             UserNavigationItem.More -> {
                 selectedBottomNavigationItem.value = UserNavigationItem.More
-                binding.drawerLayout.openDrawer(GravityCompat.START)
+                setupNavigationMenu()
+                isMoreMenuVisible.value = true
             }
         }
+    }
+
+    private fun dismissMoreMenu() {
+        isMoreMenuVisible.value = false
+        syncBottomNavigation(navController.currentDestination?.id)
+    }
+
+    private fun handleMoreMenuSelection(item: MoreMenuItem) {
+        isMoreMenuVisible.value = false
+        val drawerItem = navigationView.menu.findItem(item.menuItemId)
+        if (drawerItem != null) {
+            onNavigationItemSelected(drawerItem)
+        }
+    }
+
+    private fun refreshMoreMenuSections() {
+        val menu = navigationView.menu
+
+        fun visibleItem(
+            menuItemId: Int,
+            iconRes: Int,
+            isDestructive: Boolean = false,
+        ): MoreMenuItem? {
+            val menuItem = menu.findItem(menuItemId) ?: return null
+            if (!menuItem.isVisible) return null
+            return MoreMenuItem(
+                menuItemId = menuItemId,
+                label = menuItem.title.toString(),
+                iconRes = iconRes,
+                isDestructive = isDestructive,
+            )
+        }
+
+        val subscriptionIcon = if (
+            menu.findItem(R.id.nav_subscription)?.title?.toString() == "UPGRADE NOW"
+        ) {
+            R.drawable.ic_iconsax_subscription
+        } else {
+            R.drawable.ic_iconsax_subscription
+        }
+
+        moreMenuSections.value = listOf(
+            MoreMenuSection(
+                title = "Shop",
+                items = listOfNotNull(
+                    visibleItem(R.id.nav_shops, R.drawable.ic_iconsax_shop),
+                    visibleItem(R.id.nav_shop_home, R.drawable.ic_iconsax_home),
+                ),
+            ),
+            MoreMenuSection(
+                title = "Business",
+                items = listOfNotNull(
+                    visibleItem(R.id.nav_finance, R.drawable.ic_iconsax_finance),
+                    visibleItem(R.id.nav_transfers, R.drawable.ic_iconsax_transfer),
+                ),
+            ),
+            MoreMenuSection(
+                title = "People",
+                items = listOfNotNull(
+                    visibleItem(R.id.nav_employees, R.drawable.ic_iconsax_employees),
+                    visibleItem(R.id.nav_suppliers, R.drawable.ic_iconsax_suppliers),
+                    visibleItem(R.id.nav_customers, R.drawable.ic_iconsax_customers),
+                ),
+            ),
+            MoreMenuSection(
+                title = "Account & Support",
+                items = listOfNotNull(
+                    visibleItem(R.id.nav_subscription, subscriptionIcon),
+                    visibleItem(R.id.nav_user_roles, R.drawable.ic_iconsax_roles),
+                    visibleItem(R.id.nav_account, R.drawable.ic_iconsax_account),
+                    visibleItem(R.id.nav_contact_us, R.drawable.ic_iconsax_contact),
+                    visibleItem(R.id.nav_logout, R.drawable.ic_iconsax_logout, isDestructive = true),
+                ),
+            ),
+        ).filter { it.items.isNotEmpty() }
     }
 
     private fun navigateFromBottomBar(destinationId: Int) {
@@ -204,10 +307,17 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
     private fun syncBottomNavigation(destinationId: Int?) {
-        selectedBottomNavigationItem.value = when (destinationId) {
-            R.id.inventoryFragment -> UserNavigationItem.Inventory
-            R.id.salesFragment -> UserNavigationItem.Sales
-            else -> UserNavigationItem.Home
+        selectedBottomNavigationItem.value = when {
+            destinationId == null || destinationId == R.id.mainDashboardFragment -> {
+                UserNavigationItem.Home
+            }
+            destinationId in inventoryBottomNavigationDestinations -> {
+                UserNavigationItem.Inventory
+            }
+            destinationId in salesBottomNavigationDestinations -> {
+                UserNavigationItem.Sales
+            }
+            else -> UserNavigationItem.More
         }
     }
 
@@ -644,6 +754,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         // Update subscription badge in header
         updateSubscriptionBadge()
+        refreshMoreMenuSections()
         Log.d("NavDrawer_DEBUG", "✅ setupNavigationMenu() completed")
     }
 
