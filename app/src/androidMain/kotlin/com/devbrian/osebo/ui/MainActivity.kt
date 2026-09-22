@@ -4,17 +4,30 @@ import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.ObjectAnimator
 import android.content.Intent
+import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.view.Gravity
 import android.view.MenuItem
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewGroup
+import android.view.WindowManager
+import android.widget.FrameLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.content.ContextCompat
 import androidx.core.view.GravityCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
@@ -28,6 +41,9 @@ import com.devbrian.osebo.databinding.ActivityMainBinding
 import com.devbrian.osebo.fragments.MainDashboardFragment
 import com.devbrian.osebo.data.models.Shop
 import com.devbrian.osebo.models.PermissionType
+import com.devbrian.osebo.ui.components.UserBottomNavigation
+import com.devbrian.osebo.ui.components.UserNavigationItem
+import com.devbrian.osebo.ui.theme.OseboTheme
 import com.devbrian.osebo.utils.PermissionManager
 import com.devbrian.osebo.utils.Resource
 import com.google.android.material.navigation.NavigationView
@@ -75,6 +91,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private var subscriptionCheckInProgress = false
     private var currentShop: Shop? = null
     private var isDataLoading = false
+    private val selectedBottomNavigationItem: MutableState<UserNavigationItem> =
+        mutableStateOf(UserNavigationItem.Home)
 
     // Header views (cached)
     private lateinit var tvUserName: TextView
@@ -88,6 +106,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setupImmersiveWindow()
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -100,8 +119,96 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         setupHeaderView()
         setupFloatingActionButtons()
         setupNavControllerListener()
+        setupUserBottomNavigation()
 
         loadInitialData()
+    }
+
+    private fun setupImmersiveWindow() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            window.attributes.layoutInDisplayCutoutMode =
+                WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+        }
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        WindowInsetsControllerCompat(window, window.decorView).apply {
+            hide(WindowInsetsCompat.Type.systemBars())
+            systemBarsBehavior =
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
+        window.statusBarColor = Color.TRANSPARENT
+        window.navigationBarColor = Color.TRANSPARENT
+    }
+
+    private fun setupUserBottomNavigation() {
+        val bottomNavigation = ComposeView(this).apply {
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+            setContent {
+                OseboTheme {
+                    UserBottomNavigation(
+                        selectedItem = selectedBottomNavigationItem.value,
+                        onItemSelected = ::handleBottomNavigationSelection,
+                        onOseboAiClick = {
+                            Toast.makeText(
+                                this@MainActivity,
+                                "Osebo AI is coming next",
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                        },
+                    )
+                }
+            }
+        }
+
+        binding.contentOverlay.addView(
+            bottomNavigation,
+            FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                Gravity.BOTTOM,
+            ),
+        )
+
+        binding.mainFab.visibility = View.GONE
+        binding.fabSale.visibility = View.GONE
+        binding.fabProduct.visibility = View.GONE
+    }
+
+    private fun handleBottomNavigationSelection(item: UserNavigationItem) {
+        when (item) {
+            UserNavigationItem.Home -> navigateFromBottomBar(R.id.mainDashboardFragment)
+            UserNavigationItem.Inventory -> {
+                if (permissionManager.hasPermission(PermissionType.VIEW_INVENTORY)) {
+                    navigateFromBottomBar(R.id.inventoryFragment)
+                } else {
+                    showPermissionDeniedDialog("inventory")
+                }
+            }
+            UserNavigationItem.Sales -> {
+                if (permissionManager.hasPermission(PermissionType.VIEW_SALES)) {
+                    navigateFromBottomBar(R.id.salesFragment)
+                } else {
+                    showPermissionDeniedDialog("sales")
+                }
+            }
+            UserNavigationItem.More -> {
+                selectedBottomNavigationItem.value = UserNavigationItem.More
+                binding.drawerLayout.openDrawer(GravityCompat.START)
+            }
+        }
+    }
+
+    private fun navigateFromBottomBar(destinationId: Int) {
+        if (navController.currentDestination?.id != destinationId) {
+            navController.navigate(destinationId)
+        }
+    }
+
+    private fun syncBottomNavigation(destinationId: Int?) {
+        selectedBottomNavigationItem.value = when (destinationId) {
+            R.id.inventoryFragment -> UserNavigationItem.Inventory
+            R.id.salesFragment -> UserNavigationItem.Sales
+            else -> UserNavigationItem.Home
+        }
     }
 
     private fun setupToolbar() {
@@ -150,7 +257,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         binding.drawerLayout.addDrawerListener(object : androidx.drawerlayout.widget.DrawerLayout.DrawerListener {
             override fun onDrawerSlide(drawerView: View, slideOffset: Float) {}
             override fun onDrawerOpened(drawerView: View) {}
-            override fun onDrawerClosed(drawerView: View) {}
+            override fun onDrawerClosed(drawerView: View) {
+                syncBottomNavigation(navController.currentDestination?.id)
+            }
             override fun onDrawerStateChanged(newState: Int) {}
         })
 
@@ -177,6 +286,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private fun setupNavControllerListener() {
         navController.addOnDestinationChangedListener { _, destination, arguments ->
             Log.d("NavDrawer_DEBUG", "📍 Destination changed to: ${destination.label} (ID: ${destination.id})")
+            syncBottomNavigation(destination.id)
 
             if (destination.id == R.id.mainDashboardFragment) {
                 showFab()
@@ -611,9 +721,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     // ===== FAB METHODS =====
     private fun showFab() {
-        binding.mainFab.visibility = View.VISIBLE
-        binding.mainFab.alpha = 0f
-        binding.mainFab.animate().alpha(1f).setDuration(300).start()
+        binding.mainFab.visibility = View.GONE
+        binding.fabSale.visibility = View.GONE
+        binding.fabProduct.visibility = View.GONE
     }
 
     private fun hideFab() {
