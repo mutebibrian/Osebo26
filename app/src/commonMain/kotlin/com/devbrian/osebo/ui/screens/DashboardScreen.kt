@@ -2,6 +2,7 @@ package com.devbrian.osebo.ui.screens
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -34,6 +35,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -84,6 +86,8 @@ data class DashboardUiState(
     val totalShopsLabel: String = "0 Shops",
     val totalSales: String = "UGX 0",
     val totalExpenses: String = "UGX 0",
+    val salesTrend: List<Float> = emptyList(),
+    val expensesTrend: List<Float> = emptyList(),
     val shopPerformances: List<DashboardShopPerformanceUi> = emptyList(),
     val shops: List<DashboardShopUi> = emptyList(),
 )
@@ -93,6 +97,9 @@ private data class DashboardMetric(
     val value: String,
     val icon: DrawableResource,
     val gradient: List<Color>,
+    val accent: Color,
+    val supportingText: String,
+    val trend: List<Float>,
 )
 
 private data class DashboardQuickAction(
@@ -111,13 +118,68 @@ fun DashboardScreen(
     onReportsClick: () -> Unit = {},
 ) {
     val poppins = oseboFontFamily()
+    val profitTrend = state.salesTrend.zip(state.expensesTrend) { sales, expenses ->
+        sales - expenses
+    }
+    val shopTrend = List(
+        size = maxOf(state.salesTrend.size, state.expensesTrend.size, 4),
+        init = { state.shops.size.toFloat() },
+    )
     val metrics = listOf(
-        DashboardMetric("Today's Sales", state.todaySales, Res.drawable.iconsax_today_sales, listOf(Color(0xFFCDEAF4), Color(0xFFF2FAFC))),
-        DashboardMetric("Today's Expenses", state.todayExpenses, Res.drawable.iconsax_today_expenses, listOf(Color(0xFFE8D3F2), Color(0xFFFAF4FC))),
-        DashboardMetric("Today's Balance", state.todayBalance, Res.drawable.iconsax_balance, listOf(Color(0xFFD5E9C3), Color(0xFFF5FAF0))),
-        DashboardMetric("Total Shops", state.totalShopsLabel, Res.drawable.iconsax_shops, listOf(Color(0xFFFFDFB5), Color(0xFFFFF8EE))),
-        DashboardMetric("Total Sales", state.totalSales, Res.drawable.iconsax_total_sales, listOf(Color(0xFFD5DCF6), Color(0xFFF5F7FD))),
-        DashboardMetric("Total Expenses", state.totalExpenses, Res.drawable.iconsax_total_expenses, listOf(Color(0xFFF3D2CB), Color(0xFFFDF6F4))),
+        DashboardMetric(
+            "Today's Sales",
+            state.todaySales,
+            Res.drawable.iconsax_today_sales,
+            listOf(Color(0xFFD6E8FF), Color(0xFFF1F6FF)),
+            Color(0xFF448FE8),
+            "today",
+            state.salesTrend.takeLast(8),
+        ),
+        DashboardMetric(
+            "Today's Expenses",
+            state.todayExpenses,
+            Res.drawable.iconsax_today_expenses,
+            listOf(Color(0xFFD7F2F5), Color(0xFFF0FAFA)),
+            Color(0xFF2DAFC1),
+            "today",
+            state.expensesTrend.takeLast(8),
+        ),
+        DashboardMetric(
+            "Today's Balance",
+            state.todayBalance,
+            Res.drawable.iconsax_balance,
+            listOf(Color(0xFFE3E3FF), Color(0xFFF6F5FF)),
+            Color(0xFF6673E8),
+            "today",
+            profitTrend.takeLast(8),
+        ),
+        DashboardMetric(
+            "Total Shops",
+            state.totalShopsLabel,
+            Res.drawable.iconsax_shops,
+            listOf(Color(0xFFECE3FA), Color(0xFFF9F5FD)),
+            Color(0xFF8D5FD3),
+            "active",
+            shopTrend,
+        ),
+        DashboardMetric(
+            "Total Sales",
+            state.totalSales,
+            Res.drawable.iconsax_total_sales,
+            listOf(Color(0xFFFFE6CF), Color(0xFFFFF7EF)),
+            Color(0xFFE88B48),
+            "all time",
+            state.salesTrend,
+        ),
+        DashboardMetric(
+            "Total Expenses",
+            state.totalExpenses,
+            Res.drawable.iconsax_total_expenses,
+            listOf(Color(0xFFF8DDE4), Color(0xFFFFF3F6)),
+            Color(0xFFD75E81),
+            "all time",
+            state.expensesTrend,
+        ),
     )
     val quickActions = listOf(
         DashboardQuickAction(
@@ -142,7 +204,7 @@ fun DashboardScreen(
         ),
     )
 
-    Scaffold(containerColor = Color.White) { contentPadding ->
+    Scaffold(containerColor = Color(0xFFF7F4EE)) { contentPadding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -179,7 +241,7 @@ fun DashboardScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         rowItems.forEach { action ->
-                            QuickActionCard(action = action, modifier = Modifier.weight(1f))
+                            QuickActionButton(action = action, modifier = Modifier.weight(1f))
                         }
                     }
                     if (index != quickActions.chunked(2).lastIndex) {
@@ -232,7 +294,7 @@ fun DashboardScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.White.copy(alpha = 0.72f)),
+                        .background(Color(0xFFF7F4EE).copy(alpha = 0.78f)),
                     contentAlignment = Alignment.Center,
                 ) {
                     CircularProgressIndicator(color = OseboColors.Primary)
@@ -317,7 +379,7 @@ private fun ProfileGreetingHeader(
 }
 
 @Composable
-private fun QuickActionCard(
+private fun QuickActionButton(
     action: DashboardQuickAction,
     modifier: Modifier = Modifier,
 ) {
@@ -355,10 +417,11 @@ private fun MetricCard(
     modifier: Modifier = Modifier,
 ) {
     val poppins = oseboFontFamily()
+    val shape = RoundedCornerShape(30.dp)
     Column(
         modifier = modifier
-            .height(142.dp)
-            .clip(RoundedCornerShape(24.dp))
+            .height(182.dp)
+            .clip(shape)
             .background(
                 Brush.linearGradient(
                     colors = metric.gradient,
@@ -366,32 +429,108 @@ private fun MetricCard(
                     end = Offset.Infinite,
                 ),
             )
-            .padding(16.dp),
-        verticalArrangement = Arrangement.SpaceBetween,
+            .border(1.dp, Color.White.copy(alpha = 0.82f), shape)
+            .padding(18.dp),
     ) {
-        Icon(
-            painter = painterResource(metric.icon),
-            contentDescription = null,
-            tint = Color(0xFF171B1F),
-            modifier = Modifier.size(25.dp),
-        )
-        Column {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                painter = painterResource(metric.icon),
+                contentDescription = null,
+                tint = Color(0xFF14243A),
+                modifier = Modifier.size(24.dp),
+            )
+            Spacer(Modifier.size(10.dp))
             Text(
-                text = metric.value,
-                color = Color(0xFF171B1F),
+                text = metric.label,
+                color = Color(0xFF14243A),
                 fontFamily = poppins,
-                fontSize = 19.sp,
+                fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
             )
-            Text(
-                text = metric.label,
-                color = Color(0xFF697076),
-                fontFamily = poppins,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Normal,
+        }
+
+        Spacer(Modifier.weight(1f))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Bottom,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = metric.value,
+                    color = Color(0xFF14243A),
+                    fontFamily = poppins,
+                    fontSize = 20.sp,
+                    lineHeight = 24.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                )
+                Text(
+                    text = metric.supportingText,
+                    color = Color(0xFF6F7B88),
+                    fontFamily = poppins,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Normal,
+                )
+            }
+            MetricSparkline(
+                values = metric.trend,
+                color = metric.accent,
+                modifier = Modifier.size(width = 68.dp, height = 54.dp),
             )
         }
+    }
+}
+
+@Composable
+private fun MetricSparkline(
+    values: List<Float>,
+    color: Color,
+    modifier: Modifier = Modifier,
+) {
+    Canvas(modifier = modifier) {
+        val points = when {
+            values.isEmpty() -> listOf(0f, 0f, 0f, 0f)
+            values.size == 1 -> List(4) { values.first() }
+            else -> values.takeLast(8)
+        }
+        val minimum = points.minOrNull() ?: 0f
+        val maximum = points.maxOrNull() ?: 0f
+        val range = maximum - minimum
+        val horizontalStep = size.width / (points.lastIndex.coerceAtLeast(1))
+        val verticalPadding = 5.dp.toPx()
+        val chartHeight = size.height - (verticalPadding * 2)
+        val offsets = points.mapIndexed { index, value ->
+            val normalized = if (range == 0f) 0.5f else (value - minimum) / range
+            Offset(
+                x = index * horizontalStep,
+                y = size.height - verticalPadding - (normalized * chartHeight),
+            )
+        }
+        val path = Path().apply {
+            moveTo(offsets.first().x, offsets.first().y)
+            offsets.zipWithNext().forEach { (previous, current) ->
+                val midpoint = (previous.x + current.x) / 2f
+                cubicTo(
+                    midpoint,
+                    previous.y,
+                    midpoint,
+                    current.y,
+                    current.x,
+                    current.y,
+                )
+            }
+        }
+        drawPath(
+            path = path,
+            color = color,
+            style = Stroke(
+                width = 4.dp.toPx(),
+                cap = StrokeCap.Round,
+                join = StrokeJoin.Round,
+            ),
+        )
     }
 }
 
@@ -402,7 +541,7 @@ private fun ShopPerformanceChart() {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(28.dp))
-            .background(Color(0xFFF4F6F7))
+            .background(Color.White)
             .padding(18.dp),
     ) {
         Row(
