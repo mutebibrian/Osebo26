@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Stable action IDs shared by the Compose More sheet and MainActivity. -->
+    <item name="nav_dashboard" type="id" />
+    <item name="nav_shops" type="id" />
+    <item name="nav_shop_home" type="id" />
+    <item name="nav_sales" type="id" />
+    <item name="nav_finance" type="id" />
+    <item name="nav_inventory" type="id" />
+    <item name="nav_transfers" type="id" />
+    <item name="nav_employees" type="id" />
+    <item name="nav_suppliers" type="id" />
+    <item name="nav_customers" type="id" />
+    <item name="nav_subscription" type="id" />
+    <item name="nav_user_roles" type="id" />
+    <item name="nav_account" type="id" />
+    <item name="nav_contact_us" type="id" />
+    <item name="nav_logout" type="id" />
+</resources>

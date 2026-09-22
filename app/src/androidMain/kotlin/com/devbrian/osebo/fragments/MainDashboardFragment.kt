@@ -69,9 +69,13 @@ class MainDashboardFragment : Fragment() {
                 OseboTheme {
                     DashboardScreen(
                         state = uiState,
-                        onViewDetailsClick = { findNavController().navigate(R.id.reportsFragment) },
-                        onPeriodFilterChange = { filter -> uiState = uiState.copy(periodFilter = filter) },
-                        onShopClick = ::handleShopClick,
+                        onNotificationsClick = {
+                            Toast.makeText(
+                                requireContext(),
+                                "Notifications are coming next",
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                        },
                         onAddProductClick = { navigateIfSubscribed(R.id.addProductFragment) },
                         onNewSaleClick = { navigateIfSubscribed(R.id.newSaleFragment) },
                         onAddEmployeeClick = { navigateIfSubscribed(R.id.employeesFragment) },
@@ -81,9 +85,6 @@ class MainDashboardFragment : Fragment() {
                             } else {
                                 showNoActiveShopDialog()
                             }
-                        },
-                        onPerformanceClick = { performance ->
-                            currentShops.find { it.id == performance.shopId }?.let { navigateToShopBilling(it) }
                         },
                     )
                 }
