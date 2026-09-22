@@ -249,6 +249,7 @@ class MainDashboardFragment : Fragment() {
                                 updateTotals(totalSales, totalExpenses, shops.size)
                                 submitShops(shops, selectedShop.id)
                                 dashboardRepository.refreshDashboardData()
+                                updateTrendData()
                             } else {
                                 submitShops(emptyList(), null)
                                 Toast.makeText(requireContext(), "No shops found.", Toast.LENGTH_LONG).show()
@@ -267,6 +268,7 @@ class MainDashboardFragment : Fragment() {
                             val (totalSales, totalExpenses) = loadActualSalesData(shops)
                             updateTotals(totalSales, totalExpenses, shops.size)
                             submitShops(shops, selectedShop.id)
+                            updateTrendData()
                             Toast.makeText(requireContext(), "Using cached shop data", Toast.LENGTH_SHORT).show()
                         } else {
                             Toast.makeText(requireContext(), refreshResult.message ?: "Failed to load shops", Toast.LENGTH_LONG).show()
@@ -359,6 +361,14 @@ class MainDashboardFragment : Fragment() {
             todaySales = formatCompactCurrency(todaySales),
             todayExpenses = formatCompactCurrency(todayExpenses),
             todayBalance = formatCompactCurrency(todayBalance),
+        )
+    }
+
+    private suspend fun updateTrendData() {
+        val timeSeries = dashboardRepository.getTimeSeriesSync()
+        uiState = uiState.copy(
+            salesTrend = timeSeries?.getSalesList()?.map(Double::toFloat).orEmpty(),
+            expensesTrend = timeSeries?.getExpensesList()?.map(Double::toFloat).orEmpty(),
         )
     }
 
