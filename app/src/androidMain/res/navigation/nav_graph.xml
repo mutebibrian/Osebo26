@@ -472,8 +472,7 @@
     <fragment
         android:id="@+id/inventoryFragment"
         android:name="com.devbrian.osebo.fragments.InventoryFragment"
-        android:label="Inventory"
-        tools:layout="@layout/fragment_inventory">
+        android:label="Inventory">
 
         <action
             android:id="@+id/action_inventory_to_addProduct"
@@ -504,8 +503,7 @@
     <fragment
         android:id="@+id/restockFragment"
         android:name="com.devbrian.osebo.fragments.RestockFragment"
-        android:label="Restock Products"
-        tools:layout="@layout/fragment_restock" />
+        android:label="Add Stock" />
 
     <!-- Add Expense Fragment -->
     <fragment
