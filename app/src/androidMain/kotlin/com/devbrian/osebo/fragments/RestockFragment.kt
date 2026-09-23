@@ -5,246 +5,206 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.ComposeView
 import androidx.fragment.app.Fragment
-import org.koin.androidx.viewmodel.ext.android.viewModel
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
-import androidx.recyclerview.widget.LinearLayoutManager
-import com.devbrian.osebo.R
-import com.devbrian.osebo.adapters.RestockAdapter
-import com.devbrian.osebo.databinding.FragmentRestockBinding
 import com.devbrian.osebo.models.Product
+import com.devbrian.osebo.ui.screens.AddStockProductUi
+import com.devbrian.osebo.ui.screens.AddStockScreen
+import com.devbrian.osebo.ui.screens.AddStockUiState
+import com.devbrian.osebo.ui.theme.OseboTheme
 import com.devbrian.osebo.ui.viewmodels.InventoryViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class RestockFragment : Fragment() {
-
-    private var _binding: FragmentRestockBinding? = null
-    private val binding get() = _binding!!
-
     private val viewModel: InventoryViewModel by viewModel()
-    private lateinit var adapter: RestockAdapter
+    private var uiState by mutableStateOf(AddStockUiState())
     private var allProducts: List<Product> = emptyList()
-    private var isRestocking = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
-        savedInstanceState: Bundle?
+        savedInstanceState: Bundle?,
     ): View {
-        _binding = FragmentRestockBinding.inflate(inflater, container, false)
-        return binding.root
+        return ComposeView(requireContext()).apply {
+            setContent {
+                OseboTheme {
+                    AddStockScreen(
+                        state = uiState,
+                        onBackClick = { findNavController().navigateUp() },
+                        onQueryChange = { query -> uiState = uiState.copy(query = query) },
+                        onQuantityChange = ::updateQuantity,
+                        onDecreaseQuantity = { productId -> adjustQuantity(productId, increase = false) },
+                        onIncreaseQuantity = { productId -> adjustQuantity(productId, increase = true) },
+                        onAddStockClick = ::confirmRestock,
+                    )
+                }
+            }
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-        // Setup toolbar back button
-        binding.toolbar.setNavigationOnClickListener {
-            findNavController().navigateUp()
-        }
-
-        setupRecyclerView()
-        setupSearchView()
         setupObservers()
-
-        // Load products once
         viewModel.refreshProducts()
-    }
-
-    private fun setupRecyclerView() {
-        adapter = RestockAdapter { _, _, _ ->
-            updateSelectedSummary()
-        }
-
-        binding.rvProducts.apply {
-            layoutManager = LinearLayoutManager(requireContext())
-            adapter = this@RestockFragment.adapter
-            setHasFixedSize(true)
-        }
-    }
-
-    private fun setupSearchView() {
-        binding.searchView.setOnQueryTextListener(object : androidx.appcompat.widget.SearchView.OnQueryTextListener {
-            override fun onQueryTextSubmit(query: String): Boolean {
-                filterProducts(query)
-                return true
-            }
-
-            override fun onQueryTextChange(newText: String): Boolean {
-                filterProducts(newText)
-                return true
-            }
-        })
-    }
-
-    private fun filterProducts(query: String) {
-        if (query.isEmpty()) {
-            adapter.submitList(allProducts)
-        } else {
-            val filtered = allProducts.filter { product ->
-                product.name.contains(query, ignoreCase = true) ||
-                        product.sku.contains(query, ignoreCase = true) ||
-                        product.barcode?.contains(query, ignoreCase = true) == true
-            }
-            adapter.submitList(filtered)
-        }
     }
 
     private fun setupObservers() {
         viewModel.products.observe(viewLifecycleOwner) { products ->
             allProducts = products
-            adapter.submitList(products)
-            updateSelectedSummary()
+            uiState = uiState.copy(
+                products = products.map { product ->
+                    AddStockProductUi(
+                        id = product.id,
+                        name = product.name,
+                        sku = product.sku,
+                        currentStock = "${product.displayStock} ${product.unitDisplay}",
+                        unit = product.unitDisplay,
+                        allowsDecimalQuantity = product.allowsDecimalQuantity,
+                        isLowStock = product.isLowStock,
+                    )
+                },
+            )
         }
 
-        viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
-            binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
-        }
-
-        // IMPORTANT: Only handle success messages from restock operations, not from refresh
-        viewModel.successMessage.observe(viewLifecycleOwner) { message ->
-            message?.let {
-                // Only navigate back if we're in the middle of a restock operation
-                if (isRestocking) {
-                    Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
-                    viewModel.clearMessages()
-                    findNavController().navigateUp()
-                    isRestocking = false
-                }
-                // If it's just a refresh success message, ignore it
-            }
+        viewModel.isRefreshing.observe(viewLifecycleOwner) { isRefreshing ->
+            uiState = uiState.copy(isLoading = isRefreshing)
         }
 
         viewModel.errorMessage.observe(viewLifecycleOwner) { message ->
-            message?.let {
-                Toast.makeText(requireContext(), it, Toast.LENGTH_LONG).show()
+            if (message != null && !uiState.isProcessing) {
+                Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
                 viewModel.clearMessages()
-                isRestocking = false
             }
         }
     }
 
-    private fun updateSelectedSummary() {
-        val selectedCount = adapter.getSelectedCount()
-        if (selectedCount > 0) {
-            binding.cardSelectedSummary.visibility = View.VISIBLE
-            binding.tvSelectedCount.text = "$selectedCount item(s) selected"
+    private fun updateQuantity(productId: String, rawQuantity: String) {
+        val product = allProducts.firstOrNull { it.id == productId } ?: return
+        val sanitized = sanitizeQuantity(rawQuantity, product.allowsDecimalQuantity).take(9)
+        uiState = uiState.copy(
+            quantities = uiState.quantities.toMutableMap().apply {
+                if (sanitized.isBlank()) remove(productId) else put(productId, sanitized)
+            },
+        )
+    }
 
-            binding.btnProcessRestock.setOnClickListener {
-                processRestock()
+    private fun sanitizeQuantity(rawQuantity: String, allowsDecimal: Boolean): String {
+        if (!allowsDecimal) return rawQuantity.filter(Char::isDigit)
+
+        var decimalSeen = false
+        return buildString {
+            rawQuantity.forEach { character ->
+                when {
+                    character.isDigit() -> append(character)
+                    character == '.' && !decimalSeen -> {
+                        append(character)
+                        decimalSeen = true
+                    }
+                }
             }
+        }
+    }
+
+    private fun adjustQuantity(productId: String, increase: Boolean) {
+        val product = allProducts.firstOrNull { it.id == productId } ?: return
+        val current = uiState.quantities[productId]?.toDoubleOrNull() ?: 0.0
+        val step = if (product.allowsDecimalQuantity) 0.1 else 1.0
+        val updated = if (increase) current + step else (current - step).coerceAtLeast(0.0)
+        val formatted = if (product.allowsDecimalQuantity) {
+            String.format("%.1f", updated)
         } else {
-            binding.cardSelectedSummary.visibility = View.GONE
+            updated.toInt().toString()
         }
+        updateQuantity(productId, if (updated == 0.0) "" else formatted)
     }
 
-    private fun processRestock() {
-        val selectedProducts = adapter.getSelectedProducts()
+    private fun selectedProducts(): Map<Product, Double> {
+        return uiState.quantities.mapNotNull { (productId, rawQuantity) ->
+            val product = allProducts.firstOrNull { it.id == productId }
+            val quantity = rawQuantity.toDoubleOrNull() ?: 0.0
+            if (product != null && quantity > 0.0) product to quantity else null
+        }.toMap()
+    }
 
+    private fun confirmRestock() {
+        val selectedProducts = selectedProducts()
         if (selectedProducts.isEmpty()) {
-            Toast.makeText(requireContext(), "No products selected", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "Choose a quantity first", Toast.LENGTH_SHORT).show()
             return
         }
 
-        // Show confirmation dialog
-        androidx.appcompat.app.AlertDialog.Builder(requireContext())
-            .setTitle("Confirm Restock")
+        AlertDialog.Builder(requireContext())
+            .setTitle("Confirm Add Stock")
             .setMessage(buildConfirmationMessage(selectedProducts))
-            .setPositiveButton("Confirm Restock") { _, _ ->
-                performRestock(selectedProducts)
-            }
+            .setPositiveButton("Add Stock") { _, _ -> performRestock(selectedProducts) }
             .setNegativeButton("Cancel", null)
             .show()
     }
 
     private fun buildConfirmationMessage(selectedProducts: Map<Product, Double>): String {
-        val builder = StringBuilder()
-        builder.append("You are about to restock the following items:\n\n")
-
-        selectedProducts.forEach { (product, quantity) ->
-            builder.append("• ${product.name}: +${formatQuantity(product, quantity)}\n")
+        return buildString {
+            append("The following quantities will be added:\n\n")
+            selectedProducts.forEach { (product, quantity) ->
+                append("• ${product.name}: +${formatQuantity(product, quantity)} ${product.unitDisplay}\n")
+            }
+            append("\nProceed?")
         }
-
-        builder.append("\nProceed with restock?")
-        return builder.toString()
     }
 
     private fun formatQuantity(product: Product, quantity: Double): String {
-        return if (product.allowsFloatQuantity == true) {
+        return if (product.allowsDecimalQuantity) {
             String.format("%.1f", quantity)
         } else {
-            String.format("%.0f", quantity)
+            quantity.toInt().toString()
         }
     }
 
     private fun performRestock(selectedProducts: Map<Product, Double>) {
-        if (isRestocking) return
-        isRestocking = true
+        if (uiState.isProcessing) return
+        uiState = uiState.copy(isProcessing = true)
 
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             var successCount = 0
-            var failCount = 0
+            var failureCount = 0
 
             selectedProducts.forEach { (product, quantity) ->
-                try {
-                    val updatedProduct = product.copy(stock = product.stock + quantity)
-
-                    // Call updateProduct and wait for result
-                    val result = viewModel.updateProductAndWait(updatedProduct)
-
-                    if (result) {
-                        successCount++
-                        println("✅ Successfully restocked ${product.name}: +$quantity, New stock: ${product.stock + quantity}")
-                    } else {
-                        failCount++
-                        println("❌ Failed to restock ${product.name}")
-                    }
-                } catch (e: Exception) {
-                    failCount++
-                    println("❌ Error restocking ${product.name}: ${e.message}")
+                val updatedProduct = product.copy(stock = product.stock + quantity)
+                if (viewModel.updateProductAndWait(updatedProduct)) {
+                    successCount++
+                } else {
+                    failureCount++
                 }
             }
 
-            // Show results
+            viewModel.clearMessages()
+            uiState = uiState.copy(isProcessing = false)
+
             if (successCount > 0) {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(
-                        requireContext(),
-                        "✅ Restocked $successCount product(s) successfully",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
+                Toast.makeText(
+                    requireContext(),
+                    "Added stock to $successCount product(s)",
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
+            if (failureCount > 0) {
+                Toast.makeText(
+                    requireContext(),
+                    "Could not update $failureCount product(s)",
+                    Toast.LENGTH_LONG,
+                ).show()
             }
 
-            if (failCount > 0) {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(
-                        requireContext(),
-                        "⚠️ Failed to restock $failCount product(s)",
-                        Toast.LENGTH_LONG
-                    ).show()
-                }
-            }
-
-            isRestocking = false
-
-            // Refresh products to show updated quantities
-            delay(1500)
+            delay(500)
             viewModel.refreshProducts()
-
-            // Navigate back
-            withContext(Dispatchers.Main) {
-                findNavController().navigateUp()
-            }
+            findNavController().navigateUp()
         }
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
     }
 }
