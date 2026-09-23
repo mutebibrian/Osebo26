@@ -1,5 +1,11 @@
 package com.devbrian.osebo.ui.screens
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -15,11 +21,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -53,7 +59,6 @@ import com.devbrian.osebo.resources.iconsax_today_expenses
 import com.devbrian.osebo.resources.iconsax_today_sales
 import com.devbrian.osebo.resources.iconsax_total_expenses
 import com.devbrian.osebo.resources.iconsax_total_sales
-import com.devbrian.osebo.ui.theme.OseboColors
 import com.devbrian.osebo.ui.theme.oseboFontFamily
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
@@ -118,6 +123,7 @@ fun DashboardScreen(
     onReportsClick: () -> Unit = {},
 ) {
     val poppins = oseboFontFamily()
+    val valueShimmer = rememberValueShimmerBrush()
     val profitTrend = state.salesTrend.zip(state.expensesTrend) { sales, expenses ->
         sales - expenses
     }
@@ -128,29 +134,29 @@ fun DashboardScreen(
     val metrics = listOf(
         DashboardMetric(
             "Today's Sales",
-            state.todaySales,
+            currencyAmount(state.todaySales),
             Res.drawable.iconsax_today_sales,
             listOf(Color(0xFFD6E8FF), Color(0xFFF1F6FF)),
             Color(0xFF448FE8),
-            "today",
+            "UGX · today",
             state.salesTrend.takeLast(8),
         ),
         DashboardMetric(
             "Today's Expenses",
-            state.todayExpenses,
+            currencyAmount(state.todayExpenses),
             Res.drawable.iconsax_today_expenses,
             listOf(Color(0xFFD7F2F5), Color(0xFFF0FAFA)),
             Color(0xFF2DAFC1),
-            "today",
+            "UGX · today",
             state.expensesTrend.takeLast(8),
         ),
         DashboardMetric(
             "Today's Balance",
-            state.todayBalance,
+            currencyAmount(state.todayBalance),
             Res.drawable.iconsax_balance,
             listOf(Color(0xFFE3E3FF), Color(0xFFF6F5FF)),
             Color(0xFF6673E8),
-            "today",
+            "UGX · today",
             profitTrend.takeLast(8),
         ),
         DashboardMetric(
@@ -164,20 +170,20 @@ fun DashboardScreen(
         ),
         DashboardMetric(
             "Total Sales",
-            state.totalSales,
+            currencyAmount(state.totalSales),
             Res.drawable.iconsax_total_sales,
             listOf(Color(0xFFFFE6CF), Color(0xFFFFF7EF)),
             Color(0xFFE88B48),
-            "all time",
+            "UGX · all time",
             state.salesTrend,
         ),
         DashboardMetric(
             "Total Expenses",
-            state.totalExpenses,
+            currencyAmount(state.totalExpenses),
             Res.drawable.iconsax_total_expenses,
             listOf(Color(0xFFF8DDE4), Color(0xFFFFF3F6)),
             Color(0xFFD75E81),
-            "all time",
+            "UGX · all time",
             state.expensesTrend,
         ),
     )
@@ -204,7 +210,7 @@ fun DashboardScreen(
         ),
     )
 
-    Scaffold(containerColor = Color(0xFFF7F4EE)) { contentPadding ->
+    Scaffold(containerColor = Color.White) { contentPadding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -267,7 +273,12 @@ fun DashboardScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         rowItems.forEach { metric ->
-                            MetricCard(metric = metric, modifier = Modifier.weight(1f))
+                            MetricCard(
+                                metric = metric,
+                                isLoading = state.isLoading,
+                                shimmerBrush = valueShimmer,
+                                modifier = Modifier.weight(1f),
+                            )
                         }
                     }
                     if (index != metrics.chunked(2).lastIndex) {
@@ -287,18 +298,10 @@ fun DashboardScreen(
 
                 Spacer(Modifier.height(14.dp))
 
-                ShopPerformanceChart()
-            }
-
-            if (state.isLoading) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color(0xFFF7F4EE).copy(alpha = 0.78f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    CircularProgressIndicator(color = OseboColors.Primary)
-                }
+                ShopPerformanceChart(
+                    isLoading = state.isLoading,
+                    shimmerBrush = valueShimmer,
+                )
             }
         }
     }
@@ -414,6 +417,8 @@ private fun QuickActionButton(
 @Composable
 private fun MetricCard(
     metric: DashboardMetric,
+    isLoading: Boolean,
+    shimmerBrush: Brush,
     modifier: Modifier = Modifier,
 ) {
     val poppins = oseboFontFamily()
@@ -457,15 +462,25 @@ private fun MetricCard(
             verticalAlignment = Alignment.Bottom,
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = metric.value,
-                    color = Color(0xFF14243A),
-                    fontFamily = poppins,
-                    fontSize = 20.sp,
-                    lineHeight = 24.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                )
+                if (isLoading) {
+                    Box(
+                        modifier = Modifier
+                            .width(72.dp)
+                            .height(24.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(shimmerBrush),
+                    )
+                } else {
+                    Text(
+                        text = metric.value,
+                        color = Color(0xFF14243A),
+                        fontFamily = poppins,
+                        fontSize = 20.sp,
+                        lineHeight = 24.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                    )
+                }
                 Text(
                     text = metric.supportingText,
                     color = Color(0xFF6F7B88),
@@ -477,10 +492,37 @@ private fun MetricCard(
             MetricSparkline(
                 values = metric.trend,
                 color = metric.accent,
-                modifier = Modifier.size(width = 68.dp, height = 54.dp),
+                modifier = Modifier.size(width = 54.dp, height = 48.dp),
             )
         }
     }
+}
+
+@Composable
+private fun rememberValueShimmerBrush(): Brush {
+    val transition = rememberInfiniteTransition(label = "dashboard-value-shimmer")
+    val shimmerPosition = transition.animateFloat(
+        initialValue = -240f,
+        targetValue = 720f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1150, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "dashboard-value-shimmer-position",
+    )
+    return Brush.linearGradient(
+        colors = listOf(
+            Color(0xFFDDE2E7),
+            Color(0xFFF8FAFB),
+            Color(0xFFDDE2E7),
+        ),
+        start = Offset(shimmerPosition.value - 180f, 0f),
+        end = Offset(shimmerPosition.value, 120f),
+    )
+}
+
+private fun currencyAmount(formattedValue: String): String {
+    return formattedValue.removePrefix("UGX").trim().ifBlank { "0" }
 }
 
 @Composable
@@ -535,7 +577,10 @@ private fun MetricSparkline(
 }
 
 @Composable
-private fun ShopPerformanceChart() {
+private fun ShopPerformanceChart(
+    isLoading: Boolean,
+    shimmerBrush: Brush,
+) {
     val poppins = oseboFontFamily()
     Column(
         modifier = Modifier
@@ -556,13 +601,23 @@ private fun ShopPerformanceChart() {
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Normal,
                 )
-                Text(
-                    text = "0",
-                    color = Color(0xFF171B1F),
-                    fontFamily = poppins,
-                    fontSize = 30.sp,
-                    fontWeight = FontWeight.SemiBold,
-                )
+                if (isLoading) {
+                    Box(
+                        modifier = Modifier
+                            .width(48.dp)
+                            .height(36.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(shimmerBrush),
+                    )
+                } else {
+                    Text(
+                        text = "0",
+                        color = Color(0xFF171B1F),
+                        fontFamily = poppins,
+                        fontSize = 30.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
             }
             Text(
                 text = "This week",
