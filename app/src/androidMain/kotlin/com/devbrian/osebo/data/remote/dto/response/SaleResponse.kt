@@ -27,27 +27,24 @@ data class SaleListApiResponse(
 
 data class SaleApiData(
     @SerializedName("id")
-    val id: String,
+    val id: String = "",
 
-    
-    @SerializedName("invoiceNumber")
+    @SerializedName(value = "invoiceNumber", alternate = ["invoice_number"])
     val invoiceNumber: String? = null,
 
-    @SerializedName("createdAt")
+    @SerializedName(value = "createdAt", alternate = ["created_at"])
     val createdAt: String? = null,
 
-    
-    @SerializedName("total_price")
+    @SerializedName(value = "total_price", alternate = ["totalPrice", "total_amount"])
     val totalPrice: Double? = null,
 
-    
-    @SerializedName("paid_amount")
+    @SerializedName(value = "paid_amount", alternate = ["paidAmount"])
     val paidAmountString: String? = null,
 
-    @SerializedName("outstanding_balance")
+    @SerializedName(value = "outstanding_balance", alternate = ["outstandingBalance"])
     val outstandingBalance: String? = null,
 
-    @SerializedName("payment_status")
+    @SerializedName(value = "payment_status", alternate = ["paymentStatus", "status"])
     val paymentStatus: String? = null,
 
     @SerializedName("type")
@@ -59,13 +56,10 @@ data class SaleApiData(
     @SerializedName("shop")
     val shop: ShopInfo? = null,
 
-    
-    @SerializedName("saleStockItems")
+    @SerializedName(value = "saleStockItems", alternate = ["sale_stock_items", "stockItems"])
     val saleStockItems: List<SaleStockItemDto>? = null,
 
-    
-    
-    @SerializedName("salePayments")
+    @SerializedName(value = "salePayments", alternate = ["sale_payments", "payments"])
     val salePayments: List<SalePaymentDto>? = null
 )
 

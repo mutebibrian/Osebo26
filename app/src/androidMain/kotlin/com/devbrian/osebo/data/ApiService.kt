@@ -284,6 +284,11 @@ interface ApiService {
 
     // ==================== SALE ENDPOINTS ====================
 
+    @GET("api/v1/sale")
+    suspend fun getSales(
+        @Header("X-Shop") shopId: String
+    ): Response<SaleListApiResponse>
+
     @POST("api/v1/sale")
     suspend fun createSale(
         @Header("X-Shop") shopId: String,

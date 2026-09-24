@@ -256,8 +256,7 @@
     <fragment
         android:id="@+id/salesFragment"
         android:name="com.devbrian.osebo.fragments.SalesFragment"
-        android:label="Sales"
-        tools:layout="@layout/fragment_sales" />
+        android:label="Sales" />
 
     <!-- New Sale Fragment -->
     <fragment

@@ -33,6 +33,67 @@ class SalesRepository(
     private val gson: Gson
 ) {
 
+    suspend fun refreshSalesFromServer(): Resource<Unit> {
+        val apiShopId = preferenceManager.getShopIdentifierForApi()
+        if (apiShopId.isBlank()) {
+            return Resource.Error("Please select a shop first")
+        }
+        val localShopId = preferenceManager.getCurrentShopId().ifBlank { apiShopId }
+
+        return try {
+            val response = apiService.getSales(apiShopId)
+            val body = response.body()
+            if (response.isSuccessful && body?.success == true) {
+                val remoteSales = body.data.orEmpty()
+                    .filter { it.id.isNotBlank() }
+                    .map { sale ->
+                        val totalAmount = sale.totalPrice ?: 0.0
+                        val paidAmount = sale.paidAmountString?.toDoubleOrNull()
+                            ?: sale.salePayments.orEmpty().sumOf { it.payment?.amount ?: 0.0 }
+                        val outstanding = sale.outstandingBalance?.toDoubleOrNull()
+                            ?: (totalAmount - paidAmount).coerceAtLeast(0.0)
+                        val paymentMethod = sale.salePayments
+                            .orEmpty()
+                            .firstNotNullOfOrNull { it.payment?.method }
+
+                        SaleEntity(
+                            id = sale.id,
+                            invoiceNumber = sale.invoiceNumber ?: sale.id.takeLast(8),
+                            customerId = sale.customer?.id,
+                            customerName = sale.customer?.name?.takeIf { it.isNotBlank() }
+                                ?: "Walk-in Customer",
+                            totalAmount = totalAmount,
+                            paidAmount = paidAmount,
+                            change = (paidAmount - totalAmount).coerceAtLeast(0.0),
+                            saleType = sale.type ?: "sale",
+                            status = sale.paymentStatus?.uppercase()
+                                ?: when {
+                                    outstanding <= 0.0 -> "COMPLETED"
+                                    paidAmount > 0.0 -> "PARTIAL"
+                                    else -> "PENDING"
+                                },
+                            items = gson.toJson(sale.saleStockItems.orEmpty()),
+                            paymentMethod = paymentMethod,
+                            notes = null,
+                            createdAt = sale.createdAt ?: System.currentTimeMillis().toString(),
+                            shopId = localShopId,
+                            isPendingSync = false,
+                            syncAction = null,
+                        )
+                    }
+
+                if (remoteSales.isNotEmpty()) {
+                    database.saleDao().insertSales(remoteSales)
+                }
+                Resource.Success(Unit)
+            } else {
+                Resource.Error(body?.message ?: "Unable to refresh sales")
+            }
+        } catch (error: Exception) {
+            Resource.Error(error.message ?: "Unable to refresh sales")
+        }
+    }
+
     fun getRecentSales(limit: Int = 20): Flow<List<Sale>> {
         val shopId = preferenceManager.getCurrentShopId()
         return flow {
