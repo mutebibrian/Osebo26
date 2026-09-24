@@ -215,8 +215,7 @@
     <fragment
         android:id="@+id/shopsFragment"
         android:name="com.devbrian.osebo.fragments.ShopsFragment"
-        android:label="My Shops"
-        tools:layout="@layout/fragment_shops">
+        android:label="My Shops">
 
         <action
             android:id="@+id/action_shopsFragment_to_shopDetailsFragment"

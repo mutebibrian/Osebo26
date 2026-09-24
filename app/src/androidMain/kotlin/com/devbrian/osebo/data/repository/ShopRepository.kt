@@ -5,5 +5,6 @@ import com.devbrian.osebo.utils.Resource
 
 interface ShopRepository {
     suspend fun getShops(): Resource<List<Shop>>
+    suspend fun refreshShops(): Resource<Boolean>
     suspend fun deleteShop(shopId: String)
 }

@@ -25,19 +25,45 @@ class ShopViewModel(
 
     fun loadShops() {
         viewModelScope.launch {
-            _shops.value = Resource.Loading
+            val existingShops = (_shops.value as? Resource.Success)?.data.orEmpty()
+            if (existingShops.isEmpty()) {
+                _shops.value = Resource.Loading
+            }
             _isLoading.value = true
             _errorMessage.value = null
 
             try {
-                val result = repository.getShops()
-                _shops.value = result
+                val cachedResult = repository.getShops()
+                val cachedShops = (cachedResult as? Resource.Success)?.data.orEmpty()
+                if (cachedShops.isNotEmpty()) {
+                    _shops.value = Resource.Success(cachedShops)
+                }
 
-                if (result is Resource.Error) {
-                    _errorMessage.value = result.message
+                val refreshResult = repository.refreshShops()
+                val updatedResult = repository.getShops()
+                val updatedShops = (updatedResult as? Resource.Success)?.data.orEmpty()
+
+                when {
+                    updatedResult is Resource.Success -> {
+                        _shops.value = Resource.Success(updatedShops)
+                        if (refreshResult is Resource.Error && updatedShops.isEmpty()) {
+                            _errorMessage.value = refreshResult.message
+                        }
+                    }
+                    cachedShops.isNotEmpty() -> _shops.value = Resource.Success(cachedShops)
+                    refreshResult is Resource.Error -> {
+                        _shops.value = Resource.Error(refreshResult.message)
+                        _errorMessage.value = refreshResult.message
+                    }
+                    else -> {
+                        _shops.value = Resource.Error("Failed to load shops")
+                        _errorMessage.value = "Failed to load shops"
+                    }
                 }
             } catch (e: Exception) {
-                _shops.value = Resource.Error(e.message ?: "Failed to load shops")
+                if (existingShops.isEmpty()) {
+                    _shops.value = Resource.Error(e.message ?: "Failed to load shops")
+                }
                 _errorMessage.value = e.message ?: "Failed to load shops"
             } finally {
                 _isLoading.value = false
@@ -74,5 +100,4 @@ class ShopViewModel(
         }
     }
 }
-
 
