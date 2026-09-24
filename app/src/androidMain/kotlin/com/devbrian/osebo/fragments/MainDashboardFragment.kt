@@ -189,11 +189,9 @@ class MainDashboardFragment : Fragment() {
                 expiry = shop.subscription?.endsAt,
                 packageId = null
             )
-        } else {
-            preferenceManager.clearSubscriptionInfo()
         }
 
-        (activity as? MainActivity)?.refreshNavigationMenu()
+        (activity as? MainActivity)?.refreshSubscriptionForCurrentShop()
         Toast.makeText(requireContext(), "${shop.name} is now active", Toast.LENGTH_SHORT).show()
     }
 
@@ -210,8 +208,6 @@ class MainDashboardFragment : Fragment() {
             shop.subscriptionType?.let { preferenceManager.saveSubscriptionType(it) }
             shop.subscriptionExpiry?.let { preferenceManager.saveSubscriptionExpiry(it) }
             shop.subscription?.id?.let { preferenceManager.saveSubscriptionId(it) }
-        } else {
-            preferenceManager.clearSubscriptionInfo()
         }
         Log.d(TAG, "Saved shop UUID: $uuid, ID: ${shop.id}")
     }
@@ -411,6 +407,7 @@ class MainDashboardFragment : Fragment() {
     }
 
     private fun hasActiveShopWithSubscription(): Boolean {
-        return currentShops.any { it.isSubscriptionActive }
+        return preferenceManager.hasActiveSubscription() ||
+            currentShops.any { it.isSubscriptionActive }
     }
 }

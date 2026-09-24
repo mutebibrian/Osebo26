@@ -29,6 +29,7 @@ import androidx.navigation.fragment.NavHostFragment
 import com.devbrian.osebo.R
 import com.devbrian.osebo.data.PreferenceManager
 import com.devbrian.osebo.data.repository.ShopRepositoryImpl
+import com.devbrian.osebo.data.repository.SubscriptionRepository
 import com.devbrian.osebo.databinding.ActivityMainBinding
 import com.devbrian.osebo.fragments.MainDashboardFragment
 import com.devbrian.osebo.data.models.Shop
@@ -46,6 +47,12 @@ import java.text.SimpleDateFormat
 import java.util.*
 import org.koin.android.ext.android.inject
 
+private enum class SubscriptionVerification {
+    Active,
+    Inactive,
+    Unavailable,
+}
+
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
@@ -54,6 +61,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var permissionManager: PermissionManager
 
     private val shopRepository: ShopRepositoryImpl by inject()
+    private val subscriptionRepository: SubscriptionRepository by inject()
 
     private val subscriptionRequiredDestinations = setOf(
         R.id.salesFragment,
@@ -95,6 +103,7 @@ class MainActivity : AppCompatActivity() {
 
     private var isFabMenuOpen = false
     private var subscriptionCheckInProgress = false
+    private var isSubscriptionRefreshInProgress = false
     private var currentShop: Shop? = null
     private var isDataLoading = false
     private val selectedBottomNavigationItem: MutableState<UserNavigationItem> =
@@ -181,14 +190,14 @@ class MainActivity : AppCompatActivity() {
             UserNavigationItem.Home -> navigateFromBottomBar(R.id.mainDashboardFragment)
             UserNavigationItem.Inventory -> {
                 if (permissionManager.hasPermission(PermissionType.VIEW_INVENTORY)) {
-                    navigateFromBottomBar(R.id.inventoryFragment)
+                    navigateWithVerifiedSubscription(R.id.inventoryFragment)
                 } else {
                     showPermissionDeniedDialog("inventory")
                 }
             }
             UserNavigationItem.Sales -> {
                 if (permissionManager.hasPermission(PermissionType.VIEW_SALES)) {
-                    navigateFromBottomBar(R.id.salesFragment)
+                    navigateWithVerifiedSubscription(R.id.salesFragment)
                 } else {
                     showPermissionDeniedDialog("sales")
                 }
@@ -328,6 +337,46 @@ class MainActivity : AppCompatActivity() {
     private fun navigateFromBottomBar(destinationId: Int) {
         if (navController.currentDestination?.id != destinationId) {
             navController.navigate(destinationId)
+        }
+    }
+
+    private fun navigateWithVerifiedSubscription(destinationId: Int) {
+        if (!permissionManager.isShopOwner()) {
+            navigateFromBottomBar(destinationId)
+            return
+        }
+        if (!preferenceManager.hasShop()) {
+            showSelectShopFirstDialog()
+            return
+        }
+        if (isSubscriptionRefreshInProgress) return
+
+        isSubscriptionRefreshInProgress = true
+        lifecycleScope.launch {
+            val verification = try {
+                refreshCurrentSubscriptionStatus()
+            } catch (error: Exception) {
+                Log.w("SubscriptionCheck", "Subscription verification failed", error)
+                SubscriptionVerification.Unavailable
+            } finally {
+                isSubscriptionRefreshInProgress = false
+            }
+
+            when (verification) {
+                SubscriptionVerification.Active -> navigateFromBottomBar(destinationId)
+                SubscriptionVerification.Inactive -> showSubscriptionRequiredDialog()
+                SubscriptionVerification.Unavailable -> {
+                    if (hasAccessToBusinessOperations()) {
+                        navigateFromBottomBar(destinationId)
+                    } else {
+                        Toast.makeText(
+                            this@MainActivity,
+                            "Unable to verify your subscription. Please sign in again or retry.",
+                            Toast.LENGTH_LONG,
+                        ).show()
+                    }
+                }
+            }
         }
     }
 
@@ -475,13 +524,12 @@ class MainActivity : AppCompatActivity() {
                                         preferenceManager.saveSubscriptionExpiry(selectedShop.subscriptionExpiry ?: "")
                                         preferenceManager.saveSubscriptionType(selectedShop.subscriptionType ?: "")
 
-                                        updateHeaderShopInfo(selectedShop.name)
                                         println("✅ Selected shop: ${selectedShop.name}")
                                     }
                                 }
 
+                                refreshCurrentSubscriptionStatus()
                                 loadCurrentShopData()
-                                checkSubscriptionStatus()
                                 setupNavigationMenu()
                             }
                             else -> {}
@@ -568,9 +616,54 @@ class MainActivity : AppCompatActivity() {
 
     private fun checkSubscriptionStatus() {
         val shopId = preferenceManager.getCurrentShopId()
-        if (shopId.isNotEmpty()) {
+        if (shopId.isEmpty() || !permissionManager.isShopOwner()) {
             setupNavigationMenu()
-            preferenceManager.debugSubscriptionInfo()
+            return
+        }
+        if (isSubscriptionRefreshInProgress) return
+
+        isSubscriptionRefreshInProgress = true
+        lifecycleScope.launch {
+            try {
+                refreshCurrentSubscriptionStatus()
+                loadCurrentShopData()
+                setupNavigationMenu()
+                preferenceManager.debugSubscriptionInfo()
+            } finally {
+                isSubscriptionRefreshInProgress = false
+            }
+        }
+    }
+
+    private suspend fun refreshCurrentSubscriptionStatus(): SubscriptionVerification {
+        if (!permissionManager.isShopOwner()) return SubscriptionVerification.Active
+
+        val shopId = preferenceManager.getCurrentShopUuid()
+            .ifBlank { preferenceManager.getCurrentShopId() }
+        if (shopId.isBlank()) return SubscriptionVerification.Inactive
+
+        return when (val result = subscriptionRepository.checkShopSubscription(shopId)) {
+            is Resource.Success -> {
+                val status = result.data
+                if (status.resolvedIsActive) {
+                    preferenceManager.saveSubscriptionInfo(
+                        subscriptionId = status.resolvedSubscriptionId,
+                        status = status.resolvedStatus,
+                        type = status.resolvedType,
+                        expiry = status.resolvedExpiry,
+                    )
+                    SubscriptionVerification.Active
+                } else {
+                    preferenceManager.clearSubscriptionInfo()
+                    preferenceManager.saveSubscriptionStatus(status.resolvedStatus)
+                    SubscriptionVerification.Inactive
+                }
+            }
+            is Resource.Error -> {
+                Log.w("SubscriptionCheck", "Unable to verify subscription: ${result.message}")
+                SubscriptionVerification.Unavailable
+            }
+            is Resource.Loading -> SubscriptionVerification.Unavailable
         }
     }
 
@@ -581,6 +674,10 @@ class MainActivity : AppCompatActivity() {
 
     fun refreshNavigationMenu() {
         setupNavigationMenu()
+    }
+
+    fun refreshSubscriptionForCurrentShop() {
+        checkSubscriptionStatus()
     }
 
     private fun handleMoreNavigationItem(itemId: Int) {

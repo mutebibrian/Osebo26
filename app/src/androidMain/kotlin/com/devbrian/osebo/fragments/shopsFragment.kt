@@ -222,8 +222,6 @@ class ShopsFragment : Fragment() {
                 expiry = shop.subscription?.endsAt,
                 packageId = shop.planId   // ✅ FIXED: using planId instead of subscriptionPackage?.id
             )
-        } else {
-            preferenceManager.clearSubscriptionInfo()
         }
 
         // Update UI in MainActivity

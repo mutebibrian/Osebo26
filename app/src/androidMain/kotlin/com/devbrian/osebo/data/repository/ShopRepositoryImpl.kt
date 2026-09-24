@@ -119,8 +119,7 @@ class ShopRepositoryImpl(
                         println("✅ Auto-activated shop: ${activeShop.name}")
                         preferenceManager.debugSubscriptionInfo()
                     } else {
-                        println("⚠️ No active shops found")
-                        preferenceManager.saveSubscriptionStatus("INACTIVE")
+                        println("⚠️ Shops response did not include an active subscription")
 
                         if (shops.isNotEmpty()) {
                             val firstShop = shops.first()
