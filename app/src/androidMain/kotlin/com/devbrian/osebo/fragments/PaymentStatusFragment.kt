@@ -157,22 +157,17 @@ class PaymentStatusFragment : Fragment() {
                         println("   - type: ${statusResponse.type}")
                         println("   - expiryDate: ${statusResponse.expiryDate}")
 
-                        if (statusResponse.isActive == true) {
+                        if (statusResponse.resolvedIsActive) {
                             binding.tvStatusMessage.text = "Subscription activated! Redirecting..."
 
-                            val subscriptionStatus = when {
-                                statusResponse.type.equals("trial", ignoreCase = true) -> "TRIAL"
-                                statusResponse.isActive -> "ACTIVE"
-                                else -> statusResponse.status.uppercase()
-                            }
+                            val subscriptionStatus = statusResponse.resolvedStatus
 
                             preferenceManager.saveSubscriptionStatus(subscriptionStatus)
-                            statusResponse.subscriptionId?.let {
+                            statusResponse.resolvedSubscriptionId?.let {
                                 preferenceManager.saveSubscriptionId(it)
-                                preferenceManager.saveCurrentShopUuid(it)
                             }
-                            statusResponse.type?.let { preferenceManager.saveSubscriptionType(it) }
-                            statusResponse.expiryDate?.let { preferenceManager.saveSubscriptionExpiry(it) }
+                            statusResponse.resolvedType?.let { preferenceManager.saveSubscriptionType(it) }
+                            statusResponse.resolvedExpiry?.let { preferenceManager.saveSubscriptionExpiry(it) }
                             statusResponse.shopId?.let { preferenceManager.saveCurrentShopId(it) }
 
                             println("✅ Saved subscription to preferences: $subscriptionStatus")
@@ -184,7 +179,7 @@ class PaymentStatusFragment : Fragment() {
                             }, 1500)
                         } else {
                             println("⚠️ Subscription not active yet. Status: ${statusResponse.status}")
-                            when (statusResponse.status.lowercase()) {
+                            when (statusResponse.resolvedStatus.lowercase()) {
                                 "trial" -> {
                                     binding.tvStatusMessage.text = "Trial activated! Redirecting..."
                                     binding.btnViewSubscription.postDelayed({
