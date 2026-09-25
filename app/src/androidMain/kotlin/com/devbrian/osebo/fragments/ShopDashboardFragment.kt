@@ -5,154 +5,113 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
 import android.widget.Toast
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.Fragment
-import org.koin.androidx.viewmodel.ext.android.viewModel
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.snackbar.Snackbar
 import com.devbrian.osebo.R
 import com.devbrian.osebo.data.PreferenceManager
-import com.devbrian.osebo.databinding.FragmentShopDashboardBinding
+import com.devbrian.osebo.ui.screens.ShopDashboardProductUi
+import com.devbrian.osebo.ui.screens.ShopDashboardScreen
+import com.devbrian.osebo.ui.screens.ShopDashboardUiState
+import com.devbrian.osebo.ui.theme.OseboTheme
 import com.devbrian.osebo.ui.viewmodels.DashboardViewModel
-import com.devbrian.osebo.utils.NetworkUtils
 import kotlinx.coroutines.launch
+import org.koin.androidx.viewmodel.ext.android.viewModel
+import java.util.Locale
 
 class ShopDashboardFragment : Fragment() {
-
     private val args: ShopDashboardFragmentArgs by navArgs()
-
-    private var _binding: FragmentShopDashboardBinding? = null
-    private val binding get() = _binding!!
-
     private val viewModel: DashboardViewModel by viewModel()
-
-    private lateinit var topStockAdapter: TopStockAdapter
+    private var uiState by mutableStateOf(ShopDashboardUiState())
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
-        savedInstanceState: Bundle?
+        savedInstanceState: Bundle?,
     ): View {
-        _binding = FragmentShopDashboardBinding.inflate(inflater, container, false)
-        return binding.root
+        val preferences = PreferenceManager.getInstance(requireContext())
+        uiState = uiState.copy(
+            shopName = preferences.getCurrentShopName().ifBlank { "Your shop" },
+        )
+
+        return ComposeView(requireContext()).apply {
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+            setContent {
+                OseboTheme {
+                    ShopDashboardScreen(
+                        state = uiState,
+                        onBackClick = { findNavController().navigateUp() },
+                        onRefreshClick = ::refreshDashboard,
+                        onEmployeesClick = { navigateTo(R.id.employeesFragment) },
+                        onSuppliersClick = { navigateTo(R.id.suppliersFragment) },
+                        onCustomersClick = { navigateTo(R.id.customersFragment) },
+                        onSalesClick = { navigateTo(R.id.salesFragment) },
+                        onNewSaleClick = { navigateTo(R.id.newSaleFragment) },
+                        onAddProductClick = { navigateTo(R.id.addProductFragment) },
+                        onAddExpenseClick = { navigateTo(R.id.addExpenseFragment) },
+                        onInventoryClick = { navigateTo(R.id.inventoryFragment) },
+                        onProductClick = ::openProduct,
+                    )
+                }
+            }
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        
         val shopId = args.shopId
         Log.d("ShopDashboard", "Loading dashboard for shop: $shopId")
 
-        
-        val prefs = PreferenceManager.getInstance(requireContext())
-        prefs.saveCurrentShopId(shopId)
-        prefs.saveCurrentShopUuid(shopId)
+        PreferenceManager.getInstance(requireContext()).apply {
+            saveCurrentShopId(shopId)
+            saveCurrentShopUuid(shopId)
+            uiState = uiState.copy(
+                shopName = getCurrentShopName().ifBlank { "Your shop" },
+            )
+        }
 
-        setupRecyclerView()
-        setupSwipeRefresh()
-        setupClickListeners()
-        setupBottomNavigation()
         observeViewModel()
-
         viewModel.loadDashboardData()
-    }
-
-    private fun setupBottomNavigation() {
-        binding.bottomNavigation.setOnItemSelectedListener { menuItem ->
-            when (menuItem.itemId) {
-                R.id.nav_home -> {
-                    
-                    true
-                }
-                R.id.nav_sales -> {
-                    findNavController().navigate(R.id.salesFragment)
-                    true
-                }
-                R.id.nav_expenses -> {
-                    findNavController().navigate(R.id.financeFragment)
-                    true
-                }
-                R.id.nav_restock -> {
-                    findNavController().navigate(R.id.inventoryFragment)
-                    true
-                }
-                else -> false
-            }
-        }
-    }
-
-    private fun setupRecyclerView() {
-        topStockAdapter = TopStockAdapter { item ->
-            val bundle = Bundle().apply {
-                putString("productId", item.id)
-                putString("product_name", item.name)
-            }
-            findNavController().navigate(R.id.productDetailsFragment, bundle)
-        }
-
-        binding.rvTopStock.apply {
-            layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
-            adapter = topStockAdapter
-            setHasFixedSize(true)
-            isNestedScrollingEnabled = false
-        }
-    }
-
-    private fun setupSwipeRefresh() {
-        binding.swipeRefresh.setOnRefreshListener {
-            viewModel.refreshData()
-        }
-    }
-
-    private fun setupClickListeners() {
-        binding.cardEmployees.setOnClickListener {
-            findNavController().navigate(R.id.employeesFragment)
-        }
-        binding.cardSuppliers.setOnClickListener {
-            findNavController().navigate(R.id.suppliersFragment)
-        }
-        binding.cardCustomers.setOnClickListener {
-            findNavController().navigate(R.id.customersFragment)
-        }
-        binding.cardSales.setOnClickListener {
-            findNavController().navigate(R.id.salesFragment)
-        }
-        binding.fabNewSale.setOnClickListener {
-            findNavController().navigate(R.id.newSaleFragment)
-        }
-        binding.fabAddProduct.setOnClickListener {
-            findNavController().navigate(R.id.addProductFragment)
-        }
-        binding.fabAddExpense.setOnClickListener {
-            findNavController().navigate(R.id.addExpenseFragment)
-        }
-        binding.tvViewAllTopStock.setOnClickListener {
-            findNavController().navigate(R.id.inventoryFragment)
-        }
-        binding.btnRetry.setOnClickListener {
-            binding.errorLayout.visibility = View.GONE
-            viewModel.refreshData()
-        }
     }
 
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.dashboardState.collect { state ->
                 when (state) {
-                    is DashboardViewModel.DashboardState.Loading -> showLoading(true)
-                    is DashboardViewModel.DashboardState.Success -> {
-                        showLoading(false)
-                        updateDashboardData(state.data)
+                    is DashboardViewModel.DashboardState.Loading -> {
+                        uiState = uiState.copy(
+                            isLoading = true,
+                            errorMessage = null,
+                        )
                     }
+
+                    is DashboardViewModel.DashboardState.Success -> {
+                        val data = state.data
+                        uiState = uiState.copy(
+                            hasData = true,
+                            isLoading = false,
+                            errorMessage = null,
+                            employeesCount = data.employeesCount,
+                            suppliersCount = data.suppliersCount,
+                            customersCount = data.customersCount,
+                            totalSales = formatCurrency(data.totalSales),
+                            estimatedProfit = formatCurrency(data.totalSales * 0.3),
+                        )
+                    }
+
                     is DashboardViewModel.DashboardState.Error -> {
-                        showLoading(false)
-                        handleError(state.message)
+                        uiState = uiState.copy(
+                            isLoading = false,
+                            errorMessage = state.message,
+                        )
                     }
                 }
             }
@@ -160,189 +119,74 @@ class ShopDashboardFragment : Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.timeSeriesData.collect { timeSeries ->
-                timeSeries?.let { updateChart(it) }
+                timeSeries ?: return@collect
+                val totalSales = timeSeries.sales.sum()
+                val totalExpenses = timeSeries.expenses.sum()
+                uiState = uiState.copy(
+                    periodSales = formatCurrency(totalSales),
+                    periodExpenses = formatCurrency(totalExpenses),
+                    periodProfit = formatCurrency(totalSales - totalExpenses),
+                    salesTrend = timeSeries.sales.map(Double::toFloat),
+                    trendLabels = timeSeries.xAxis,
+                )
             }
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.topStockItems.collect { items ->
-                Log.d("DashboardFrag", "📱 Received ${items.size} top stock items")
-
-                val adapterItems = items.map { dto ->
-                    TopStockItem(
-                        id = dto.id,
-                        name = dto.name,
-                        quantity = dto.totalQuantitySold,
-                        sales = dto.totalSalesAmount
-                    )
-                }
-
-                topStockAdapter.submitList(adapterItems)
-
-                if (adapterItems.isEmpty()) {
-                    binding.topStockSection.visibility = View.GONE
-                } else {
-                    binding.topStockSection.visibility = View.VISIBLE
-                }
+            viewModel.topStockItems.collect { products ->
+                uiState = uiState.copy(
+                    topProducts = products.map { product ->
+                        ShopDashboardProductUi(
+                            id = product.id,
+                            name = product.name,
+                            quantity = product.totalQuantitySold,
+                            sales = formatCurrency(product.totalSalesAmount),
+                        )
+                    },
+                )
             }
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.isOffline.collect { isOffline ->
-                if (isOffline) showOfflineIndicator()
+                uiState = uiState.copy(isOffline = isOffline)
             }
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.lastUpdated.collect { lastUpdated ->
-                lastUpdated?.let {
-                    binding.tvLastUpdated.text = "Last updated: $it"
-                    binding.tvLastUpdated.visibility = View.VISIBLE
-                }
+                uiState = uiState.copy(lastUpdated = lastUpdated)
             }
         }
     }
 
-    private fun updateDashboardData(data: DashboardViewModel.DashboardData) {
-        binding.tvEmployeesCount.text = data.employeesCount.toString()
-        binding.tvSuppliersCount.text = data.suppliersCount.toString()
-        binding.tvCustomersCount.text = data.customersCount.toString()
-        binding.tvTotalSales.text = formatCurrency(data.totalSales)
-
-        val profit = data.totalSales * 0.3
-        binding.tvProfit.text = formatCurrency(profit)
+    private fun refreshDashboard() {
+        viewModel.refreshData()
     }
 
-    private fun updateChart(timeSeries: DashboardViewModel.TimeSeriesDto) {
-        val totalSales = timeSeries.sales.sum()
-        val totalExpenses = timeSeries.expenses.sum()
-        val profit = totalSales - totalExpenses
-
-        binding.tvChartSummary.text = """
-            📊 Sales: ${formatCurrency(totalSales)}
-            💰 Expenses: ${formatCurrency(totalExpenses)}
-            💵 Profit: ${formatCurrency(profit)}
-        """.trimIndent()
-    }
-
-    private fun formatCurrency(amount: Double): String {
-        return when {
-            amount >= 1_000_000 -> String.format("UGX %.1fM", amount / 1_000_000)
-            amount >= 1_000 -> String.format("UGX %.1fK", amount / 1_000)
-            else -> String.format("UGX %,.0f", amount)
-        }
-    }
-
-    private fun showLoading(show: Boolean) {
-        binding.swipeRefresh.isRefreshing = show
-        if (show) {
-            binding.shimmerLayout.visibility = View.VISIBLE
-            binding.shimmerLayout.startShimmer()
-            binding.contentLayout.visibility = View.GONE
-            binding.errorLayout.visibility = View.GONE
-        } else {
-            binding.shimmerLayout.stopShimmer()
-            binding.shimmerLayout.visibility = View.GONE
-            binding.contentLayout.visibility = View.VISIBLE
-        }
-    }
-
-    private fun handleError(message: String) {
-        val hasCachedData = binding.tvEmployeesCount.text != "0" ||
-                binding.tvTotalSales.text != "UGX 0"
-
-        if (hasCachedData) {
-            showOfflineIndicator()
-        } else {
-            binding.errorLayout.visibility = View.VISIBLE
-            binding.contentLayout.visibility = View.GONE
-            binding.shimmerLayout.visibility = View.GONE  
-            binding.tvErrorMessage.text = message
-        }
-    }
-
-    private fun showOfflineIndicator() {
-        Snackbar.make(binding.root, "You're offline. Showing cached data.", Snackbar.LENGTH_INDEFINITE)
-            .setAction("Refresh") {
-                if (NetworkUtils.isNetworkAvailable(requireContext())) {
-                    viewModel.refreshData()
-                } else {
-                    Toast.makeText(requireContext(), "Still offline", Toast.LENGTH_SHORT).show()
-                }
+    private fun navigateTo(destinationId: Int) {
+        runCatching { findNavController().navigate(destinationId) }
+            .onFailure {
+                Toast.makeText(requireContext(), "Unable to open this page", Toast.LENGTH_SHORT).show()
             }
-            .setActionTextColor(resources.getColor(R.color.colorPrimary, null))
-            .show()
+    }
+
+    private fun openProduct(productId: String) {
+        val bundle = Bundle().apply { putString("productId", productId) }
+        runCatching { findNavController().navigate(R.id.productDetailsFragment, bundle) }
+            .onFailure {
+                Toast.makeText(requireContext(), "Unable to open this product", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    private fun formatCurrency(amount: Double): String = when {
+        amount >= 1_000_000 -> String.format(Locale.US, "UGX %.1fM", amount / 1_000_000)
+        amount >= 1_000 -> String.format(Locale.US, "UGX %.1fK", amount / 1_000)
+        else -> String.format(Locale.US, "UGX %,.0f", amount)
     }
 
     override fun onResume() {
         super.onResume()
         viewModel.refreshDataIfNeeded()
     }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
-    }
 }
-
-
-class TopStockAdapter(
-    private val onItemClick: (TopStockItem) -> Unit
-) : RecyclerView.Adapter<TopStockAdapter.ViewHolder>() {
-
-    private var items = listOf<TopStockItem>()
-
-    fun submitList(newItems: List<TopStockItem>) {
-        items = newItems
-        notifyDataSetChanged()
-    }
-
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.item_top_stock, parent, false)
-        return ViewHolder(view)
-    }
-
-    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.bind(items[position], position)
-    }
-
-    override fun getItemCount() = items.size
-
-    inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        private val tvProductName: TextView = itemView.findViewById(R.id.tvProductName)
-        private val tvQuantity: TextView = itemView.findViewById(R.id.tvQuantity)
-        private val tvSales: TextView = itemView.findViewById(R.id.tvSales)
-
-        fun bind(item: TopStockItem, position: Int) {
-            tvProductName.text = item.name
-            tvQuantity.text = "Qty: ${item.quantity}"
-            tvSales.text = when {
-                item.sales >= 1_000_000 -> String.format("UGX %.1fM", item.sales / 1_000_000)
-                item.sales >= 1_000 -> String.format("UGX %.1fK", item.sales / 1_000)
-                else -> String.format("UGX %,.0f", item.sales)
-            }
-
-            val colors = listOf(
-                R.color.avatar_blue,
-                R.color.avatar_green,
-                R.color.avatar_orange,
-                R.color.avatar_purple,
-                R.color.avatar_red
-            )
-            val card = itemView as com.google.android.material.card.MaterialCardView
-            card.setCardBackgroundColor(
-                itemView.context.getColor(colors[position % colors.size])
-            )
-
-            itemView.setOnClickListener { onItemClick(item) }
-        }
-    }
-}
-
-data class TopStockItem(
-    val id: String,
-    val name: String,
-    val quantity: Int,
-    val sales: Double
-)
