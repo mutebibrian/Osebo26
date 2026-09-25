@@ -433,15 +433,13 @@
     <fragment
         android:id="@+id/financeSettingsFragment"
         android:name="com.devbrian.osebo.fragments.FinanceSettingsFragment"
-        android:label="Finance Settings"
-        tools:layout="@layout/fragment_finance_settings" />
+        android:label="Finance Settings" />
 
     <!-- Expense Categories Fragment -->
     <fragment
         android:id="@+id/expenseCategoriesFragment"
         android:name="com.devbrian.osebo.fragments.ExpenseCategoriesFragment"
-        android:label="Expense Categories"
-        tools:layout="@layout/fragment_expense_categories" />
+        android:label="Expense Categories" />
 
     <!-- Financial Statement Fragment -->
     <fragment
@@ -453,8 +451,7 @@
     <fragment
         android:id="@+id/transactionsFragment"
         android:name="com.devbrian.osebo.fragments.TransactionsFragment"
-        android:label="Transactions"
-        tools:layout="@layout/fragment_transactions">
+        android:label="Transactions">
 
         <action
             android:id="@+id/action_transactionsFragment_to_addExpenseFragment"
@@ -503,8 +500,7 @@
     <fragment
         android:id="@+id/addExpenseFragment"
         android:name="com.devbrian.osebo.fragments.AddExpenseFragment"
-        android:label="Add Expense"
-        tools:layout="@layout/fragment_add_expense" />
+        android:label="Add Expense" />
 
     <!-- Add Product Fragment -->
     <fragment

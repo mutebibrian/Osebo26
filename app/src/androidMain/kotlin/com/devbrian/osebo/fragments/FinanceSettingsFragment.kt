@@ -5,36 +5,33 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.Fragment
-import com.devbrian.osebo.R
-import com.devbrian.osebo.databinding.FragmentFinanceSettingsBinding
+import androidx.navigation.fragment.findNavController
+import com.devbrian.osebo.ui.screens.FinanceSettingsScreen
+import com.devbrian.osebo.ui.theme.OseboTheme
 
 class FinanceSettingsFragment : Fragment() {
-    private var _binding: FragmentFinanceSettingsBinding? = null
-    private val binding get() = _binding!!
-
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        _binding = FragmentFinanceSettingsBinding.inflate(inflater, container, false)
-        return binding.root
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-
-        binding.toolbar.setNavigationOnClickListener {
-            requireActivity().onBackPressed()
+        savedInstanceState: Bundle?,
+    ): View = ComposeView(requireContext()).apply {
+        setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+        setContent {
+            OseboTheme {
+                FinanceSettingsScreen(
+                    onBackClick = { findNavController().navigateUp() },
+                    onSaveClick = {
+                        Toast.makeText(
+                            requireContext(),
+                            "Finance settings saved for this session",
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                    },
+                )
+            }
         }
-
-        
-        Toast.makeText(requireContext(), "Finance Settings coming soon", Toast.LENGTH_SHORT).show()
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
     }
 }
