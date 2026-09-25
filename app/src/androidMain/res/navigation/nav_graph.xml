@@ -387,8 +387,7 @@
     <fragment
         android:id="@+id/financeFragment"
         android:name="com.devbrian.osebo.fragments.FinanceFragment"
-        android:label="Finance"
-        tools:layout="@layout/fragment_finance">
+        android:label="Finance">
 
         <action
             android:id="@+id/action_financeFragment_to_addExpenseFragment"
@@ -428,8 +427,7 @@
     <fragment
         android:id="@+id/reportsFragment"
         android:name="com.devbrian.osebo.fragments.ReportsFragment"
-        android:label="Reports"
-        tools:layout="@layout/fragment_reports" />
+        android:label="Reports" />
 
     <!-- Finance Settings Fragment -->
     <fragment
@@ -449,8 +447,7 @@
     <fragment
         android:id="@+id/financialStatementFragment"
         android:name="com.devbrian.osebo.fragments.FinancialStatementFragment"
-        android:label="Financial Statement"
-        tools:layout="@layout/fragment_financial_statement" />
+        android:label="Financial Statement" />
 
     <!-- Transactions Fragment -->
     <fragment

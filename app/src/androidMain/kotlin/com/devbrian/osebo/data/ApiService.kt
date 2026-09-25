@@ -438,7 +438,7 @@ interface ApiService {
         @Header("X-Shop") shopId: String,
         @Query("startDate") startDate: String? = null,
         @Query("endDate") endDate: String? = null,
-        @Query("period") period: String = "monthly"
+        @Query("period") period: String? = null
     ): Response<ApiResponse<FinancialStatement>>
 
     @GET("api/v1/general-ledger/customer/{customerId}")
