@@ -542,8 +542,7 @@
     <fragment
         android:id="@+id/employeesFragment"
         android:name="com.devbrian.osebo.fragments.EmployeesFragment"
-        android:label="Employees"
-        tools:layout="@layout/fragment_employees">
+        android:label="Employees">
 
         <action
             android:id="@+id/action_employeesFragment_to_userRolesFragment"
