@@ -101,10 +101,10 @@ class FinanceViewModel(
         }
     }
 
-    fun loadFinancialStatement(period: String = "monthly") {
+    fun loadFinancialStatement(startDate: String? = null, endDate: String? = null) {
         _isLoading.value = true
         viewModelScope.launch {
-            val result = repository.getFinancialStatement(period = period)
+            val result = repository.getFinancialStatement(startDate = startDate, endDate = endDate)
             result.onSuccess { statement ->
                 _financialStatement.value = statement
                 _error.value = null
