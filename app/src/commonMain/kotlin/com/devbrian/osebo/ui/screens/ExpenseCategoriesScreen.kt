@@ -77,7 +77,7 @@ fun ExpenseCategoriesScreen(
     Scaffold(containerColor = PremiumCanvas) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(start = 20.dp, top = 32.dp, end = 20.dp, bottom = 18.dp),
+            contentPadding = PaddingValues(start = 20.dp, top = 14.dp, end = 20.dp, bottom = 18.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
