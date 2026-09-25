@@ -1,6 +1,7 @@
 package com.devbrian.osebo.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -46,7 +47,6 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -167,7 +167,7 @@ fun ShopsScreen(
                     onValueChange = { query = it },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    shape = RoundedCornerShape(18.dp),
+                    shape = CircleShape,
                     placeholder = {
                         Text(
                             text = "Search shops",
@@ -243,6 +243,7 @@ fun ShopsScreen(
 @Composable
 private fun ShopCard(shop: ShopItemUi, onClick: () -> Unit) {
     val poppins = oseboFontFamily()
+    val cardShape = RoundedCornerShape(28.dp)
     val cardColors = when {
         shop.isCurrent -> listOf(Color(0xFFDCEEFF), Color(0xFFF3F8FF))
         shop.isSubscriptionActive -> listOf(Color(0xFFE8F4FF), Color(0xFFF8FBFF))
@@ -255,10 +256,11 @@ private fun ShopCard(shop: ShopItemUi, onClick: () -> Unit) {
             .fillMaxWidth()
             .shadow(
                 elevation = 5.dp,
-                shape = RectangleShape,
+                shape = cardShape,
                 ambientColor = Color(0xFF7A8792).copy(alpha = 0.2f),
                 spotColor = Color(0xFF7A8792).copy(alpha = 0.18f),
             )
+            .clip(cardShape)
             .background(
                 Brush.linearGradient(
                     colors = cardColors,
@@ -266,6 +268,7 @@ private fun ShopCard(shop: ShopItemUi, onClick: () -> Unit) {
                     end = Offset.Infinite,
                 ),
             )
+            .border(1.dp, Color.White.copy(alpha = 0.82f), cardShape)
             .clickable(onClick = onClick)
             .padding(horizontal = 18.dp, vertical = 17.dp),
     ) {

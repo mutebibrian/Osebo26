@@ -141,8 +141,7 @@
     <fragment
         android:id="@+id/shopDashboardFragment"
         android:name="com.devbrian.osebo.fragments.ShopDashboardFragment"
-        android:label="Shop Dashboard"
-        tools:layout="@layout/fragment_shop_dashboard">
+        android:label="Shop Dashboard">
 
         <argument
             android:name="shopId"
