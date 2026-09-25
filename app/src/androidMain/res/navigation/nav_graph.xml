@@ -487,8 +487,7 @@
     <fragment
         android:id="@+id/suppliersFragment"
         android:name="com.devbrian.osebo.fragments.SuppliersFragment"
-        android:label="Suppliers"
-        tools:layout="@layout/fragment_suppliers" />
+        android:label="Suppliers" />
 
     <!-- Restock Fragment -->
     <fragment

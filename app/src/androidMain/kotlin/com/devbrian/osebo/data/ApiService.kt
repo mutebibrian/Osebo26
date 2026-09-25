@@ -6,6 +6,7 @@ import com.devbrian.osebo.data.remote.api.InventoryReportDto
 import com.devbrian.osebo.data.remote.api.NotificationDto
 import com.devbrian.osebo.data.remote.api.SalesReportDto
 import com.devbrian.osebo.data.remote.api.SupportTicketDto
+import com.devbrian.osebo.data.remote.api.SupplierDto
 import com.devbrian.osebo.data.remote.dto.request.*
 import com.devbrian.osebo.data.remote.dto.request.UpdateCustomerRequest
 import com.devbrian.osebo.data.remote.dto.request.UpdateProductRequest
@@ -280,6 +281,38 @@ interface ApiService {
     suspend fun deleteCustomer(
         @Header("X-Shop") shopId: String,
         @Path("customerId") customerId: String
+    ): Response<ApiResponse<Unit>>
+
+    // ==================== SUPPLIER ENDPOINTS ====================
+
+    @GET("api/v1/supplier")
+    suspend fun getSuppliers(
+        @Header("X-Shop") shopId: String
+    ): Response<ApiResponse<List<SupplierDto>>>
+
+    @GET("api/v1/supplier/{supplierId}")
+    suspend fun getSupplier(
+        @Header("X-Shop") shopId: String,
+        @Path("supplierId") supplierId: String
+    ): Response<ApiResponse<SupplierDto>>
+
+    @POST("api/v1/supplier")
+    suspend fun createSupplier(
+        @Header("X-Shop") shopId: String,
+        @Body request: AddSupplierRequest
+    ): Response<ApiResponse<SupplierDto>>
+
+    @PATCH("api/v1/supplier/{supplierId}")
+    suspend fun updateSupplier(
+        @Header("X-Shop") shopId: String,
+        @Path("supplierId") supplierId: String,
+        @Body request: UpdateSupplierRequest
+    ): Response<ApiResponse<SupplierDto>>
+
+    @DELETE("api/v1/supplier/{supplierId}")
+    suspend fun deleteSupplier(
+        @Header("X-Shop") shopId: String,
+        @Path("supplierId") supplierId: String
     ): Response<ApiResponse<Unit>>
 
     // ==================== SALE ENDPOINTS ====================
