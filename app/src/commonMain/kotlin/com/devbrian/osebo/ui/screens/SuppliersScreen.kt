@@ -26,8 +26,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -43,6 +41,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -50,8 +50,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.devbrian.osebo.resources.Res
 import com.devbrian.osebo.resources.iconsax_add
-import com.devbrian.osebo.resources.iconsax_balance
-import com.devbrian.osebo.resources.iconsax_box
 import com.devbrian.osebo.resources.iconsax_filter
 import com.devbrian.osebo.resources.iconsax_more
 import com.devbrian.osebo.resources.iconsax_refresh
@@ -94,6 +92,8 @@ private val SupplierMuted = Color(0xFF768087)
 private val SupplierBorder = Color(0xFFDDE3E5)
 private val SupplierBlue = Color(0xFF176BFF)
 private val SupplierRed = Color(0xFFE75A67)
+private val SupplierOrange = Color(0xFFE88B48)
+private val SupplierOrangeGradient = listOf(Color(0xFFFFE6CF), Color(0xFFFFF7EF))
 
 @Composable
 fun SuppliersScreen(
@@ -120,7 +120,6 @@ fun SuppliersScreen(
         }
         matchesQuery && matchesFilter
     }
-    val totalProducts = state.suppliers.sumOf { it.products }
     val totalPurchases = state.suppliers.sumOf { it.totalPurchases }
 
     Scaffold(containerColor = SupplierCanvas) { scaffoldPadding ->
@@ -134,39 +133,14 @@ fun SuppliersScreen(
                     shopName = state.shopName,
                     isLoading = state.isLoading,
                     onRefreshClick = onRefreshClick,
+                    onAddClick = onAddSupplierClick,
                 )
             }
             item { Spacer(Modifier.height(4.dp)) }
             item {
                 SupplierOverview(
-                    supplierCount = state.suppliers.size,
-                    productCount = totalProducts,
                     purchaseTotal = totalPurchases,
                 )
-            }
-            item {
-                Button(
-                    onClick = onAddSupplierClick,
-                    modifier = Modifier.fillMaxWidth().height(58.dp),
-                    shape = RoundedCornerShape(19.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = SupplierInk,
-                        contentColor = Color.White,
-                    ),
-                ) {
-                    Icon(
-                        painter = painterResource(Res.drawable.iconsax_add),
-                        contentDescription = null,
-                        modifier = Modifier.size(21.dp),
-                    )
-                    Spacer(Modifier.width(10.dp))
-                    Text(
-                        "Add supplier",
-                        fontFamily = oseboFontFamily(),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
             }
             item {
                 SupplierSearchField(query = query, onQueryChange = { query = it })
@@ -238,6 +212,7 @@ private fun SuppliersHeader(
     shopName: String,
     isLoading: Boolean,
     onRefreshClick: () -> Unit,
+    onAddClick: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -263,6 +238,30 @@ private fun SuppliersHeader(
                 overflow = TextOverflow.Ellipsis,
             )
         }
+        Row(
+            modifier = Modifier
+                .height(38.dp)
+                .clip(RoundedCornerShape(50))
+                .background(SupplierInk)
+                .clickable(onClick = onAddClick)
+                .padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                painter = painterResource(Res.drawable.iconsax_add),
+                contentDescription = null,
+                tint = SupplierWhite,
+                modifier = Modifier.size(16.dp),
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                "Add",
+                color = SupplierWhite,
+                fontFamily = oseboFontFamily(),
+                fontSize = 10.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
         IconButton(onClick = onRefreshClick, enabled = !isLoading) {
             if (isLoading) {
                 CircularProgressIndicator(
@@ -283,96 +282,73 @@ private fun SuppliersHeader(
 }
 
 @Composable
-private fun SupplierOverview(supplierCount: Int, productCount: Int, purchaseTotal: Double) {
+private fun SupplierOverview(purchaseTotal: Double) {
+    val shape = RoundedCornerShape(30.dp)
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(SupplierInk, RoundedCornerShape(28.dp))
-            .padding(21.dp),
+            .height(146.dp)
+            .clip(shape)
+            .background(
+                Brush.linearGradient(
+                    colors = SupplierOrangeGradient,
+                    start = Offset.Zero,
+                    end = Offset.Infinite,
+                ),
+            )
+            .border(1.dp, SupplierWhite.copy(alpha = 0.9f), shape)
+            .padding(15.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                painter = painterResource(Res.drawable.iconsax_suppliers),
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(27.dp),
-            )
-            Spacer(Modifier.width(12.dp))
-            Text(
-                "Supply network",
-                color = Color.White.copy(alpha = 0.72f),
-                fontFamily = oseboFontFamily(),
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Medium,
-            )
-            Spacer(Modifier.weight(1f))
-            Text(
-                "$supplierCount active",
-                color = Color(0xFF72E3B0),
-                fontFamily = oseboFontFamily(),
-                fontSize = 10.sp,
-                fontWeight = FontWeight.SemiBold,
-            )
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+            Column(modifier = Modifier.weight(1f).padding(top = 2.dp)) {
+                Text(
+                    formatSupplierCurrency(purchaseTotal).removePrefix("UGX "),
+                    color = Color(0xFF14243A),
+                    fontFamily = oseboFontFamily(),
+                    fontSize = 18.sp,
+                    lineHeight = 22.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    "Total purchases",
+                    color = Color(0xFF5F6B76),
+                    fontFamily = oseboFontFamily(),
+                    fontSize = 9.sp,
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .size(30.dp)
+                    .background(SupplierWhite.copy(alpha = 0.72f), CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    painter = painterResource(Res.drawable.iconsax_suppliers),
+                    contentDescription = null,
+                    tint = Color(0xFF14243A),
+                    modifier = Modifier.size(17.dp),
+                )
+            }
         }
-        Spacer(Modifier.height(20.dp))
-        Text(
-            formatSupplierCurrency(purchaseTotal),
-            color = Color.White,
-            fontFamily = oseboFontFamily(),
-            fontSize = 25.sp,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        Text(
-            "Total purchases",
-            color = Color.White.copy(alpha = 0.55f),
-            fontFamily = oseboFontFamily(),
-            fontSize = 9.sp,
-        )
-        Spacer(Modifier.height(16.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-            SupplierOverviewMetric(
-                icon = Res.drawable.iconsax_box,
-                value = "$productCount",
-                label = "products supplied",
-            )
-            SupplierOverviewMetric(
-                icon = Res.drawable.iconsax_balance,
-                value = "$supplierCount",
-                label = "supply partners",
-            )
-        }
-    }
-}
 
-@Composable
-private fun SupplierOverviewMetric(
-    icon: org.jetbrains.compose.resources.DrawableResource,
-    value: String,
-    label: String,
-) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(
-            painter = painterResource(icon),
-            contentDescription = null,
-            tint = Color.White.copy(alpha = 0.7f),
-            modifier = Modifier.size(18.dp),
-        )
-        Spacer(Modifier.width(8.dp))
-        Column {
+        Spacer(Modifier.weight(1f))
+
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
             Text(
-                value,
-                color = Color.White,
-                fontFamily = oseboFontFamily(),
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Text(
-                label,
-                color = Color.White.copy(alpha = 0.5f),
+                "UGX · all time",
+                color = Color(0xFF7A848E),
                 fontFamily = oseboFontFamily(),
                 fontSize = 8.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f),
+            )
+            Box(
+                modifier = Modifier
+                    .width(46.dp)
+                    .height(5.dp)
+                    .background(SupplierOrange, RoundedCornerShape(50)),
             )
         }
     }
@@ -456,18 +432,20 @@ private fun SupplierRow(
     onClick: () -> Unit,
     onOptionsClick: () -> Unit,
 ) {
+    val shape = RoundedCornerShape(20.dp)
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(SupplierSurface, RoundedCornerShape(23.dp))
-            .border(1.dp, SupplierBorder, RoundedCornerShape(23.dp))
+            .height(64.dp)
+            .clip(shape)
+            .background(Color(0xFFF8F9FA))
             .clickable(onClick = onClick)
-            .padding(start = 16.dp, top = 16.dp, bottom = 16.dp, end = 7.dp),
+            .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             modifier = Modifier
-                .size(46.dp)
+                .size(40.dp)
                 .clip(CircleShape)
                 .background(Color(0xFFE8EDF0)),
             contentAlignment = Alignment.Center,
@@ -476,17 +454,18 @@ private fun SupplierRow(
                 supplier.initials,
                 color = SupplierInk,
                 fontFamily = oseboFontFamily(),
-                fontSize = 13.sp,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
             )
         }
-        Spacer(Modifier.width(13.dp))
+        Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 supplier.name,
                 color = SupplierInk,
                 fontFamily = oseboFontFamily(),
-                fontSize = 13.sp,
+                fontSize = 12.sp,
+                lineHeight = 15.sp,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -495,37 +474,38 @@ private fun SupplierRow(
                 supplier.contactPerson.ifBlank { "No contact person" },
                 color = SupplierMuted,
                 fontFamily = oseboFontFamily(),
-                fontSize = 9.sp,
+                fontSize = 8.sp,
+                lineHeight = 10.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            if (supplier.phone.isNotBlank()) {
-                Text(
-                    supplier.phone,
-                    color = SupplierMuted,
-                    fontFamily = oseboFontFamily(),
-                    fontSize = 9.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            Spacer(Modifier.height(8.dp))
             Text(
-                "${supplier.products} products  •  ${formatSupplierCurrency(supplier.totalPurchases)}",
+                listOfNotNull(
+                    supplier.phone.takeIf { it.isNotBlank() },
+                    "${supplier.products} products",
+                    formatSupplierCurrency(supplier.totalPurchases),
+                ).joinToString("  •  "),
                 color = SupplierInk,
                 fontFamily = oseboFontFamily(),
-                fontSize = 9.sp,
+                fontSize = 7.sp,
+                lineHeight = 9.sp,
                 fontWeight = FontWeight.Medium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        IconButton(onClick = onOptionsClick) {
+        Box(
+            modifier = Modifier
+                .size(28.dp)
+                .clip(CircleShape)
+                .clickable(onClick = onOptionsClick),
+            contentAlignment = Alignment.Center,
+        ) {
             Icon(
                 painter = painterResource(Res.drawable.iconsax_more),
                 contentDescription = "Supplier options",
                 tint = SupplierInk,
-                modifier = Modifier.size(21.dp),
+                modifier = Modifier.size(16.dp),
             )
         }
     }
