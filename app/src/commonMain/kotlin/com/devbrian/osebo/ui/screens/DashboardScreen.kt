@@ -231,33 +231,6 @@ fun DashboardScreen(
                 Spacer(Modifier.height(30.dp))
 
                 Text(
-                    text = "Quick actions",
-                    color = Color(0xFF171B1F),
-                    fontFamily = poppins,
-                    fontSize = 28.sp,
-                    lineHeight = 34.sp,
-                    fontWeight = FontWeight.Medium,
-                )
-
-                Spacer(Modifier.height(16.dp))
-
-                quickActions.chunked(2).forEachIndexed { index, rowItems ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        rowItems.forEach { action ->
-                            QuickActionButton(action = action, modifier = Modifier.weight(1f))
-                        }
-                    }
-                    if (index != quickActions.chunked(2).lastIndex) {
-                        Spacer(Modifier.height(12.dp))
-                    }
-                }
-
-                Spacer(Modifier.height(30.dp))
-
-                Text(
                     text = "Overview",
                     color = Color(0xFF171B1F),
                     fontFamily = poppins,
@@ -282,6 +255,33 @@ fun DashboardScreen(
                         }
                     }
                     if (index != metrics.chunked(2).lastIndex) {
+                        Spacer(Modifier.height(12.dp))
+                    }
+                }
+
+                Spacer(Modifier.height(30.dp))
+
+                Text(
+                    text = "Quick actions",
+                    color = Color(0xFF171B1F),
+                    fontFamily = poppins,
+                    fontSize = 28.sp,
+                    lineHeight = 34.sp,
+                    fontWeight = FontWeight.Medium,
+                )
+
+                Spacer(Modifier.height(16.dp))
+
+                quickActions.chunked(2).forEachIndexed { index, rowItems ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        rowItems.forEach { action ->
+                            QuickActionButton(action = action, modifier = Modifier.weight(1f))
+                        }
+                    }
+                    if (index != quickActions.chunked(2).lastIndex) {
                         Spacer(Modifier.height(12.dp))
                     }
                 }
