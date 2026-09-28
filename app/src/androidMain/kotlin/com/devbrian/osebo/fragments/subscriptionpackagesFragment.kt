@@ -7,31 +7,33 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.Toast
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
-import org.koin.androidx.viewmodel.ext.android.viewModel
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
-import androidx.recyclerview.widget.LinearLayoutManager
-import com.devbrian.osebo.adapters.SubscriptionPackageAdapter
 import com.devbrian.osebo.data.PreferenceManager
-import com.devbrian.osebo.databinding.FragmentSubscriptionPackagesBinding
 import com.devbrian.osebo.data.models.Shop
 import com.devbrian.osebo.models.SubscriptionPackage
+import com.devbrian.osebo.ui.screens.SubscriptionBundleUi
+import com.devbrian.osebo.ui.screens.SubscriptionPackagesScreen
+import com.devbrian.osebo.ui.screens.SubscriptionPackagesUiState
+import com.devbrian.osebo.ui.theme.OseboTheme
 import com.devbrian.osebo.ui.viewmodels.SubscriptionViewModel
 import com.devbrian.osebo.utils.Resource
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.launch
+import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class SubscriptionPackagesFragment : Fragment() {
-
-    private var _binding: FragmentSubscriptionPackagesBinding? = null
-    private val binding get() = _binding!!
-
     private val viewModel: SubscriptionViewModel by viewModel()
-    private lateinit var subscriptionPackageAdapter: SubscriptionPackageAdapter
-
+    private var uiState by mutableStateOf(SubscriptionPackagesUiState())
+    private var availablePackages: List<SubscriptionPackage> = emptyList()
     private var shop: Shop? = null
     private var currentPackage: String? = null
     private var selectedPackages: List<SubscriptionPackage> = emptyList()
@@ -43,9 +45,30 @@ class SubscriptionPackagesFragment : Fragment() {
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View {
-        _binding = FragmentSubscriptionPackagesBinding.inflate(inflater, container, false)
-        return binding.root
+    ): View = ComposeView(requireContext()).apply {
+        setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+        setContent {
+            OseboTheme {
+                SubscriptionPackagesScreen(
+                    state = uiState,
+                    onBackClick = { findNavController().navigateUp() },
+                    onRefreshClick = ::loadSubscriptionPackages,
+                    onSelectionChange = ::onSelectionChanged,
+                    onCancelClick = { findNavController().navigateUp() },
+                    onCheckoutClick = {
+                        if (selectedPackages.isEmpty()) {
+                            Toast.makeText(
+                                requireContext(),
+                                "Please select at least one bundle",
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                        } else {
+                            proceedWithPackages(selectedPackages)
+                        }
+                    },
+                )
+            }
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -95,29 +118,14 @@ class SubscriptionPackagesFragment : Fragment() {
             shopId = shop?.id ?: ""
         }
 
-        setupUI()
-        setupRecyclerView()
-        setupClickListeners()
+        uiState = uiState.copy(
+            shopName = shop?.name?.ifBlank { "Current shop" } ?: "Current shop",
+            currentPlan = currentPackage
+                ?.takeIf { it.isNotBlank() }
+                ?.let(::getPackageDisplayName),
+        )
         observeViewModel()
         loadSubscriptionPackages()
-    }
-
-    private fun setupUI() {
-        binding.toolbar.title = "Choose Bundles"
-        binding.toolbar.setNavigationOnClickListener {
-            findNavController().navigateUp()
-        }
-
-        shop?.let {
-            binding.toolbar.subtitle = it.name
-        }
-
-        currentPackage?.let { packageType ->
-            binding.tvCurrentPlan.text = "Current: ${getPackageDisplayName(packageType)}"
-            binding.tvCurrentPlan.visibility = View.VISIBLE
-        } ?: run {
-            binding.tvCurrentPlan.visibility = View.GONE
-        }
     }
 
     private fun getPackageDisplayName(packageType: String): String {
@@ -129,71 +137,25 @@ class SubscriptionPackagesFragment : Fragment() {
         }
     }
 
-    private fun setupRecyclerView() {
-        subscriptionPackageAdapter = SubscriptionPackageAdapter { selected ->
-            onSelectionChanged(selected)
-        }
-
-        binding.rvPackages.apply {
-            layoutManager = LinearLayoutManager(requireContext())
-            adapter = subscriptionPackageAdapter
-            setHasFixedSize(false)
-            isNestedScrollingEnabled = false
-        }
-    }
-
-    private fun onSelectionChanged(selected: List<SubscriptionPackage>) {
-        selectedPackages = selected
-
-        if (selected.isEmpty()) {
-            binding.cardCheckoutSummary.visibility = View.GONE
-            binding.btnCheckout.isEnabled = false
-            binding.btnCheckout.text = "SELECT BUNDLES TO CONTINUE"
-            binding.tvSelectionCount.text = "0 selected"
-            return
-        }
-
-        binding.cardCheckoutSummary.visibility = View.VISIBLE
-        binding.tvSelectedBundlesList.text = selected.joinToString(", ") { it.displayName }
-
-        val total = selected.sumOf { it.price }
-        // Use hasFreeTrial – no fallback
-        val hasTrial = selected.any { it.hasFreeTrial }
+    private fun onSelectionChanged(selectedIds: Set<String>) {
+        selectedPackages = availablePackages.filter { it.id in selectedIds }
+        val total = selectedPackages.sumOf { it.price }
+        val hasTrial = selectedPackages.any { it.hasFreeTrial }
         val preferenceManager = PreferenceManager.getInstance(requireContext())
         val hasActiveSub = preferenceManager.hasActiveSubscription()
-        val isTrialEligible = hasTrial && !hasActiveSub
+        val isTrialEligible = selectedPackages.isNotEmpty() && hasTrial && !hasActiveSub
+        val hasCustomPricing = selectedPackages.any { it.isCustom }
 
-        binding.tvEstimatedTotal.text = if (isTrialEligible) {
-            "UGX 0"
-        } else {
-            "UGX ${String.format("%,.0f", total)}"
-        }
-        binding.tvSelectionCount.text = "${selected.size} selected"
-
-        binding.btnCheckout.isEnabled = true
-        binding.btnCheckout.text = if (isTrialEligible) {
-            "START FREE TRIAL (${selected.size} BUNDLE${if (selected.size > 1) "S" else ""})"
-        } else {
-            "CONTINUE WITH ${selected.size} BUNDLE${if (selected.size > 1) "S" else ""}"
-        }
-    }
-
-    private fun setupClickListeners() {
-        binding.btnCancel.setOnClickListener {
-            findNavController().navigateUp()
-        }
-
-        binding.btnCheckout.setOnClickListener {
-            if (selectedPackages.isEmpty()) {
-                Toast.makeText(
-                    requireContext(),
-                    "Please select at least one bundle",
-                    Toast.LENGTH_SHORT
-                ).show()
-            } else {
-                proceedWithPackages(selectedPackages)
-            }
-        }
+        uiState = uiState.copy(
+            selectedIds = selectedPackages.mapTo(linkedSetOf()) { it.id },
+            totalLabel = when {
+                selectedPackages.isEmpty() -> "UGX 0"
+                hasCustomPricing -> "Contact sales"
+                isTrialEligible -> "UGX 0"
+                else -> "UGX ${String.format("%,.0f", total)}"
+            },
+            isTrialEligible = isTrialEligible,
+        )
     }
 
     private fun observeViewModel() {
@@ -204,16 +166,23 @@ class SubscriptionPackagesFragment : Fragment() {
                         if (packages.isEmpty()) {
                             showErrorState("No subscription packages available")
                         } else {
-                            binding.layoutContent.visibility = View.VISIBLE
-                            binding.layoutError.visibility = View.GONE
-                            subscriptionPackageAdapter.submitList(packages)
+                            availablePackages = packages
+                            val validSelection = uiState.selectedIds.intersect(packages.map { it.id }.toSet())
+                            uiState = uiState.copy(
+                                bundles = packages.map(::toBundleUi),
+                                isLoading = false,
+                                errorMessage = null,
+                            )
+                            onSelectionChanged(validSelection)
                         }
                     }
                 }
                 is Resource.Error -> {
                     showErrorState(resource.message ?: "Failed to load packages")
                 }
-                is Resource.Loading -> {}
+                is Resource.Loading -> {
+                    uiState = uiState.copy(isLoading = true, errorMessage = null)
+                }
             }
         }
 
@@ -264,10 +233,25 @@ class SubscriptionPackagesFragment : Fragment() {
     }
 
     private fun loadSubscriptionPackages() {
+        uiState = uiState.copy(isLoading = true, errorMessage = null)
         lifecycleScope.launch {
             viewModel.loadSubscriptionPackages()
         }
     }
+
+    private fun toBundleUi(packageItem: SubscriptionPackage): SubscriptionBundleUi =
+        SubscriptionBundleUi(
+            id = packageItem.id,
+            name = packageItem.displayName,
+            description = packageItem.description,
+            price = packageItem.displayPrice.replace("/month", "/mo"),
+            features = packageItem.featureList,
+            isPopular = packageItem.isPopular,
+            isAddOn = packageItem.isAddOn,
+            isCustomPricing = packageItem.isCustom,
+            hasFreeTrial = packageItem.hasFreeTrial,
+            isActive = packageItem.isActive,
+        )
 
     private fun proceedWithPackages(packages: List<SubscriptionPackage>) {
         shop?.let { shop ->
@@ -412,20 +396,9 @@ class SubscriptionPackagesFragment : Fragment() {
     }
 
     private fun showErrorState(message: String? = null) {
-        binding.layoutContent.visibility = View.GONE
-        binding.layoutError.visibility = View.VISIBLE
-
-        message?.let {
-            binding.tvErrorMessage.text = it
-        }
-
-        binding.btnRetry.setOnClickListener {
-            loadSubscriptionPackages()
-        }
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
+        uiState = uiState.copy(
+            isLoading = false,
+            errorMessage = message ?: "Failed to load packages",
+        )
     }
 }
