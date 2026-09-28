@@ -45,6 +45,7 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.devbrian.osebo.resources.Res
@@ -230,34 +231,11 @@ fun DashboardScreen(
 
                 Spacer(Modifier.height(30.dp))
 
-                Text(
-                    text = "Overview",
-                    color = Color(0xFF171B1F),
-                    fontFamily = poppins,
-                    fontSize = 21.sp,
-                    fontWeight = FontWeight.SemiBold,
+                OverviewFeatureCard(
+                    metrics = metrics,
+                    isLoading = state.isLoading,
+                    shimmerBrush = valueShimmer,
                 )
-
-                Spacer(Modifier.height(14.dp))
-
-                metrics.chunked(2).forEachIndexed { index, rowItems ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        rowItems.forEach { metric ->
-                            MetricCard(
-                                metric = metric,
-                                isLoading = state.isLoading,
-                                shimmerBrush = valueShimmer,
-                                modifier = Modifier.weight(1f),
-                            )
-                        }
-                    }
-                    if (index != metrics.chunked(2).lastIndex) {
-                        Spacer(Modifier.height(12.dp))
-                    }
-                }
 
                 Spacer(Modifier.height(30.dp))
 
@@ -302,6 +280,74 @@ fun DashboardScreen(
                     isLoading = state.isLoading,
                     shimmerBrush = valueShimmer,
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun OverviewFeatureCard(
+    metrics: List<DashboardMetric>,
+    isLoading: Boolean,
+    shimmerBrush: Brush,
+) {
+    val poppins = oseboFontFamily()
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFFF1F3F4), RoundedCornerShape(32.dp))
+            .border(1.dp, Color(0xFFE4E8EA), RoundedCornerShape(32.dp))
+            .padding(14.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 6.dp, top = 4.dp, end = 4.dp, bottom = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Business overview",
+                    color = Color(0xFF171B1F),
+                    fontFamily = poppins,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = "Your shop at a glance",
+                    color = Color(0xFF7A8187),
+                    fontFamily = poppins,
+                    fontSize = 10.sp,
+                )
+            }
+            Text(
+                text = "6 metrics",
+                color = Color(0xFF087FC4),
+                fontFamily = poppins,
+                fontSize = 9.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier
+                    .background(Color.White, RoundedCornerShape(50))
+                    .padding(horizontal = 11.dp, vertical = 7.dp),
+            )
+        }
+
+        metrics.chunked(2).forEachIndexed { index, rowItems ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                rowItems.forEach { metric ->
+                    MetricCard(
+                        metric = metric,
+                        isLoading = isLoading,
+                        shimmerBrush = shimmerBrush,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+            if (index != metrics.chunked(2).lastIndex) {
+                Spacer(Modifier.height(10.dp))
             }
         }
     }
@@ -425,7 +471,7 @@ private fun MetricCard(
     val shape = RoundedCornerShape(30.dp)
     Column(
         modifier = modifier
-            .height(182.dp)
+            .height(146.dp)
             .clip(shape)
             .background(
                 Brush.linearGradient(
@@ -434,34 +480,14 @@ private fun MetricCard(
                     end = Offset.Infinite,
                 ),
             )
-            .border(1.dp, Color.White.copy(alpha = 0.82f), shape)
-            .padding(18.dp),
+            .border(1.dp, Color.White.copy(alpha = 0.9f), shape)
+            .padding(15.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                painter = painterResource(metric.icon),
-                contentDescription = null,
-                tint = Color(0xFF14243A),
-                modifier = Modifier.size(24.dp),
-            )
-            Spacer(Modifier.size(10.dp))
-            Text(
-                text = metric.label,
-                color = Color(0xFF14243A),
-                fontFamily = poppins,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-            )
-        }
-
-        Spacer(Modifier.weight(1f))
-
         Row(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.Bottom,
+            verticalAlignment = Alignment.Top,
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            Column(modifier = Modifier.weight(1f).padding(top = 2.dp)) {
                 if (isLoading) {
                     Box(
                         modifier = Modifier
@@ -475,24 +501,55 @@ private fun MetricCard(
                         text = metric.value,
                         color = Color(0xFF14243A),
                         fontFamily = poppins,
-                        fontSize = 20.sp,
-                        lineHeight = 24.sp,
+                        fontSize = 18.sp,
+                        lineHeight = 22.sp,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
                 Text(
-                    text = metric.supportingText,
-                    color = Color(0xFF6F7B88),
+                    text = metric.label,
+                    color = Color(0xFF5F6B76),
                     fontFamily = poppins,
-                    fontSize = 11.sp,
+                    fontSize = 9.sp,
                     fontWeight = FontWeight.Normal,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
+            Box(
+                modifier = Modifier
+                    .size(30.dp)
+                    .background(Color.White.copy(alpha = 0.72f), CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    painter = painterResource(metric.icon),
+                    contentDescription = null,
+                    tint = Color(0xFF14243A),
+                    modifier = Modifier.size(17.dp),
+                )
+            }
+        }
+
+        Spacer(Modifier.weight(1f))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Bottom,
+        ) {
+            Text(
+                text = metric.supportingText,
+                color = Color(0xFF7A848E),
+                fontFamily = poppins,
+                fontSize = 8.sp,
+                modifier = Modifier.weight(1f),
+            )
             MetricSparkline(
                 values = metric.trend,
                 color = metric.accent,
-                modifier = Modifier.size(width = 54.dp, height = 48.dp),
+                modifier = Modifier.size(width = 46.dp, height = 24.dp),
             )
         }
     }
