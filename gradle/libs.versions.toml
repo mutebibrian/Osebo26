@@ -4,6 +4,7 @@ kotlin = "2.2.21"
 ksp = "2.2.21-2.0.5"
 composeMultiplatform = "1.8.2"
 koin = "4.2.2"
+kotlinx-datetime = "0.6.1"
 navigation = "2.7.7"
 room = "2.8.4"
 lifecycle = "2.6.2"
@@ -65,6 +66,10 @@ koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin" }
 # Coroutines
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
+
+# kotlinx-datetime (JVM System.currentTimeMillis()/java.util.Date have no iOS equivalent;
+# this is the multiplatform-safe replacement used by commonMain code)
+kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
 
 # Retrofit
 retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }
