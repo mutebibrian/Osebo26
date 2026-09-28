@@ -295,7 +295,7 @@ private fun OverviewFeatureCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color(0xFFF1F3F4), RoundedCornerShape(32.dp))
+            .background(Color(0xFFF0F3F4), RoundedCornerShape(32.dp))
             .border(1.dp, Color(0xFFE4E8EA), RoundedCornerShape(32.dp))
             .padding(14.dp),
     ) {

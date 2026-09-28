@@ -26,8 +26,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -46,6 +44,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -112,6 +112,8 @@ private val EmployeeBorder = Color(0xFFDDE3E5)
 private val EmployeeBlue = Color(0xFF176BFF)
 private val EmployeeGreen = Color(0xFF23A36D)
 private val EmployeeRed = Color(0xFFE75A67)
+private val EmployeePink = Color(0xFFD75E81)
+private val EmployeePinkGradient = listOf(Color(0xFFF8DDE4), Color(0xFFFFF3F6))
 
 @Composable
 fun EmployeesScreen(
@@ -159,6 +161,7 @@ fun EmployeesScreen(
                     isLoading = state.isLoading,
                     canManageRoles = state.canManageRoles,
                     onRefreshClick = onRefreshClick,
+                    onAddClick = onAddEmployeeClick,
                     onImportClick = onImportClick,
                     onExportClick = onExportClick,
                     onRolesClick = onRolesClick,
@@ -170,32 +173,7 @@ fun EmployeesScreen(
                     total = state.employees.size,
                     active = active,
                     managers = managers,
-                    staff = state.employees.size - managers,
                 )
-            }
-            item {
-                Button(
-                    onClick = onAddEmployeeClick,
-                    modifier = Modifier.fillMaxWidth().height(58.dp),
-                    shape = RoundedCornerShape(19.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = EmployeeInk,
-                        contentColor = Color.White,
-                    ),
-                ) {
-                    Icon(
-                        painter = painterResource(Res.drawable.iconsax_add_employee),
-                        contentDescription = null,
-                        modifier = Modifier.size(21.dp),
-                    )
-                    Spacer(Modifier.width(10.dp))
-                    Text(
-                        "Add employee",
-                        fontFamily = oseboFontFamily(),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
             }
             item {
                 EmployeeSectionTitle(
@@ -305,6 +283,7 @@ private fun EmployeesHeader(
     isLoading: Boolean,
     canManageRoles: Boolean,
     onRefreshClick: () -> Unit,
+    onAddClick: () -> Unit,
     onImportClick: () -> Unit,
     onExportClick: () -> Unit,
     onRolesClick: () -> Unit,
@@ -333,6 +312,30 @@ private fun EmployeesHeader(
                 fontSize = 11.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+            )
+        }
+        Row(
+            modifier = Modifier
+                .height(38.dp)
+                .clip(RoundedCornerShape(50))
+                .background(EmployeeInk)
+                .clickable(onClick = onAddClick)
+                .padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                painter = painterResource(Res.drawable.iconsax_add_employee),
+                contentDescription = null,
+                tint = EmployeeWhite,
+                modifier = Modifier.size(16.dp),
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                "Add",
+                color = EmployeeWhite,
+                fontFamily = oseboFontFamily(),
+                fontSize = 10.sp,
+                fontWeight = FontWeight.SemiBold,
             )
         }
         IconButton(onClick = onRefreshClick, enabled = !isLoading) {
@@ -401,55 +404,74 @@ private fun EmployeeMenuItem(label: String, icon: DrawableResource, onClick: () 
 }
 
 @Composable
-private fun TeamOverview(total: Int, active: Int, managers: Int, staff: Int) {
+private fun TeamOverview(total: Int, active: Int, managers: Int) {
     val poppins = oseboFontFamily()
+    val shape = RoundedCornerShape(30.dp)
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(EmployeeInk, RoundedCornerShape(28.dp))
-            .padding(21.dp),
+            .height(146.dp)
+            .clip(shape)
+            .background(
+                Brush.linearGradient(
+                    colors = EmployeePinkGradient,
+                    start = Offset.Zero,
+                    end = Offset.Infinite,
+                ),
+            )
+            .border(1.dp, EmployeeWhite.copy(alpha = 0.9f), shape)
+            .padding(15.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                painter = painterResource(Res.drawable.iconsax_employees),
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(27.dp),
-            )
-            Spacer(Modifier.width(12.dp))
-            Text(
-                "Team overview",
-                color = Color.White.copy(alpha = 0.72f),
-                fontFamily = poppins,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Medium,
-            )
-            Spacer(Modifier.weight(1f))
-            Text(
-                "$active active",
-                color = Color(0xFF72E3B0),
-                fontFamily = poppins,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.SemiBold,
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+            Column(modifier = Modifier.weight(1f).padding(top = 2.dp)) {
+                Text(
+                    "$total",
+                    color = Color(0xFF14243A),
+                    fontFamily = poppins,
+                    fontSize = 18.sp,
+                    lineHeight = 22.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    if (total == 1) "Employee" else "Employees",
+                    color = Color(0xFF5F6B76),
+                    fontFamily = poppins,
+                    fontSize = 9.sp,
+                )
+            }
+            Box(
                 modifier = Modifier
-                    .background(Color.White.copy(alpha = 0.09f), RoundedCornerShape(50))
-                    .padding(horizontal = 11.dp, vertical = 7.dp),
+                    .size(30.dp)
+                    .background(EmployeeWhite.copy(alpha = 0.72f), CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    painter = painterResource(Res.drawable.iconsax_employees),
+                    contentDescription = null,
+                    tint = Color(0xFF14243A),
+                    modifier = Modifier.size(17.dp),
+                )
+            }
+        }
+
+        Spacer(Modifier.weight(1f))
+
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
+            Text(
+                "$active active · $managers managers",
+                color = Color(0xFF7A848E),
+                fontFamily = poppins,
+                fontSize = 8.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f),
+            )
+            Box(
+                modifier = Modifier
+                    .width(46.dp)
+                    .height(5.dp)
+                    .background(EmployeePink, RoundedCornerShape(50)),
             )
         }
-        Spacer(Modifier.height(18.dp))
-        Text(
-            "$total ${if (total == 1) "employee" else "employees"}",
-            color = Color.White,
-            fontFamily = poppins,
-            fontSize = 27.sp,
-            fontWeight = FontWeight.SemiBold,
-        )
-        Text(
-            "$managers managers  •  $staff staff",
-            color = Color.White.copy(alpha = 0.58f),
-            fontFamily = poppins,
-            fontSize = 10.sp,
-        )
     }
 }
 
@@ -558,18 +580,19 @@ private fun EmployeeSectionTitle(title: String, subtitle: String, modifier: Modi
 @Composable
 private fun EmployeeRow(employee: EmployeeItemUi, onClick: () -> Unit) {
     val poppins = oseboFontFamily()
+    val shape = RoundedCornerShape(20.dp)
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(EmployeeSurface, RoundedCornerShape(23.dp))
-            .border(1.dp, EmployeeBorder, RoundedCornerShape(23.dp))
+            .clip(shape)
+            .background(Color(0xFFF8F9FA))
             .clickable(onClick = onClick)
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             modifier = Modifier
-                .size(46.dp)
+                .size(48.dp)
                 .clip(CircleShape)
                 .background(Color(0xFFE8EDF0)),
             contentAlignment = Alignment.Center,
@@ -582,7 +605,7 @@ private fun EmployeeRow(employee: EmployeeItemUi, onClick: () -> Unit) {
                 fontWeight = FontWeight.SemiBold,
             )
         }
-        Spacer(Modifier.width(13.dp))
+        Spacer(Modifier.width(14.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 employee.name,
