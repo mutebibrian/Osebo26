@@ -1,7 +1,5 @@
 package com.devbrian.osebo.models
 
-import java.util.*
-
 data class Transaction(
     val id: String,
     val description: String,
