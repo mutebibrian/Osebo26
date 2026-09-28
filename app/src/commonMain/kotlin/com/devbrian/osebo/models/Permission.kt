@@ -1,5 +1,7 @@
 package com.devbrian.osebo.models
 
+import kotlinx.datetime.Clock
+
 enum class PermissionType {
     VIEW_INVENTORY,
     MANAGE_INVENTORY,
@@ -38,7 +40,7 @@ data class Role(
     companion object {
         
         fun getDefaultSalesRole(shopId: String): Role = Role(
-            id = "default_sales_${System.currentTimeMillis()}",
+            id = "default_sales_${Clock.System.now().toEpochMilliseconds()}",
             name = "Sales Person",
             description = "Default role for sales staff",
             permissions = listOf(
@@ -53,7 +55,7 @@ data class Role(
 
         
         fun getOwnerRole(shopId: String): Role = Role(
-            id = "owner_${System.currentTimeMillis()}",
+            id = "owner_${Clock.System.now().toEpochMilliseconds()}",
             name = "Owner",
             description = "Full access to all features",
             permissions = PermissionType.values().toList(),
