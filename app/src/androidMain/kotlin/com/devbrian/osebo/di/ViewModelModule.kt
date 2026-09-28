@@ -3,6 +3,7 @@ package com.devbrian.osebo.di
 import com.devbrian.osebo.ui.AccountViewModel
 import com.devbrian.osebo.ui.viewmodels.AddExpenseViewModel
 import com.devbrian.osebo.ui.viewmodels.AiViewModel
+import com.devbrian.osebo.ui.viewmodels.CreateTransferViewModel
 import com.devbrian.osebo.ui.viewmodels.CustomerViewModel
 import com.devbrian.osebo.ui.viewmodels.DashboardViewModel
 import com.devbrian.osebo.ui.viewmodels.ExpenseCategoriesViewModel
@@ -18,6 +19,8 @@ import com.devbrian.osebo.ui.ShopViewModel
 import com.devbrian.osebo.ui.viewmodels.StatisticsViewModel
 import com.devbrian.osebo.ui.viewmodels.SubscriptionViewModel
 import com.devbrian.osebo.ui.viewmodels.TransactionViewModel
+import com.devbrian.osebo.ui.viewmodels.TransfersListViewModel
+import com.devbrian.osebo.ui.viewmodels.UserRolesViewModel
 import org.koin.android.ext.koin.androidApplication
 import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
@@ -26,7 +29,8 @@ import org.koin.dsl.module
 val viewModelModule = module {
     viewModel { AccountViewModel(get()) }
     viewModel { AddExpenseViewModel(get()) }
-    viewModel { AiViewModel(get()) }
+    viewModel { AiViewModel(get(), get()) }
+    viewModel { CreateTransferViewModel(get(), get(), get(), get()) }
     viewModel { CustomerViewModel(get()) }
     viewModel { DashboardViewModel(get()) }
     viewModel { ExpenseCategoriesViewModel(get()) }
@@ -42,4 +46,6 @@ val viewModelModule = module {
     viewModel { StatisticsViewModel(get()) }
     viewModel { SubscriptionViewModel(get(), androidApplication()) }
     viewModel { TransactionViewModel(get()) }
+    viewModel { TransfersListViewModel(get(), get(), get(), get()) }
+    viewModel { UserRolesViewModel(get()) }
 }

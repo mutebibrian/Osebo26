@@ -6,6 +6,7 @@ import com.devbrian.osebo.data.repository.AccountRepository
 import com.devbrian.osebo.data.repository.AiRepository
 import com.devbrian.osebo.data.repository.CustomerRepository
 import com.devbrian.osebo.data.repository.DashboardRepository
+import com.devbrian.osebo.data.repository.ElevenLabsRepository
 import com.devbrian.osebo.data.repository.FinanceRepository
 import com.devbrian.osebo.data.repository.InventoryRepository
 import com.devbrian.osebo.data.repository.ProductRepository
@@ -16,6 +17,8 @@ import com.devbrian.osebo.data.repository.StatisticsRepository
 import com.devbrian.osebo.data.repository.StatisticsRepositoryImpl
 import com.devbrian.osebo.data.repository.SubscriptionRepository
 import com.devbrian.osebo.data.repository.SubscriptionRepositoryImpl
+import com.devbrian.osebo.data.repository.TransferRepository
+import org.koin.dsl.bind
 import org.koin.dsl.module
 
 val repositoryModule = module {
@@ -28,6 +31,7 @@ val repositoryModule = module {
     // Hilt setup declared these both via @Provides *and* via @Inject
     // constructor, which is a duplicate binding Dagger would have rejected)
     single { AiRepository(get()) }
+    single { ElevenLabsRepository(get()) }
     single { FinanceRepository(get(), get()) }
     single { ProductRepository(get(), get(), get()) }
     single { SalesRepository(get(), get(), get(), get()) }
@@ -35,9 +39,15 @@ val repositoryModule = module {
     single { CustomerRepository(get(), get(), get(), get()) }
     single { AccountRepository(get(), get(), get()) }
     single { DashboardRepository(get(), get(), get()) }
+    single { TransferRepository(get(), get()) }
 
     // Interface-bound repositories
-    single<ShopRepository> { ShopRepositoryImpl(get(), get(), get()) }
+    // ShopRepositoryImpl also gets bound to its ShopRepository interface: some
+    // call sites (MainActivity, MainDashboardFragment, PaymentStatusFragment)
+    // inject the concrete class directly for methods not on the interface
+    // (refreshShops, getActiveShop, getShopsFlow), while ShopViewModel injects
+    // the interface — both need to resolve to the same singleton.
+    single { ShopRepositoryImpl(get(), get(), get()) } bind ShopRepository::class
     single<SubscriptionRepository> { SubscriptionRepositoryImpl(get()) }
     single<StatisticsRepository> { StatisticsRepositoryImpl() }
 }

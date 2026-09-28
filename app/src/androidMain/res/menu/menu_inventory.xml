@@ -30,6 +30,13 @@
         android:title="Sync Now"
         app:showAsAction="ifRoom" />
 
+    <!-- Transfer Stock -->
+    <item
+        android:id="@+id/action_transfer_stock"
+        android:icon="@drawable/ic_transfer"
+        android:title="Transfer Stock"
+        app:showAsAction="ifRoom" />
+
     <!-- More options (if needed) -->
     <item
         android:id="@+id/action_settings"

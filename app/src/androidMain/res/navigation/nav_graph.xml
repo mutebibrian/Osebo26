@@ -9,8 +9,7 @@
     <fragment
         android:id="@+id/mainDashboardFragment"
         android:name="com.devbrian.osebo.fragments.MainDashboardFragment"
-        android:label="Dashboard"
-        tools:layout="@layout/fragment_main_dashboard">
+        android:label="Dashboard">
 
         <!-- Navigation to Shop Dashboard (individual shop) -->
         <action
@@ -492,7 +491,29 @@
                 app:argType="string" />
         </action>
 
+        <action
+            android:id="@+id/action_inventory_to_createTransfer"
+            app:destination="@id/transfersListFragment" />
+
     </fragment>
+
+    <!-- Transfers List Fragment -->
+    <fragment
+        android:id="@+id/transfersListFragment"
+        android:name="com.devbrian.osebo.fragments.TransfersListFragment"
+        android:label="Transfers">
+
+        <action
+            android:id="@+id/action_transfersList_to_createTransfer"
+            app:destination="@id/createTransferFragment" />
+
+    </fragment>
+
+    <!-- Create Transfer Fragment -->
+    <fragment
+        android:id="@+id/createTransferFragment"
+        android:name="com.devbrian.osebo.fragments.CreateTransferFragment"
+        android:label="Bulk Transfer" />
 
     <!-- Suppliers Fragment -->
     <fragment
@@ -567,8 +588,7 @@
     <fragment
         android:id="@+id/customersFragment"
         android:name="com.devbrian.osebo.fragments.CustomersFragment"
-        android:label="Customers"
-        tools:layout="@layout/fragment_customers" />
+        android:label="Customers" />
 
     <!-- Contact Us Fragment -->
     <fragment
@@ -594,8 +614,7 @@
     <fragment
         android:id="@+id/userRolesFragment"
         android:name="com.devbrian.osebo.fragments.UserRolesFragment"
-        android:label="User Roles"
-        tools:layout="@layout/fragment_user_roles" />
+        android:label="User Roles" />
 
     <!-- Account Fragment -->
     <fragment

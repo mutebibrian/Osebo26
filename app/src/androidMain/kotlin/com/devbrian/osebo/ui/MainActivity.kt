@@ -629,7 +629,11 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 if (permissionManager.hasPermission(PermissionType.VIEW_INVENTORY)) navController.navigate(R.id.inventoryFragment)
                 else showPermissionDeniedDialog("inventory")
             }
-            R.id.nav_transfers -> Toast.makeText(this, "Transfers coming soon", Toast.LENGTH_SHORT).show()
+            R.id.nav_transfers -> {
+                if (!permissionManager.hasPermission(PermissionType.VIEW_INVENTORY)) showPermissionDeniedDialog("transfers")
+                else if (!hasAccessToBusinessOperations()) navigateToSubscriptionOverview()
+                else navController.navigate(R.id.transfersListFragment)
+            }
             R.id.nav_employees -> {
                 if (permissionManager.hasPermission(PermissionType.VIEW_EMPLOYEES)) navController.navigate(R.id.employeesFragment)
                 else showPermissionDeniedDialog("employee management")
@@ -827,6 +831,19 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         if (!preferenceManager.hasShop()) { showSelectShopFirstDialog(); return }
         navController.navigate(R.id.subscriptionOverviewFragment)
     }
+
+    // Lets fragments (e.g. the Inventory menu's "Transfer Stock" action) reuse the same
+    // subscription gate as the drawer instead of duplicating the access check.
+    fun requireActiveSubscriptionOrRedirect(): Boolean {
+        if (hasAccessToBusinessOperations()) return true
+        navigateToSubscriptionOverview()
+        return false
+    }
+
+    // Read-only variant for fragments (e.g. ShopDashboardFragment) that need to decide
+    // what to render — an in-place "subscribe to continue" state — rather than being
+    // redirected away immediately.
+    fun hasActiveBusinessSubscription(): Boolean = hasAccessToBusinessOperations()
 
     // ===== LOGOUT =====
     private fun logout() {
