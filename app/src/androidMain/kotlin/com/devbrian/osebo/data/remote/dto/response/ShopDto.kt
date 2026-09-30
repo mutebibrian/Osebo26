@@ -12,7 +12,7 @@ data class ShopDto(
     @SerializedName("address")
     val address: String?,
 
-    @SerializedName("phone")
+    @SerializedName(value = "phone", alternate = ["phone_number"])
     val phone: String?,
 
     @SerializedName("email")
@@ -30,10 +30,10 @@ data class ShopDto(
     @SerializedName("logo_url")
     val logoUrl: String?,
 
-    @SerializedName("registration_number")
+    @SerializedName(value = "registration_number", alternate = ["reg_no"])
     val registrationNumber: String?,
 
-    @SerializedName("tax_identification_number")
+    @SerializedName(value = "tax_identification_number", alternate = ["tax_identification_no"])
     val taxIdentificationNumber: String?,
 
     @SerializedName("madeBy")
