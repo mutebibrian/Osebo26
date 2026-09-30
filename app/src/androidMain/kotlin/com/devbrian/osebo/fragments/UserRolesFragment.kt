@@ -26,6 +26,7 @@ class UserRolesFragment : Fragment() {
                     UserRolesScreen(
                         state = viewModel.uiState.value,
                         onBack = { parentFragmentManager.popBackStack() },
+                        onRefresh = viewModel::loadRoles,
                         onEditPermissions = viewModel::onEditPermissions,
                         onDismissEdit = viewModel::onDismissEdit,
                         onEditSearchQueryChange = viewModel::onEditSearchQueryChange,

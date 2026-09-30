@@ -37,6 +37,13 @@ import org.koin.android.ext.android.inject
 
 private const val TAG = "MainDashboardFragment"
 
+private data class DashboardTotals(
+    val totalSales: Double = 0.0,
+    val totalExpenses: Double = 0.0,
+    val todaySales: Double = 0.0,
+    val todayExpenses: Double = 0.0,
+)
+
 class MainDashboardFragment : Fragment() {
 
     private lateinit var preferenceManager: PreferenceManager
@@ -69,9 +76,13 @@ class MainDashboardFragment : Fragment() {
                 OseboTheme {
                     DashboardScreen(
                         state = uiState,
-                        onViewDetailsClick = { findNavController().navigate(R.id.reportsFragment) },
-                        onPeriodFilterChange = { filter -> uiState = uiState.copy(periodFilter = filter) },
-                        onShopClick = ::handleShopClick,
+                        onNotificationsClick = {
+                            Toast.makeText(
+                                requireContext(),
+                                "Notifications are coming next",
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                        },
                         onAddProductClick = { navigateIfSubscribed(R.id.addProductFragment) },
                         onNewSaleClick = { navigateIfSubscribed(R.id.newSaleFragment) },
                         onAddEmployeeClick = { navigateIfSubscribed(R.id.employeesFragment) },
@@ -81,9 +92,6 @@ class MainDashboardFragment : Fragment() {
                             } else {
                                 showNoActiveShopDialog()
                             }
-                        },
-                        onPerformanceClick = { performance ->
-                            currentShops.find { it.id == performance.shopId }?.let { navigateToShopBilling(it) }
                         },
                     )
                 }
@@ -181,11 +189,9 @@ class MainDashboardFragment : Fragment() {
                 expiry = shop.subscription?.endsAt,
                 packageId = null
             )
-        } else {
-            preferenceManager.clearSubscriptionInfo()
         }
 
-        (activity as? MainActivity)?.refreshNavigationMenu()
+        (activity as? MainActivity)?.refreshSubscriptionForCurrentShop()
         Toast.makeText(requireContext(), "${shop.name} is now active", Toast.LENGTH_SHORT).show()
     }
 
@@ -202,8 +208,6 @@ class MainDashboardFragment : Fragment() {
             shop.subscriptionType?.let { preferenceManager.saveSubscriptionType(it) }
             shop.subscriptionExpiry?.let { preferenceManager.saveSubscriptionExpiry(it) }
             shop.subscription?.id?.let { preferenceManager.saveSubscriptionId(it) }
-        } else {
-            preferenceManager.clearSubscriptionInfo()
         }
         Log.d(TAG, "Saved shop UUID: $uuid, ID: ${shop.id}")
     }
@@ -243,11 +247,12 @@ class MainDashboardFragment : Fragment() {
                                 val selectedShop = shops.find { it.isSubscriptionActive } ?: shops.first()
                                 saveCurrentShop(selectedShop)
 
-                                val (totalSales, totalExpenses) = loadActualSalesData(shops)
+                                val totals = loadActualSalesData(shops)
 
-                                updateTotals(totalSales, totalExpenses, shops.size)
+                                updateTotals(totals, shops.size)
                                 submitShops(shops, selectedShop.id)
                                 dashboardRepository.refreshDashboardData()
+                                updateTrendData()
                             } else {
                                 submitShops(emptyList(), null)
                                 Toast.makeText(requireContext(), "No shops found.", Toast.LENGTH_LONG).show()
@@ -263,9 +268,10 @@ class MainDashboardFragment : Fragment() {
                             val selectedShop = shops.find { it.isSubscriptionActive } ?: shops.first()
                             saveCurrentShop(selectedShop)
 
-                            val (totalSales, totalExpenses) = loadActualSalesData(shops)
-                            updateTotals(totalSales, totalExpenses, shops.size)
+                            val totals = loadActualSalesData(shops)
+                            updateTotals(totals, shops.size)
                             submitShops(shops, selectedShop.id)
+                            updateTrendData()
                             Toast.makeText(requireContext(), "Using cached shop data", Toast.LENGTH_SHORT).show()
                         } else {
                             Toast.makeText(requireContext(), refreshResult.message ?: "Failed to load shops", Toast.LENGTH_LONG).show()
@@ -296,22 +302,29 @@ class MainDashboardFragment : Fragment() {
     }
 
     // ===== FETCH SALES FOR EACH SHOP AND SUM =====
-    private suspend fun loadActualSalesData(shops: List<Shop>): Pair<Double, Double> {
+    private suspend fun loadActualSalesData(shops: List<Shop>): DashboardTotals {
         var grandTotalSales = 0.0
         var grandTotalExpenses = 0.0
+        var grandTodaySales = 0.0
+        var grandTodayExpenses = 0.0
         val shopSalesMap = mutableMapOf<String, Double>()
         val shopExpensesMap = mutableMapOf<String, Double>()
 
         for (shop in shops) {
             val shopUuid = shop.uuid ?: shop.id
             val summary = dashboardRepository.fetchShopSummary(shopUuid)
-            val sales = summary?.totalSales ?: 0.0
-            val expenses = summary?.totalExpenses ?: 0.0
+            val financial = dashboardRepository.fetchShopFinancialStatement(shopUuid)
+            val sales = summary?.totalSales ?: financial?.totalSales ?: shop.totalRevenue
+            val expenses = financial?.totalExpenses ?: shop.totalExpenses
+            val todaySales = summary?.todaySales ?: 0.0
+            val todayExpenses = summary?.todayExpenses ?: 0.0
 
             shopSalesMap[shop.id] = sales
             shopExpensesMap[shop.id] = expenses
             grandTotalSales += sales
             grandTotalExpenses += expenses
+            grandTodaySales += todaySales
+            grandTodayExpenses += todayExpenses
         }
 
         val maxSales = shopSalesMap.values.maxOrNull() ?: 0.0
@@ -343,21 +356,45 @@ class MainDashboardFragment : Fragment() {
             }
         )
 
-        return Pair(grandTotalSales, grandTotalExpenses)
+        if (shops.size == 1) {
+            val cachedSummary = dashboardRepository.getDashboardSummarySync()
+            val cachedFinancial = dashboardRepository.getFinancialStatementSync()
+            if (grandTotalSales == 0.0) {
+                grandTotalSales = cachedSummary?.totalSales
+                    ?: cachedFinancial?.totalSales
+                    ?: 0.0
+            }
+            if (grandTotalExpenses == 0.0) {
+                grandTotalExpenses = cachedFinancial?.totalExpenses ?: 0.0
+            }
+        }
+
+        return DashboardTotals(
+            totalSales = grandTotalSales,
+            totalExpenses = grandTotalExpenses,
+            todaySales = grandTodaySales,
+            todayExpenses = grandTodayExpenses,
+        )
     }
 
-    private fun updateTotals(totalSales: Double, totalExpenses: Double, totalShops: Int) {
-        val todaySales = totalSales * 0.12
-        val todayExpenses = totalExpenses * 0.08
-        val todayBalance = todaySales - todayExpenses
+    private fun updateTotals(totals: DashboardTotals, totalShops: Int) {
+        val todayBalance = totals.todaySales - totals.todayExpenses
 
         uiState = uiState.copy(
-            totalSales = formatCompactCurrency(totalSales),
-            totalExpenses = formatCompactCurrency(totalExpenses),
+            totalSales = formatCompactCurrency(totals.totalSales),
+            totalExpenses = formatCompactCurrency(totals.totalExpenses),
             totalShopsLabel = "$totalShops Shops",
-            todaySales = formatCompactCurrency(todaySales),
-            todayExpenses = formatCompactCurrency(todayExpenses),
+            todaySales = formatCompactCurrency(totals.todaySales),
+            todayExpenses = formatCompactCurrency(totals.todayExpenses),
             todayBalance = formatCompactCurrency(todayBalance),
+        )
+    }
+
+    private suspend fun updateTrendData() {
+        val timeSeries = dashboardRepository.getTimeSeriesSync()
+        uiState = uiState.copy(
+            salesTrend = timeSeries?.getSalesList()?.map(Double::toFloat).orEmpty(),
+            expensesTrend = timeSeries?.getExpensesList()?.map(Double::toFloat).orEmpty(),
         )
     }
 
@@ -370,6 +407,7 @@ class MainDashboardFragment : Fragment() {
     }
 
     private fun hasActiveShopWithSubscription(): Boolean {
-        return currentShops.any { it.isSubscriptionActive }
+        return preferenceManager.hasActiveSubscription() ||
+            currentShops.any { it.isSubscriptionActive }
     }
 }

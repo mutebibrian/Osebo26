@@ -33,6 +33,7 @@ class DashboardRepository(
     suspend fun getDashboardSummarySync(): DashboardSummaryEntity? = dao.getDashboardSummarySync()
     suspend fun getTimeSeriesSync(): TimeSeriesEntity? = dao.getTimeSeriesSync()
     suspend fun getTopStockItemsSync(): List<TopStockItemEntity> = dao.getTopStockItemsSync()
+    suspend fun getFinancialStatementSync(): FinancialStatementEntity? = dao.getFinancialStatementSync()
 
     suspend fun hasCachedData(): Boolean = dao.hasDashboardData() > 0
     suspend fun getLastUpdateTime(): Long? = dao.getLastUpdateTime()
@@ -78,12 +79,30 @@ class DashboardRepository(
                         totalCustomers = it.totalCustomers,
                         totalSuppliers = it.totalSuppliers,
                         totalSales = it.totalSales,
-                        totalExpenses = it.totalExpenses
+                        todaySales = it.todaySales,
+                        todayExpenses = it.todayExpenses,
                     )
                 }
             } else null
         } catch (e: Exception) {
             Log.e(TAG, "Error fetching shop summary for $shopUuid: ${e.message}")
+            null
+        }
+    }
+
+    suspend fun fetchShopFinancialStatement(shopUuid: String): ShopFinancialData? {
+        return try {
+            val response = apiService.getFinancialStatement(shopUuid, "yearly")
+            if (response.isSuccessful && response.body()?.success == true) {
+                response.body()?.data?.let {
+                    ShopFinancialData(
+                        totalSales = it.totalSales,
+                        totalExpenses = it.totalExpenses,
+                    )
+                }
+            } else null
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching financial statement for $shopUuid: ${e.message}")
             null
         }
     }
@@ -208,5 +227,11 @@ data class ShopSummaryData(
     val totalCustomers: Int,
     val totalSuppliers: Int,
     val totalSales: Double,
-    val totalExpenses: Double
+    val todaySales: Double,
+    val todayExpenses: Double,
+)
+
+data class ShopFinancialData(
+    val totalSales: Double,
+    val totalExpenses: Double,
 )

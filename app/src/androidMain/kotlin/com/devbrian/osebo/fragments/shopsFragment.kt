@@ -1,266 +1,222 @@
 package com.devbrian.osebo.fragments
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
-import androidx.recyclerview.widget.LinearLayoutManager
-import com.devbrian.osebo.R
-import com.devbrian.osebo.adapters.OnShopClickListener
-import com.devbrian.osebo.adapters.ShopsAdapter
 import com.devbrian.osebo.data.PreferenceManager
 import com.devbrian.osebo.data.models.Shop
-import com.devbrian.osebo.databinding.FragmentShopsBinding
 import com.devbrian.osebo.ui.MainActivity
+import com.devbrian.osebo.ui.ShopCreationActivity
 import com.devbrian.osebo.ui.ShopViewModel
+import com.devbrian.osebo.ui.screens.ShopItemUi
+import com.devbrian.osebo.ui.screens.ShopsScreen
+import com.devbrian.osebo.ui.screens.ShopsUiState
+import com.devbrian.osebo.ui.theme.OseboTheme
 import com.devbrian.osebo.utils.Resource
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class ShopsFragment : Fragment() {
-
-    private var _binding: FragmentShopsBinding? = null
-    private val binding get() = _binding!!
-
-    private lateinit var shopsAdapter: ShopsAdapter
-    private lateinit var preferenceManager: PreferenceManager
     private val shopViewModel: ShopViewModel by viewModel()
-
-    private val shopClickListener = object : OnShopClickListener {
-        override fun onShopClick(shop: Shop) {
-            if (shop.isSubscriptionActive) {
-                setActiveShop(shop)
-                navigateToShopDashboard(shop)
-            } else {
-                showSubscriptionRequiredDialog(shop)
-            }
-        }
-
-        override fun onEditClick(shop: Shop) {
-            navigateToEditShop(shop)
-        }
-
-        override fun onDeleteClick(shop: Shop) {
-            showDeleteConfirmationDialog(shop)
-        }
-
-        override fun onSetActiveClick(shop: Shop) {
-            setActiveShop(shop)
-        }
-
-        override fun onSubscribeClick(shop: Shop) {
-            navigateToSubscriptionPackages(shop)
-        }
-    }
+    private lateinit var preferenceManager: PreferenceManager
+    private var uiState by mutableStateOf(ShopsUiState())
+    private var shopsById: Map<String, Shop> = emptyMap()
+    private var refreshOnNextResume = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
-        savedInstanceState: Bundle?
+        savedInstanceState: Bundle?,
     ): View {
-        _binding = FragmentShopsBinding.inflate(inflater, container, false)
-        return binding.root
+        preferenceManager = PreferenceManager.getInstance(requireContext())
+
+        return ComposeView(requireContext()).apply {
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+            setContent {
+                OseboTheme {
+                    ShopsScreen(
+                        state = uiState,
+                        onAddShopClick = ::navigateToShopCreation,
+                        onRefreshClick = shopViewModel::loadShops,
+                        onShopClick = ::openShop,
+                        onSubscribeClick = ::openSubscription,
+                    )
+                }
+            }
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-        preferenceManager = PreferenceManager.getInstance(requireContext())
-
-        setupRecyclerView()
-        setupClickListeners()
         setupObservers()
-        loadUserShops()
-
+        shopViewModel.loadShops()
         preferenceManager.debugCurrentShop()
     }
 
-    private fun setupRecyclerView() {
-        shopsAdapter = ShopsAdapter(shopClickListener, requireContext())
-        binding.rvShops.apply {
-            layoutManager = LinearLayoutManager(requireContext())
-            adapter = shopsAdapter
-            setHasFixedSize(true)
+    override fun onResume() {
+        super.onResume()
+        if (refreshOnNextResume) {
+            shopViewModel.loadShops()
         }
-
-        val currentShopId = preferenceManager.getCurrentShopId()
-        if (currentShopId.isNotEmpty()) {
-            shopsAdapter.setActiveShopId(currentShopId)
-        }
+        refreshOnNextResume = true
     }
 
     private fun setupObservers() {
         shopViewModel.shops.observe(viewLifecycleOwner) { resource ->
             when (resource) {
                 is Resource.Loading -> {
-                    binding.progressBar.visibility = View.VISIBLE
-                    binding.emptyStateLayout.visibility = View.GONE
-                    binding.rvShops.visibility = View.GONE
-                    binding.fabAddShop.visibility = View.GONE
+                    uiState = uiState.copy(
+                        isLoading = uiState.shops.isEmpty(),
+                        isRefreshing = uiState.shops.isNotEmpty(),
+                        errorMessage = null,
+                    )
                 }
+
                 is Resource.Success -> {
-                    binding.progressBar.visibility = View.GONE
-                    binding.swipeRefreshLayout.isRefreshing = false
-
-                    val shops = resource.data ?: emptyList()
-                    binding.tvShopCount.text = "${shops.size} shops"
-
-                    if (shops.isEmpty()) {
-                        binding.emptyStateLayout.visibility = View.VISIBLE
-                        binding.rvShops.visibility = View.GONE
-                        binding.fabAddShop.visibility = View.GONE
-                        binding.tvEmptyMessage.text = "You haven't created any shops yet"
-                    } else {
-                        binding.emptyStateLayout.visibility = View.GONE
-                        binding.rvShops.visibility = View.VISIBLE
-                        binding.fabAddShop.visibility = View.VISIBLE
-                        shopsAdapter.submitList(shops)
-
-                        val currentShopId = preferenceManager.getCurrentShopId()
-                        if (currentShopId.isNotEmpty()) {
-                            shopsAdapter.setActiveShopId(currentShopId)
-                        }
-                    }
+                    val shops = resource.data
+                    shopsById = shops.associateBy(Shop::id)
+                    val currentShopId = preferenceManager.getCurrentShopId()
+                    uiState = uiState.copy(
+                        shops = shops.map { it.toShopItemUi(currentShopId) },
+                        isLoading = false,
+                        isRefreshing = false,
+                        errorMessage = null,
+                    )
                 }
+
                 is Resource.Error -> {
-                    binding.progressBar.visibility = View.GONE
-                    binding.swipeRefreshLayout.isRefreshing = false
-                    binding.emptyStateLayout.visibility = View.VISIBLE
-                    binding.rvShops.visibility = View.GONE
-                    binding.fabAddShop.visibility = View.GONE
-                    binding.tvEmptyMessage.text = "Failed to load shops: ${resource.message}"
-                    Toast.makeText(requireContext(), "Failed to load shops", Toast.LENGTH_SHORT).show()
+                    uiState = uiState.copy(
+                        isLoading = false,
+                        isRefreshing = false,
+                        errorMessage = resource.message,
+                    )
                 }
             }
         }
 
         shopViewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
-            binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
+            uiState = uiState.copy(
+                isLoading = isLoading && uiState.shops.isEmpty(),
+                isRefreshing = isLoading && uiState.shops.isNotEmpty(),
+            )
         }
 
-        shopViewModel.errorMessage.observe(viewLifecycleOwner) { errorMessage ->
-            errorMessage?.let {
-                Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
+        shopViewModel.errorMessage.observe(viewLifecycleOwner) { message ->
+            if (!message.isNullOrBlank() && uiState.shops.isNotEmpty()) {
+                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
             }
         }
     }
 
-    private fun setupClickListeners() {
-        binding.fabAddShop.setOnClickListener {
-            navigateToShopCreation()
+    private fun Shop.toShopItemUi(currentShopId: String) = ShopItemUi(
+        id = id,
+        name = name.ifBlank { "Unnamed shop" },
+        type = shopTypeDisplay,
+        location = fullAddress.ifBlank { "Location not set" },
+        isSubscriptionActive = isSubscriptionActive,
+        isTrial = subscriptionStatus.equals("trial", ignoreCase = true) ||
+            subscription?.isTrial == true,
+        isCurrent = id == currentShopId,
+    )
+
+    private fun openShop(shopId: String) {
+        val shop = shopsById[shopId] ?: return
+        if (!shop.isSubscriptionActive) {
+            showSubscriptionRequiredDialog(shop)
+            return
         }
 
-        binding.btnCreateFirstShop.setOnClickListener {
-            navigateToShopCreation()
-        }
-
-        binding.swipeRefreshLayout.setOnRefreshListener {
-            loadUserShops()
-        }
+        setActiveShop(shop)
+        navigateToShopDashboard(shop)
     }
 
-    private fun loadUserShops() {
-        shopViewModel.loadShops()
+    private fun openSubscription(shopId: String) {
+        shopsById[shopId]?.let(::navigateToSubscriptionPackages)
     }
 
     private fun navigateToShopCreation() {
-        val intent = android.content.Intent(requireContext(), com.devbrian.osebo.ui.ShopCreationActivity::class.java)
-        intent.putExtra("USER_ID", preferenceManager.getUserId())
-        intent.putExtra("EMAIL", preferenceManager.getUserEmail())
-        intent.putExtra("PHONE", preferenceManager.getUserPhone())
-        intent.putExtra("FIRST_NAME", preferenceManager.getFirstName())
-        intent.putExtra("LAST_NAME", preferenceManager.getLastName())
+        val intent = Intent(requireContext(), ShopCreationActivity::class.java).apply {
+            putExtra("USER_ID", preferenceManager.getUserId())
+            putExtra("EMAIL", preferenceManager.getUserEmail())
+            putExtra("PHONE", preferenceManager.getUserPhone())
+            putExtra("FIRST_NAME", preferenceManager.getFirstName())
+            putExtra("LAST_NAME", preferenceManager.getLastName())
+        }
         startActivity(intent)
     }
 
-    private fun navigateToEditShop(shop: Shop) {
-        Toast.makeText(requireContext(), "Edit ${shop.name}", Toast.LENGTH_SHORT).show()
-    }
-
     private fun navigateToShopDashboard(shop: Shop) {
-        try {
+        runCatching {
             val action = ShopsFragmentDirections.actionShopsFragmentToShopDashboardFragment(shop.id)
             findNavController().navigate(action)
-        } catch (e: Exception) {
-            Toast.makeText(requireContext(), "Navigation error: ${e.message}", Toast.LENGTH_SHORT).show()
+        }.onFailure {
+            Toast.makeText(requireContext(), "Unable to open this shop", Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun navigateToSubscriptionPackages(shop: Shop) {
-        try {
+        runCatching {
             val action = ShopsFragmentDirections.actionShopsFragmentToSubscriptionPackagesFragment(shop)
             findNavController().navigate(action)
-        } catch (e: Exception) {
-            Toast.makeText(requireContext(), "Error navigating to subscriptions", Toast.LENGTH_SHORT).show()
+        }.onFailure {
+            Toast.makeText(requireContext(), "Unable to open subscriptions", Toast.LENGTH_SHORT).show()
         }
     }
 
-    // ===== FIXED: setActiveShop saves subscription info and refreshes navigation =====
     private fun setActiveShop(shop: Shop) {
         if (shop.id.isBlank() || !Shop.isValidUUID(shop.id)) {
-            Toast.makeText(requireContext(), "Error: Invalid shop ID", Toast.LENGTH_LONG).show()
+            Toast.makeText(requireContext(), "This shop has an invalid ID", Toast.LENGTH_LONG).show()
             return
         }
 
-        // Save shop
         preferenceManager.saveCurrentShop(
             shopId = shop.id,
-            shopUuid = shop.id,
-            shopName = shop.name
+            shopUuid = shop.effectiveUuid.ifBlank { shop.id },
+            shopName = shop.name,
         )
 
-        // Save subscription info if active
         if (shop.isSubscriptionActive) {
-            val status = if (shop.subscription?.isTrial == true) "TRIAL" else "ACTIVE"
+            val status = if (
+                shop.subscription?.isTrial == true ||
+                shop.subscriptionStatus.equals("trial", ignoreCase = true)
+            ) "TRIAL" else "ACTIVE"
+
             preferenceManager.saveSubscriptionInfo(
                 subscriptionId = shop.subscription?.id,
                 status = status,
-                type = shop.subscription?.packageType,
-                expiry = shop.subscription?.endsAt,
-                packageId = shop.planId   // ✅ FIXED: using planId instead of subscriptionPackage?.id
+                type = shop.subscription?.packageType ?: shop.subscriptionType,
+                expiry = shop.subscription?.endsAt ?: shop.subscriptionExpiry,
+                packageId = shop.planId,
             )
-        } else {
-            preferenceManager.clearSubscriptionInfo()
         }
 
-        // Update UI in MainActivity
         (activity as? MainActivity)?.apply {
             updateHeaderShopInfo(shop.name)
-            refreshNavigationMenu()  // <-- This refreshes the drawer
+            refreshNavigationMenu()
         }
 
-        shopsAdapter.setActiveShopId(shop.id)
+        uiState = uiState.copy(
+            shops = uiState.shops.map { it.copy(isCurrent = it.id == shop.id) },
+        )
         Toast.makeText(requireContext(), "${shop.name} is now your active shop", Toast.LENGTH_SHORT).show()
     }
 
     private fun showSubscriptionRequiredDialog(shop: Shop) {
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Subscription Required")
-            .setMessage("${shop.name} doesn't have an active subscription. Would you like to subscribe now to start using the app?")
-            .setPositiveButton("Subscribe Now") { _, _ ->
-                navigateToSubscriptionPackages(shop)
-            }
+            .setTitle("Subscription required")
+            .setMessage("${shop.name} needs an active subscription before it can be opened.")
+            .setPositiveButton("View plans") { _, _ -> navigateToSubscriptionPackages(shop) }
             .setNegativeButton("Later", null)
-            .setCancelable(false)
             .show()
-    }
-
-    private fun showDeleteConfirmationDialog(shop: Shop) {
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Delete ${shop.name}")
-            .setMessage("Are you sure you want to delete this shop? This action cannot be undone.")
-            .setPositiveButton("Delete") { _, _ ->
-                shopViewModel.deleteShop(shop.id)
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
     }
 }

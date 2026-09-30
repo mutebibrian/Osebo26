@@ -29,10 +29,10 @@ class FinancialStatementViewModel(
     private val _error = MutableLiveData<String?>()
     val error: LiveData<String?> = _error
 
-    fun loadFinancialStatement(startDate: String? = null, endDate: String? = null, period: String = "monthly") {
+    fun loadFinancialStatement(startDate: String? = null, endDate: String? = null) {
         _isLoading.value = true
         viewModelScope.launch {
-            val result = repository.getFinancialStatement(startDate, endDate, period)
+            val result = repository.getFinancialStatement(startDate, endDate)
             result.onSuccess { statement ->
                 _financialStatement.value = statement
                 _error.value = null
@@ -44,13 +44,11 @@ class FinancialStatementViewModel(
     }
 
     fun loadTimeSeriesData(startDate: String? = null, endDate: String? = null, period: String = "monthly") {
-        _isLoading.value = true
         viewModelScope.launch {
             try {
                 val shopId = preferenceManager.getShopIdentifierForApi()
                 if (shopId.isEmpty()) {
                     _error.value = "No shop selected"
-                    _isLoading.value = false
                     return@launch
                 }
 
@@ -72,8 +70,6 @@ class FinancialStatementViewModel(
             } catch (e: Exception) {
                 _error.value = e.message ?: "Failed to load time series data"
                 _timeSeriesData.value = generateMockTimeSeriesData(period)
-            } finally {
-                _isLoading.value = false
             }
         }
     }

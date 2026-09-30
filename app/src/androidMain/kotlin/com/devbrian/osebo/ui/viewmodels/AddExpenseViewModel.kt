@@ -36,6 +36,7 @@ class AddExpenseViewModel(
     private var selectedDate: String? = null
     private var expenseAmount: Double = 0.0
     private var expenseDescription: String = ""
+    private var expenseReference: String? = null
 
     fun loadExpenseCategories() {
         Log.d(TAG, "loadExpenseCategories called")
@@ -63,6 +64,11 @@ class AddExpenseViewModel(
         Log.d(TAG, "Category selected: $selectedCategoryId at position $position")
     }
 
+    fun selectCategory(categoryId: String) {
+        selectedCategoryId = categoryId
+        Log.d(TAG, "Category selected: $selectedCategoryId")
+    }
+
     fun setPaymentMethod(method: String) {
         selectedPaymentMethod = method
         Log.d(TAG, "Payment method set: $method")
@@ -81,6 +87,10 @@ class AddExpenseViewModel(
     fun setDescription(description: String) {
         expenseDescription = description
         Log.d(TAG, "Description set: $description")
+    }
+
+    fun setReference(reference: String?) {
+        expenseReference = reference?.trim()?.ifEmpty { null }
     }
 
     fun saveExpense() {
@@ -127,7 +137,7 @@ class AddExpenseViewModel(
                 paymentMethod = selectedPaymentMethod,
                 notes = null,
                 receiptUrl = null,
-                reference = null
+                reference = expenseReference
             )
 
             val result = financeRepository.createExpense(request)

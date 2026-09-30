@@ -47,7 +47,7 @@ class ShopRepositoryImpl(
         return activeEntity?.toShop()
     }
 
-    suspend fun refreshShops(): Resource<Boolean> {
+    override suspend fun refreshShops(): Resource<Boolean> {
         val token = preferenceManager.getAuthToken()
         val userId = preferenceManager.getUserId()
         val userRole = preferenceManager.getUserRole()
@@ -101,7 +101,10 @@ class ShopRepositoryImpl(
                     println("✅ Saved ${entities.size} shops to database")
 
                     // Find active shop using the DTO's helper property
-                    val activeShop = shops.find { it.hasActiveSubscription }
+                    val currentShopId = preferenceManager.getCurrentShopId()
+                    val activeShop = shops.find {
+                        it.id == currentShopId && it.hasActiveSubscription
+                    } ?: shops.find { it.hasActiveSubscription }
 
                     if (activeShop != null) {
                         println("✅ Found active shop: ${activeShop.name}")
@@ -119,8 +122,7 @@ class ShopRepositoryImpl(
                         println("✅ Auto-activated shop: ${activeShop.name}")
                         preferenceManager.debugSubscriptionInfo()
                     } else {
-                        println("⚠️ No active shops found")
-                        preferenceManager.saveSubscriptionStatus("INACTIVE")
+                        println("⚠️ Shops response did not include an active subscription")
 
                         if (shops.isNotEmpty()) {
                             val firstShop = shops.first()

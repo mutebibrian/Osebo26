@@ -39,8 +39,8 @@ class ContactUsViewModel : ViewModel() {
         name: String,
         email: String,
         subject: String,
+        category: String,
         message: String,
-        phone: String? = null
     ) {
         _loading.value = true
 
@@ -55,11 +55,11 @@ class ContactUsViewModel : ViewModel() {
 
     private fun getDefaultContactInfo(): ContactInfo {
         return ContactInfo(
-            email = "support@osebo.com",
-            phone = "+256 700 000000", 
-            whatsapp = "+256 700 000000",
-            address = "Kampala, Uganda",
-            workingHours = "Mon-Fri: 8:00 AM - 6:00 PM"
+            email = "support@osebo.ai",
+            phone = "+256 765 549811",
+            whatsapp = "+256 765 549811",
+            address = "Innovation Village, Ntinda Complex, Block C, 3rd floor",
+            workingHours = "Mon–Fri: 8:00 AM–6:00 PM",
         )
     }
 
@@ -71,5 +71,3 @@ class ContactUsViewModel : ViewModel() {
         _messageSent.value = false
     }
 }
-
-

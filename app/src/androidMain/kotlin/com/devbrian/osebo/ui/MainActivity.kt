@@ -4,48 +4,64 @@ import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.ObjectAnimator
 import android.content.Intent
+import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
-import android.view.MenuItem
-import android.view.MotionEvent
+import android.view.Gravity
 import android.view.View
-import android.widget.TextView
+import android.view.ViewGroup
+import android.view.WindowManager
+import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
-import androidx.core.view.GravityCompat
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
-import androidx.navigation.ui.AppBarConfiguration
-import androidx.navigation.ui.navigateUp
-import androidx.navigation.ui.setupActionBarWithNavController
 import com.devbrian.osebo.R
 import com.devbrian.osebo.data.PreferenceManager
 import com.devbrian.osebo.data.repository.ShopRepositoryImpl
+import com.devbrian.osebo.data.repository.SubscriptionRepository
 import com.devbrian.osebo.databinding.ActivityMainBinding
 import com.devbrian.osebo.fragments.MainDashboardFragment
 import com.devbrian.osebo.data.models.Shop
 import com.devbrian.osebo.models.PermissionType
+import com.devbrian.osebo.ui.components.MoreMenuItem
+import com.devbrian.osebo.ui.components.MoreMenuSection
+import com.devbrian.osebo.ui.components.MoreMenuSheet
+import com.devbrian.osebo.ui.components.UserBottomNavigation
+import com.devbrian.osebo.ui.components.UserNavigationItem
+import com.devbrian.osebo.ui.theme.OseboTheme
 import com.devbrian.osebo.utils.PermissionManager
 import com.devbrian.osebo.utils.Resource
-import com.google.android.material.navigation.NavigationView
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 import org.koin.android.ext.android.inject
 
-class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
+private enum class SubscriptionVerification {
+    Active,
+    Inactive,
+    Unavailable,
+}
+
+class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-    private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var navController: NavController
     private lateinit var preferenceManager: PreferenceManager
     private lateinit var permissionManager: PermissionManager
-    private lateinit var navigationView: NavigationView
 
     private val shopRepository: ShopRepositoryImpl by inject()
+    private val subscriptionRepository: SubscriptionRepository by inject()
 
     private val subscriptionRequiredDestinations = setOf(
         R.id.salesFragment,
@@ -71,130 +87,329 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         R.id.subscriptionDetailsFragment
     )
 
+    private val inventoryBottomNavigationDestinations = setOf(
+        R.id.inventoryFragment,
+        R.id.addProductFragment,
+        R.id.productDetailsFragment,
+        R.id.restockFragment,
+    )
+
+    private val salesBottomNavigationDestinations = setOf(
+        R.id.salesFragment,
+        R.id.newSaleFragment,
+        R.id.paymentFragment,
+        R.id.receiptFragment,
+    )
+
     private var isFabMenuOpen = false
     private var subscriptionCheckInProgress = false
+    private var isSubscriptionRefreshInProgress = false
     private var currentShop: Shop? = null
     private var isDataLoading = false
-
-    // Header views (cached)
-    private lateinit var tvUserName: TextView
-    private lateinit var tvUserEmail: TextView
-    private lateinit var tvUserInitial: TextView
-    private lateinit var tvAppVersion: TextView
-    private lateinit var tvSubscriptionBadge: TextView
-    private lateinit var tvCurrentShop: TextView
-    private lateinit var tvViewingMode: TextView
-    private lateinit var ivSettings: View
+    private val selectedBottomNavigationItem: MutableState<UserNavigationItem> =
+        mutableStateOf(UserNavigationItem.Home)
+    private val isMoreMenuVisible: MutableState<Boolean> = mutableStateOf(false)
+    private val moreMenuSections: MutableState<List<MoreMenuSection>> = mutableStateOf(emptyList())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setupImmersiveWindow()
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         preferenceManager = PreferenceManager.getInstance(this)
         permissionManager = PermissionManager(this)
-        navigationView = binding.navigationView
 
-        setupToolbar()
         setupNavigation()
-        setupHeaderView()
         setupFloatingActionButtons()
         setupNavControllerListener()
+        setupUserBottomNavigation()
 
         loadInitialData()
     }
 
-    private fun setupToolbar() {
-        setSupportActionBar(binding.topAppBar)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        supportActionBar?.setHomeButtonEnabled(true)
+    private fun setupImmersiveWindow() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            window.attributes.layoutInDisplayCutoutMode =
+                WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+        }
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        WindowInsetsControllerCompat(window, window.decorView).apply {
+            hide(WindowInsetsCompat.Type.systemBars())
+            systemBarsBehavior =
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
+        window.statusBarColor = Color.TRANSPARENT
+        window.navigationBarColor = Color.TRANSPARENT
+    }
+
+    private fun setupUserBottomNavigation() {
+        val bottomNavigation = ComposeView(this).apply {
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+            setContent {
+                OseboTheme {
+                    UserBottomNavigation(
+                        selectedItem = selectedBottomNavigationItem.value,
+                        onItemSelected = ::handleBottomNavigationSelection,
+                        onOseboAiClick = {
+                            Toast.makeText(
+                                this@MainActivity,
+                                "Osebo AI is coming next",
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                        },
+                    )
+
+                    if (isMoreMenuVisible.value) {
+                        MoreMenuSheet(
+                            sections = moreMenuSections.value,
+                            onDismiss = ::dismissMoreMenu,
+                            onItemSelected = ::handleMoreMenuSelection,
+                        )
+                    }
+                }
+            }
+        }
+
+        binding.contentOverlay.addView(
+            bottomNavigation,
+            FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                Gravity.BOTTOM,
+            ),
+        )
+
+        binding.mainFab.visibility = View.GONE
+        binding.fabSale.visibility = View.GONE
+        binding.fabProduct.visibility = View.GONE
+    }
+
+    private fun handleBottomNavigationSelection(item: UserNavigationItem) {
+        when (item) {
+            UserNavigationItem.Home -> navigateFromBottomBar(R.id.mainDashboardFragment)
+            UserNavigationItem.Inventory -> {
+                if (permissionManager.hasPermission(PermissionType.VIEW_INVENTORY)) {
+                    navigateWithVerifiedSubscription(R.id.inventoryFragment)
+                } else {
+                    showPermissionDeniedDialog("inventory")
+                }
+            }
+            UserNavigationItem.Sales -> {
+                if (permissionManager.hasPermission(PermissionType.VIEW_SALES)) {
+                    navigateWithVerifiedSubscription(R.id.salesFragment)
+                } else {
+                    showPermissionDeniedDialog("sales")
+                }
+            }
+            UserNavigationItem.More -> {
+                selectedBottomNavigationItem.value = UserNavigationItem.More
+                setupNavigationMenu()
+                isMoreMenuVisible.value = true
+            }
+        }
+    }
+
+    private fun dismissMoreMenu() {
+        isMoreMenuVisible.value = false
+        syncBottomNavigation(navController.currentDestination?.id)
+    }
+
+    private fun handleMoreMenuSelection(item: MoreMenuItem) {
+        isMoreMenuVisible.value = false
+        handleMoreNavigationItem(item.menuItemId)
+    }
+
+    private fun refreshMoreMenuSections() {
+        val hasShops = preferenceManager.hasShop()
+        val isOwner = permissionManager.isShopOwner()
+
+        fun menuItem(
+            menuItemId: Int,
+            label: String,
+            iconRes: Int,
+            visible: Boolean = true,
+            isDestructive: Boolean = false,
+        ): MoreMenuItem? {
+            if (!visible) return null
+            return MoreMenuItem(
+                menuItemId = menuItemId,
+                label = label,
+                iconRes = iconRes,
+                isDestructive = isDestructive,
+            )
+        }
+
+        val subscriptionLabel = if (hasAccessToBusinessOperations()) "Subscription" else "UPGRADE NOW"
+
+        moreMenuSections.value = listOf(
+            MoreMenuSection(
+                title = "Shop",
+                items = listOfNotNull(
+                    menuItem(
+                        R.id.nav_shops,
+                        "Shops",
+                        R.drawable.ic_iconsax_shop,
+                        visible = isOwner,
+                    ),
+                    menuItem(
+                        R.id.nav_shop_home,
+                        "Shop Home",
+                        R.drawable.ic_iconsax_home,
+                        visible = hasShops,
+                    ),
+                ),
+            ),
+            MoreMenuSection(
+                title = "Business",
+                items = listOfNotNull(
+                    menuItem(
+                        R.id.nav_finance,
+                        "Finance",
+                        R.drawable.ic_iconsax_finance,
+                        visible = hasShops && permissionManager.hasPermission(PermissionType.VIEW_FINANCE),
+                    ),
+                    menuItem(
+                        R.id.nav_transfers,
+                        "Transfers",
+                        R.drawable.ic_iconsax_transfer,
+                        visible = hasShops,
+                    ),
+                ),
+            ),
+            MoreMenuSection(
+                title = "People",
+                items = listOfNotNull(
+                    menuItem(
+                        R.id.nav_employees,
+                        "Employees",
+                        R.drawable.ic_iconsax_employees,
+                        visible = hasShops && permissionManager.hasPermission(PermissionType.VIEW_EMPLOYEES),
+                    ),
+                    menuItem(
+                        R.id.nav_suppliers,
+                        "Suppliers",
+                        R.drawable.ic_iconsax_suppliers,
+                        visible = hasShops && permissionManager.hasPermission(PermissionType.VIEW_INVENTORY),
+                    ),
+                    menuItem(
+                        R.id.nav_customers,
+                        "Customers",
+                        R.drawable.ic_iconsax_customers,
+                        visible = hasShops && permissionManager.hasPermission(PermissionType.VIEW_CUSTOMERS),
+                    ),
+                ),
+            ),
+            MoreMenuSection(
+                title = "Account & Support",
+                items = listOfNotNull(
+                    menuItem(
+                        R.id.nav_subscription,
+                        subscriptionLabel,
+                        R.drawable.ic_iconsax_subscription,
+                        visible = hasShops && isOwner,
+                    ),
+                    menuItem(
+                        R.id.nav_user_roles,
+                        "User Roles",
+                        R.drawable.ic_iconsax_roles,
+                        visible = hasShops && isOwner,
+                    ),
+                    menuItem(
+                        R.id.nav_account,
+                        "Account",
+                        R.drawable.ic_iconsax_account,
+                        visible = hasShops &&
+                            (isOwner || permissionManager.hasPermission(PermissionType.VIEW_EMPLOYEES)),
+                    ),
+                    menuItem(R.id.nav_contact_us, "Contact Us", R.drawable.ic_iconsax_contact),
+                    menuItem(
+                        R.id.nav_logout,
+                        "Logout",
+                        R.drawable.ic_iconsax_logout,
+                        isDestructive = true,
+                    ),
+                ),
+            ),
+        ).filter { it.items.isNotEmpty() }
+    }
+
+    private fun navigateFromBottomBar(destinationId: Int) {
+        if (navController.currentDestination?.id != destinationId) {
+            navController.navigate(destinationId)
+        }
+    }
+
+    private fun navigateWithVerifiedSubscription(destinationId: Int) {
+        if (!permissionManager.isShopOwner()) {
+            navigateFromBottomBar(destinationId)
+            return
+        }
+        if (!preferenceManager.hasShop()) {
+            showSelectShopFirstDialog()
+            return
+        }
+        if (isSubscriptionRefreshInProgress) return
+
+        isSubscriptionRefreshInProgress = true
+        lifecycleScope.launch {
+            val verification = try {
+                refreshCurrentSubscriptionStatus()
+            } catch (error: Exception) {
+                Log.w("SubscriptionCheck", "Subscription verification failed", error)
+                SubscriptionVerification.Unavailable
+            } finally {
+                isSubscriptionRefreshInProgress = false
+            }
+
+            when (verification) {
+                SubscriptionVerification.Active -> navigateFromBottomBar(destinationId)
+                SubscriptionVerification.Inactive -> showSubscriptionRequiredDialog()
+                SubscriptionVerification.Unavailable -> {
+                    if (hasAccessToBusinessOperations()) {
+                        navigateFromBottomBar(destinationId)
+                    } else {
+                        Toast.makeText(
+                            this@MainActivity,
+                            "Unable to verify your subscription. Please sign in again or retry.",
+                            Toast.LENGTH_LONG,
+                        ).show()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun syncBottomNavigation(destinationId: Int?) {
+        selectedBottomNavigationItem.value = when {
+            destinationId == null || destinationId == R.id.mainDashboardFragment -> {
+                UserNavigationItem.Home
+            }
+            destinationId in inventoryBottomNavigationDestinations -> {
+                UserNavigationItem.Inventory
+            }
+            destinationId in salesBottomNavigationDestinations -> {
+                UserNavigationItem.Sales
+            }
+            else -> UserNavigationItem.More
+        }
     }
 
     private fun setupNavigation() {
-        Log.d("NavDrawer_DEBUG", "📍 setupNavigation() called")
-
         val navHostFragment = supportFragmentManager
             .findFragmentById(R.id.fragment_container) as NavHostFragment
         navController = navHostFragment.navController
-        Log.d("NavDrawer_DEBUG", "✅ NavController initialized")
-
-        appBarConfiguration = AppBarConfiguration(
-            setOf(
-                R.id.mainDashboardFragment,
-                R.id.shopsFragment,
-                R.id.salesFragment,
-                R.id.financeFragment,
-                R.id.inventoryFragment,
-                R.id.employeesFragment,
-                R.id.userRolesFragment,
-                R.id.customersFragment
-            ),
-            binding.drawerLayout
-        )
-
-        setupActionBarWithNavController(navController, appBarConfiguration)
-
-        navigationView.setNavigationItemSelectedListener(this)
-        Log.d("NavDrawer_DEBUG", "✅ NavigationItemSelectedListener set")
-
-        navigationView.isClickable = true
-        navigationView.isFocusable = true
-        navigationView.isLongClickable = true
-        Log.d("NavDrawer_DEBUG", "✅ NavigationView interactive properties set")
-
-        binding.topAppBar.setNavigationOnClickListener {
-            Log.d("NavDrawer_DEBUG", "🔵 Hamburger menu clicked - Opening drawer")
-            binding.drawerLayout.openDrawer(GravityCompat.START)
-        }
-
-        binding.drawerLayout.addDrawerListener(object : androidx.drawerlayout.widget.DrawerLayout.DrawerListener {
-            override fun onDrawerSlide(drawerView: View, slideOffset: Float) {}
-            override fun onDrawerOpened(drawerView: View) {}
-            override fun onDrawerClosed(drawerView: View) {}
-            override fun onDrawerStateChanged(newState: Int) {}
-        })
-
-        Log.d("NavDrawer_DEBUG", "✅ setupNavigation() completed successfully")
-    }
-
-    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
-        if (ev != null && binding.drawerLayout.isDrawerOpen(GravityCompat.START)) {
-            Log.d("NavDrawer_DEBUG", "📍 dispatchTouchEvent: action=${getActionName(ev.action)}, x=${ev.x}, y=${ev.y}")
-        }
-        return super.dispatchTouchEvent(ev)
-    }
-
-    private fun getActionName(action: Int): String {
-        return when (action) {
-            MotionEvent.ACTION_DOWN -> "DOWN"
-            MotionEvent.ACTION_UP -> "UP"
-            MotionEvent.ACTION_MOVE -> "MOVE"
-            MotionEvent.ACTION_CANCEL -> "CANCEL"
-            else -> "UNKNOWN($action)"
-        }
     }
 
     private fun setupNavControllerListener() {
         navController.addOnDestinationChangedListener { _, destination, arguments ->
             Log.d("NavDrawer_DEBUG", "📍 Destination changed to: ${destination.label} (ID: ${destination.id})")
+            syncBottomNavigation(destination.id)
 
             if (destination.id == R.id.mainDashboardFragment) {
                 showFab()
             } else {
                 hideFab()
-            }
-
-            when (destination.id) {
-                R.id.shopDashboardFragment -> {
-                    val shopName = preferenceManager.getCurrentShopName()
-                    supportActionBar?.title = shopName.ifEmpty { "Shop Dashboard" }
-                }
-                R.id.mainDashboardFragment -> {
-                    supportActionBar?.title = "Dashboard"
-                }
-                else -> {
-                    supportActionBar?.title = destination.label
-                }
             }
 
             if (permissionManager.isShopOwner()) {
@@ -244,52 +459,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
     }
 
-    // ===== HEADER SETUP – uses navigationView.getHeaderView(0) =====
-    private fun setupHeaderView() {
-        val headerView = navigationView.getHeaderView(0)
-
-        tvUserName = headerView.findViewById(R.id.tv_user_name)
-        tvUserEmail = headerView.findViewById(R.id.tv_user_email)
-        tvUserInitial = headerView.findViewById(R.id.tv_user_initial)
-        tvAppVersion = headerView.findViewById(R.id.tv_app_version)
-        tvSubscriptionBadge = headerView.findViewById(R.id.tv_subscription_badge)
-        tvCurrentShop = headerView.findViewById(R.id.tv_current_shop)
-        tvViewingMode = headerView.findViewById(R.id.tv_viewing_mode)
-        ivSettings = headerView.findViewById(R.id.iv_settings)
-
-        // Set initial values
-        val userName = preferenceManager.getUserName().takeIf { it.isNotEmpty() } ?: "User"
-        val userEmail = preferenceManager.getUserEmail().takeIf { it.isNotEmpty() } ?: "user@email.com"
-
-        tvUserName.text = userName
-        tvUserEmail.text = userEmail
-        tvAppVersion.text = "v1.2.4 (Build 498)"
-
-        val initial = if (userName.isNotEmpty()) userName.first().uppercase(Locale.getDefault()) else "A"
-        tvUserInitial.text = initial
-
-        // Set subscription badge
-        updateSubscriptionBadge()
-
-        // Set current shop
-        val shopName = preferenceManager.getCurrentShopName().takeIf { it.isNotEmpty() } ?: "No Shop Selected"
-        tvCurrentShop.text = shopName
-
-        // Click listener for settings icon
-        ivSettings.setOnClickListener {
-            navController.navigate(R.id.accountFragment)
-            binding.drawerLayout.closeDrawer(GravityCompat.START)
-        }
-    }
-
-    // ===== HEADER UPDATE METHODS =====
+    // ===== PROFILE AND SHOP UPDATE METHODS =====
     fun updateHeaderUserInfo(userName: String, userEmail: String) {
-        tvUserName.text = userName
-        tvUserEmail.text = userEmail
-
-        val initial = if (userName.isNotEmpty()) userName.first().uppercase(Locale.getDefault()) else "A"
-        tvUserInitial.text = initial
-
         val parts = userName.split(" ", limit = 2)
         preferenceManager.saveUserFullData(
             userId = preferenceManager.getUserId(),
@@ -302,31 +473,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     fun updateHeaderShopInfo(shopName: String) {
         preferenceManager.saveCurrentShopName(shopName)
-        tvCurrentShop.text = shopName.ifEmpty { "No Shop Selected" }
         if (preferenceManager.getCurrentShopId().isNotEmpty()) {
             preferenceManager.saveHasShop(true)
         }
         checkSubscriptionStatus()
-        updateSubscriptionBadge()
-    }
-
-    private fun updateSubscriptionBadge() {
-        val status = preferenceManager.getSubscriptionStatus()
-        when (status.uppercase()) {
-            "ACTIVE", "TRIAL" -> {
-                tvSubscriptionBadge.text = status.uppercase()
-                tvSubscriptionBadge.visibility = View.VISIBLE
-                tvSubscriptionBadge.setBackgroundResource(R.drawable.bg_subscription_badge_active)
-            }
-            "EXPIRED" -> {
-                tvSubscriptionBadge.text = "EXPIRED"
-                tvSubscriptionBadge.visibility = View.VISIBLE
-                tvSubscriptionBadge.setBackgroundResource(R.drawable.bg_subscription_badge_expired)
-            }
-            else -> {
-                tvSubscriptionBadge.visibility = View.GONE
-            }
-        }
     }
 
     // ===== LOAD DATA =====
@@ -374,15 +524,13 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                                         preferenceManager.saveSubscriptionExpiry(selectedShop.subscriptionExpiry ?: "")
                                         preferenceManager.saveSubscriptionType(selectedShop.subscriptionType ?: "")
 
-                                        updateHeaderShopInfo(selectedShop.name)
                                         println("✅ Selected shop: ${selectedShop.name}")
                                     }
                                 }
 
+                                refreshCurrentSubscriptionStatus()
                                 loadCurrentShopData()
-                                checkSubscriptionStatus()
                                 setupNavigationMenu()
-                                updateSubscriptionBadge()
                             }
                             else -> {}
                         }
@@ -474,86 +622,72 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     private fun checkSubscriptionStatus() {
         val shopId = preferenceManager.getCurrentShopId()
-        if (shopId.isNotEmpty()) {
+        if (shopId.isEmpty() || !permissionManager.isShopOwner()) {
             setupNavigationMenu()
-            preferenceManager.debugSubscriptionInfo()
+            return
+        }
+        if (isSubscriptionRefreshInProgress) return
+
+        isSubscriptionRefreshInProgress = true
+        lifecycleScope.launch {
+            try {
+                refreshCurrentSubscriptionStatus()
+                loadCurrentShopData()
+                setupNavigationMenu()
+                preferenceManager.debugSubscriptionInfo()
+            } finally {
+                isSubscriptionRefreshInProgress = false
+            }
         }
     }
 
-    // ===== NAVIGATION MENU =====
-    private fun setupNavigationMenu() {
-        Log.d("NavDrawer_DEBUG", "📍 setupNavigationMenu() called")
+    private suspend fun refreshCurrentSubscriptionStatus(): SubscriptionVerification {
+        if (!permissionManager.isShopOwner()) return SubscriptionVerification.Active
 
-        val menu = navigationView.menu
-        val hasShops = preferenceManager.hasShop()
-        val isOwner = permissionManager.isShopOwner()
+        val shopId = preferenceManager.getCurrentShopUuid()
+            .ifBlank { preferenceManager.getCurrentShopId() }
+        if (shopId.isBlank()) return SubscriptionVerification.Inactive
 
-        Log.d("NavDrawer_DEBUG", "📊 Menu setup state: hasShops=$hasShops, isOwner=$isOwner")
-
-        // Always visible
-        menu.findItem(R.id.nav_dashboard).isVisible = true
-        menu.findItem(R.id.nav_contact_us).isVisible = true
-        menu.findItem(R.id.nav_logout).isVisible = true
-
-        // Shop management - only for owners
-        menu.findItem(R.id.nav_shops).isVisible = isOwner
-        menu.findItem(R.id.nav_shop_home).isVisible = hasShops
-
-        // Business operations based on permissions
-        val businessItems = mapOf(
-            R.id.nav_sales to PermissionType.VIEW_SALES,
-            R.id.nav_finance to PermissionType.VIEW_FINANCE,
-            R.id.nav_inventory to PermissionType.VIEW_INVENTORY,
-            R.id.nav_employees to PermissionType.VIEW_EMPLOYEES,
-            R.id.nav_customers to PermissionType.VIEW_CUSTOMERS
-        )
-        businessItems.forEach { (itemId, permission) ->
-            val isVisible = hasShops && permissionManager.hasPermission(permission)
-            menu.findItem(itemId).isVisible = isVisible
-            Log.d("NavDrawer_DEBUG", "  Menu item $itemId: visible=$isVisible, permission=$permission")
-        }
-
-        menu.findItem(R.id.nav_suppliers).isVisible = hasShops &&
-                permissionManager.hasPermission(PermissionType.VIEW_INVENTORY)
-        menu.findItem(R.id.nav_transfers).isVisible = hasShops
-
-        // Subscription - only for owners
-        val subscriptionItem = menu.findItem(R.id.nav_subscription)
-        subscriptionItem.isVisible = hasShops && isOwner
-        if (hasShops && isOwner) {
-            if (!hasAccessToBusinessOperations()) {
-                subscriptionItem.title = "UPGRADE NOW"
-                subscriptionItem.icon = ContextCompat.getDrawable(this, R.drawable.ic_upgrade)
-            } else {
-                subscriptionItem.title = "Subscription"
-                subscriptionItem.icon = ContextCompat.getDrawable(this, R.drawable.ic_subscription)
+        return when (val result = subscriptionRepository.checkShopSubscription(shopId)) {
+            is Resource.Success -> {
+                val status = result.data
+                if (status.resolvedIsActive) {
+                    preferenceManager.saveSubscriptionInfo(
+                        subscriptionId = status.resolvedSubscriptionId,
+                        status = status.resolvedStatus,
+                        type = status.resolvedType,
+                        expiry = status.resolvedExpiry,
+                    )
+                    SubscriptionVerification.Active
+                } else {
+                    preferenceManager.clearSubscriptionInfo()
+                    preferenceManager.saveSubscriptionStatus(status.resolvedStatus)
+                    SubscriptionVerification.Inactive
+                }
             }
+            is Resource.Error -> {
+                Log.w("SubscriptionCheck", "Unable to verify subscription: ${result.message}")
+                SubscriptionVerification.Unavailable
+            }
+            is Resource.Loading -> SubscriptionVerification.Unavailable
         }
+    }
 
-        // Account - only for owners or employees with VIEW_EMPLOYEES
-        menu.findItem(R.id.nav_account).isVisible = hasShops &&
-                (isOwner || permissionManager.hasPermission(PermissionType.VIEW_EMPLOYEES))
-
-        val userRolesItem = menu.findItem(R.id.nav_user_roles)
-        userRolesItem.isVisible = hasShops && isOwner
-        Log.d("NavDrawer_DEBUG", "  Menu item nav_user_roles: visible=${userRolesItem.isVisible} (isOwner=$isOwner)")
-
-        // Update subscription badge in header
-        updateSubscriptionBadge()
-        Log.d("NavDrawer_DEBUG", "✅ setupNavigationMenu() completed")
+    // ===== MORE MENU =====
+    private fun setupNavigationMenu() {
+        refreshMoreMenuSections()
     }
 
     fun refreshNavigationMenu() {
         setupNavigationMenu()
-        navigationView.invalidate()
     }
 
-    override fun onNavigationItemSelected(item: MenuItem): Boolean {
-        Log.d("NavDrawer_DEBUG", "🔴 ============ MenuItem CLICKED ============")
-        Log.d("NavDrawer_DEBUG", "   itemId: ${item.itemId}")
-        Log.d("NavDrawer_DEBUG", "   title: ${item.title}")
+    fun refreshSubscriptionForCurrentShop() {
+        checkSubscriptionStatus()
+    }
 
-        when (item.itemId) {
+    private fun handleMoreNavigationItem(itemId: Int) {
+        when (itemId) {
             R.id.nav_dashboard -> navController.navigate(R.id.mainDashboardFragment)
             R.id.nav_shops -> {
                 if (permissionManager.isShopOwner()) navController.navigate(R.id.shopsFragment)
@@ -594,11 +728,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             }
             R.id.nav_user_roles -> {
                 if (permissionManager.isShopOwner()) navController.navigate(R.id.userRolesFragment)
-                else {
-                    showPermissionDeniedDialog("user roles management")
-                    binding.drawerLayout.closeDrawer(GravityCompat.START)
-                    return true
-                }
+                else showPermissionDeniedDialog("user roles management")
             }
             R.id.nav_account -> {
                 val hasViewPermission = permissionManager.hasPermission(PermissionType.VIEW_EMPLOYEES)
@@ -610,16 +740,13 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             R.id.nav_logout -> logout()
             else -> Toast.makeText(this, "Feature coming soon", Toast.LENGTH_SHORT).show()
         }
-
-        binding.drawerLayout.closeDrawer(GravityCompat.START)
-        return true
     }
 
     // ===== FAB METHODS =====
     private fun showFab() {
-        binding.mainFab.visibility = View.VISIBLE
-        binding.mainFab.alpha = 0f
-        binding.mainFab.animate().alpha(1f).setDuration(300).start()
+        binding.mainFab.visibility = View.GONE
+        binding.fabSale.visibility = View.GONE
+        binding.fabProduct.visibility = View.GONE
     }
 
     private fun hideFab() {
@@ -813,7 +940,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     fun onSubscriptionUpdated() {
         checkSubscriptionStatus()
-        updateSubscriptionBadge()
         Toast.makeText(this, "Subscription updated successfully!", Toast.LENGTH_SHORT).show()
     }
 
@@ -843,7 +969,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                             runOnUiThread {
                                 updateHeaderShopInfo(activeShop.name)
                                 setupNavigationMenu()
-                                updateSubscriptionBadge()
                                 reloadDashboardFragment()
                             }
                         } else {
@@ -856,7 +981,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                                 runOnUiThread {
                                     updateHeaderShopInfo(fallback.name)
                                     setupNavigationMenu()
-                                    updateSubscriptionBadge()
                                 }
                             }
                         }
@@ -880,14 +1004,11 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     // ===== NAVIGATION =====
     override fun onSupportNavigateUp(): Boolean {
-        return navController.navigateUp(appBarConfiguration) || super.onSupportNavigateUp()
+        return navController.navigateUp() || super.onSupportNavigateUp()
     }
 
     override fun onBackPressed() {
         when {
-            binding.drawerLayout.isDrawerOpen(GravityCompat.START) -> {
-                binding.drawerLayout.closeDrawer(GravityCompat.START)
-            }
             isFabMenuOpen -> {
                 toggleFabMenu()
             }

@@ -57,10 +57,12 @@ class CustomerViewModel(
             }
         }
         val totalSales = allCustomers.sumOf { it.totalSpent }
+        val vipCustomers = allCustomers.map(::toUi).count { it.isVip }
         update {
             it.copy(
                 customers = filtered.map(::toUi),
                 totalCustomersLabel = allCustomers.size.toString(),
+                vipCustomersLabel = vipCustomers.toString(),
                 totalSalesLabel = formatCompact(totalSales),
             )
         }

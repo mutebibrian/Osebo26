@@ -141,8 +141,7 @@
     <fragment
         android:id="@+id/shopDashboardFragment"
         android:name="com.devbrian.osebo.fragments.ShopDashboardFragment"
-        android:label="Shop Dashboard"
-        tools:layout="@layout/fragment_shop_dashboard">
+        android:label="Shop Dashboard">
 
         <argument
             android:name="shopId"
@@ -215,8 +214,7 @@
     <fragment
         android:id="@+id/shopsFragment"
         android:name="com.devbrian.osebo.fragments.ShopsFragment"
-        android:label="My Shops"
-        tools:layout="@layout/fragment_shops">
+        android:label="My Shops">
 
         <action
             android:id="@+id/action_shopsFragment_to_shopDetailsFragment"
@@ -256,8 +254,7 @@
     <fragment
         android:id="@+id/salesFragment"
         android:name="com.devbrian.osebo.fragments.SalesFragment"
-        android:label="Sales"
-        tools:layout="@layout/fragment_sales" />
+        android:label="Sales" />
 
     <!-- New Sale Fragment -->
     <fragment
@@ -390,8 +387,7 @@
     <fragment
         android:id="@+id/financeFragment"
         android:name="com.devbrian.osebo.fragments.FinanceFragment"
-        android:label="Finance"
-        tools:layout="@layout/fragment_finance">
+        android:label="Finance">
 
         <action
             android:id="@+id/action_financeFragment_to_addExpenseFragment"
@@ -431,36 +427,31 @@
     <fragment
         android:id="@+id/reportsFragment"
         android:name="com.devbrian.osebo.fragments.ReportsFragment"
-        android:label="Reports"
-        tools:layout="@layout/fragment_reports" />
+        android:label="Reports" />
 
     <!-- Finance Settings Fragment -->
     <fragment
         android:id="@+id/financeSettingsFragment"
         android:name="com.devbrian.osebo.fragments.FinanceSettingsFragment"
-        android:label="Finance Settings"
-        tools:layout="@layout/fragment_finance_settings" />
+        android:label="Finance Settings" />
 
     <!-- Expense Categories Fragment -->
     <fragment
         android:id="@+id/expenseCategoriesFragment"
         android:name="com.devbrian.osebo.fragments.ExpenseCategoriesFragment"
-        android:label="Expense Categories"
-        tools:layout="@layout/fragment_expense_categories" />
+        android:label="Expense Categories" />
 
     <!-- Financial Statement Fragment -->
     <fragment
         android:id="@+id/financialStatementFragment"
         android:name="com.devbrian.osebo.fragments.FinancialStatementFragment"
-        android:label="Financial Statement"
-        tools:layout="@layout/fragment_financial_statement" />
+        android:label="Financial Statement" />
 
     <!-- Transactions Fragment -->
     <fragment
         android:id="@+id/transactionsFragment"
         android:name="com.devbrian.osebo.fragments.TransactionsFragment"
-        android:label="Transactions"
-        tools:layout="@layout/fragment_transactions">
+        android:label="Transactions">
 
         <action
             android:id="@+id/action_transactionsFragment_to_addExpenseFragment"
@@ -472,8 +463,7 @@
     <fragment
         android:id="@+id/inventoryFragment"
         android:name="com.devbrian.osebo.fragments.InventoryFragment"
-        android:label="Inventory"
-        tools:layout="@layout/fragment_inventory">
+        android:label="Inventory">
 
         <action
             android:id="@+id/action_inventory_to_addProduct"
@@ -497,22 +487,19 @@
     <fragment
         android:id="@+id/suppliersFragment"
         android:name="com.devbrian.osebo.fragments.SuppliersFragment"
-        android:label="Suppliers"
-        tools:layout="@layout/fragment_suppliers" />
+        android:label="Suppliers" />
 
     <!-- Restock Fragment -->
     <fragment
         android:id="@+id/restockFragment"
         android:name="com.devbrian.osebo.fragments.RestockFragment"
-        android:label="Restock Products"
-        tools:layout="@layout/fragment_restock" />
+        android:label="Add Stock" />
 
     <!-- Add Expense Fragment -->
     <fragment
         android:id="@+id/addExpenseFragment"
         android:name="com.devbrian.osebo.fragments.AddExpenseFragment"
-        android:label="Add Expense"
-        tools:layout="@layout/fragment_add_expense" />
+        android:label="Add Expense" />
 
     <!-- Add Product Fragment -->
     <fragment
@@ -554,8 +541,7 @@
     <fragment
         android:id="@+id/employeesFragment"
         android:name="com.devbrian.osebo.fragments.EmployeesFragment"
-        android:label="Employees"
-        tools:layout="@layout/fragment_employees">
+        android:label="Employees">
 
         <action
             android:id="@+id/action_employeesFragment_to_userRolesFragment"
@@ -572,8 +558,7 @@
     <fragment
         android:id="@+id/contactUsFragment"
         android:name="com.devbrian.osebo.fragments.ContactUsFragment"
-        android:label="Contact Us"
-        tools:layout="@layout/fragment_contact_us">
+        android:label="Contact Us">
 
         <action
             android:id="@+id/action_contactUsFragment_to_faqFragment"
@@ -584,7 +569,7 @@
     <!-- FAQ Fragment -->
     <fragment
         android:id="@+id/faqFragment"
-        android:name="com.devbrian.osebo.fragments.FaqDetailDialogFragment"
+        android:name="com.devbrian.osebo.fragments.FaqFragment"
         android:label="FAQs"
         tools:layout="@layout/fragment_faq" />
 
@@ -598,8 +583,7 @@
     <fragment
         android:id="@+id/accountFragment"
         android:name="com.devbrian.osebo.fragments.AccountFragment"
-        android:label="Account"
-        tools:layout="@layout/fragment_account">
+        android:label="Account">
 
         <action
             android:id="@+id/action_accountFragment_to_sessionsFragment"
@@ -654,8 +638,7 @@
     <fragment
         android:id="@+id/sessionsFragment"
         android:name="com.devbrian.osebo.fragments.SessionsFragment"
-        android:label="Active Sessions"
-        tools:layout="@layout/fragment_sessions" />
+        android:label="Active Sessions" />
 
     <!-- Payment Dialog Fragment -->
     <dialog

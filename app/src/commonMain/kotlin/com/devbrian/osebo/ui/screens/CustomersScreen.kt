@@ -1,36 +1,39 @@
 package com.devbrian.osebo.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -45,11 +48,24 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.devbrian.osebo.ui.components.SearchField
-import com.devbrian.osebo.ui.theme.OseboColors
+import androidx.compose.ui.unit.sp
+import com.devbrian.osebo.resources.Res
+import com.devbrian.osebo.resources.iconsax_add
+import com.devbrian.osebo.resources.iconsax_customers
+import com.devbrian.osebo.resources.iconsax_filter
+import com.devbrian.osebo.resources.iconsax_more
+import com.devbrian.osebo.resources.iconsax_refresh
+import com.devbrian.osebo.resources.iconsax_search
+import com.devbrian.osebo.ui.theme.oseboFontFamily
+import org.jetbrains.compose.resources.painterResource
 
 data class CustomerUi(
     val id: String,
@@ -77,6 +93,7 @@ data class CustomersUiState(
     val isLoading: Boolean = false,
     val customers: List<CustomerUi> = emptyList(),
     val totalCustomersLabel: String = "0",
+    val vipCustomersLabel: String = "0",
     val totalSalesLabel: String = "0",
     val errorMessage: String? = null,
     val successMessage: String? = null,
@@ -89,20 +106,43 @@ data class CustomersUiState(
     val isSubmitting: Boolean = false,
 )
 
+private enum class CustomerFilter(val label: String) {
+    All("All customers"),
+    Vip("VIP"),
+    Regular("Regular"),
+}
+
+private val CustomerCanvas = Color(0xFFF0F3F4)
+private val CustomerSurface = Color(0xFFFAFBFB)
+private val CustomerWhite = Color.White
+private val CustomerInk = Color(0xFF171B1F)
+private val CustomerMuted = Color(0xFF768087)
+private val CustomerBorder = Color(0xFFDDE3E5)
+private val CustomerBlue = Color(0xFF087FC4)
+private val CustomerGreen = Color(0xFF23A36D)
+private val CustomerGold = Color(0xFFD8952B)
+private val CustomerRed = Color(0xFFE75A67)
+private val CustomerAqua = Color(0xFF2DAFC1)
+private val CustomerAquaGradient = listOf(Color(0xFFD7F2F5), Color(0xFFF0FAFA))
+
 private val AvatarPalette = listOf(
-    Color(0xFFFF6B6B), Color(0xFF4ECDC4), Color(0xFFFFD166),
-    Color(0xFF06D6A0), Color(0xFF118AB2), Color(0xFFEF476F), Color(0xFF073B4C),
+    Color(0xFF2178A8),
+    Color(0xFF3A8D7C),
+    Color(0xFFB2763B),
+    Color(0xFF765FA8),
+    Color(0xFFB65F72),
+    Color(0xFF53719A),
 )
 
 private fun avatarColorFor(name: String): Color {
     if (name.isEmpty()) return AvatarPalette.first()
-    val index = kotlin.math.abs(name.hashCode()) % AvatarPalette.size
-    return AvatarPalette[index]
+    return AvatarPalette[kotlin.math.abs(name.hashCode()) % AvatarPalette.size]
 }
 
 @Composable
 fun CustomersScreen(
     state: CustomersUiState,
+    onRefreshClick: () -> Unit = {},
     onSearchQueryChange: (String) -> Unit = {},
     onAddClick: () -> Unit = {},
     onViewDetails: (CustomerUi) -> Unit = {},
@@ -120,6 +160,14 @@ fun CustomersScreen(
     onMessageShown: () -> Unit = {},
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
+    var filter by remember { mutableStateOf(CustomerFilter.All) }
+    val filteredCustomers = state.customers.filter { customer ->
+        when (filter) {
+            CustomerFilter.All -> true
+            CustomerFilter.Vip -> customer.isVip
+            CustomerFilter.Regular -> !customer.isVip
+        }
+    }
 
     LaunchedEffect(state.successMessage, state.errorMessage) {
         val message = state.successMessage ?: state.errorMessage
@@ -130,51 +178,77 @@ fun CustomersScreen(
     }
 
     Scaffold(
-        containerColor = OseboColors.Background,
+        containerColor = CustomerCanvas,
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        floatingActionButton = {
-            FloatingActionButton(onClick = onAddClick, containerColor = OseboColors.Primary) {
-                Icon(Icons.Filled.Add, contentDescription = "Add customer", tint = OseboColors.OnPrimary)
+    ) { scaffoldPadding ->
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(scaffoldPadding),
+            contentPadding = PaddingValues(start = 20.dp, top = 14.dp, end = 20.dp, bottom = 138.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            item {
+                CustomersHeader(
+                    isLoading = state.isLoading,
+                    onRefreshClick = onRefreshClick,
+                    onAddClick = onAddClick,
+                )
             }
-        },
-    ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp)) {
-            Spacer(Modifier.height(12.dp))
-            Text("Customers", style = MaterialTheme.typography.headlineSmall, color = OseboColors.OnSurface)
-            Spacer(Modifier.height(12.dp))
-
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                StatCard(label = "Total Customers", value = state.totalCustomersLabel, modifier = Modifier.weight(1f))
-                StatCard(label = "Total Sales", value = state.totalSalesLabel, modifier = Modifier.weight(1f))
+            item { Spacer(Modifier.height(4.dp)) }
+            item {
+                CustomerOverview(
+                    totalCustomers = state.totalCustomersLabel,
+                    vipCustomers = state.vipCustomersLabel,
+                    totalSales = state.totalSalesLabel,
+                )
             }
-            Spacer(Modifier.height(12.dp))
-
-            SearchField(
-                query = state.searchQuery,
-                onQueryChange = onSearchQueryChange,
-                placeholder = "Search customers...",
-                onFilterClick = null,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(Modifier.height(8.dp))
-
-            Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
-                when {
-                    state.isLoading -> CircularProgressIndicator(color = OseboColors.Primary, modifier = Modifier.align(Alignment.Center))
-                    state.customers.isEmpty() -> EmptyCustomersState()
-                    else -> LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        contentPadding = PaddingValues(top = 8.dp, bottom = 88.dp),
-                    ) {
-                        items(state.customers, key = { it.id }) { customer ->
-                            CustomerCard(
-                                customer = customer,
-                                onClick = { onViewDetails(customer) },
-                                onEditClick = { onEditClick(customer) },
-                                onDeleteClick = { onDeleteClick(customer) },
-                            )
-                        }
+            item {
+                CustomerSearchField(
+                    query = state.searchQuery,
+                    onQueryChange = onSearchQueryChange,
+                )
+            }
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    CustomerFilter.entries.forEach { option ->
+                        CustomerFilterChip(
+                            label = option.label,
+                            selected = option == filter,
+                            onClick = { filter = option },
+                        )
                     }
+                }
+            }
+            item {
+                CustomerSectionTitle(
+                    title = "Your customers",
+                    subtitle = "${filteredCustomers.size} ${if (filteredCustomers.size == 1) "customer" else "customers"}",
+                )
+            }
+            when {
+                state.isLoading && state.customers.isEmpty() -> item {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().height(220.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CircularProgressIndicator(color = CustomerBlue, strokeWidth = 2.dp)
+                    }
+                }
+                filteredCustomers.isEmpty() -> item {
+                    EmptyCustomersState(
+                        hasActiveSearch = state.searchQuery.isNotBlank() || filter != CustomerFilter.All,
+                        onAddClick = onAddClick,
+                    )
+                }
+                else -> items(filteredCustomers, key = { it.id }) { customer ->
+                    CustomerCard(
+                        customer = customer,
+                        onClick = { onViewDetails(customer) },
+                        onEditClick = { onEditClick(customer) },
+                        onDeleteClick = { onDeleteClick(customer) },
+                    )
                 }
             }
         }
@@ -185,12 +259,16 @@ fun CustomersScreen(
     }
 
     state.customerForDelete?.let { customer ->
-        DeleteCustomerDialog(customer = customer, onDismiss = onDismissDelete, onConfirm = onConfirmDelete)
+        DeleteCustomerDialog(
+            customer = customer,
+            onDismiss = onDismissDelete,
+            onConfirm = onConfirmDelete,
+        )
     }
 
     if (state.showAddDialog) {
         CustomerFormDialog(
-            title = "Add New Customer",
+            title = "Add new customer",
             form = state.addForm,
             isSubmitting = state.isSubmitting,
             onFormChange = onAddFormChange,
@@ -212,15 +290,245 @@ fun CustomersScreen(
 }
 
 @Composable
-private fun StatCard(label: String, value: String, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(OseboColors.Surface)
-            .padding(16.dp),
+private fun CustomersHeader(
+    isLoading: Boolean,
+    onRefreshClick: () -> Unit,
+    onAddClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top)),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(value, style = MaterialTheme.typography.titleLarge, color = OseboColors.OnSurface)
-        Text(label, style = MaterialTheme.typography.bodySmall, color = OseboColors.OnSurfaceVariant)
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                "Customers",
+                color = CustomerInk,
+                fontFamily = oseboFontFamily(),
+                fontSize = 27.sp,
+                lineHeight = 34.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                "Relationships that grow your business",
+                color = CustomerMuted,
+                fontFamily = oseboFontFamily(),
+                fontSize = 10.sp,
+            )
+        }
+        Row(
+            modifier = Modifier
+                .height(38.dp)
+                .clip(RoundedCornerShape(50))
+                .background(CustomerInk)
+                .clickable(onClick = onAddClick)
+                .padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                painter = painterResource(Res.drawable.iconsax_add),
+                contentDescription = null,
+                tint = CustomerWhite,
+                modifier = Modifier.size(16.dp),
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                "Add",
+                color = CustomerWhite,
+                fontFamily = oseboFontFamily(),
+                fontSize = 10.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+        IconButton(onClick = onRefreshClick, enabled = !isLoading) {
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    color = CustomerBlue,
+                    strokeWidth = 2.dp,
+                )
+            } else {
+                Icon(
+                    painter = painterResource(Res.drawable.iconsax_refresh),
+                    contentDescription = "Refresh customers",
+                    tint = CustomerBlue,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CustomerOverview(totalCustomers: String, vipCustomers: String, totalSales: String) {
+    val shape = RoundedCornerShape(30.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(146.dp)
+            .clip(shape)
+            .background(
+                Brush.linearGradient(
+                    colors = CustomerAquaGradient,
+                    start = Offset.Zero,
+                    end = Offset.Infinite,
+                ),
+            )
+            .border(1.dp, CustomerWhite.copy(alpha = 0.9f), shape)
+            .padding(15.dp),
+    ) {
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+            Column(modifier = Modifier.weight(1f).padding(top = 2.dp)) {
+                Text(
+                    "UGX $totalSales",
+                    color = Color(0xFF14243A),
+                    fontFamily = oseboFontFamily(),
+                    fontSize = 18.sp,
+                    lineHeight = 22.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    "Lifetime customer sales",
+                    color = Color(0xFF5F6B76),
+                    fontFamily = oseboFontFamily(),
+                    fontSize = 9.sp,
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .size(30.dp)
+                    .background(CustomerWhite.copy(alpha = 0.72f), CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    painter = painterResource(Res.drawable.iconsax_customers),
+                    contentDescription = null,
+                    tint = Color(0xFF14243A),
+                    modifier = Modifier.size(17.dp),
+                )
+            }
+        }
+
+        Spacer(Modifier.weight(1f))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.spacedBy(22.dp),
+        ) {
+            CustomerOverviewMetric(value = totalCustomers, label = "total customers")
+            CustomerOverviewMetric(value = vipCustomers, label = "VIP customers", accent = CustomerGold)
+            Spacer(Modifier.weight(1f))
+            Box(
+                modifier = Modifier
+                    .width(46.dp)
+                    .height(5.dp)
+                    .background(CustomerAqua, RoundedCornerShape(50)),
+            )
+        }
+    }
+}
+
+@Composable
+private fun CustomerOverviewMetric(value: String, label: String, accent: Color = CustomerGreen) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(6.dp).background(accent, CircleShape))
+        Spacer(Modifier.width(7.dp))
+        Column {
+            Text(
+                value,
+                color = Color(0xFF14243A),
+                fontFamily = oseboFontFamily(),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                label,
+                color = Color(0xFF7A848E),
+                fontFamily = oseboFontFamily(),
+                fontSize = 7.sp,
+            )
+        }
+    }
+}
+
+@Composable
+private fun CustomerSearchField(query: String, onQueryChange: (String) -> Unit) {
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        modifier = Modifier.fillMaxWidth(),
+        placeholder = {
+            Text(
+                "Search name, phone or email",
+                color = CustomerMuted,
+                fontFamily = oseboFontFamily(),
+                fontSize = 11.sp,
+            )
+        },
+        leadingIcon = {
+            Icon(
+                painter = painterResource(Res.drawable.iconsax_search),
+                contentDescription = null,
+                tint = CustomerMuted,
+                modifier = Modifier.size(21.dp),
+            )
+        },
+        trailingIcon = {
+            Icon(
+                painter = painterResource(Res.drawable.iconsax_filter),
+                contentDescription = null,
+                tint = CustomerBlue,
+                modifier = Modifier.size(20.dp),
+            )
+        },
+        singleLine = true,
+        shape = RoundedCornerShape(50),
+        textStyle = TextStyle(
+            color = CustomerInk,
+            fontFamily = oseboFontFamily(),
+            fontSize = 12.sp,
+        ),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedContainerColor = CustomerWhite,
+            unfocusedContainerColor = CustomerWhite,
+            focusedBorderColor = CustomerBlue,
+            unfocusedBorderColor = CustomerBorder,
+            cursorColor = CustomerBlue,
+        ),
+    )
+}
+
+@Composable
+private fun CustomerFilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    Text(
+        text = label,
+        color = if (selected) CustomerWhite else CustomerMuted,
+        fontFamily = oseboFontFamily(),
+        fontSize = 11.sp,
+        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+        modifier = Modifier
+            .background(if (selected) CustomerInk else CustomerWhite, RoundedCornerShape(50))
+            .border(1.dp, if (selected) CustomerInk else CustomerBorder, RoundedCornerShape(50))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 17.dp, vertical = 10.dp),
+    )
+}
+
+@Composable
+private fun CustomerSectionTitle(title: String, subtitle: String) {
+    Column {
+        Text(
+            title,
+            color = CustomerInk,
+            fontFamily = oseboFontFamily(),
+            fontSize = 16.sp,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Text(subtitle, color = CustomerMuted, fontFamily = oseboFontFamily(), fontSize = 10.sp)
     }
 }
 
@@ -232,44 +540,134 @@ private fun CustomerCard(
     onDeleteClick: () -> Unit,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
+    val shape = RoundedCornerShape(20.dp)
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(if (customer.isVip) OseboColors.PrimaryLight else OseboColors.Surface)
+            .height(64.dp)
+            .clip(shape)
+            .background(Color(0xFFF8F9FA))
             .clickable(onClick = onClick)
-            .padding(12.dp),
+            .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
-            modifier = Modifier.size(44.dp).clip(CircleShape).background(avatarColorFor(customer.name)),
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(avatarColorFor(customer.name)),
             contentAlignment = Alignment.Center,
         ) {
-            Text(customer.initials, color = Color.White, style = MaterialTheme.typography.titleMedium)
+            Text(
+                customer.initials,
+                color = CustomerWhite,
+                fontFamily = oseboFontFamily(),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
         }
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(customer.name, style = MaterialTheme.typography.bodyLarge, color = OseboColors.OnSurface)
-            Text(customer.phone, style = MaterialTheme.typography.bodySmall, color = OseboColors.OnSurfaceVariant)
-            Text(customer.email, style = MaterialTheme.typography.bodySmall, color = OseboColors.OnSurfaceVariant)
-            Spacer(Modifier.height(4.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    customer.name,
+                    color = CustomerInk,
+                    fontFamily = oseboFontFamily(),
+                    fontSize = 12.sp,
+                    lineHeight = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                if (customer.isVip) {
+                    Spacer(Modifier.width(7.dp))
+                    Text(
+                        "VIP",
+                        color = CustomerGold,
+                        fontFamily = oseboFontFamily(),
+                        fontSize = 7.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier
+                            .background(CustomerGold.copy(alpha = 0.12f), RoundedCornerShape(50))
+                            .padding(horizontal = 7.dp, vertical = 3.dp),
+                    )
+                }
+            }
             Text(
-                "${customer.purchaseCountLabel} · ${customer.loyaltyPointsLabel} · Last: ${customer.lastPurchaseLabel}",
-                style = MaterialTheme.typography.labelSmall,
-                color = OseboColors.OnSurfaceVariant,
+                customer.phone.ifBlank { "No phone number" },
+                color = CustomerMuted,
+                fontFamily = oseboFontFamily(),
+                fontSize = 8.sp,
+                lineHeight = 10.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Spacer(Modifier.height(1.dp))
+            Text(
+                "${customer.purchaseCountLabel}  •  ${customer.loyaltyPointsLabel}",
+                color = CustomerInk,
+                fontFamily = oseboFontFamily(),
+                fontSize = 7.sp,
+                lineHeight = 9.sp,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
         Column(horizontalAlignment = Alignment.End) {
-            Text(customer.totalSpentLabel, style = MaterialTheme.typography.bodyMedium, color = OseboColors.OnSurface)
-            Box {
-                IconButton(onClick = { menuExpanded = true }) {
-                    Icon(Icons.Filled.MoreVert, contentDescription = "More options", tint = OseboColors.IconInactive)
-                }
-                DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                    DropdownMenuItem(text = { Text("View details") }, onClick = { menuExpanded = false; onClick() })
-                    DropdownMenuItem(text = { Text("Edit") }, onClick = { menuExpanded = false; onEditClick() })
-                    DropdownMenuItem(text = { Text("Delete", color = OseboColors.Error) }, onClick = { menuExpanded = false; onDeleteClick() })
+            Text(
+                customer.totalSpentLabel,
+                color = CustomerInk,
+                fontFamily = oseboFontFamily(),
+                fontSize = 9.sp,
+                lineHeight = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "total spent",
+                    color = CustomerMuted,
+                    fontFamily = oseboFontFamily(),
+                    fontSize = 6.sp,
+                    lineHeight = 8.sp,
+                )
+                Spacer(Modifier.width(5.dp))
+                Box(
+                    modifier = Modifier
+                        .size(22.dp)
+                        .clip(CircleShape)
+                        .clickable { menuExpanded = true },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        painter = painterResource(Res.drawable.iconsax_more),
+                        contentDescription = "Customer options",
+                        tint = CustomerInk,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false },
+                        containerColor = CustomerWhite,
+                    ) {
+                        DropdownMenuItem(
+                            text = { CustomerMenuText("View details") },
+                            onClick = { menuExpanded = false; onClick() },
+                        )
+                        DropdownMenuItem(
+                            text = { CustomerMenuText("Edit") },
+                            onClick = { menuExpanded = false; onEditClick() },
+                        )
+                        DropdownMenuItem(
+                            text = { CustomerMenuText("Delete", CustomerRed) },
+                            onClick = { menuExpanded = false; onDeleteClick() },
+                        )
+                    }
                 }
             }
         }
@@ -277,20 +675,56 @@ private fun CustomerCard(
 }
 
 @Composable
-private fun EmptyCustomersState() {
+private fun CustomerMenuText(label: String, color: Color = CustomerInk) {
+    Text(label, color = color, fontFamily = oseboFontFamily(), fontSize = 12.sp)
+}
+
+@Composable
+private fun EmptyCustomersState(hasActiveSearch: Boolean, onAddClick: () -> Unit) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.fillMaxSize().padding(32.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(CustomerSurface, RoundedCornerShape(24.dp))
+            .border(1.dp, CustomerBorder, RoundedCornerShape(24.dp))
+            .padding(30.dp),
     ) {
-        Spacer(Modifier.height(48.dp))
-        Icon(Icons.Filled.Person, contentDescription = null, tint = OseboColors.IconInactive, modifier = Modifier.size(48.dp))
+        Icon(
+            painter = painterResource(Res.drawable.iconsax_customers),
+            contentDescription = null,
+            tint = if (hasActiveSearch) CustomerMuted else CustomerBlue,
+            modifier = Modifier.size(34.dp),
+        )
         Spacer(Modifier.height(12.dp))
         Text(
-            "No customers yet",
-            style = MaterialTheme.typography.bodyMedium,
-            color = OseboColors.OnSurfaceVariant,
+            if (hasActiveSearch) "No matching customers" else "No customers yet",
+            color = CustomerInk,
+            fontFamily = oseboFontFamily(),
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Text(
+            if (hasActiveSearch) {
+                "Try a different search or customer filter."
+            } else {
+                "Add your first customer to start building relationships."
+            },
+            color = CustomerMuted,
+            fontFamily = oseboFontFamily(),
+            fontSize = 10.sp,
             textAlign = TextAlign.Center,
         )
+        if (!hasActiveSearch) {
+            Spacer(Modifier.height(10.dp))
+            TextButton(onClick = onAddClick) {
+                Text(
+                    "Add customer",
+                    color = CustomerBlue,
+                    fontFamily = oseboFontFamily(),
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+        }
     }
 }
 
@@ -298,28 +732,104 @@ private fun EmptyCustomersState() {
 private fun CustomerDetailsDialog(customer: CustomerUi, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(customer.name) },
-        text = {
+        shape = RoundedCornerShape(28.dp),
+        containerColor = CustomerWhite,
+        title = {
             Column {
-                Text("Phone: ${customer.phone}")
-                Text("Email: ${customer.email}")
-                Text("Total spent: ${customer.totalSpentLabel}")
-                Text("Loyalty points: ${customer.loyaltyPointsLabel}")
-                Text("Customer since: ${customer.customerSinceLabel}")
+                Text(
+                    customer.name,
+                    color = CustomerInk,
+                    fontFamily = oseboFontFamily(),
+                    fontWeight = FontWeight.SemiBold,
+                )
+                if (customer.isVip) {
+                    Text(
+                        "VIP customer",
+                        color = CustomerGold,
+                        fontFamily = oseboFontFamily(),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                CustomerDetailLine("Phone", customer.phone)
+                CustomerDetailLine("Email", customer.email)
+                CustomerDetailLine("Total spent", customer.totalSpentLabel)
+                CustomerDetailLine("Purchases", customer.purchaseCountLabel)
+                CustomerDetailLine("Loyalty", customer.loyaltyPointsLabel)
+                CustomerDetailLine("Last purchase", customer.lastPurchaseLabel)
+                CustomerDetailLine("Customer since", customer.customerSinceLabel)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close", color = CustomerBlue, fontFamily = oseboFontFamily())
+            }
+        },
     )
 }
 
 @Composable
-private fun DeleteCustomerDialog(customer: CustomerUi, onDismiss: () -> Unit, onConfirm: () -> Unit) {
+private fun CustomerDetailLine(label: String, value: String) {
+    Row(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            label,
+            color = CustomerMuted,
+            fontFamily = oseboFontFamily(),
+            fontSize = 10.sp,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            value,
+            color = CustomerInk,
+            fontFamily = oseboFontFamily(),
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Medium,
+            textAlign = TextAlign.End,
+            modifier = Modifier.weight(1.4f),
+        )
+    }
+}
+
+@Composable
+private fun DeleteCustomerDialog(
+    customer: CustomerUi,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Delete Customer") },
-        text = { Text("Delete ${customer.name}?") },
-        confirmButton = { TextButton(onClick = onConfirm) { Text("Delete", color = OseboColors.Error) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        shape = RoundedCornerShape(28.dp),
+        containerColor = CustomerWhite,
+        title = {
+            Text(
+                "Delete customer?",
+                color = CustomerInk,
+                fontFamily = oseboFontFamily(),
+                fontWeight = FontWeight.SemiBold,
+            )
+        },
+        text = {
+            Text(
+                "${customer.name} will be removed from your customer list.",
+                color = CustomerMuted,
+                fontFamily = oseboFontFamily(),
+                fontSize = 12.sp,
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text("Delete", color = CustomerRed, fontFamily = oseboFontFamily())
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = CustomerMuted, fontFamily = oseboFontFamily())
+            }
+        },
     )
 }
 
@@ -334,42 +844,78 @@ private fun CustomerFormDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(title) },
+        shape = RoundedCornerShape(28.dp),
+        containerColor = CustomerWhite,
+        title = {
+            Text(
+                title,
+                color = CustomerInk,
+                fontFamily = oseboFontFamily(),
+                fontWeight = FontWeight.SemiBold,
+            )
+        },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
+            Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                CustomerFormField(
                     value = form.name,
+                    label = "Name*",
                     onValueChange = { onFormChange(form.copy(name = it)) },
-                    label = { Text("Name*") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
                 )
-                OutlinedTextField(
+                CustomerFormField(
                     value = form.phone,
+                    label = "Phone*",
                     onValueChange = { onFormChange(form.copy(phone = it)) },
-                    label = { Text("Phone*") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
                 )
-                OutlinedTextField(
+                CustomerFormField(
                     value = form.email,
+                    label = "Email",
                     onValueChange = { onFormChange(form.copy(email = it)) },
-                    label = { Text("Email") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
                 )
-                OutlinedTextField(
+                CustomerFormField(
                     value = form.location,
+                    label = "Location",
                     onValueChange = { onFormChange(form.copy(location = it)) },
-                    label = { Text("Location") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
                 )
             }
         },
         confirmButton = {
-            TextButton(onClick = onSubmit, enabled = !isSubmitting) { Text(if (isSubmitting) "Saving..." else "Save") }
+            TextButton(onClick = onSubmit, enabled = !isSubmitting) {
+                Text(
+                    if (isSubmitting) "Saving..." else "Save customer",
+                    color = if (isSubmitting) CustomerMuted else CustomerBlue,
+                    fontFamily = oseboFontFamily(),
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = CustomerMuted, fontFamily = oseboFontFamily())
+            }
+        },
+    )
+}
+
+@Composable
+private fun CustomerFormField(value: String, label: String, onValueChange: (String) -> Unit) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label, fontFamily = oseboFontFamily(), fontSize = 11.sp) },
+        singleLine = true,
+        shape = RoundedCornerShape(16.dp),
+        textStyle = TextStyle(
+            color = CustomerInk,
+            fontFamily = oseboFontFamily(),
+            fontSize = 12.sp,
+        ),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = CustomerBlue,
+            unfocusedBorderColor = CustomerBorder,
+            focusedLabelColor = CustomerBlue,
+            unfocusedLabelColor = CustomerMuted,
+            cursorColor = CustomerBlue,
+        ),
+        modifier = Modifier.fillMaxWidth(),
     )
 }
