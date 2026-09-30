@@ -1,10 +1,8 @@
 package com.devbrian.osebo.data.repository
 
 import com.devbrian.osebo.data.remote.dto.request.SignUpRequest
-import com.devbrian.osebo.data.remote.dto.request.ForgotPasswordRequest
 import com.devbrian.osebo.data.remote.dto.request.VerifyOtpRequest
 import com.devbrian.osebo.data.remote.dto.response.*
-import com.devbrian.osebo.models.ApiResponse
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import okio.IOException
@@ -13,6 +11,11 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.*
 import java.util.concurrent.TimeUnit
+
+class AuthRequestException(
+    val statusCode: Int,
+    message: String
+) : Exception(message)
 
 class AuthRepository {
 
@@ -35,8 +38,6 @@ class AuthRepository {
         @POST("api/v1/auth/signin/password")
         suspend fun signInWithPassword(@Body request: Map<String, String>): Response<BaseResponse<PreAuthData>>
 
-        @POST("auth/forgot-password")
-        suspend fun forgotPassword(@Body request: ForgotPasswordRequest): Response<ApiResponse<Unit>>
     }
 
     private val apiService: LocalApiService by lazy {
@@ -82,10 +83,11 @@ class AuthRepository {
                     Result.failure(Exception("Invalid response: missing user ID"))
                 }
             } else {
-                Result.failure(Exception(extractErrorMessage(response)))
+                Result.failure(authFailure(response))
             }
         } catch (e: Exception) {
-            Result.failure(Exception("Request failed: ${e.message}"))
+            if (e is AuthRequestException) Result.failure(e)
+            else Result.failure(Exception("Request failed: ${e.message}"))
         }
     }
 
@@ -150,23 +152,11 @@ class AuthRepository {
                     Result.failure(Exception("Invalid response: missing preAuthToken or accounts"))
                 }
             } else {
-                Result.failure(Exception(extractErrorMessage(response)))
+                Result.failure(authFailure(response))
             }
         } catch (e: Exception) {
-            Result.failure(Exception("Login error: ${e.message}"))
-        }
-    }
-
-    suspend fun requestPasswordReset(email: String): Result<Unit> {
-        return try {
-            val response = apiService.forgotPassword(ForgotPasswordRequest(email))
-            if (response.isSuccessful && response.body()?.success == true) {
-                Result.success(Unit)
-            } else {
-                Result.failure(Exception(extractErrorMessage(response)))
-            }
-        } catch (e: Exception) {
-            Result.failure(Exception("Reset request failed: ${e.message}"))
+            if (e is AuthRequestException) Result.failure(e)
+            else Result.failure(Exception("Login error: ${e.message}"))
         }
     }
 
@@ -210,5 +200,9 @@ class AuthRepository {
         } catch (e: Exception) {
             response.message().takeIf { it.isNotEmpty() } ?: "Error ${response.code()}"
         }
+    }
+
+    private fun authFailure(response: Response<*>): AuthRequestException {
+        return AuthRequestException(response.code(), extractErrorMessage(response))
     }
 }
