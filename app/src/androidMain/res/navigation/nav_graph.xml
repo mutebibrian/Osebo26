@@ -558,8 +558,7 @@
     <fragment
         android:id="@+id/contactUsFragment"
         android:name="com.devbrian.osebo.fragments.ContactUsFragment"
-        android:label="Contact Us"
-        tools:layout="@layout/fragment_contact_us">
+        android:label="Contact Us">
 
         <action
             android:id="@+id/action_contactUsFragment_to_faqFragment"
@@ -570,7 +569,7 @@
     <!-- FAQ Fragment -->
     <fragment
         android:id="@+id/faqFragment"
-        android:name="com.devbrian.osebo.fragments.FaqDetailDialogFragment"
+        android:name="com.devbrian.osebo.fragments.FaqFragment"
         android:label="FAQs"
         tools:layout="@layout/fragment_faq" />
 
