@@ -180,10 +180,9 @@ class SelectAccountActivity : AppCompatActivity() {
 
     private fun saveUserAndProceed(signinData: SigninData) {
         try {
-            // Save tokens
-            preferenceManager.saveAuthToken(signinData.accessToken)
-            preferenceManager.saveRefreshToken(signinData.refreshToken)
-            preferenceManager.setUserLoggedIn(true)
+            // Persist the complete session before navigating away. A single
+            // synchronous transaction survives an immediate process stop.
+            preferenceManager.saveSession(signinData.accessToken, signinData.refreshToken)
 
             // Save user data
             val user = signinData.user

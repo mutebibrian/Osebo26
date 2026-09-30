@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.devbrian.osebo.data.ApiService
 import com.devbrian.osebo.data.PreferenceManager
 import com.devbrian.osebo.data.remote.dto.request.LoginRequest
+import com.devbrian.osebo.data.remote.dto.request.RefreshTokenRequest
 import com.devbrian.osebo.data.remote.dto.request.ResendOtpRequest
 import com.devbrian.osebo.data.remote.dto.request.SelectAccountRequest
 import com.devbrian.osebo.data.remote.dto.request.VerifyTwoFactorRequest
@@ -118,16 +119,16 @@ class LoginViewModel(
     private fun saveTokensAndUserData(authData: AuthData) {
         val user = authData.user ?: return
 
-        preferences.saveAuthToken(authData.accessToken ?: "")
-        preferences.saveRefreshToken(authData.refreshToken ?: "")
+        preferences.saveSession(
+            accessToken = authData.accessToken ?: "",
+            refreshToken = authData.refreshToken ?: ""
+        )
         preferences.saveUserId(user.id ?: "")
         preferences.saveUserEmail(user.email ?: "")
         preferences.saveUserName("${user.firstName ?: ""} ${user.lastName ?: ""}".trim())
         preferences.saveUserPhone(user.phone ?: "")
         preferences.saveUserRole(user.role ?: "owner")  // ✅ role is String?
         preferences.saveUserVerified(user.isVerified ?: true)
-        preferences.setUserLoggedIn(true)
-        preferences.setLastLoginTimestamp(System.currentTimeMillis())
 
         println("💾 Tokens and user data saved successfully")
         println("   User: ${user.firstName} ${user.lastName}")
@@ -336,15 +337,17 @@ class LoginViewModel(
             }
 
             println("🔄 REFRESH: Attempting to refresh token")
-            val response = apiService.refreshToken(refreshToken)
+            val response = apiService.refreshToken(RefreshTokenRequest(refreshToken))
 
             if (response.isSuccessful) {
                 val apiResponse = response.body()
                 if (apiResponse?.success == true && apiResponse.data != null) {
                     val authData = apiResponse.data
 
-                    authData.accessToken?.let { preferences.saveAuthToken(it) }
-                    authData.refreshToken?.let { preferences.saveRefreshToken(it) }
+                    preferences.updateSessionTokens(
+                        accessToken = authData.accessToken,
+                        refreshToken = authData.refreshToken
+                    )
 
                     println("✅ REFRESH: Tokens refreshed successfully")
                     return true
@@ -382,11 +385,7 @@ class LoginViewModel(
     }
 
     private fun clearSession() {
-        preferences.clearAuthToken()
-        preferences.clearRefreshToken()
-        preferences.setUserLoggedIn(false)
-        preferences.clearUserData()
-        preferences.clearTempCredentials()
+        preferences.clearAllAuthData()
         currentPreAuthToken = ""
         availableAccounts = emptyList()
         println("🧹 Session cleared")
