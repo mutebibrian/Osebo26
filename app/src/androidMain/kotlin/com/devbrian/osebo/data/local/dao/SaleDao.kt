@@ -23,6 +23,9 @@ interface SaleDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSale(sale: SaleEntity)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSales(sales: List<SaleEntity>)
+
     @Update
     suspend fun updateSale(sale: SaleEntity)
 
@@ -41,5 +44,4 @@ interface SaleDao {
     @Query("SELECT COUNT(*) FROM sales WHERE shopId = :shopId AND date(createdAt/1000, 'unixepoch') = date('now')")
     suspend fun getTodaySalesCount(shopId: String): Int
 }
-
 

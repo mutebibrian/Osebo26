@@ -225,7 +225,7 @@ class FinanceRepository(
     suspend fun getFinancialStatement(
         startDate: String? = null,
         endDate: String? = null,
-        period: String = "monthly"
+        period: String? = null
     ): Result<FinancialStatement> {
         return try {
             val shopId = preferenceManager.getShopIdentifierForApi()
@@ -236,7 +236,19 @@ class FinanceRepository(
             if (response.isSuccessful && response.body()?.success == true) {
                 val financialStatement = response.body()?.data
                 if (financialStatement != null) {
-                    Result.success(financialStatement)
+                    val filteredStatement = if (startDate != null && endDate != null) {
+                        val filteredEntries = financialStatement.data.orEmpty().filter { transaction ->
+                            val transactionDate = transaction.createdAt.take(10)
+                            transactionDate >= startDate && transactionDate <= endDate
+                        }
+                        financialStatement.copy(
+                            data = filteredEntries,
+                            total = filteredEntries.size,
+                        )
+                    } else {
+                        financialStatement
+                    }
+                    Result.success(filteredStatement)
                 } else {
                     Result.failure(Exception("No data received"))
                 }
@@ -309,7 +321,8 @@ class FinanceRepository(
             val uniqueTransactions = transactions.distinctBy { it.id }
             val filteredTransactions = if (startDate != null && endDate != null) {
                 uniqueTransactions.filter { transaction ->
-                    transaction.date >= startDate && transaction.date <= endDate
+                    val transactionDate = transaction.date.take(10)
+                    transactionDate >= startDate && transactionDate <= endDate
                 }
             } else {
                 uniqueTransactions

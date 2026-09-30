@@ -300,20 +300,18 @@ class SubscriptionViewModel(
 
                         data?.let { statusResponse ->
                             val prefs = PreferenceManager.getInstance(application.applicationContext)
-                            val isActive = statusResponse.isActive
+                            val isActive = statusResponse.resolvedIsActive
 
                             if (isActive) {
-                                prefs.saveSubscriptionStatus(
-                                    if (statusResponse.type == "trial") "TRIAL" else "ACTIVE"
+                                prefs.saveSubscriptionInfo(
+                                    subscriptionId = statusResponse.resolvedSubscriptionId,
+                                    status = statusResponse.resolvedStatus,
+                                    type = statusResponse.resolvedType,
+                                    expiry = statusResponse.resolvedExpiry,
                                 )
-                                statusResponse.subscriptionId?.let {
-                                    prefs.saveSubscriptionId(it)
-                                    prefs.saveCurrentShopUuid(it)
-                                }
-                                statusResponse.type?.let { prefs.saveSubscriptionType(it) }
-                                statusResponse.expiryDate?.let { prefs.saveSubscriptionExpiry(it) }
                             } else {
-                                prefs.saveSubscriptionStatus(statusResponse.status.uppercase())
+                                prefs.clearSubscriptionInfo()
+                                prefs.saveSubscriptionStatus(statusResponse.resolvedStatus)
                             }
                         }
                     }
@@ -345,7 +343,6 @@ class SubscriptionViewModel(
                                 if (subscription.isTrial) "TRIAL" else subscription.effectiveStatus
                             )
                             prefs.saveSubscriptionId(subscription.id)
-                            prefs.saveCurrentShopUuid(subscription.id)
                             prefs.saveSubscriptionType(subscription.packageType)
                             subscription.endDate?.let { prefs.saveSubscriptionExpiry(it) }
                             _currentSubscription.value = Resource.Success(subscription)

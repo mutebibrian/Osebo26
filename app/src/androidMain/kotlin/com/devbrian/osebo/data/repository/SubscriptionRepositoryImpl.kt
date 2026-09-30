@@ -231,27 +231,17 @@ class SubscriptionRepositoryImpl(
             if (response.isSuccessful) {
                 val apiResponse = response.body()
                 if (apiResponse?.success == true) {
-                    Resource.Success(
-                        apiResponse.data ?: ShopSubscriptionStatusResponse(
-                            success = true,
-                            message = "Subscription check successful",
-                            status = "inactive",
-                            type = null,
-                            expiryDate = null,
-                            isActive = false,
-                            daysRemaining = null,
-                            canActivate = true,
-                            shopId = shopId,
-                            shopName = null,
-                            subscriptionId = null,
-                            subscription = null
-                        )
-                    )
+                    apiResponse.data?.let { Resource.Success(it) }
+                        ?: Resource.Error("Subscription status response was empty")
                 } else {
                     Resource.Error(apiResponse?.message ?: "Failed to check subscription")
                 }
             } else {
-                Resource.Error("Network error: ${response.code()}")
+                Resource.Error(
+                    response.errorBody()?.string()
+                        ?.takeIf { it.isNotBlank() }
+                        ?: "Subscription check failed: ${response.code()}"
+                )
             }
         } catch (e: IOException) {
             Resource.Error("Network error: ${e.message ?: "Check your internet connection"}")

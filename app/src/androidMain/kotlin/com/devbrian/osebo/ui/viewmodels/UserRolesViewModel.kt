@@ -33,7 +33,7 @@ class UserRolesViewModel(
         loadRoles()
     }
 
-    private fun loadRoles() {
+    fun loadRoles() {
         update { it.copy(isLoading = true, shopLabel = shopLabel()) }
         viewModelScope.launch {
             try {
@@ -85,7 +85,16 @@ class UserRolesViewModel(
     fun onEditPermissions(role: UserRoleUi) {
         val fullRole = roles.find { it.id == role.id } ?: return
         allCategoriesForEdit = permissionCategoriesFor(fullRole)
-        update { it.copy(editState = EditPermissionsState(role = role, categories = allCategoriesForEdit)) }
+        update {
+            it.copy(
+                editState = EditPermissionsState(
+                    role = role,
+                    categories = allCategoriesForEdit,
+                    selectedCount = selectedPermissionCount(),
+                    totalCount = allCategoriesForEdit.sumOf { category -> category.permissions.size },
+                ),
+            )
+        }
     }
 
     fun onDismissEdit() {
@@ -104,7 +113,16 @@ class UserRolesViewModel(
                 if (matches.isNotEmpty()) category.copy(permissions = matches) else null
             }
         }
-        update { it.copy(editState = edit.copy(searchQuery = query, categories = filtered)) }
+        update {
+            it.copy(
+                editState = edit.copy(
+                    searchQuery = query,
+                    categories = filtered,
+                    selectedCount = selectedPermissionCount(),
+                    totalCount = allCategoriesForEdit.sumOf { category -> category.permissions.size },
+                ),
+            )
+        }
     }
 
     fun onPermissionToggle(categoryName: String, permissionId: String) {
@@ -125,9 +143,19 @@ class UserRolesViewModel(
         viewModelScope.launch {
             update { it.copy(editState = edit.copy(isSaving = true)) }
             delay(1000)
-            update { it.copy(editState = null) }
+            val selectedPermissions = allCategoriesForEdit
+                .flatMap { it.permissions }
+                .filter { it.isChecked }
+                .map { it.name }
+            roles = roles.map { role ->
+                if (role.id == edit.role.id) role.copy(permissions = selectedPermissions) else role
+            }
+            update { it.copy(roles = roles.map(::toUi), editState = null) }
         }
     }
+
+    private fun selectedPermissionCount(): Int =
+        allCategoriesForEdit.sumOf { category -> category.permissions.count { it.isChecked } }
 
     private fun permissionCategoriesFor(role: UserRole): List<PermissionCategoryUi> {
         fun item(id: String, name: String, displayName: String) =
@@ -185,7 +213,12 @@ class UserRolesViewModel(
         )
     }
 
-    private fun toUi(role: UserRole) = UserRoleUi(id = role.id, name = role.name, description = role.description)
+    private fun toUi(role: UserRole) = UserRoleUi(
+        id = role.id,
+        name = role.name,
+        description = role.description,
+        permissionCount = role.permissions.size,
+    )
 
     private fun isValidUUID(uuid: String): Boolean = try {
         UUID.fromString(uuid)

@@ -37,7 +37,8 @@ data class ShopSubscriptionDto(
 
     
     val isTrialActive: Boolean
-        get() = isTrial && isActiveStatus
+        get() = (isTrial || status.equals("TRIAL", ignoreCase = true)) &&
+            (isActiveStatus || status.equals("TRIAL", ignoreCase = true))
 
     
     val displayStatus: String

@@ -32,7 +32,7 @@ val repositoryModule = module {
     single { SalesRepository(get(), get(), get(), get()) }
     single { InventoryRepository(get(), get(), get()) }
     single { CustomerRepository(get(), get(), get(), get()) }
-    single { AccountRepository(get(), get(), get()) }
+    single { AccountRepository(get(), get(), get(), get()) }
     single { DashboardRepository(get(), get(), get()) }
 
     // Interface-bound repositories

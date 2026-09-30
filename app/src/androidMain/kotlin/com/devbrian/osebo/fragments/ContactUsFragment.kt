@@ -3,186 +3,156 @@ package com.devbrian.osebo.fragments
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.util.Patterns
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ArrayAdapter
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
-import com.devbrian.osebo.R
-import com.devbrian.osebo.databinding.FragmentContactUsBinding
+import com.devbrian.osebo.models.contact.ContactInfo
+import com.devbrian.osebo.ui.screens.ContactInfoUi
+import com.devbrian.osebo.ui.screens.ContactUsScreen
+import com.devbrian.osebo.ui.screens.SupportMessageUi
+import com.devbrian.osebo.ui.theme.OseboTheme
 import com.devbrian.osebo.ui.viewmodels.ContactUsViewModel
 import com.google.android.material.snackbar.Snackbar
 
 class ContactUsFragment : Fragment() {
 
-    private lateinit var binding: FragmentContactUsBinding
     private val viewModel: ContactUsViewModel by viewModels()
+    private var contactInfo by mutableStateOf(ContactInfoUi())
+    private var isLoading by mutableStateOf(false)
+    private var resetKey by mutableIntStateOf(0)
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        binding = FragmentContactUsBinding.inflate(inflater, container, false)
-        return binding.root
+        savedInstanceState: Bundle?,
+    ): View = ComposeView(requireContext()).apply {
+        setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+        setContent {
+            OseboTheme {
+                ContactUsScreen(
+                    contact = contactInfo,
+                    isLoading = isLoading,
+                    resetKey = resetKey,
+                    onBack = { findNavController().navigateUp() },
+                    onCall = ::makePhoneCall,
+                    onEmail = ::sendEmail,
+                    onWhatsApp = ::openWhatsApp,
+                    onMaps = ::openMaps,
+                    onFaq = ::openFaqDetail,
+                    onViewAllFaqs = ::openAllFaq,
+                    onSubmit = ::submitSupportMessage,
+                )
+            }
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        setupUI()
-        setupObservers()
-        setupClickListeners()
-    }
-
-    private fun setupUI() {
-        
-        val categories = listOf(
-            "General Inquiry",
-            "Technical Support",
-            "Billing Issue",
-            "Account Issue",
-            "Feature Request",
-            "Bug Report",
-            "Partnership"
-        )
-
-        val adapter = ArrayAdapter(requireContext(), R.layout.dropdown_item, categories)
-        binding.categoryDropdown.setAdapter(adapter)
-    }
-
-    private fun setupObservers() {
-        viewModel.contactInfo.observe(viewLifecycleOwner) { contact ->
-            contact?.let {
-                binding.phoneValue.text = it.phone
-                binding.emailValue.text = it.email
-                binding.addressValue.text = it.address
-                binding.hoursValue.text = it.workingHours
+        viewModel.contactInfo.observe(viewLifecycleOwner) { contactInfo = it.toUi() }
+        viewModel.loading.observe(viewLifecycleOwner) { isLoading = it }
+        viewModel.error.observe(viewLifecycleOwner) { error ->
+            if (!error.isNullOrBlank()) {
+                showSnackbar(error)
+                viewModel.clearError()
             }
         }
-
         viewModel.messageSent.observe(viewLifecycleOwner) { success ->
             if (success) {
                 showSnackbar("Message sent successfully")
-                clearForm()
+                resetKey++
+                viewModel.clearMessageSent()
             }
         }
     }
 
-    private fun setupClickListeners() {
-        
-        binding.callButton.setOnClickListener {
-            makePhoneCall()
-        }
+    private fun makePhoneCall() = launchIntent(
+        intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${contactInfo.phone}")),
+        failureMessage = "Cannot make phone call",
+    )
 
-        binding.emailButton.setOnClickListener {
-            sendEmail()
-        }
+    private fun sendEmail() = launchIntent(
+        intent = Intent(Intent.ACTION_SENDTO).apply {
+            data = Uri.parse("mailto:${contactInfo.email}")
+            putExtra(Intent.EXTRA_SUBJECT, "Osebo Support Request")
+        },
+        failureMessage = "No email app found",
+    )
 
-        binding.mapsButton.setOnClickListener {
-            openMaps()
+    private fun openWhatsApp() {
+        val number = contactInfo.whatsapp.filter(Char::isDigit)
+        if (number.isBlank()) {
+            showSnackbar("WhatsApp contact is unavailable")
+            return
         }
-
-        
-        binding.faq1Button.setOnClickListener {
-            openFaqDetail(1)
-        }
-
-        binding.faq2Button.setOnClickListener {
-            openFaqDetail(2)
-        }
-
-        binding.faq3Button.setOnClickListener {
-            openFaqDetail(3)
-        }
-
-        binding.viewAllFaqButton.setOnClickListener {
-            openAllFaq()
-        }
-
-        
-        binding.submitButton.setOnClickListener {
-            submitSupportMessage()
-        }
-    }
-
-    private fun makePhoneCall() {
-        try {
-            val intent = Intent(Intent.ACTION_DIAL).apply {
-                data = Uri.parse("tel:${binding.phoneValue.text}")
-            }
-            startActivity(intent)
-        } catch (e: Exception) {
-            showSnackbar("Cannot make phone call")
-        }
-    }
-
-    private fun sendEmail() {
-        try {
-            val intent = Intent(Intent.ACTION_SENDTO).apply {
-                data = Uri.parse("mailto:${binding.emailValue.text}")
-                putExtra(Intent.EXTRA_SUBJECT, "Osebo Support Request")
-            }
-            startActivity(intent)
-        } catch (e: Exception) {
-            showSnackbar("No email app found")
-        }
+        launchIntent(
+            intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/$number")),
+            failureMessage = "Cannot open WhatsApp",
+        )
     }
 
     private fun openMaps() {
-        try {
-            val uri = Uri.parse("geo:0,0?q=${Uri.encode(binding.addressValue.text.toString())}")
-            val intent = Intent(Intent.ACTION_VIEW, uri)
-            intent.setPackage("com.google.android.apps.maps")
-            startActivity(intent)
-        } catch (e: Exception) {
-            showSnackbar("Cannot open maps")
-        }
+        val uri = Uri.parse("geo:0,0?q=${Uri.encode(contactInfo.address)}")
+        launchIntent(Intent(Intent.ACTION_VIEW, uri), "Cannot open maps")
+    }
+
+    private fun launchIntent(intent: Intent, failureMessage: String) {
+        runCatching { startActivity(intent) }
+            .onFailure { showSnackbar(failureMessage) }
     }
 
     private fun openFaqDetail(faqId: Int) {
-        val dialog = FaqDetailDialogFragment.newInstance(faqId)
-        dialog.show(childFragmentManager, "FaqDetailDialog")
+        FaqDetailDialogFragment.newInstance(faqId)
+            .show(childFragmentManager, "FaqDetailDialog")
     }
 
     private fun openAllFaq() {
-        val action = ContactUsFragmentDirections.actionContactUsFragmentToFaqFragment()
-        findNavController().navigate(action)
+        findNavController().navigate(ContactUsFragmentDirections.actionContactUsFragmentToFaqFragment())
     }
 
-    private fun submitSupportMessage() {
-        val name = binding.nameEditText.text.toString()
-        val email = binding.emailEditText.text.toString()
-        val subject = binding.subjectEditText.text.toString()
-        val category = binding.categoryDropdown.text.toString()
-        val message = binding.messageEditText.text.toString()
-
-        if (name.isBlank() || email.isBlank() || subject.isBlank() || category.isBlank() || message.isBlank()) {
+    private fun submitSupportMessage(message: SupportMessageUi) {
+        if (
+            message.name.isBlank() ||
+            message.email.isBlank() ||
+            message.subject.isBlank() ||
+            message.category.isBlank() ||
+            message.message.isBlank()
+        ) {
             showSnackbar("Please fill in all fields")
             return
         }
-
-        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+        if (!Patterns.EMAIL_ADDRESS.matcher(message.email).matches()) {
             showSnackbar("Please enter a valid email address")
             return
         }
-
-        viewModel.sendSupportMessage(name, email, subject, category, message)
-    }
-
-    private fun clearForm() {
-        binding.nameEditText.text?.clear()
-        binding.emailEditText.text?.clear()
-        binding.subjectEditText.text?.clear()
-        binding.categoryDropdown.text?.clear()
-        binding.messageEditText.text?.clear()
+        viewModel.sendSupportMessage(
+            name = message.name.trim(),
+            email = message.email.trim(),
+            subject = message.subject.trim(),
+            category = message.category,
+            message = message.message.trim(),
+        )
     }
 
     private fun showSnackbar(message: String) {
-        Snackbar.make(binding.root, message, Snackbar.LENGTH_SHORT).show()
+        view?.let { Snackbar.make(it, message, Snackbar.LENGTH_SHORT).show() }
     }
 }
 
-
+private fun ContactInfo.toUi() = ContactInfoUi(
+    phone = phone,
+    email = email,
+    whatsapp = whatsapp.orEmpty(),
+    address = address.orEmpty(),
+    workingHours = workingHours.orEmpty(),
+)

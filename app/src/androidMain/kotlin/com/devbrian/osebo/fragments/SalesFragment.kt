@@ -1,246 +1,160 @@
 package com.devbrian.osebo.fragments
 
-import android.app.AlertDialog
 import android.os.Bundle
 import android.view.LayoutInflater
-import android.view.Menu
-import android.view.MenuInflater
-import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
-import androidx.core.content.ContextCompat
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.ComposeView
 import androidx.fragment.app.Fragment
-import org.koin.androidx.viewmodel.ext.android.viewModel
-
 import androidx.navigation.fragment.findNavController
-import androidx.recyclerview.widget.LinearLayoutManager
 import com.devbrian.osebo.R
-import com.devbrian.osebo.adapters.SaleAdapter
-import com.devbrian.osebo.databinding.FragmentSalesBinding
+import com.devbrian.osebo.models.Sale
+import com.devbrian.osebo.ui.screens.SaleItemUi
+import com.devbrian.osebo.ui.screens.SalesScreen
+import com.devbrian.osebo.ui.screens.SalesUiState
+import com.devbrian.osebo.ui.screens.TopSellingProductUi
+import com.devbrian.osebo.ui.theme.OseboTheme
 import com.devbrian.osebo.ui.viewmodels.SalesViewModel
 import com.devbrian.osebo.utils.CurrencyFormatter
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
+import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class SalesFragment : Fragment() {
-    private var _binding: FragmentSalesBinding? = null
-    private val binding get() = _binding!!
-    private lateinit var saleAdapter: SaleAdapter
     private val viewModel: SalesViewModel by viewModel()
+    private var uiState by mutableStateOf(SalesUiState())
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
-        savedInstanceState: Bundle?
+        savedInstanceState: Bundle?,
     ): View {
-        _binding = FragmentSalesBinding.inflate(inflater, container, false)
-        setHasOptionsMenu(true)
-        return binding.root
+        return ComposeView(requireContext()).apply {
+            setContent {
+                OseboTheme {
+                    SalesScreen(
+                        state = uiState,
+                        onNewSaleClick = ::navigateToNewSale,
+                        onReportsClick = ::showReportsMessage,
+                        onRefreshClick = viewModel::refreshSales,
+                        onSaleClick = ::showSaleDetails,
+                    )
+                }
+            }
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-        setupRecyclerView()
-        setupClickListeners()
         setupObservers()
-        setupSwipeRefresh()
-
-
-        
-        viewModel.loadRecentSales()
+        viewModel.refreshSales()
     }
-
-    private fun setupRecyclerView() {
-        saleAdapter = SaleAdapter(
-            onItemClick = { sale ->
-                showSaleDetails(sale)
-            },
-            onViewDetailsClick = { sale ->
-                navigateToSaleDetails(sale.id)
-            },
-            onPrintReceiptClick = { sale ->
-                printReceipt(sale)
-            }
-        )
-
-        binding.rvRecentSales.apply {
-            layoutManager = LinearLayoutManager(requireContext())
-            adapter = saleAdapter
-            setHasFixedSize(true)
-        }
-    }
-
-    private fun setupClickListeners() {
-        binding.btnNewSale.setOnClickListener {
-            navigateToNewSale()
-        }
-
-        binding.btnViewReports.setOnClickListener {
-            navigateToReports()
-        }
-
-        binding.tvViewAll.setOnClickListener {
-            navigateToAllSales()
-        }
-
-        binding.fabNewSale.setOnClickListener {
-            navigateToNewSale()
-        }
-    }
-
-
 
     private fun setupObservers() {
         viewModel.recentSales.observe(viewLifecycleOwner) { sales ->
-            println("📱 SalesFragment - Received ${sales.size} sales")
-
-            sales.forEachIndexed { index, sale ->
-                println("📱 Sale[$index]: ID=${sale.id}, Amount=${sale.amount}, Status=${sale.status}, Date=${sale.date}")
-            }
-
-            
-            if (sales.isEmpty()) {
-                binding.layoutEmptySales.visibility = View.VISIBLE
-                binding.rvRecentSales.visibility = View.GONE
-            } else {
-                binding.layoutEmptySales.visibility = View.GONE
-                binding.rvRecentSales.visibility = View.VISIBLE
-                saleAdapter.submitList(sales)
-            }
+            uiState = uiState.copy(recentSales = sales.map(::toSaleItemUi))
         }
 
         viewModel.todaySalesTotal.observe(viewLifecycleOwner) { total ->
-            println("📱 Today's total from ViewModel: $total")
-            binding.tvTodaySales.text = CurrencyFormatter.formatFull(total)
+            uiState = uiState.copy(todaySales = CurrencyFormatter.formatFull(total))
+        }
+
+        viewModel.todaySalesCount.observe(viewLifecycleOwner) { count ->
+            uiState = uiState.copy(todayTransactions = count)
         }
 
         viewModel.monthSalesTotal.observe(viewLifecycleOwner) { total ->
-            println("📱 Month's total from ViewModel: $total")
-            binding.tvMonthSales.text = CurrencyFormatter.formatFull(total)
+            uiState = uiState.copy(monthSales = CurrencyFormatter.formatFull(total))
         }
 
         viewModel.monthSalesCount.observe(viewLifecycleOwner) { count ->
-            println("📱 Month's count from ViewModel: $count")
-            binding.tvMonthTransactions.text = "$count transactions"
+            uiState = uiState.copy(monthTransactions = count)
         }
 
-        viewModel.successMessage.observe(viewLifecycleOwner) { message ->
-            message?.let {
-                Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
-                viewModel.clearMessages()
-            }
+        viewModel.salesGrowth.observe(viewLifecycleOwner) { growth ->
+            uiState = uiState.copy(growthPercentage = growth)
+        }
+
+        viewModel.topSellingProducts.observe(viewLifecycleOwner) { products ->
+            uiState = uiState.copy(
+                topProducts = products.map { product ->
+                    TopSellingProductUi(
+                        id = product.id,
+                        name = product.name,
+                        unitsSold = "${product.totalQuantitySold} unit${if (product.totalQuantitySold == 1) "" else "s"} sold",
+                        salesAmount = CurrencyFormatter.formatFull(product.totalSalesAmount),
+                    )
+                },
+            )
+        }
+
+        viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
+            uiState = uiState.copy(isLoading = isLoading)
         }
 
         viewModel.errorMessage.observe(viewLifecycleOwner) { message ->
             message?.let {
-                Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), it, Toast.LENGTH_LONG).show()
                 viewModel.clearMessages()
             }
         }
     }
-    private fun loadSalesData() {
-        
-    }
 
-    private fun setupSwipeRefresh() {
-        binding.swipeRefresh.setOnRefreshListener {
-            viewModel.refreshSales()
-            binding.swipeRefresh.isRefreshing = false
-        }
-
-        
-        binding.swipeRefresh.setColorSchemeColors(
-            ContextCompat.getColor(requireContext(), R.color.colorPrimary),
-            ContextCompat.getColor(requireContext(), R.color.green_success),
-            ContextCompat.getColor(requireContext(), R.color.orange_warning)
+    private fun toSaleItemUi(sale: Sale): SaleItemUi {
+        val date = parseSaleDate(sale.date)
+        return SaleItemUi(
+            id = sale.id,
+            customerName = sale.customerName.ifBlank { "Walk-in Customer" },
+            amount = CurrencyFormatter.formatFull(sale.amount),
+            date = date?.let { DISPLAY_DATE_FORMAT.format(it) } ?: sale.getFormattedDate(),
+            time = date?.let { DISPLAY_TIME_FORMAT.format(it) }.orEmpty(),
+            itemsLabel = "${sale.itemsCount} item${if (sale.itemsCount == 1) "" else "s"}",
+            paymentMethod = sale.paymentMethod
+                ?.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+                ?: "Cash",
+            status = sale.status,
         )
     }
-
 
     private fun navigateToNewSale() {
         findNavController().navigate(R.id.newSaleFragment)
     }
 
-    private fun navigateToReports() {
-        
+    private fun showReportsMessage() {
         Toast.makeText(requireContext(), "Reports coming soon", Toast.LENGTH_SHORT).show()
     }
 
-    private fun navigateToAllSales() {
-        val sales = viewModel.recentSales.value
-        if (sales.isNullOrEmpty()) {
-            Toast.makeText(requireContext(), "No sales to display", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        
-        val salesList = sales.joinToString("\n\n") { sale ->
-            """${sale.customerName}
-           Amount: ${formatCurrency(sale.amount)}
-           Status: ${sale.status}
-           Date: ${sale.getFormattedDate()}""".trimIndent()
-        }
-
-        AlertDialog.Builder(requireContext())
-            .setTitle("All Sales (${sales.size})")
-            .setMessage(salesList)
-            .setPositiveButton("OK", null)
-            .show()
+    private fun showSaleDetails(saleId: String) {
+        Toast.makeText(requireContext(), "Sale details for ${saleId.takeLast(8)}", Toast.LENGTH_SHORT).show()
     }
 
-    private fun formatCurrency(amount: Double): String {
-        return when {
-            amount >= 1_000_000 -> String.format("UGX %.1fM", amount / 1_000_000)
-            amount >= 1_000 -> String.format("UGX %.1fK", amount / 1_000)
-            amount == 0.0 -> "UGX 0"
-            else -> String.format("UGX %.0f", amount)
+    private fun parseSaleDate(rawDate: String): Date? {
+        rawDate.toLongOrNull()?.let { timestamp ->
+            val milliseconds = if (timestamp < 10_000_000_000L) timestamp * 1_000 else timestamp
+            return Date(milliseconds)
+        }
+
+        return INPUT_DATE_FORMATS.firstNotNullOfOrNull { format ->
+            runCatching { format.parse(rawDate) }.getOrNull()
         }
     }
 
-    private fun navigateToSaleDetails(saleId: String) {
-        
-        Toast.makeText(requireContext(), "View details for $saleId", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun showSaleDetails(sale: com.devbrian.osebo.models.Sale) {
-        Toast.makeText(requireContext(), "Showing details for ${sale.id}", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun printReceipt(sale: com.devbrian.osebo.models.Sale) {
-        Toast.makeText(requireContext(), "Printing receipt for ${sale.id}", Toast.LENGTH_SHORT).show()
-    }
-
-    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
-        inflater.inflate(R.menu.menu_sales, menu)
-        super.onCreateOptionsMenu(menu, inflater)
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        return when (item.itemId) {
-            R.id.action_filter -> {
-                showFilterDialog()
-                true
-            }
-            R.id.action_export -> {
-                exportSales()
-                true
-            }
-            else -> super.onOptionsItemSelected(item)
-        }
-    }
-
-    private fun showFilterDialog() {
-        Toast.makeText(requireContext(), "Show Filter Dialog", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun exportSales() {
-        Toast.makeText(requireContext(), "Export Sales Data", Toast.LENGTH_SHORT).show()
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
+    companion object {
+        private val DISPLAY_DATE_FORMAT = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
+        private val DISPLAY_TIME_FORMAT = SimpleDateFormat("HH:mm", Locale.getDefault())
+        private val INPUT_DATE_FORMATS = listOf(
+            SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
+                timeZone = TimeZone.getTimeZone("UTC")
+            },
+            SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.US),
+            SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US),
+            SimpleDateFormat("yyyy-MM-dd", Locale.US),
+        )
     }
 }
-
-

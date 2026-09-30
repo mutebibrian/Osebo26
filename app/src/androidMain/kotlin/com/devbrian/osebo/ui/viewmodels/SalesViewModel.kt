@@ -8,6 +8,7 @@ import com.devbrian.osebo.data.ApiService
 import com.devbrian.osebo.data.PreferenceManager
 import com.devbrian.osebo.data.local.AppDatabase
 import com.devbrian.osebo.data.local.entity.ProductEntity
+import com.devbrian.osebo.data.remote.dto.response.TopStockItemDto
 import com.devbrian.osebo.data.repository.CustomerRepository
 import com.devbrian.osebo.data.repository.ProductRepository
 import com.devbrian.osebo.data.repository.SalesRepository
@@ -42,11 +43,20 @@ class SalesViewModel(
     private val _todaySalesTotal = MutableLiveData(0.0)
     val todaySalesTotal: LiveData<Double> = _todaySalesTotal
 
+    private val _todaySalesCount = MutableLiveData(0)
+    val todaySalesCount: LiveData<Int> = _todaySalesCount
+
     private val _monthSalesTotal = MutableLiveData(0.0)
     val monthSalesTotal: LiveData<Double> = _monthSalesTotal
 
     private val _monthSalesCount = MutableLiveData(0)
     val monthSalesCount: LiveData<Int> = _monthSalesCount
+
+    private val _salesGrowth = MutableLiveData(0.0)
+    val salesGrowth: LiveData<Double> = _salesGrowth
+
+    private val _topSellingProducts = MutableLiveData<List<TopStockItemDto>>(emptyList())
+    val topSellingProducts: LiveData<List<TopStockItemDto>> = _topSellingProducts
 
     private val _isLoading = MutableLiveData(false)
     val isLoading: LiveData<Boolean> = _isLoading
@@ -394,27 +404,8 @@ class SalesViewModel(
     fun loadRecentSales() {
         viewModelScope.launch {
             _isLoading.value = true
-            println("📊 SalesViewModel - Loading recent sales...")
-
             try {
-                salesRepository.getRecentSales().collect { sales ->
-                    println("📊 SalesViewModel - Received ${sales.size} sales")
-
-                    sales.forEachIndexed { index, sale ->
-                        println("📊 Sale[$index]: ID=${sale.id}, Amount=${sale.amount}, Date=${sale.date}, Status=${sale.status}")
-                    }
-
-                    _recentSales.value = sales
-
-                    val todayTotal = calculateTodayTotal(sales)
-                    _todaySalesTotal.value = todayTotal
-                    println("📊 Today's sales total calculated: $todayTotal")
-
-                    val monthStats = calculateMonthStats(sales)
-                    _monthSalesTotal.value = monthStats.first
-                    _monthSalesCount.value = monthStats.second
-                    println("📊 Month's sales total: ${monthStats.first}, Count: ${monthStats.second}")
-                }
+                loadRecentSalesFromCache()
             } catch (e: Exception) {
                 println("❌ Error loading sales: ${e.message}")
                 e.printStackTrace()
@@ -422,6 +413,22 @@ class SalesViewModel(
             } finally {
                 _isLoading.value = false
             }
+        }
+    }
+
+    private suspend fun loadRecentSalesFromCache() {
+        println("📊 SalesViewModel - Loading recent sales...")
+        salesRepository.getRecentSales(limit = 10_000).collect { sales ->
+            println("📊 SalesViewModel - Received ${sales.size} sales")
+            _recentSales.value = sales.take(20)
+
+            val todayTotal = calculateTodayTotal(sales)
+            _todaySalesTotal.value = todayTotal
+            _todaySalesCount.value = calculateTodayCount(sales)
+
+            val monthStats = calculateMonthStats(sales)
+            _monthSalesTotal.value = monthStats.first
+            _monthSalesCount.value = monthStats.second
         }
     }
 
@@ -453,6 +460,18 @@ class SalesViewModel(
                 false
             }
         }.sumOf { it.amount }
+    }
+
+    private fun calculateTodayCount(sales: List<Sale>): Int {
+        val calendar = Calendar.getInstance()
+        val today = calendar.get(Calendar.DAY_OF_YEAR)
+        val currentYear = calendar.get(Calendar.YEAR)
+        return sales.count { sale ->
+            val saleDate = parseSaleDate(sale.date) ?: return@count false
+            sale.amount > 0 &&
+                saleDate.get(Calendar.DAY_OF_YEAR) == today &&
+                saleDate.get(Calendar.YEAR) == currentYear
+        }
     }
 
     private fun calculateMonthStats(sales: List<Sale>): Pair<Double, Int> {
@@ -657,7 +676,59 @@ class SalesViewModel(
 
     fun refreshSales() {
         viewModelScope.launch {
-            loadRecentSales()
+            _isLoading.value = true
+            try {
+                val refreshResult = salesRepository.refreshSalesFromServer()
+                if (refreshResult is Resource.Error && _recentSales.value.isNullOrEmpty()) {
+                    _errorMessage.value = refreshResult.message
+                }
+
+                loadRecentSalesFromCache()
+                refreshSalesAnalytics()
+            } catch (error: Exception) {
+                if (_recentSales.value.isNullOrEmpty()) {
+                    _errorMessage.value = error.message ?: "Unable to refresh sales"
+                }
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    private suspend fun refreshSalesAnalytics() {
+        val shopId = preferences.getShopIdentifierForApi()
+        if (shopId.isBlank()) return
+
+        try {
+            val summaryResponse = apiService.getShopSummary(shopId)
+            if (summaryResponse.isSuccessful && summaryResponse.body()?.success == true) {
+                summaryResponse.body()?.data?.let { summary ->
+                    _todaySalesTotal.value = summary.todaySales
+                }
+            }
+        } catch (error: Exception) {
+            println("Unable to refresh sales summary: ${error.message}")
+        }
+
+        try {
+            val comparisonResponse = apiService.getSalesComparison(shopId, "monthly")
+            if (comparisonResponse.isSuccessful && comparisonResponse.body()?.success == true) {
+                comparisonResponse.body()?.data?.let { comparison ->
+                    _monthSalesTotal.value = comparison.currentSales
+                    _salesGrowth.value = comparison.growthPercentage
+                }
+            }
+        } catch (error: Exception) {
+            println("Unable to refresh monthly sales: ${error.message}")
+        }
+
+        try {
+            val topProductsResponse = apiService.getTopStockItems(shopId)
+            if (topProductsResponse.isSuccessful && topProductsResponse.body()?.success == true) {
+                _topSellingProducts.value = topProductsResponse.body()?.data?.items.orEmpty()
+            }
+        } catch (error: Exception) {
+            println("Unable to refresh top-selling products: ${error.message}")
         }
     }
 

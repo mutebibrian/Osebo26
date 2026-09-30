@@ -25,6 +25,7 @@ class CustomersFragment : Fragment() {
                 OseboTheme {
                     CustomersScreen(
                         state = viewModel.uiState.value,
+                        onRefreshClick = viewModel::refreshCustomers,
                         onSearchQueryChange = viewModel::onSearchQueryChange,
                         onAddClick = viewModel::onAddClick,
                         onViewDetails = viewModel::onViewDetails,
