@@ -584,8 +584,7 @@
     <fragment
         android:id="@+id/accountFragment"
         android:name="com.devbrian.osebo.fragments.AccountFragment"
-        android:label="Account"
-        tools:layout="@layout/fragment_account">
+        android:label="Account">
 
         <action
             android:id="@+id/action_accountFragment_to_sessionsFragment"
@@ -640,8 +639,7 @@
     <fragment
         android:id="@+id/sessionsFragment"
         android:name="com.devbrian.osebo.fragments.SessionsFragment"
-        android:label="Active Sessions"
-        tools:layout="@layout/fragment_sessions" />
+        android:label="Active Sessions" />
 
     <!-- Payment Dialog Fragment -->
     <dialog
