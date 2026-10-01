@@ -39,6 +39,7 @@ import com.devbrian.osebo.data.remote.dto.response.BaseResponse
 import com.devbrian.osebo.data.remote.dto.response.CustomerDto
 import com.devbrian.osebo.data.remote.dto.response.FinanceSettingsDto
 import com.devbrian.osebo.data.remote.dto.response.FinancialStatementDto
+import com.devbrian.osebo.data.remote.dto.response.PreAuthData
 import com.devbrian.osebo.data.remote.dto.response.PackageDto
 import com.devbrian.osebo.data.remote.dto.response.PaymentCheckResponse
 import com.devbrian.osebo.data.remote.dto.response.PaymentData
@@ -135,6 +136,12 @@ class KtorOseboApiService(private val client: HttpClient) {
 
     suspend fun signIn(request: LoginRequest): ApiResult<AuthResponse> =
         execute { client.post("api/v1/auth/signin") { setBody(request) } }
+
+    // The real password-login flow: it always returns a preAuthToken + the
+    // account list, never a direct access token. selectAccount() below
+    // finishes the login after the user picks one.
+    suspend fun signInWithPassword(request: LoginRequest): ApiResult<BaseResponse<PreAuthData>> =
+        execute { client.post("api/v1/auth/signin/password") { setBody(request) } }
 
     suspend fun verifyTwoFactor(request: com.devbrian.osebo.data.remote.dto.request.VerifyTwoFactorRequest): ApiResult<AuthResponse> =
         execute { client.post("api/v1/auth/verify-2fa") { setBody(request) } }
