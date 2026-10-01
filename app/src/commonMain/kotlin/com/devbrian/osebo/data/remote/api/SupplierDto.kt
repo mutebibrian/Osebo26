@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonTransformingSerializer
 
-@Serializable(with = SupplierDtoSerializer::class)
+@Serializable
 data class SupplierDto(
     @SerialName("id")
     val id: String,

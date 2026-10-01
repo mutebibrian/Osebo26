@@ -10,12 +10,17 @@ import com.devbrian.osebo.data.TokenRefreshApi
 import com.devbrian.osebo.data.TokenRefreshService
 import com.devbrian.osebo.data.remote.dto.request.RefreshTokenRequest
 import com.devbrian.osebo.data.remote.dto.response.AuthData
+import com.devbrian.osebo.data.remote.dto.response.SaleApiData
+import com.devbrian.osebo.data.remote.dto.response.SaleApiDataSerializer
 import com.devbrian.osebo.data.remote.dto.response.ShopDto
+import com.devbrian.osebo.data.remote.dto.response.ShopDtoSerializer
 import com.devbrian.osebo.data.remote.api.OseboApiService
+import com.devbrian.osebo.data.remote.api.SupplierDto
+import com.devbrian.osebo.data.remote.api.SupplierDtoSerializer
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonDeserializer
-import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
@@ -30,22 +35,25 @@ private const val BASE_URL = "https://prod-api.osebo.ai"
 
 private val bridgeJson = Json { ignoreUnknownKeys = true }
 
-// Several response DTOs (AuthData, ShopDto, ...) were moved to commonMain for
-// the Ktor/iOS client and now only carry kotlinx.serialization's @SerialName.
-// Plain Gson ignores @SerialName and matches its own property names instead,
-// so any field whose JSON key differs from (or collides with another
-// property's) literal Kotlin name comes back null or throws outright — e.g.
-// ShopDto's "shopType" (a String keyed off "shop_type") vs "shopTypeObject"
-// (an object actually keyed "shopType") crashed with "Expected a string but
-// was BEGIN_OBJECT". Route these types through the real kotlinx.serialization
-// decoder (which already parses them correctly for iOS) instead of letting
-// Gson's reflection guess at them.
-private inline fun <reified T> kotlinxBridge(): JsonDeserializer<T> =
-    JsonDeserializer { json, _, _ -> bridgeJson.decodeFromString(json.toString()) }
+// Several response DTOs (AuthData, ShopDto, SupplierDto, SaleApiData, ...)
+// were moved to commonMain for the Ktor/iOS client and now only carry
+// kotlinx.serialization's @SerialName. Plain Gson ignores @SerialName and
+// matches its own property names instead, so any field whose JSON key
+// differs from (or collides with another property's) literal Kotlin name
+// comes back null or throws outright — e.g. ShopDto's "shopType" (a String
+// keyed off "shop_type") vs "shopTypeObject" (an object actually keyed
+// "shopType") crashed with "Expected a string but was BEGIN_OBJECT". Route
+// these types through the real kotlinx.serialization decoder (which already
+// parses them correctly for iOS) instead of letting Gson's reflection guess
+// at them.
+private fun <T> kotlinxBridge(serializer: KSerializer<T>): JsonDeserializer<T> =
+    JsonDeserializer { json, _, _ -> bridgeJson.decodeFromString(serializer, json.toString()) }
 
 private val authAwareGson: Gson = GsonBuilder()
-    .registerTypeAdapter(AuthData::class.java, kotlinxBridge<AuthData>())
-    .registerTypeAdapter(ShopDto::class.java, kotlinxBridge<ShopDto>())
+    .registerTypeAdapter(AuthData::class.java, kotlinxBridge(AuthData.serializer()))
+    .registerTypeAdapter(ShopDto::class.java, kotlinxBridge(ShopDtoSerializer))
+    .registerTypeAdapter(SupplierDto::class.java, kotlinxBridge(SupplierDtoSerializer))
+    .registerTypeAdapter(SaleApiData::class.java, kotlinxBridge(SaleApiDataSerializer))
     .create()
 
 val networkModule = module {
