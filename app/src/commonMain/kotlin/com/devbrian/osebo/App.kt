@@ -23,6 +23,7 @@ import com.devbrian.osebo.data.remote.ApiResult
 import com.devbrian.osebo.data.remote.KtorOseboApiService
 import com.devbrian.osebo.data.remote.createOseboHttpClient
 import com.devbrian.osebo.data.remote.dto.request.LoginRequest
+import com.devbrian.osebo.data.remote.dto.request.SelectAccountRequest
 import com.devbrian.osebo.data.repository.CustomerRepository
 import com.devbrian.osebo.data.settings.SettingsStoreSessionProvider
 import com.devbrian.osebo.data.settings.createSettingsStore
@@ -50,8 +51,12 @@ import com.devbrian.osebo.ui.screens.ReportsScreen
 import com.devbrian.osebo.ui.screens.ReportsUiState
 import com.devbrian.osebo.ui.screens.SalesScreen
 import com.devbrian.osebo.ui.screens.SalesUiState
+import com.devbrian.osebo.ui.screens.SelectAccountScreen
+import com.devbrian.osebo.ui.screens.SelectAccountUiState
+import com.devbrian.osebo.ui.screens.SplashScreen
 import com.devbrian.osebo.ui.screens.TransactionsScreen
 import com.devbrian.osebo.ui.screens.TransactionsUiState
+import com.devbrian.osebo.ui.screens.WelcomeScreen
 import com.devbrian.osebo.ui.theme.OseboTheme
 import kotlinx.coroutines.launch
 
@@ -88,20 +93,25 @@ private sealed class Destination {
     data object AllTransactions : Destination()
 }
 
+/**
+ * Mirrors the real Android launch flow: an animated Splash screen decides
+ * between Welcome (logged out) and the main app (logged in). Welcome leads
+ * to Login, whose password endpoint always returns a preAuthToken + account
+ * list (never a direct token, per AuthRepository.kt on Android) — so
+ * SelectingAccount is not an edge case, it's the only way LoggedIn is ever
+ * reached.
+ */
 private sealed class AuthState {
-    data object CheckingSession : AuthState()
+    data object Splash : AuthState()
     data object LoggedOut : AuthState()
+    data object EnteringCredentials : AuthState()
+    data class SelectingAccount(val preAuthToken: String) : AuthState()
     data class LoggedIn(val token: String) : AuthState()
 }
 
 /**
  * Root Compose Multiplatform entry point — a real navigable shell with a
  * real login flow and one screen (Customers) wired to live backend data.
- *
- * Auth: signIn() only handles the direct-token path. If the backend
- * responds with a preAuthToken/accounts (the 2FA / multi-account flow
- * LoginViewModel.kt handles on Android), this shows a clear "not supported
- * yet" message instead of guessing at that multi-step flow blind.
  *
  * Data: on login, fetches the account's shops, takes the first one as the
  * active shop, then fetches its customers — proving the full pipe (Ktor ->
@@ -119,21 +129,13 @@ fun App() {
         val customerRepository = remember { CustomerRepository(api) }
         val scope = rememberCoroutineScope()
 
-        var authState by remember { mutableStateOf<AuthState>(AuthState.CheckingSession) }
+        var authState by remember { mutableStateOf<AuthState>(AuthState.Splash) }
         var loginState by remember { mutableStateOf(LoginUiState()) }
+        var selectAccountState by remember { mutableStateOf(SelectAccountUiState()) }
         var selectedTab by remember { mutableStateOf(AppTab.Dashboard) }
         var destination by remember { mutableStateOf<Destination>(Destination.MainTabs) }
         var customersState by remember { mutableStateOf(CustomersUiState()) }
         var hasLoadedCustomers by remember { mutableStateOf(false) }
-
-        LaunchedEffect(Unit) {
-            val existingToken = sessionProvider.authToken()
-            authState = if (!existingToken.isNullOrBlank()) {
-                AuthState.LoggedIn(existingToken)
-            } else {
-                AuthState.LoggedOut
-            }
-        }
 
         LaunchedEffect(authState) {
             if (authState !is AuthState.LoggedIn) return@LaunchedEffect
@@ -182,32 +184,21 @@ fun App() {
             loginState = loginState.copy(isLoading = true, errorMessage = null)
             scope.launch {
                 when (
-                    val result = api.signIn(
+                    val result = api.signInWithPassword(
                         LoginRequest(username = loginState.username, password = loginState.password),
                     )
                 ) {
                     is ApiResult.Success -> {
-                        val authData = result.data.data
-                        val token = authData?.accessToken
-                        when {
-                            result.data.success && !token.isNullOrBlank() -> {
-                                sessionProvider.saveAuthToken(token)
-                                loginState = LoginUiState()
-                                authState = AuthState.LoggedIn(token)
-                            }
-                            authData?.preAuthToken != null -> {
-                                loginState = loginState.copy(
-                                    isLoading = false,
-                                    errorMessage = "This account needs 2-factor verification, " +
-                                        "which isn't supported on iOS yet — sign in on Android for now.",
-                                )
-                            }
-                            else -> {
-                                loginState = loginState.copy(
-                                    isLoading = false,
-                                    errorMessage = result.data.message ?: "Sign in failed",
-                                )
-                            }
+                        val preAuthData = result.data.data
+                        if (result.data.success && preAuthData != null && preAuthData.accounts.isNotEmpty()) {
+                            loginState = LoginUiState()
+                            selectAccountState = SelectAccountUiState(accounts = preAuthData.accounts)
+                            authState = AuthState.SelectingAccount(preAuthData.preAuthToken)
+                        } else {
+                            loginState = loginState.copy(
+                                isLoading = false,
+                                errorMessage = result.data.message.ifBlank { "Sign in failed" },
+                            )
                         }
                     }
                     is ApiResult.Error -> loginState = loginState.copy(
@@ -222,13 +213,60 @@ fun App() {
             }
         }
 
-        Box(modifier = Modifier.fillMaxSize()) {
-            when (authState) {
-                AuthState.CheckingSession -> {
-                    // Reading SettingsStore is effectively instant; nothing to show.
+        fun attemptSelectAccount(preAuthToken: String, accountId: String) {
+            selectAccountState = selectAccountState.copy(isLoading = true, errorMessage = null)
+            scope.launch {
+                when (val result = api.selectAccount(SelectAccountRequest(preAuthToken, accountId))) {
+                    is ApiResult.Success -> {
+                        val authData = result.data.data
+                        val token = authData?.accessToken
+                        if (result.data.success && !token.isNullOrBlank()) {
+                            sessionProvider.saveAuthToken(token)
+                            selectAccountState = SelectAccountUiState()
+                            authState = AuthState.LoggedIn(token)
+                        } else {
+                            selectAccountState = selectAccountState.copy(
+                                isLoading = false,
+                                errorMessage = result.data.message ?: "Could not select account",
+                            )
+                        }
+                    }
+                    is ApiResult.Error -> selectAccountState = selectAccountState.copy(
+                        isLoading = false,
+                        errorMessage = result.message,
+                    )
+                    is ApiResult.NetworkError -> selectAccountState = selectAccountState.copy(
+                        isLoading = false,
+                        errorMessage = result.message,
+                    )
                 }
+            }
+        }
 
-                AuthState.LoggedOut -> LoginScreen(
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Bound once here because authState is a `by remember` delegate —
+            // Kotlin can't smart-cast a delegated var's payload directly off
+            // the `is` check below, only off a plain local val like this one.
+            when (val currentAuthState = authState) {
+                AuthState.Splash -> SplashScreen(
+                    onFinished = {
+                        val token = sessionProvider.authToken()
+                        authState = if (!token.isNullOrBlank()) {
+                            AuthState.LoggedIn(token)
+                        } else {
+                            AuthState.LoggedOut
+                        }
+                    },
+                )
+
+                AuthState.LoggedOut -> WelcomeScreen(
+                    onLogin = { authState = AuthState.EnteringCredentials },
+                    // Sign-up isn't built for iOS yet — Register is a no-op for now,
+                    // matching Welcome's own real button layout on Android.
+                    onRegister = {},
+                )
+
+                AuthState.EnteringCredentials -> LoginScreen(
                     state = loginState,
                     onUsernameChange = { loginState = loginState.copy(username = it, errorMessage = null) },
                     onPasswordChange = { loginState = loginState.copy(password = it, errorMessage = null) },
@@ -236,7 +274,32 @@ fun App() {
                         loginState = loginState.copy(isPasswordVisible = !loginState.isPasswordVisible)
                     },
                     onSignInClick = ::attemptSignIn,
+                    onBackClick = {
+                        loginState = LoginUiState()
+                        authState = AuthState.LoggedOut
+                    },
                 )
+
+                is AuthState.SelectingAccount -> {
+                    val preAuthToken = currentAuthState.preAuthToken
+                    SelectAccountScreen(
+                        state = selectAccountState,
+                        onAccountSelected = { accountId ->
+                            selectAccountState = selectAccountState.copy(
+                                selectedAccountId = accountId,
+                                errorMessage = null,
+                            )
+                        },
+                        onContinueClick = {
+                            val accountId = selectAccountState.selectedAccountId
+                            if (accountId != null) attemptSelectAccount(preAuthToken, accountId)
+                        },
+                        onBackToSignInClick = {
+                            selectAccountState = SelectAccountUiState()
+                            authState = AuthState.EnteringCredentials
+                        },
+                    )
+                }
 
                 is AuthState.LoggedIn -> when (destination) {
                     Destination.MainTabs -> {
