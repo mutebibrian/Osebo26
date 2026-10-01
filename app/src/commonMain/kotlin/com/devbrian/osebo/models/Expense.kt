@@ -1,6 +1,8 @@
 package com.devbrian.osebo.models
 
+import kotlinx.serialization.Serializable
 
+@Serializable
 data class Expense(
     val id: String,
     val description: String,
@@ -21,7 +23,3 @@ data class Expense(
         const val STATUS_CANCELLED = "CANCELLED"
     }
 }
-
-
-
-

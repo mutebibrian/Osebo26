@@ -46,9 +46,19 @@ kotlin {
             implementation(libs.koin.core)
             implementation(libs.kotlinx.datetime)
             implementation(libs.kotlinx.serialization.json)
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.serialization.kotlinx.json)
+            implementation(libs.ktor.client.logging)
+            implementation(libs.ktor.client.auth)
+        }
+
+        iosMain.dependencies {
+            implementation(libs.ktor.client.darwin)
         }
 
         androidMain.dependencies {
+            implementation(libs.ktor.client.okhttp)
             implementation(compose.preview)
             implementation("androidx.graphics:graphics-path:1.1.0")
 

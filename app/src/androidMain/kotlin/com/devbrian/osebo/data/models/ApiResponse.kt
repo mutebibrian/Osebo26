@@ -1,26 +1,5 @@
 package com.devbrian.osebo.models
 
-import com.google.gson.annotations.SerializedName
-
-data class ApiResponse<T>(
-    @SerializedName("status")
-    val status: String,
-    @SerializedName("message")
-    val message: String,
-    @SerializedName("data")
-    val data: T? = null,
-    @SerializedName("success")
-    val success: Boolean
-
-
-
-    
-    
-    
-)
-
-
-
 data class InventoryResponse(
     val items: List<InventoryItem>,
     val total: Int,
@@ -87,12 +66,6 @@ data class FinancialSummary(
     val accountsPayable: Double
 )
 
-
-
-
-
-
-
 data class SalesReport(
     val period: String,
     val totalSales: Double,
@@ -100,8 +73,6 @@ data class SalesReport(
     val averageSale: Double,
     val data: List<SalesDataPoint>
 )
-
-
 
 data class InventoryReport(
     val totalItems: Int,
@@ -117,7 +88,6 @@ data class CategorySummary(
     val totalValue: Double
 )
 
-
 data class FinancialReport(
     val period: String,
     val revenue: Double,
@@ -126,15 +96,12 @@ data class FinancialReport(
     val expenseByCategory: List<ExpenseCategory>
 )
 
-
-
 data class CustomersResponse(
     val customers: List<Customer>,
     val total: Int,
     val page: Int,
     val totalPages: Int
 )
-
 
 data class Supplier(
     val id: String,
@@ -168,6 +135,3 @@ data class UserPreferences(
     val currency: String,
     val updatedAt: String
 )
-
-
-
