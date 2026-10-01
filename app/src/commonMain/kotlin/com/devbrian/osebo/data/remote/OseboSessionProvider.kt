@@ -13,4 +13,11 @@ interface OseboSessionProvider {
 
     /** Called by KtorOseboApiService after a 401 triggers a successful token refresh. */
     fun onTokensRefreshed(accessToken: String, refreshToken: String?)
+
+    /**
+     * Called when a 401 can't be recovered — no refresh token saved, or the
+     * refresh endpoint itself rejected the refresh token. Clears the stored
+     * session so a relaunch doesn't get stuck retrying a dead session.
+     */
+    fun onSessionExpired()
 }
