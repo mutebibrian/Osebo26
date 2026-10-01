@@ -128,6 +128,7 @@ data class ShopDto(
     }
 }
 
+@OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
 object ShopDtoSerializer : JsonTransformingSerializer<ShopDto>(ShopDto.serializer()) {
     override fun transformDeserialize(element: JsonElement): JsonElement =
         element.withAlternateKeys(
