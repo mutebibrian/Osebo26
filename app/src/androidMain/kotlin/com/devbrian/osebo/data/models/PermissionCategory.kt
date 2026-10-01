@@ -4,6 +4,7 @@ package com.devbrian.osebo.models
 import android.os.Parcelable
 import com.devbrian.osebo.data.models.UserRole
 import kotlinx.parcelize.Parcelize
+import kotlinx.parcelize.RawValue
 
 @Parcelize
 data class PermissionCategory(
@@ -22,6 +23,6 @@ data class PermissionItem(
 
 @Parcelize
 data class RoleWithPermissions(
-    val role: UserRole,
+    val role: @RawValue UserRole,
     val permissions: List<PermissionItem>
 ) : Parcelable
