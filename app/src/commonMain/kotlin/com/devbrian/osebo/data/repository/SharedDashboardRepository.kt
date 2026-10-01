@@ -30,8 +30,12 @@ data class DashboardLoadResult(
  * a time-series for the trend sparklines. Uses shop-summary first (has
  * today's figures), falling back to the financial statement the same way
  * Android does.
+ *
+ * Named "Shared" (not just DashboardRepository) because androidMain already
+ * has its own, unrelated, Retrofit-based DashboardRepository in this same
+ * package — reusing that name here collided and broke the Android build.
  */
-class DashboardRepository(private val api: KtorOseboApiService) {
+class SharedDashboardRepository(private val api: KtorOseboApiService) {
     suspend fun loadShopsAndTotals(): ApiResult<DashboardLoadResult> {
         val shopsResult = api.getShops()
         val shops = when (shopsResult) {
