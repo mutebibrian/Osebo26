@@ -15,31 +15,31 @@ data class ShopDto(
     val name: String,
 
     @SerialName("address")
-    val address: String?,
+    val address: String? = null,
 
     @SerialName("phone")
-    val phone: String?,
+    val phone: String? = null,
 
     @SerialName("email")
-    val email: String?,
+    val email: String? = null,
 
     @SerialName("business_type")
-    val businessType: String?,
+    val businessType: String? = null,
 
     @SerialName("shop_type")
-    val shopType: String?,
+    val shopType: String? = null,
 
     @SerialName("description")
-    val description: String?,
+    val description: String? = null,
 
     @SerialName("logo_url")
-    val logoUrl: String?,
+    val logoUrl: String? = null,
 
     @SerialName("registration_number")
-    val registrationNumber: String?,
+    val registrationNumber: String? = null,
 
     @SerialName("tax_identification_number")
-    val taxIdentificationNumber: String?,
+    val taxIdentificationNumber: String? = null,
 
     @SerialName("madeBy")
     val madeBy: MadeByDto? = null,
