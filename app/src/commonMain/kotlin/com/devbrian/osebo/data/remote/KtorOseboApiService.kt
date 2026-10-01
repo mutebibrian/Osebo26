@@ -161,23 +161,40 @@ class KtorOseboApiService(
         }
 
         val refreshToken = sessionProvider.refreshToken()
-        if (refreshToken.isNullOrBlank()) return@withLock false
+        if (refreshToken.isNullOrBlank()) {
+            // Nothing to refresh with — this session was never going to recover.
+            sessionProvider.onSessionExpired()
+            return@withLock false
+        }
 
         try {
             val response = client.post("api/v1/auth/refresh") {
                 setBody(RefreshTokenRequest(refreshToken = refreshToken))
             }
-            if (!response.status.isSuccess()) return@withLock false
-            val body = response.body<AuthResponse>()
-            val newAccessToken = body.data?.accessToken
-            if (newAccessToken.isNullOrBlank()) return@withLock false
-            sessionProvider.onTokensRefreshed(newAccessToken, body.data?.refreshToken ?: refreshToken)
-            true
+            if (response.status.isSuccess()) {
+                val body = response.body<AuthResponse>()
+                val newAccessToken = body.data?.accessToken
+                if (!newAccessToken.isNullOrBlank()) {
+                    sessionProvider.onTokensRefreshed(newAccessToken, body.data?.refreshToken ?: refreshToken)
+                    return@withLock true
+                }
+            }
+            // Only an explicit rejection invalidates the session — a malformed
+            // success body or a server/connectivity hiccup stays retryable.
+            if (response.status.value in SESSION_REJECTION_CODES) {
+                sessionProvider.onSessionExpired()
+            }
+            false
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
+            // Transient network failure — keep the saved session, try again later.
             false
         }
+    }
+
+    private companion object {
+        val SESSION_REJECTION_CODES = setOf(400, 401, 403)
     }
 
     // ==================== AUTH ====================

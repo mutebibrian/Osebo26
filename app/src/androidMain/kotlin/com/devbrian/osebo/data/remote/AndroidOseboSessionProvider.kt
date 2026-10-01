@@ -11,5 +11,14 @@ class AndroidOseboSessionProvider(
     private val preferenceManager: PreferenceManager
 ) : OseboSessionProvider {
     override fun authToken(): String? = preferenceManager.getAuthToken()
+    override fun refreshToken(): String? = preferenceManager.getRefreshToken()
     override fun currentShopId(): String? = preferenceManager.getCurrentShopUuid()
+
+    override fun onTokensRefreshed(accessToken: String, refreshToken: String?) {
+        preferenceManager.updateSessionTokens(accessToken, refreshToken)
+    }
+
+    override fun onSessionExpired() {
+        preferenceManager.clearAllAuthData()
+    }
 }

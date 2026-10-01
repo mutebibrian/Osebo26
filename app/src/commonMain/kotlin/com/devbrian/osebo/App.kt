@@ -143,6 +143,18 @@ fun App() {
         var dashboardState by remember { mutableStateOf(DashboardUiState()) }
         var hasLoadedDashboard by remember { mutableStateOf(false) }
 
+        remember(sessionProvider) {
+            sessionProvider.onSessionExpiredListener = {
+                authState = AuthState.LoggedOut
+                loginState = LoginUiState()
+                selectAccountState = SelectAccountUiState()
+                customersState = CustomersUiState()
+                hasLoadedCustomers = false
+                dashboardState = DashboardUiState()
+                hasLoadedDashboard = false
+            }
+        }
+
         LaunchedEffect(authState) {
             if (authState !is AuthState.LoggedIn) return@LaunchedEffect
             if (hasLoadedCustomers) return@LaunchedEffect

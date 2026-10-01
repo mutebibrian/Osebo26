@@ -12,6 +12,14 @@ class SettingsStoreSessionProvider(private val settings: SettingsStore) : OseboS
         refreshToken?.let { saveRefreshToken(it) }
     }
 
+    override fun onSessionExpired() {
+        clear()
+        onSessionExpiredListener?.invoke()
+    }
+
+    /** Set by App() once, so a dead session can route back to the Welcome screen. */
+    var onSessionExpiredListener: (() -> Unit)? = null
+
     fun saveAuthToken(token: String) {
         settings.putString(KEY_AUTH_TOKEN, token)
     }
