@@ -407,7 +407,13 @@ class LoginActivity : AppCompatActivity() {
 
     private fun openAccountSelection(data: com.devbrian.osebo.data.remote.dto.response.PreAuthData) {
         val intent = Intent(this, SelectAccountActivity::class.java)
-        intent.putExtra(SelectAccountActivity.EXTRA_PRE_AUTH_DATA, data)
+        intent.putExtra(
+            SelectAccountActivity.EXTRA_PRE_AUTH_DATA,
+            kotlinx.serialization.json.Json.encodeToString(
+                com.devbrian.osebo.data.remote.dto.response.PreAuthData.serializer(),
+                data
+            )
+        )
         startActivity(intent)
         finish()
     }
