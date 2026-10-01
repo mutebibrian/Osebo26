@@ -270,9 +270,6 @@ fun App() {
                     state = loginState,
                     onUsernameChange = { loginState = loginState.copy(username = it, errorMessage = null) },
                     onPasswordChange = { loginState = loginState.copy(password = it, errorMessage = null) },
-                    onTogglePasswordVisibility = {
-                        loginState = loginState.copy(isPasswordVisible = !loginState.isPasswordVisible)
-                    },
                     onSignInClick = ::attemptSignIn,
                     onBackClick = {
                         loginState = LoginUiState()
