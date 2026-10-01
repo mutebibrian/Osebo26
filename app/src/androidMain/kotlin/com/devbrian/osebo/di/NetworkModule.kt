@@ -9,14 +9,14 @@ import com.devbrian.osebo.data.SessionAuthenticator
 import com.devbrian.osebo.data.TokenRefreshApi
 import com.devbrian.osebo.data.TokenRefreshService
 import com.devbrian.osebo.data.remote.dto.request.RefreshTokenRequest
-import com.devbrian.osebo.data.remote.dto.response.AccountInfo
 import com.devbrian.osebo.data.remote.dto.response.AuthData
-import com.devbrian.osebo.data.remote.dto.response.UserDto
+import com.devbrian.osebo.data.remote.dto.response.ShopDto
 import com.devbrian.osebo.data.remote.api.OseboApiService
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonDeserializer
-import com.google.gson.reflect.TypeToken
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -28,33 +28,24 @@ import java.util.concurrent.TimeUnit
 
 private const val BASE_URL = "https://prod-api.osebo.ai"
 
-// AuthData is declared for kotlinx.serialization (@SerialName only) since it
-// lives in commonMain for the Ktor/iOS client. Plain Gson ignores @SerialName
-// and matches its own property names instead, so it never finds the backend's
-// snake_case "access_token"/"refresh_token" keys and leaves both fields null —
-// silently breaking both the direct-login response and SessionAuthenticator's
-// token-refresh call. Deserialize it manually so both keep working.
+private val bridgeJson = Json { ignoreUnknownKeys = true }
+
+// Several response DTOs (AuthData, ShopDto, ...) were moved to commonMain for
+// the Ktor/iOS client and now only carry kotlinx.serialization's @SerialName.
+// Plain Gson ignores @SerialName and matches its own property names instead,
+// so any field whose JSON key differs from (or collides with another
+// property's) literal Kotlin name comes back null or throws outright — e.g.
+// ShopDto's "shopType" (a String keyed off "shop_type") vs "shopTypeObject"
+// (an object actually keyed "shopType") crashed with "Expected a string but
+// was BEGIN_OBJECT". Route these types through the real kotlinx.serialization
+// decoder (which already parses them correctly for iOS) instead of letting
+// Gson's reflection guess at them.
+private inline fun <reified T> kotlinxBridge(): JsonDeserializer<T> =
+    JsonDeserializer { json, _, _ -> bridgeJson.decodeFromString(json.toString()) }
+
 private val authAwareGson: Gson = GsonBuilder()
-    .registerTypeAdapter(
-        AuthData::class.java,
-        JsonDeserializer { json, _, context ->
-            val obj = json.asJsonObject
-            val accountListType = object : TypeToken<List<AccountInfo>>() {}.type
-            AuthData(
-                accessToken = obj.get("access_token")?.takeIf { !it.isJsonNull }?.asString
-                    ?: obj.get("accessToken")?.takeIf { !it.isJsonNull }?.asString,
-                refreshToken = obj.get("refresh_token")?.takeIf { !it.isJsonNull }?.asString
-                    ?: obj.get("refreshToken")?.takeIf { !it.isJsonNull }?.asString,
-                user = obj.get("user")?.takeIf { !it.isJsonNull }
-                    ?.let { context.deserialize<UserDto>(it, UserDto::class.java) },
-                userId = obj.get("userId")?.takeIf { !it.isJsonNull }?.asString,
-                dataMessage = obj.get("message")?.takeIf { !it.isJsonNull }?.asString,
-                preAuthToken = obj.get("preAuthToken")?.takeIf { !it.isJsonNull }?.asString,
-                accounts = obj.get("accounts")?.takeIf { !it.isJsonNull }
-                    ?.let { context.deserialize<List<AccountInfo>>(it, accountListType) }
-            )
-        }
-    )
+    .registerTypeAdapter(AuthData::class.java, kotlinxBridge<AuthData>())
+    .registerTypeAdapter(ShopDto::class.java, kotlinxBridge<ShopDto>())
     .create()
 
 val networkModule = module {
