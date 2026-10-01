@@ -41,7 +41,7 @@ data class PackageDto(
 
     val formattedPrice: String
         get() = when {
-            monthlyAmount > 0 -> "UGX ${String.format("%,.0f", monthlyAmount)}/month"
+            monthlyAmount > 0 -> "UGX ${formatThousands(monthlyAmount)}/month"
             else -> "Contact Sales"
         }
 
@@ -144,21 +144,18 @@ data class PackageDto(
             )
         }
 
-        fun fromSubscriptionPackage(pkg: com.devbrian.osebo.models.SubscriptionPackage): PackageDto {
-            return PackageDto(
-                id = pkg.id,
-                name = pkg.name,
-                tier = pkg.tier,
-                type = pkg.type,
-                kind = pkg.kind,
-                description = pkg.description,
-                unitMonthlyAmount = pkg.unitMonthlyAmount,
-                features = pkg.features.map { FeatureDto.fromFeature(it) },
-                isActive = pkg.isActive,
-                canTry = pkg.canTry
-            )
-        }
     }
+}
+
+// JVM-only (java.util.Formatter) — not available on Kotlin/Native.
+private fun formatThousands(amount: Double): String {
+    val digits = amount.toLong().toString()
+    val grouped = StringBuilder()
+    for ((index, char) in digits.reversed().withIndex()) {
+        if (index != 0 && index % 3 == 0) grouped.append(',')
+        grouped.append(char)
+    }
+    return grouped.reverse().toString()
 }
 
 @Serializable
@@ -185,14 +182,6 @@ data class FeatureDto(
                 name = name,
                 included = included,
                 description = description
-            )
-        }
-
-        fun fromFeature(feature: com.devbrian.osebo.models.Feature): FeatureDto {
-            return FeatureDto(
-                name = feature.name,
-                included = feature.included,
-                description = feature.description
             )
         }
     }

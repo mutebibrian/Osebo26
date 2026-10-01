@@ -1,9 +1,8 @@
 package com.devbrian.osebo.models
 
-import android.os.Parcelable
-import kotlinx.parcelize.Parcelize
+import kotlinx.serialization.Serializable
 
-@Parcelize
+@Serializable
 data class Customer(
     val id: String,
     val name: String,
@@ -23,6 +22,4 @@ data class Customer(
     val updatedAt: String? = null,
     val isPendingSync: Boolean = false,
     val syncAction: String? = null
-) : Parcelable
-
-
+)

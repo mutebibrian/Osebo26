@@ -1,9 +1,12 @@
 package com.devbrian.osebo.data.remote.dto.response
 
+import com.devbrian.osebo.data.remote.withAlternateKeys
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonTransformingSerializer
 
-@Serializable
+@Serializable(with = ShopDtoSerializer::class)
 data class ShopDto(
     @SerialName("id")
     val id: String,
@@ -14,7 +17,7 @@ data class ShopDto(
     @SerialName("address")
     val address: String?,
 
-    @SerialName(value = "phone", alternate = ["phone_number"])
+    @SerialName("phone")
     val phone: String?,
 
     @SerialName("email")
@@ -32,10 +35,10 @@ data class ShopDto(
     @SerialName("logo_url")
     val logoUrl: String?,
 
-    @SerialName(value = "registration_number", alternate = ["reg_no"])
+    @SerialName("registration_number")
     val registrationNumber: String?,
 
-    @SerialName(value = "tax_identification_number", alternate = ["tax_identification_no"])
+    @SerialName("tax_identification_number")
     val taxIdentificationNumber: String?,
 
     @SerialName("madeBy")
@@ -123,6 +126,15 @@ data class ShopDto(
             )
         }
     }
+}
+
+object ShopDtoSerializer : JsonTransformingSerializer<ShopDto>(ShopDto.serializer()) {
+    override fun transformDeserialize(element: JsonElement): JsonElement =
+        element.withAlternateKeys(
+            "phone" to listOf("phone_number"),
+            "registration_number" to listOf("reg_no"),
+            "tax_identification_number" to listOf("tax_identification_no"),
+        )
 }
 
 // Add this data class for the madeBy field

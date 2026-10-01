@@ -67,16 +67,6 @@ data class ShopSubscriptionDto(
             else -> "Custom duration"
         }
 
-    
-    val statusColorRes: Int
-        get() = when {
-            isTrialActive -> android.R.color.holo_blue_dark
-            isActiveStatus -> android.R.color.holo_green_dark
-            status.equals("EXPIRED", ignoreCase = true) -> android.R.color.holo_red_dark
-            status.equals("PENDING", ignoreCase = true) -> android.R.color.holo_orange_dark
-            else -> android.R.color.darker_gray
-        }
-
     companion object {
         fun createSample(active: Boolean = true, trial: Boolean = false): ShopSubscriptionDto {
             return ShopSubscriptionDto(

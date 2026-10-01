@@ -26,7 +26,7 @@ import com.devbrian.osebo.data.remote.dto.request.TwoFactorAuthRequest
 import com.devbrian.osebo.data.remote.dto.request.UpdateCustomerRequest
 import com.devbrian.osebo.data.remote.dto.request.UpdateExpenseCategoryRequest
 import com.devbrian.osebo.data.remote.dto.request.UpdateExpenseRequest
-import com.devbrian.osebo.data.remote.dto.request.UpdateFinanceSettingsRequest
+import com.devbrian.osebo.data.remote.dto.response.UpdateFinanceSettingsRequest
 import com.devbrian.osebo.data.remote.dto.request.UpdateProductRequest
 import com.devbrian.osebo.data.remote.dto.request.UpdateProfileRequest
 import com.devbrian.osebo.data.remote.dto.request.UpdateShopRequest
@@ -49,12 +49,11 @@ import com.devbrian.osebo.data.remote.dto.response.SaleApiResponse
 import com.devbrian.osebo.data.remote.dto.response.SaleListApiResponse
 import com.devbrian.osebo.data.remote.dto.response.SalesComparisonDto
 import com.devbrian.osebo.data.remote.dto.response.ShopDto
-import com.devbrian.osebo.data.remote.dto.response.ShopSubscriptionStatusResponse
 import com.devbrian.osebo.data.remote.dto.response.ShopSummaryDto
 import com.devbrian.osebo.data.remote.dto.response.ShopTotalsDto
 import com.devbrian.osebo.data.remote.dto.response.StockCategoryDto
 import com.devbrian.osebo.data.remote.dto.response.SubscriptionResponse
-import com.devbrian.osebo.data.remote.dto.response.SupplierDto
+import com.devbrian.osebo.data.remote.api.SupplierDto
 import com.devbrian.osebo.data.remote.dto.response.UserDto
 import com.devbrian.osebo.data.remote.api.FaqDto
 import com.devbrian.osebo.data.remote.api.FinanceReportDto
@@ -98,12 +97,15 @@ import kotlinx.coroutines.CancellationException
  * incrementally, one repository at a time, each validated before the next.
  *
  * Covers every endpoint from ApiService.kt except the ones whose
- * request/response models are still Android-only domain objects embedded in
- * Activity/ViewModel files (Shop, ShopType, Product search, the ledger's
- * FinancialStatement, and Subscription): createShop, getShopTypes,
+ * request/response models are still Android-only domain objects (Shop,
+ * ShopType, Product search, the ledger's FinancialStatement, and the legacy
+ * Subscription model — which pulls in java.text.SimpleDateFormat and
+ * android.R.color, neither multiplatform-safe): createShop, getShopTypes,
  * searchProductByBarcode, searchProducts, getGeneralLedger,
- * getCustomerLedger, getShopSubscriptions, getUserShopsSubscriptions,
- * getSubscriptionDetails. Those land once those models move to commonMain.
+ * getCustomerLedger, checkShopSubscription, getShopSubscriptions,
+ * getUserShopsSubscriptions, getSubscriptionDetails. Those land once those
+ * models get a real multiplatform port (date formatting via
+ * kotlinx-datetime, color resource IDs moved to an androidMain extension).
  */
 class KtorOseboApiService(private val client: HttpClient) {
 
@@ -616,9 +618,6 @@ class KtorOseboApiService(private val client: HttpClient) {
                 header("X-Shop", shopId)
             }
         }
-
-    suspend fun checkShopSubscription(shopId: String): ApiResult<ApiResponse<ShopSubscriptionStatusResponse>> =
-        execute { client.get("api/v1/subscription/shop/active") { header("X-Shop", shopId) } }
 
     suspend fun getSubscriptionPayments(
         shopId: String,

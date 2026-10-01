@@ -1,8 +1,11 @@
 package com.devbrian.osebo.data.remote.dto.response
 
+import com.devbrian.osebo.data.remote.withAlternateKeys
 import com.devbrian.osebo.models.ShopInfo
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonTransformingSerializer
 
 @Serializable
 data class SaleApiResponse(
@@ -28,27 +31,27 @@ data class SaleListApiResponse(
     val data: List<SaleApiData>? = null
 )
 
-@Serializable
+@Serializable(with = SaleApiDataSerializer::class)
 data class SaleApiData(
     @SerialName("id")
     val id: String = "",
 
-    @SerialName(value = "invoiceNumber", alternate = ["invoice_number"])
+    @SerialName("invoiceNumber")
     val invoiceNumber: String? = null,
 
-    @SerialName(value = "createdAt", alternate = ["created_at"])
+    @SerialName("createdAt")
     val createdAt: String? = null,
 
-    @SerialName(value = "total_price", alternate = ["totalPrice", "total_amount"])
+    @SerialName("total_price")
     val totalPrice: Double? = null,
 
-    @SerialName(value = "paid_amount", alternate = ["paidAmount"])
+    @SerialName("paid_amount")
     val paidAmountString: String? = null,
 
-    @SerialName(value = "outstanding_balance", alternate = ["outstandingBalance"])
+    @SerialName("outstanding_balance")
     val outstandingBalance: String? = null,
 
-    @SerialName(value = "payment_status", alternate = ["paymentStatus", "status"])
+    @SerialName("payment_status")
     val paymentStatus: String? = null,
 
     @SerialName("type")
@@ -60,12 +63,26 @@ data class SaleApiData(
     @SerialName("shop")
     val shop: ShopInfo? = null,
 
-    @SerialName(value = "saleStockItems", alternate = ["sale_stock_items", "stockItems"])
+    @SerialName("saleStockItems")
     val saleStockItems: List<SaleStockItemDto>? = null,
 
-    @SerialName(value = "salePayments", alternate = ["sale_payments", "payments"])
+    @SerialName("salePayments")
     val salePayments: List<SalePaymentDto>? = null
 )
+
+object SaleApiDataSerializer : JsonTransformingSerializer<SaleApiData>(SaleApiData.serializer()) {
+    override fun transformDeserialize(element: JsonElement): JsonElement =
+        element.withAlternateKeys(
+            "invoiceNumber" to listOf("invoice_number"),
+            "createdAt" to listOf("created_at"),
+            "total_price" to listOf("totalPrice", "total_amount"),
+            "paid_amount" to listOf("paidAmount"),
+            "outstanding_balance" to listOf("outstandingBalance"),
+            "payment_status" to listOf("paymentStatus", "status"),
+            "saleStockItems" to listOf("sale_stock_items", "stockItems"),
+            "salePayments" to listOf("sale_payments", "payments"),
+        )
+}
 
 @Serializable
 data class SaleStockItemDto(
