@@ -1,11 +1,13 @@
 package com.devbrian.osebo.data.remote.dto.response
 
-
+import com.devbrian.osebo.data.remote.withAlternateKeys
 import com.devbrian.osebo.models.Subscription
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonTransformingSerializer
 
-@Serializable
+@Serializable(with = ShopSubscriptionStatusResponseSerializer::class)
 data class ShopSubscriptionStatusResponse(
     @SerialName("success")
     val success: Boolean = false,
@@ -16,40 +18,40 @@ data class ShopSubscriptionStatusResponse(
     @SerialName("status")
     val status: String? = null,
 
-    @SerialName(value = "type", alternate = ["subscription_type", "package_type"])
+    @SerialName("type")
     val type: String? = null,
 
-    @SerialName(value = "expiry_date", alternate = ["expiryDate", "ends_at", "end_date"])
+    @SerialName("expiry_date")
     val expiryDate: String? = null,
 
-    @SerialName(value = "is_active", alternate = ["isActive"])
+    @SerialName("is_active")
     val isActive: Boolean = false,
 
-    @SerialName(value = "days_remaining", alternate = ["daysRemaining"])
+    @SerialName("days_remaining")
     val daysRemaining: Int? = null,
 
-    @SerialName(value = "can_activate", alternate = ["canActivate"])
+    @SerialName("can_activate")
     val canActivate: Boolean = false,
 
-    @SerialName(value = "shop_id", alternate = ["shopId"])
+    @SerialName("shop_id")
     val shopId: String? = null,
 
-    @SerialName(value = "shop_name", alternate = ["shopName"])
+    @SerialName("shop_name")
     val shopName: String? = null,
 
-    @SerialName(value = "subscription_id", alternate = ["subscriptionId"])
+    @SerialName("subscription_id")
     val subscriptionId: String? = null,
 
     @SerialName("subscription")
     val subscription: Subscription? = null,
 
-    @SerialName(value = "hasActiveSubscription", alternate = ["has_active_subscription"])
+    @SerialName("hasActiveSubscription")
     val hasActiveSubscription: Boolean = false,
 
-    @SerialName(value = "hasHadSubscription", alternate = ["has_had_subscription"])
+    @SerialName("hasHadSubscription")
     val hasHadSubscription: Boolean = false,
 
-    @SerialName(value = "packageSubscriptions", alternate = ["package_subscriptions"])
+    @SerialName("packageSubscriptions")
     val packageSubscriptions: List<ActivePackageSubscriptionDto> = emptyList(),
 ) {
     val resolvedIsActive: Boolean
@@ -98,21 +100,21 @@ data class ShopSubscriptionStatusResponse(
             }
 }
 
-@Serializable
+@Serializable(with = ActivePackageSubscriptionDtoSerializer::class)
 data class ActivePackageSubscriptionDto(
     @SerialName("id")
     val id: String = "",
 
-    @SerialName(value = "is_trial", alternate = ["isTrial"])
+    @SerialName("is_trial")
     val isTrial: Boolean = false,
 
-    @SerialName(value = "starts_at", alternate = ["startsAt"])
+    @SerialName("starts_at")
     val startsAt: String? = null,
 
-    @SerialName(value = "ends_at", alternate = ["endsAt"])
+    @SerialName("ends_at")
     val endsAt: String? = null,
 
-    @SerialName(value = "duration_days", alternate = ["durationDays"])
+    @SerialName("duration_days")
     val durationDays: Int = 0,
 
     @SerialName("subscription")
@@ -122,11 +124,51 @@ data class ActivePackageSubscriptionDto(
     val packageDetails: PackageDto? = null,
 )
 
-@Serializable
+@Serializable(with = ActiveSubscriptionSummaryDtoSerializer::class)
 data class ActiveSubscriptionSummaryDto(
     @SerialName("id")
     val id: String = "",
 
-    @SerialName(value = "is_paid", alternate = ["isPaid"])
+    @SerialName("is_paid")
     val isPaid: Boolean = false,
 )
+
+@OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+object ShopSubscriptionStatusResponseSerializer :
+    JsonTransformingSerializer<ShopSubscriptionStatusResponse>(ShopSubscriptionStatusResponse.serializer()) {
+    override fun transformDeserialize(element: JsonElement): JsonElement =
+        element.withAlternateKeys(
+            "type" to listOf("subscription_type", "package_type"),
+            "expiry_date" to listOf("expiryDate", "ends_at", "end_date"),
+            "is_active" to listOf("isActive"),
+            "days_remaining" to listOf("daysRemaining"),
+            "can_activate" to listOf("canActivate"),
+            "shop_id" to listOf("shopId"),
+            "shop_name" to listOf("shopName"),
+            "subscription_id" to listOf("subscriptionId"),
+            "hasActiveSubscription" to listOf("has_active_subscription"),
+            "hasHadSubscription" to listOf("has_had_subscription"),
+            "packageSubscriptions" to listOf("package_subscriptions"),
+        )
+}
+
+@OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+object ActivePackageSubscriptionDtoSerializer :
+    JsonTransformingSerializer<ActivePackageSubscriptionDto>(ActivePackageSubscriptionDto.serializer()) {
+    override fun transformDeserialize(element: JsonElement): JsonElement =
+        element.withAlternateKeys(
+            "is_trial" to listOf("isTrial"),
+            "starts_at" to listOf("startsAt"),
+            "ends_at" to listOf("endsAt"),
+            "duration_days" to listOf("durationDays"),
+        )
+}
+
+@OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+object ActiveSubscriptionSummaryDtoSerializer :
+    JsonTransformingSerializer<ActiveSubscriptionSummaryDto>(ActiveSubscriptionSummaryDto.serializer()) {
+    override fun transformDeserialize(element: JsonElement): JsonElement =
+        element.withAlternateKeys(
+            "is_paid" to listOf("isPaid"),
+        )
+}

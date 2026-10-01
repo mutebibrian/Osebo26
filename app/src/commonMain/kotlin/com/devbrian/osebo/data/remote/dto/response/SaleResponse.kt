@@ -70,6 +70,7 @@ data class SaleApiData(
     val salePayments: List<SalePaymentDto>? = null
 )
 
+@OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
 object SaleApiDataSerializer : JsonTransformingSerializer<SaleApiData>(SaleApiData.serializer()) {
     override fun transformDeserialize(element: JsonElement): JsonElement =
         element.withAlternateKeys(
