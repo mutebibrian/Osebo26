@@ -87,8 +87,11 @@ import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.isSuccess
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * Ktor-based, Kotlin/Native-safe replacement for the Retrofit
@@ -108,11 +111,21 @@ import kotlinx.coroutines.CancellationException
  * models get a real multiplatform port (date formatting via
  * kotlinx-datetime, color resource IDs moved to an androidMain extension).
  */
-class KtorOseboApiService(private val client: HttpClient) {
+class KtorOseboApiService(
+    private val client: HttpClient,
+    private val sessionProvider: OseboSessionProvider,
+) {
+    private val refreshMutex = Mutex()
 
     private suspend inline fun <reified T> execute(crossinline call: suspend () -> HttpResponse): ApiResult<T> {
         return try {
-            val response = call()
+            var response = call()
+            if (response.status == HttpStatusCode.Unauthorized) {
+                val tokenBeforeRefresh = sessionProvider.authToken()
+                if (refreshSessionIfNeeded(tokenBeforeRefresh)) {
+                    response = call()
+                }
+            }
             if (response.status.isSuccess()) {
                 ApiResult.Success(response.body<T>(), response.status.value)
             } else {
@@ -129,6 +142,41 @@ class KtorOseboApiService(private val client: HttpClient) {
             throw e
         } catch (e: Exception) {
             ApiResult.NetworkError(e.message ?: "Network error")
+        }
+    }
+
+    /**
+     * Mirrors Android's SessionAuthenticator: access tokens are short-lived
+     * (expire in ~15 minutes), so every 401 triggers one refresh-and-retry
+     * attempt here instead of forcing the user back to the login screen.
+     * The mutex avoids two concurrent 401s (e.g. Dashboard and Customers
+     * loading at once) both spending the same refresh token.
+     */
+    suspend fun refreshSessionIfNeeded(tokenBeforeRefresh: String?): Boolean = refreshMutex.withLock {
+        // Another in-flight request may have already refreshed the token
+        // while this one was waiting for the lock.
+        val currentToken = sessionProvider.authToken()
+        if (!currentToken.isNullOrBlank() && currentToken != tokenBeforeRefresh) {
+            return@withLock true
+        }
+
+        val refreshToken = sessionProvider.refreshToken()
+        if (refreshToken.isNullOrBlank()) return@withLock false
+
+        try {
+            val response = client.post("api/v1/auth/refresh") {
+                setBody(RefreshTokenRequest(refreshToken = refreshToken))
+            }
+            if (!response.status.isSuccess()) return@withLock false
+            val body = response.body<AuthResponse>()
+            val newAccessToken = body.data?.accessToken
+            if (newAccessToken.isNullOrBlank()) return@withLock false
+            sessionProvider.onTokensRefreshed(newAccessToken, body.data?.refreshToken ?: refreshToken)
+            true
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            false
         }
     }
 

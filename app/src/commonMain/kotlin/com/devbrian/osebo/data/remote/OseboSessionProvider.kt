@@ -8,5 +8,9 @@ package com.devbrian.osebo.data.remote
  */
 interface OseboSessionProvider {
     fun authToken(): String?
+    fun refreshToken(): String?
     fun currentShopId(): String?
+
+    /** Called by KtorOseboApiService after a 401 triggers a successful token refresh. */
+    fun onTokensRefreshed(accessToken: String, refreshToken: String?)
 }

@@ -128,7 +128,7 @@ fun App() {
         val settingsStore = remember { createSettingsStore() }
         val sessionProvider = remember { SettingsStoreSessionProvider(settingsStore) }
         val httpClient = remember { createOseboHttpClient(sessionProvider) }
-        val api = remember { KtorOseboApiService(httpClient) }
+        val api = remember { KtorOseboApiService(httpClient, sessionProvider) }
         val customerRepository = remember { CustomerRepository(api) }
         val dashboardRepository = remember { DashboardRepository(api) }
         val scope = rememberCoroutineScope()
@@ -262,6 +262,7 @@ fun App() {
                         val token = authData?.accessToken
                         if (result.data.success && !token.isNullOrBlank()) {
                             sessionProvider.saveAuthToken(token)
+                            authData?.refreshToken?.let { sessionProvider.saveRefreshToken(it) }
                             val firstName = authData?.user?.extractFirstName()?.takeIf { it.isNotBlank() } ?: "User"
                             sessionProvider.saveUserFirstName(firstName)
                             selectAccountState = SelectAccountUiState()
