@@ -1,6 +1,7 @@
 package com.devbrian.osebo.data.remote.dto.response
 
 import com.devbrian.osebo.models.Subscription
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -16,5 +17,5 @@ data class CreateSubscriptionResponse(
     val transactionId: String? = null,
 
     @SerialName("subscription")
-    val subscription: Subscription? = null
+    val subscription: @Contextual Subscription? = null
 )
