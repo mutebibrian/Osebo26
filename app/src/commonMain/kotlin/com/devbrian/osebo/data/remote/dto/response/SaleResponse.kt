@@ -31,7 +31,7 @@ data class SaleListApiResponse(
     val data: List<SaleApiData>? = null
 )
 
-@Serializable(with = SaleApiDataSerializer::class)
+@Serializable
 data class SaleApiData(
     @SerialName("id")
     val id: String = "",
