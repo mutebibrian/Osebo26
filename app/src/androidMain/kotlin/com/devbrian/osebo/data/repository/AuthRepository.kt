@@ -3,6 +3,8 @@ package com.devbrian.osebo.data.repository
 import com.devbrian.osebo.data.remote.dto.request.SignUpRequest
 import com.devbrian.osebo.data.remote.dto.request.VerifyOtpRequest
 import com.devbrian.osebo.data.remote.dto.response.*
+import com.google.gson.GsonBuilder
+import com.google.gson.JsonDeserializer
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import okio.IOException
@@ -63,10 +65,32 @@ class AuthRepository {
             .writeTimeout(30, TimeUnit.SECONDS)
             .build()
 
+        // SigninData's token fields are declared for kotlinx.serialization (@SerialName
+        // only) since that class now lives in commonMain for the Ktor/iOS client. Gson
+        // ignores @SerialName and would otherwise match its own property names, missing
+        // the backend's snake_case "access_token"/"refresh_token" keys entirely and
+        // leaving both fields null. Deserialize it manually instead.
+        val gson = GsonBuilder()
+            .registerTypeAdapter(
+                SigninData::class.java,
+                JsonDeserializer { json, _, context ->
+                    val obj = json.asJsonObject
+                    SigninData(
+                        accessToken = obj.get("access_token")?.takeIf { !it.isJsonNull }?.asString
+                            ?: obj.get("accessToken")?.takeIf { !it.isJsonNull }?.asString.orEmpty(),
+                        refreshToken = obj.get("refresh_token")?.takeIf { !it.isJsonNull }?.asString
+                            ?: obj.get("refreshToken")?.takeIf { !it.isJsonNull }?.asString.orEmpty(),
+                        role = obj.get("role")?.takeIf { !it.isJsonNull }?.asString,
+                        user = context.deserialize(obj.get("user"), UserDto::class.java)
+                    )
+                }
+            )
+            .create()
+
         Retrofit.Builder()
             .baseUrl(BASE_URL)
             .client(client)
-            .addConverterFactory(GsonConverterFactory.create())
+            .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
             .create(LocalApiService::class.java)
     }
