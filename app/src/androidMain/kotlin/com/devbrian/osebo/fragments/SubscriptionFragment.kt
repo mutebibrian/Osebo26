@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
 import com.devbrian.osebo.data.remote.dto.response.PackageDto
+import com.devbrian.osebo.data.remote.dto.response.fromSubscriptionPackage
 import com.devbrian.osebo.models.Payment
 import com.devbrian.osebo.models.Subscription
 import com.devbrian.osebo.models.SubscriptionPackage
@@ -117,7 +118,7 @@ class SubscriptionFragment : Fragment() {
                 is Resource.Success -> {
                     plansLoading = false
                     val packages = resource.data.orEmpty()
-                    packageDtos = packages.map(PackageDto::fromSubscriptionPackage)
+                    packageDtos = packages.map(::fromSubscriptionPackage)
                     uiState = uiState.copy(
                         plans = packages.map(SubscriptionPackage::toUi),
                         errorMessage = null,

@@ -2,7 +2,6 @@ package com.devbrian.osebo.data.remote.dto.response
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import com.devbrian.osebo.models.Product
 
 @Serializable
 data class ProductDto(
@@ -22,36 +21,4 @@ data class ProductDto(
     @SerialName("allowsFloatQuantity") val allowsFloatQuantity: Boolean,
     @SerialName("createdAt") val createdAt: String?,
     @SerialName("updatedAt") val updatedAt: String?
-) {
-    fun toProduct(): Product {
-        return Product(
-            id = this.id,
-            name = this.name,
-            sku = this.sku,
-            category = this.stockCategory.name,
-            categoryId = this.stockCategory.id,
-            price = this.sellingPrice,
-            cost = null,
-            stock = this.quantity,  // Now works with Double
-            lowStockThreshold = this.lowQuantityMark,
-            imageUrl = this.photos?.firstOrNull(),
-            description = this.description,
-            barcode = this.barcode,
-            supplierId = null,
-            supplierName = null,
-            taxRate = null,
-            weight = null,
-            dimensions = null,
-            location = null,
-            isActive = true,
-            createdAt = this.createdAt,
-            updatedAt = this.updatedAt,
-            maxDiscount = this.maxDiscount,
-            unit = this.unitMeasure,
-            allowsFloatQuantity = this.allowsFloatQuantity,
-            shopId = this.shop.id,
-            shopName = this.shop.name,
-            photos = this.photos
-        )
-    }
-}
+)

@@ -1,9 +1,8 @@
 package com.devbrian.osebo.models
 
-import android.os.Parcelable
-import kotlinx.parcelize.Parcelize
+import kotlinx.serialization.Serializable
 
-@Parcelize
+@Serializable
 data class SaleData(
     val id: String,
     val invoiceNumber: String?,
@@ -12,10 +11,10 @@ data class SaleData(
     val change: Double,
     val paymentMethod: String,
     val createdAt: String?,
-    val shop: ShopInfo?  
-) : Parcelable
+    val shop: ShopInfo?
+)
 
-@Parcelize
+@Serializable
 data class ShopInfo(
     val id: String?,
     val name: String?,
@@ -23,4 +22,4 @@ data class ShopInfo(
     val phone: String?,
     val description: String?,
     val email: String?
-) : Parcelable
+)
