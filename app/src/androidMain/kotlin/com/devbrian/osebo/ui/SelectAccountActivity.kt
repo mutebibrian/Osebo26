@@ -88,7 +88,13 @@ class SelectAccountActivity : AppCompatActivity() {
         configureImmersiveWindow()
 
         preferenceManager = PreferenceManager.getInstance(this)
-        val data = intent.getParcelableExtra<PreAuthData>(EXTRA_PRE_AUTH_DATA)
+        val data = intent.getStringExtra(EXTRA_PRE_AUTH_DATA)?.let {
+            try {
+                kotlinx.serialization.json.Json.decodeFromString(PreAuthData.serializer(), it)
+            } catch (e: Exception) {
+                null
+            }
+        }
         if (data == null || data.accounts.isEmpty()) {
             Toast.makeText(this, "No accounts found. Please sign in again.", Toast.LENGTH_LONG).show()
             goBackToLogin()
