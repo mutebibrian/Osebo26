@@ -83,9 +83,19 @@ class DashboardRepository(
                         todayExpenses = it.todayExpenses,
                     )
                 }
-            } else null
+            } else {
+                // This used to fail completely silently — the dashboard would
+                // just show 0 with no trace of why. Now it's visible in Logcat.
+                Log.e(
+                    TAG,
+                    "Shop summary request for $shopUuid was not usable: " +
+                        "httpCode=${response.code()}, success=${response.body()?.success}, " +
+                        "message=${response.body()?.message}, errorBody=${response.errorBody()?.string()}"
+                )
+                null
+            }
         } catch (e: Exception) {
-            Log.e(TAG, "Error fetching shop summary for $shopUuid: ${e.message}")
+            Log.e(TAG, "Error fetching shop summary for $shopUuid: ${e.message}", e)
             null
         }
     }
@@ -100,9 +110,17 @@ class DashboardRepository(
                         totalExpenses = it.totalExpenses,
                     )
                 }
-            } else null
+            } else {
+                Log.e(
+                    TAG,
+                    "Financial statement request for $shopUuid was not usable: " +
+                        "httpCode=${response.code()}, success=${response.body()?.success}, " +
+                        "message=${response.body()?.message}, errorBody=${response.errorBody()?.string()}"
+                )
+                null
+            }
         } catch (e: Exception) {
-            Log.e(TAG, "Error fetching financial statement for $shopUuid: ${e.message}")
+            Log.e(TAG, "Error fetching financial statement for $shopUuid: ${e.message}", e)
             null
         }
     }

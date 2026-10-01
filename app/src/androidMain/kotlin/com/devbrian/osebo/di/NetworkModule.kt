@@ -77,12 +77,24 @@ val networkModule = module {
                 requestBuilder.addHeader("Authorization", "Bearer $token")
             }
 
-            val shopUuid = preferenceManager.getCurrentShopUuid()
-            requestBuilder.removeHeader("X-Shop")
-            requestBuilder.removeHeader("x-shop")
-            requestBuilder.removeHeader("x-shop-id")
-            if (shopUuid.isNotEmpty()) {
-                requestBuilder.addHeader("X-Shop", shopUuid)
+            // A call that already set its own X-Shop (e.g. Retrofit's
+            // @Header("X-Shop") param, used when looping over several shops)
+            // must win over the globally "active" shop below — otherwise
+            // every per-shop request silently collapses onto whichever shop
+            // happens to be active, and any other shop's dashboard data
+            // reads back as zero.
+            val explicitShopHeader = originalRequest.header("X-Shop")
+                ?: originalRequest.header("x-shop")
+                ?: originalRequest.header("x-shop-id")
+
+            if (explicitShopHeader == null) {
+                val shopUuid = preferenceManager.getCurrentShopUuid()
+                requestBuilder.removeHeader("X-Shop")
+                requestBuilder.removeHeader("x-shop")
+                requestBuilder.removeHeader("x-shop-id")
+                if (shopUuid.isNotEmpty()) {
+                    requestBuilder.addHeader("X-Shop", shopUuid)
+                }
             }
 
             requestBuilder.removeHeader("X-App-Platform")
