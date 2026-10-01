@@ -24,8 +24,8 @@ import com.devbrian.osebo.data.remote.KtorOseboApiService
 import com.devbrian.osebo.data.remote.createOseboHttpClient
 import com.devbrian.osebo.data.remote.dto.request.LoginRequest
 import com.devbrian.osebo.data.remote.dto.request.SelectAccountRequest
-import com.devbrian.osebo.data.repository.CustomerRepository
-import com.devbrian.osebo.data.repository.DashboardRepository
+import com.devbrian.osebo.data.repository.SharedCustomerRepository
+import com.devbrian.osebo.data.repository.SharedDashboardRepository
 import com.devbrian.osebo.data.repository.currentDateLabel
 import com.devbrian.osebo.data.repository.currentGreeting
 import com.devbrian.osebo.data.settings.SettingsStoreSessionProvider
@@ -129,8 +129,8 @@ fun App() {
         val sessionProvider = remember { SettingsStoreSessionProvider(settingsStore) }
         val httpClient = remember { createOseboHttpClient(sessionProvider) }
         val api = remember { KtorOseboApiService(httpClient, sessionProvider) }
-        val customerRepository = remember { CustomerRepository(api) }
-        val dashboardRepository = remember { DashboardRepository(api) }
+        val customerRepository = remember { SharedCustomerRepository(api) }
+        val dashboardRepository = remember { SharedDashboardRepository(api) }
         val scope = rememberCoroutineScope()
 
         var authState by remember { mutableStateOf<AuthState>(AuthState.Splash) }
