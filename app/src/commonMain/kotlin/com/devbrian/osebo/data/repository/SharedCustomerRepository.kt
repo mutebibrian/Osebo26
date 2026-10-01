@@ -10,8 +10,12 @@ import com.devbrian.osebo.ui.screens.CustomerUi
  * the full real-data pipeline: Ktor -> real backend -> DTO -> UI model ->
  * screen, on both Android and iOS. Picked Customers as the starting point
  * since it's the simplest screen (no sub-dialogs' worth of state to map).
+ *
+ * Named "Shared" (not just CustomerRepository) because androidMain already
+ * has its own, unrelated, Retrofit-based CustomerRepository in this same
+ * package — reusing that name here collided and broke the Android build.
  */
-class CustomerRepository(private val api: KtorOseboApiService) {
+class SharedCustomerRepository(private val api: KtorOseboApiService) {
     suspend fun getCustomers(shopId: String): ApiResult<List<CustomerUi>> {
         return when (val result = api.getCustomers(shopId)) {
             is ApiResult.Success -> ApiResult.Success(
