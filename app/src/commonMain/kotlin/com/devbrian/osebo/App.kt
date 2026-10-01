@@ -25,6 +25,9 @@ import com.devbrian.osebo.data.remote.createOseboHttpClient
 import com.devbrian.osebo.data.remote.dto.request.LoginRequest
 import com.devbrian.osebo.data.remote.dto.request.SelectAccountRequest
 import com.devbrian.osebo.data.repository.CustomerRepository
+import com.devbrian.osebo.data.repository.DashboardRepository
+import com.devbrian.osebo.data.repository.currentDateLabel
+import com.devbrian.osebo.data.repository.currentGreeting
 import com.devbrian.osebo.data.settings.SettingsStoreSessionProvider
 import com.devbrian.osebo.data.settings.createSettingsStore
 import com.devbrian.osebo.ui.components.BottomNavBar
@@ -127,6 +130,7 @@ fun App() {
         val httpClient = remember { createOseboHttpClient(sessionProvider) }
         val api = remember { KtorOseboApiService(httpClient) }
         val customerRepository = remember { CustomerRepository(api) }
+        val dashboardRepository = remember { DashboardRepository(api) }
         val scope = rememberCoroutineScope()
 
         var authState by remember { mutableStateOf<AuthState>(AuthState.Splash) }
@@ -136,6 +140,8 @@ fun App() {
         var destination by remember { mutableStateOf<Destination>(Destination.MainTabs) }
         var customersState by remember { mutableStateOf(CustomersUiState()) }
         var hasLoadedCustomers by remember { mutableStateOf(false) }
+        var dashboardState by remember { mutableStateOf(DashboardUiState()) }
+        var hasLoadedDashboard by remember { mutableStateOf(false) }
 
         LaunchedEffect(authState) {
             if (authState !is AuthState.LoggedIn) return@LaunchedEffect
@@ -177,6 +183,40 @@ fun App() {
                     isLoading = false,
                     errorMessage = result.message,
                 )
+            }
+        }
+
+        LaunchedEffect(authState) {
+            if (authState !is AuthState.LoggedIn) return@LaunchedEffect
+            if (hasLoadedDashboard) return@LaunchedEffect
+            hasLoadedDashboard = true
+
+            dashboardState = dashboardState.copy(
+                greeting = currentGreeting(),
+                userName = sessionProvider.userFirstName() ?: "User",
+                currentDate = currentDateLabel(),
+                isLoading = true,
+            )
+
+            when (val result = dashboardRepository.loadShopsAndTotals()) {
+                is ApiResult.Success -> {
+                    val data = result.data
+                    dashboardState = dashboardState.copy(
+                        isLoading = false,
+                        totalSales = data.totalSales,
+                        totalExpenses = data.totalExpenses,
+                        totalShopsLabel = data.totalShopsLabel,
+                        todaySales = data.todaySales,
+                        todayExpenses = data.todayExpenses,
+                        todayBalance = data.todayBalance,
+                        salesTrend = data.salesTrend,
+                        expensesTrend = data.expensesTrend,
+                        shopPerformances = data.shopPerformances,
+                        shops = data.shops,
+                    )
+                }
+                is ApiResult.Error -> dashboardState = dashboardState.copy(isLoading = false)
+                is ApiResult.NetworkError -> dashboardState = dashboardState.copy(isLoading = false)
             }
         }
 
@@ -222,6 +262,8 @@ fun App() {
                         val token = authData?.accessToken
                         if (result.data.success && !token.isNullOrBlank()) {
                             sessionProvider.saveAuthToken(token)
+                            val firstName = authData?.user?.extractFirstName()?.takeIf { it.isNotBlank() } ?: "User"
+                            sessionProvider.saveUserFirstName(firstName)
                             selectAccountState = SelectAccountUiState()
                             authState = AuthState.LoggedIn(token)
                         } else {
@@ -302,7 +344,7 @@ fun App() {
                     Destination.MainTabs -> {
                         when (selectedTab) {
                             AppTab.Dashboard -> DashboardScreen(
-                                state = DashboardUiState(),
+                                state = dashboardState,
                                 onReportsClick = { destination = Destination.Reports },
                                 onAddProductClick = { destination = Destination.AddStock },
                             )
