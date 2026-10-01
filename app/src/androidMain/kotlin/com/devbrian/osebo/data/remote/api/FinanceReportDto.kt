@@ -5,24 +5,9 @@ import com.devbrian.osebo.data.remote.dto.response.*
 import com.devbrian.osebo.models.ApiResponse
 import com.devbrian.osebo.models.SupportMessageRequest
 
-import com.google.gson.annotations.SerializedName
 import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.*
-
-data class FinanceReportDto(
-    @SerializedName("period")
-    val period: String,
-
-    @SerializedName("total_revenue")
-    val totalRevenue: Double,
-
-    @SerializedName("total_expenses")
-    val totalExpenses: Double,
-
-    @SerializedName("net_profit")
-    val netProfit: Double
-)
 
 interface OseboApiService {
 

@@ -47,19 +47,6 @@ data class PollPaymentStatusRequest(
 )
 
 
-
-data class RenewSubscriptionRequest(
-    @SerializedName("phone_number")
-    val phoneNumber: String,
-
-    @SerializedName("months")
-    val months: Int = 1,
-
-    @SerializedName("auto_renew")
-    val autoRenew: Boolean = false
-)
-
-
 data class CancelSubscriptionRequest(
     @SerializedName("reason")
     val reason: String? = null

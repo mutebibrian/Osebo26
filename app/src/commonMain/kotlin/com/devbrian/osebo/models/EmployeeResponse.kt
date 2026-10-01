@@ -1,28 +1,29 @@
 package com.devbrian.osebo.models
 
 import com.devbrian.osebo.data.remote.dto.request.EmployeeData
-import com.google.gson.annotations.SerializedName
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
-
+@Serializable
 data class EmployeeResponse(
-    @SerializedName("success")
+    @SerialName("success")
     val success: Boolean,
 
-    @SerializedName("message")
+    @SerialName("message")
     val message: String?,
 
-    @SerializedName("data")
+    @SerialName("data")
     val data: List<EmployeeData>?
 )
 
-
+@Serializable
 data class CreateEmployeeResponse(
-    @SerializedName("success")
+    @SerialName("success")
     val success: Boolean,
 
-    @SerializedName("message")
+    @SerialName("message")
     val message: String?,
 
-    @SerializedName("data")
+    @SerialName("data")
     val data: EmployeeData?
 )

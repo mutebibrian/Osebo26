@@ -1,10 +1,8 @@
-
 package com.devbrian.osebo.models
 
-import android.os.Parcelable
-import kotlinx.parcelize.Parcelize
+import kotlinx.serialization.Serializable
 
-@Parcelize
+@Serializable
 data class ExpenseCategory(
     val id: String = "",
     val name: String = "",
@@ -15,4 +13,4 @@ data class ExpenseCategory(
     val isDefault: Boolean = false,
     val createdAt: String? = null,
     val updatedAt: String? = null
-) : Parcelable
+)

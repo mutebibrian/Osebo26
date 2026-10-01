@@ -1,14 +1,16 @@
 package com.devbrian.osebo.models
 
-import com.google.gson.annotations.SerializedName
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
+@Serializable
 data class TimeSeriesApiResponse(
-    @SerializedName("xAxis")
+    @SerialName("xAxis")
     val xAxis: List<String> = emptyList(),
 
-    @SerializedName("sales")
+    @SerialName("sales")
     val sales: List<Double> = emptyList(),
 
-    @SerializedName("expenses")
+    @SerialName("expenses")
     val expenses: List<Double> = emptyList()
 )

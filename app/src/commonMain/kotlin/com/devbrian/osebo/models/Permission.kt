@@ -1,7 +1,9 @@
 package com.devbrian.osebo.models
 
 import kotlinx.datetime.Clock
+import kotlinx.serialization.Serializable
 
+@Serializable
 enum class PermissionType {
     VIEW_INVENTORY,
     MANAGE_INVENTORY,
@@ -19,6 +21,7 @@ enum class PermissionType {
     MANAGE_SUPPLIERS
 }
 
+@Serializable
 data class Permission(
     val id: String,
     val name: String,
