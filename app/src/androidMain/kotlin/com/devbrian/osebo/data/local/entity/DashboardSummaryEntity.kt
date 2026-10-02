@@ -13,6 +13,15 @@ data class DashboardSummaryEntity(
     val customersCount: Int,
     val totalSales: Double,
     val totalExpenses: Double = 0.0,
+    val todaySales: Double = 0.0,
+    val todayCashOut: Double = 0.0,
+    val todayMargin: Double = 0.0,
+    val openingBalance: Double = 0.0,
+    val closingBalance: Double = 0.0,
+    val advancePayments: Double = 0.0,
+    val todayCreditSales: Double = 0.0,
+    val todayPaidSales: Double = 0.0,
+    val oldBalances: Double = 0.0,
     val lastUpdated: Long = System.currentTimeMillis()
 )
 

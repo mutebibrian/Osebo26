@@ -52,6 +52,8 @@ import com.devbrian.osebo.resources.Res
 import com.devbrian.osebo.resources.iconsax_add_employee
 import com.devbrian.osebo.resources.iconsax_add_product
 import com.devbrian.osebo.resources.iconsax_balance
+import com.devbrian.osebo.resources.iconsax_card
+import com.devbrian.osebo.resources.iconsax_export
 import com.devbrian.osebo.resources.iconsax_new_sale
 import com.devbrian.osebo.resources.iconsax_notification
 import com.devbrian.osebo.resources.iconsax_reports
@@ -92,6 +94,9 @@ data class DashboardUiState(
     val totalShopsLabel: String = "0 Shops",
     val totalSales: String = "UGX 0",
     val totalExpenses: String = "UGX 0",
+    val cashBalance: String = "UGX 0",
+    val todayMargin: String = "UGX 0",
+    val todayCashOuts: String = "UGX 0",
     val salesTrend: List<Float> = emptyList(),
     val expensesTrend: List<Float> = emptyList(),
     val shopPerformances: List<DashboardShopPerformanceUi> = emptyList(),
@@ -152,13 +157,31 @@ fun DashboardScreen(
             state.expensesTrend.takeLast(8),
         ),
         DashboardMetric(
-            "Today's Balance",
-            currencyAmount(state.todayBalance),
+            "Cash Balance",
+            currencyAmount(state.cashBalance),
             Res.drawable.iconsax_balance,
             listOf(Color(0xFFE3E3FF), Color(0xFFF6F5FF)),
             Color(0xFF6673E8),
-            "UGX · today",
+            "UGX",
             profitTrend.takeLast(8),
+        ),
+        DashboardMetric(
+            "Today's Margin",
+            currencyAmount(state.todayMargin),
+            Res.drawable.iconsax_card,
+            listOf(Color(0xFFFFE6CF), Color(0xFFFFF7EF)),
+            Color(0xFFE88B48),
+            "UGX · today",
+            state.salesTrend.takeLast(8),
+        ),
+        DashboardMetric(
+            "Today's Cash Outs",
+            currencyAmount(state.todayCashOuts),
+            Res.drawable.iconsax_export,
+            listOf(Color(0xFFF8DDE4), Color(0xFFFFF3F6)),
+            Color(0xFFD75E81),
+            "UGX · today",
+            state.expensesTrend.takeLast(8),
         ),
         DashboardMetric(
             "Total Shops",
@@ -168,24 +191,6 @@ fun DashboardScreen(
             Color(0xFF8D5FD3),
             "active",
             shopTrend,
-        ),
-        DashboardMetric(
-            "Total Sales",
-            currencyAmount(state.totalSales),
-            Res.drawable.iconsax_total_sales,
-            listOf(Color(0xFFFFE6CF), Color(0xFFFFF7EF)),
-            Color(0xFFE88B48),
-            "UGX · all time",
-            state.salesTrend,
-        ),
-        DashboardMetric(
-            "Total Expenses",
-            currencyAmount(state.totalExpenses),
-            Res.drawable.iconsax_total_expenses,
-            listOf(Color(0xFFF8DDE4), Color(0xFFFFF3F6)),
-            Color(0xFFD75E81),
-            "UGX · all time",
-            state.expensesTrend,
         ),
     )
     val quickActions = listOf(

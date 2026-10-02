@@ -33,7 +33,12 @@ import com.devbrian.osebo.data.local.entity.*
         ExpenseEntity::class,
         ExpenseCategoryEntity::class
     ],
-    version = 10,
+    // Bumped 10 -> 11 to add cash-flow columns to dashboard_summary (todayCashOut,
+    // todayMargin, openingBalance, closingBalance, advancePayments, todayCreditSales,
+    // todayPaidSales, oldBalances). No explicit migration needed: dashboard_summary is
+    // a pure network cache (refreshed on every load), and fallbackToDestructiveMigration()
+    // below just recreates it.
+    version = 11,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

@@ -86,6 +86,15 @@ data class ShopDashboardUiState(
     val salesTrend: List<Float> = emptyList(),
     val trendLabels: List<String> = emptyList(),
     val topProducts: List<ShopDashboardProductUi> = emptyList(),
+    // Cash flow (mirrors the shop-summary API's cash-flow fields)
+    val openingBalance: String = "UGX 0",
+    val closingBalance: String = "UGX 0",
+    val todayTotalSales: String = "UGX 0",
+    val todayCashFlowExpenses: String = "UGX 0",
+    val depositsAndAdvancePayments: String = "UGX 0",
+    val todayCreditSales: String = "UGX 0",
+    val todayCashSales: String = "UGX 0",
+    val oldBalancePayments: String = "UGX 0",
 )
 
 private data class ShopMetric(
@@ -117,6 +126,9 @@ fun ShopDashboardScreen(
     onAddExpenseClick: () -> Unit,
     onInventoryClick: () -> Unit,
     onProductClick: (String) -> Unit,
+    onCashInClick: () -> Unit = {},
+    onCashOutClick: () -> Unit = {},
+    onQuickActionsClick: () -> Unit = {},
 ) {
     val poppins = oseboFontFamily()
     val metrics = listOf(
@@ -271,6 +283,14 @@ fun ShopDashboardScreen(
                         }
                         if (rowIndex != metrics.chunked(2).lastIndex) Spacer(Modifier.height(12.dp))
                     }
+
+                    Spacer(Modifier.height(28.dp))
+                    CashFlowSection(
+                        state = state,
+                        onCashInClick = onCashInClick,
+                        onCashOutClick = onCashOutClick,
+                        onQuickActionsClick = onQuickActionsClick,
+                    )
 
                     Spacer(Modifier.height(28.dp))
                     SectionTitle(title = "Quick actions")
@@ -566,6 +586,173 @@ private fun QuickActionButton(action: ShopQuickAction, modifier: Modifier = Modi
             fontSize = 11.sp,
             fontWeight = FontWeight.SemiBold,
             maxLines = 1,
+        )
+    }
+}
+
+private data class CashFlowItem(
+    val label: String,
+    val value: String,
+    val background: Color,
+    val accent: Color,
+)
+
+@Composable
+private fun CashFlowSection(
+    state: ShopDashboardUiState,
+    onCashInClick: () -> Unit,
+    onCashOutClick: () -> Unit,
+    onQuickActionsClick: () -> Unit,
+) {
+    val poppins = oseboFontFamily()
+    val items = listOf(
+        CashFlowItem("Opening Balance", state.openingBalance, Color(0xFFF0F3F4), ShopMuted),
+        CashFlowItem("Today's Total Sales", state.todayTotalSales, Color(0xFFE3EEFC), Color(0xFF327FD5)),
+        CashFlowItem("Today's Expenses", state.todayCashFlowExpenses, Color(0xFFFFF1DE), Color(0xFFD47B35)),
+        CashFlowItem("Deposits & advance payments", state.depositsAndAdvancePayments, Color(0xFFDDF4EC), Color(0xFF21866F)),
+        CashFlowItem("Today's Credit Sales", state.todayCreditSales, Color(0xFFFBE4E9), Color(0xFFC75F82)),
+        CashFlowItem("Today's Cash Sales", state.todayCashSales, Color(0xFFE3EEFC), Color(0xFF327FD5)),
+        CashFlowItem("Old Balance Payments", state.oldBalancePayments, Color(0xFFE3EEFC), Color(0xFF327FD5)),
+        CashFlowItem("Closing Balance", state.closingBalance, Color(0xFFDDF4EC), Color(0xFF156B54)),
+    )
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "Cash flow",
+                color = ShopInk,
+                fontFamily = poppins,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f),
+            )
+        }
+
+        Spacer(Modifier.height(14.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            CashFlowActionButton(
+                label = "Cash In",
+                leading = "+",
+                containerColor = Color.White,
+                contentColor = ShopBlue,
+                borderColor = Color(0xFFCBE0F2),
+                onClick = onCashInClick,
+                modifier = Modifier.weight(1f),
+            )
+            CashFlowActionButton(
+                label = "Cash Out",
+                leading = "−",
+                containerColor = Color(0xFFDDE4FB),
+                contentColor = Color(0xFF3B4EAE),
+                borderColor = Color.Transparent,
+                onClick = onCashOutClick,
+                modifier = Modifier.weight(1f),
+            )
+            CashFlowActionButton(
+                label = "Quick Actions",
+                leading = null,
+                containerColor = ShopBlue,
+                contentColor = Color.White,
+                borderColor = Color.Transparent,
+                onClick = onQuickActionsClick,
+                modifier = Modifier.weight(1f),
+            )
+        }
+
+        Spacer(Modifier.height(14.dp))
+
+        items.chunked(2).forEachIndexed { rowIndex, rowItems ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                rowItems.forEach { item ->
+                    CashFlowCard(item = item, modifier = Modifier.weight(1f))
+                }
+                if (rowItems.size == 1) Spacer(Modifier.weight(1f))
+            }
+            if (rowIndex != items.chunked(2).lastIndex) Spacer(Modifier.height(10.dp))
+        }
+    }
+}
+
+@Composable
+private fun CashFlowActionButton(
+    label: String,
+    leading: String?,
+    containerColor: Color,
+    contentColor: Color,
+    borderColor: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val poppins = oseboFontFamily()
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(containerColor)
+            .border(1.dp, borderColor, RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        leading?.let {
+            Text(
+                text = it,
+                color = contentColor,
+                fontFamily = poppins,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Spacer(Modifier.width(4.dp))
+        }
+        Text(
+            text = label,
+            color = contentColor,
+            fontFamily = poppins,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
+private fun CashFlowCard(item: CashFlowItem, modifier: Modifier = Modifier) {
+    val poppins = oseboFontFamily()
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(item.background)
+            .padding(horizontal = 14.dp, vertical = 16.dp),
+    ) {
+        Text(
+            text = item.label,
+            color = item.accent,
+            fontFamily = poppins,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = item.value,
+            color = ShopInk,
+            fontFamily = poppins,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }

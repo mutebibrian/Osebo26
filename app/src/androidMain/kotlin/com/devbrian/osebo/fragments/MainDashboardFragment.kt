@@ -42,6 +42,9 @@ private data class DashboardTotals(
     val totalExpenses: Double = 0.0,
     val todaySales: Double = 0.0,
     val todayExpenses: Double = 0.0,
+    val cashBalance: Double = 0.0,
+    val todayMargin: Double = 0.0,
+    val todayCashOuts: Double = 0.0,
 )
 
 class MainDashboardFragment : Fragment() {
@@ -307,6 +310,9 @@ class MainDashboardFragment : Fragment() {
         var grandTotalExpenses = 0.0
         var grandTodaySales = 0.0
         var grandTodayExpenses = 0.0
+        var grandCashBalance = 0.0
+        var grandTodayMargin = 0.0
+        var grandTodayCashOuts = 0.0
         val shopSalesMap = mutableMapOf<String, Double>()
         val shopExpensesMap = mutableMapOf<String, Double>()
 
@@ -325,6 +331,9 @@ class MainDashboardFragment : Fragment() {
             grandTotalExpenses += expenses
             grandTodaySales += todaySales
             grandTodayExpenses += todayExpenses
+            grandCashBalance += summary?.closingBalance ?: 0.0
+            grandTodayMargin += summary?.todayMargin ?: 0.0
+            grandTodayCashOuts += summary?.todayCashOut ?: 0.0
         }
 
         val maxSales = shopSalesMap.values.maxOrNull() ?: 0.0
@@ -374,6 +383,9 @@ class MainDashboardFragment : Fragment() {
             totalExpenses = grandTotalExpenses,
             todaySales = grandTodaySales,
             todayExpenses = grandTodayExpenses,
+            cashBalance = grandCashBalance,
+            todayMargin = grandTodayMargin,
+            todayCashOuts = grandTodayCashOuts,
         )
     }
 
@@ -387,6 +399,9 @@ class MainDashboardFragment : Fragment() {
             todaySales = formatCompactCurrency(totals.todaySales),
             todayExpenses = formatCompactCurrency(totals.todayExpenses),
             todayBalance = formatCompactCurrency(todayBalance),
+            cashBalance = formatCompactCurrency(totals.cashBalance),
+            todayMargin = formatCompactCurrency(totals.todayMargin),
+            todayCashOuts = formatCompactCurrency(totals.todayCashOuts),
         )
     }
 

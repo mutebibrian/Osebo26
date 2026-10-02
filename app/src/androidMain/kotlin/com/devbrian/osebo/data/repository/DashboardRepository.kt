@@ -81,6 +81,14 @@ class DashboardRepository(
                         totalSales = it.totalSales,
                         todaySales = it.todaySales,
                         todayExpenses = it.todayExpenses,
+                        todayCashOut = it.todayCashOut,
+                        todayMargin = it.todayMargin,
+                        openingBalance = it.openingBalance,
+                        closingBalance = it.closingBalance,
+                        advancePayments = it.advancePayments,
+                        todayCreditSales = it.todayCreditSales,
+                        todayPaidSales = it.todayPaidSales,
+                        oldBalances = it.oldBalances,
                     )
                 }
             } else null
@@ -118,7 +126,16 @@ class DashboardRepository(
                         suppliersCount = summary.totalSuppliers,
                         customersCount = summary.totalCustomers,
                         totalSales = summary.totalSales,
-                        totalExpenses = summary.totalExpenses
+                        totalExpenses = summary.totalExpenses,
+                        todaySales = summary.todaySales,
+                        todayCashOut = summary.todayCashOut,
+                        todayMargin = summary.todayMargin,
+                        openingBalance = summary.openingBalance,
+                        closingBalance = summary.closingBalance,
+                        advancePayments = summary.advancePayments,
+                        todayCreditSales = summary.todayCreditSales,
+                        todayPaidSales = summary.todayPaidSales,
+                        oldBalances = summary.oldBalances,
                     )
                     dao.insertDashboardSummary(dashboardEntity)
 
@@ -229,6 +246,14 @@ data class ShopSummaryData(
     val totalSales: Double,
     val todaySales: Double,
     val todayExpenses: Double,
+    val todayCashOut: Double = 0.0,
+    val todayMargin: Double = 0.0,
+    val openingBalance: Double = 0.0,
+    val closingBalance: Double = 0.0,
+    val advancePayments: Double = 0.0,
+    val todayCreditSales: Double = 0.0,
+    val todayPaidSales: Double = 0.0,
+    val oldBalances: Double = 0.0,
 )
 
 data class ShopFinancialData(

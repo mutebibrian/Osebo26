@@ -92,7 +92,16 @@ class DashboardViewModel(
                     suppliersCount = summary.suppliersCount,
                     customersCount = summary.customersCount,
                     totalSales = summary.totalSales,
-                    totalExpenses = summary.totalExpenses
+                    totalExpenses = summary.totalExpenses,
+                    todaySales = summary.todaySales,
+                    todayCashOut = summary.todayCashOut,
+                    todayMargin = summary.todayMargin,
+                    openingBalance = summary.openingBalance,
+                    closingBalance = summary.closingBalance,
+                    advancePayments = summary.advancePayments,
+                    todayCreditSales = summary.todayCreditSales,
+                    todayPaidSales = summary.todayPaidSales,
+                    oldBalances = summary.oldBalances,
                 )
             )
             Log.d(TAG, "✅ DashboardState updated to Success")
@@ -265,7 +274,16 @@ class DashboardViewModel(
         val suppliersCount: Int,
         val customersCount: Int,
         val totalSales: Double,
-        val totalExpenses: Double
+        val totalExpenses: Double,
+        val todaySales: Double = 0.0,
+        val todayCashOut: Double = 0.0,
+        val todayMargin: Double = 0.0,
+        val openingBalance: Double = 0.0,
+        val closingBalance: Double = 0.0,
+        val advancePayments: Double = 0.0,
+        val todayCreditSales: Double = 0.0,
+        val todayPaidSales: Double = 0.0,
+        val oldBalances: Double = 0.0,
     )
 
     data class TimeSeriesDto(

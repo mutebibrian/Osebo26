@@ -58,6 +58,15 @@ class ShopDashboardFragment : Fragment() {
                         onAddExpenseClick = { navigateTo(R.id.addExpenseFragment) },
                         onInventoryClick = { navigateTo(R.id.inventoryFragment) },
                         onProductClick = ::openProduct,
+                        onCashInClick = {
+                            Toast.makeText(requireContext(), "Cash in recording is coming soon", Toast.LENGTH_SHORT).show()
+                        },
+                        onCashOutClick = {
+                            Toast.makeText(requireContext(), "Cash out recording is coming soon", Toast.LENGTH_SHORT).show()
+                        },
+                        onQuickActionsClick = {
+                            Toast.makeText(requireContext(), "Quick actions are coming soon", Toast.LENGTH_SHORT).show()
+                        },
                     )
                 }
             }
@@ -104,6 +113,14 @@ class ShopDashboardFragment : Fragment() {
                             customersCount = data.customersCount,
                             totalSales = formatCurrency(data.totalSales),
                             estimatedProfit = formatCurrency(data.totalSales * 0.3),
+                            openingBalance = formatCurrency(data.openingBalance),
+                            closingBalance = formatCurrency(data.closingBalance),
+                            todayTotalSales = formatCurrency(data.todaySales),
+                            todayCashFlowExpenses = formatCurrency(data.totalExpenses),
+                            depositsAndAdvancePayments = formatCurrency(data.advancePayments),
+                            todayCreditSales = formatCurrency(data.todayCreditSales),
+                            todayCashSales = formatCurrency(data.todayPaidSales),
+                            oldBalancePayments = formatCurrency(data.oldBalances),
                         )
                     }
 

@@ -23,6 +23,33 @@ data class ShopSummaryDto(
     @SerialName("todayExpenses")
     val todayExpenses: Double = 0.0,
 
+    @SerialName("todayCashIn")
+    val todayCashIn: Double = 0.0,
+
+    @SerialName("todayCashOut")
+    val todayCashOut: Double = 0.0,
+
+    @SerialName("todayPaidSales")
+    val todayPaidSales: Double = 0.0,
+
+    @SerialName("advancePayments")
+    val advancePayments: Double = 0.0,
+
+    @SerialName("todayCreditSales")
+    val todayCreditSales: Double = 0.0,
+
+    @SerialName("oldBalances")
+    val oldBalances: Double = 0.0,
+
+    @SerialName("openingBalance")
+    val openingBalance: Double = 0.0,
+
+    @SerialName("closingBalance")
+    val closingBalance: Double = 0.0,
+
+    @SerialName("todayMargin")
+    val todayMargin: Double = 0.0,
+
     @SerialName("topRevenueStockItem")
     val topRevenueStockItem: StockItemSummaryDto? = null,
 
