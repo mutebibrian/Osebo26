@@ -2,6 +2,7 @@ package com.devbrian.osebo.data.remote.dto.response
 
 import com.devbrian.osebo.data.remote.withAlternateKeys
 import com.devbrian.osebo.models.Subscription
+import com.google.gson.annotations.SerializedName
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
@@ -100,36 +101,50 @@ data class ShopSubscriptionStatusResponse(
             }
 }
 
+// This type is only ever decoded with plain Gson (both in production, via
+// ApiService's shared Retrofit/Gson client, and in tests below) — Gson
+// ignores kotlinx.serialization's @SerialName and matches its own property
+// names instead, so every field whose backend key diverges from its Kotlin
+// property name also needs Gson's own @SerializedName to parse correctly.
 @Serializable(with = ActivePackageSubscriptionDtoSerializer::class)
 data class ActivePackageSubscriptionDto(
     @SerialName("id")
+    @SerializedName("id")
     val id: String = "",
 
     @SerialName("is_trial")
+    @SerializedName("is_trial")
     val isTrial: Boolean = false,
 
     @SerialName("starts_at")
+    @SerializedName("starts_at")
     val startsAt: String? = null,
 
     @SerialName("ends_at")
+    @SerializedName("ends_at")
     val endsAt: String? = null,
 
     @SerialName("duration_days")
+    @SerializedName("duration_days")
     val durationDays: Int = 0,
 
     @SerialName("subscription")
+    @SerializedName("subscription")
     val subscription: ActiveSubscriptionSummaryDto? = null,
 
     @SerialName("package")
+    @SerializedName("package")
     val packageDetails: PackageDto? = null,
 )
 
 @Serializable(with = ActiveSubscriptionSummaryDtoSerializer::class)
 data class ActiveSubscriptionSummaryDto(
     @SerialName("id")
+    @SerializedName("id")
     val id: String = "",
 
     @SerialName("is_paid")
+    @SerializedName("is_paid")
     val isPaid: Boolean = false,
 )
 
