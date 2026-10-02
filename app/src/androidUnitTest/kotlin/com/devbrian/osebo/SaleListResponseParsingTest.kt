@@ -1,15 +1,33 @@
 package com.devbrian.osebo
 
+import com.devbrian.osebo.data.remote.dto.response.SaleApiData
+import com.devbrian.osebo.data.remote.dto.response.SaleApiDataSerializer
 import com.devbrian.osebo.data.remote.dto.response.SaleListApiResponse
 import com.google.gson.Gson
+import com.google.gson.GsonBuilder
+import com.google.gson.JsonDeserializer
+import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SaleListResponseParsingTest {
+    // SaleApiData lives in commonMain (shared with the Ktor/iOS client) and only
+    // carries kotlinx.serialization's @SerialName, so a bare Gson() can't match
+    // its alternate field names (e.g. "total_amount" for totalPrice). Mirror the
+    // same bridge NetworkModule registers in production instead of a plain Gson.
+    private val gson: Gson = GsonBuilder()
+        .registerTypeAdapter(
+            SaleApiData::class.java,
+            JsonDeserializer { json, _, _ ->
+                Json { ignoreUnknownKeys = true }.decodeFromString(SaleApiDataSerializer, json.toString())
+            }
+        )
+        .create()
+
     @Test
     fun saleListResponse_acceptsLiveSnakeCaseFields() {
-        val response = Gson().fromJson(
+        val response = gson.fromJson(
             """
                 {
                   "success": true,
