@@ -39,13 +39,31 @@ class SaleListResponseParsingTest {
                       "total_amount": 45000,
                       "paid_amount": "45000",
                       "payment_status": "completed",
+                      "customer": {
+                        "id": "customer-id",
+                        "name": "Test Customer",
+                        "numberOfSales": "1",
+                        "totalSales": "45000",
+                        "outstandingBalance": "0"
+                      },
+                      "shop": {
+                        "id": "shop-id",
+                        "name": "Test Shop",
+                        "address": "Kampala"
+                      },
                       "sale_stock_items": [
                         {
                           "id": "line-id",
                           "quantity": 2,
                           "price": 22500,
                           "discount": 0,
-                          "amount": 45000
+                          "amount": 45000,
+                          "stockItem": {
+                            "id": "stock-id",
+                            "name": "Test Product",
+                            "selling_price": 22500,
+                            "quantity": 8
+                          }
                         }
                       ]
                     }
@@ -60,6 +78,8 @@ class SaleListResponseParsingTest {
         assertEquals("INV-100", sale.invoiceNumber)
         assertEquals(45000.0, sale.totalPrice ?: 0.0, 0.0)
         assertEquals("completed", sale.paymentStatus)
+        assertEquals("Test Customer", sale.customer?.name)
+        assertEquals("Test Shop", sale.shop?.name)
         assertEquals(1, sale.saleStockItems.orEmpty().size)
     }
 }

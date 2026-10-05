@@ -66,6 +66,10 @@ class SalesFragment : Fragment(), ShopSelectionAware {
             uiState = uiState.copy(recentSales = sales.map(::toSaleItemUi))
         }
 
+        viewModel.totalSalesAmount.observe(viewLifecycleOwner) { total ->
+            uiState = uiState.copy(totalSales = CurrencyFormatter.formatFull(total))
+        }
+
         viewModel.todaySalesTotal.observe(viewLifecycleOwner) { total ->
             uiState = uiState.copy(todaySales = CurrencyFormatter.formatFull(total))
         }

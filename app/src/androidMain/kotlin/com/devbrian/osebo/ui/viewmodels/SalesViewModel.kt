@@ -39,6 +39,7 @@ class SalesViewModel(
     fun onShopSelectionChanged() {
         shopSelectionVersion++
         _recentSales.value = emptyList()
+        _totalSalesAmount.value = 0.0
         _todaySalesTotal.value = 0.0
         _todaySalesCount.value = 0
         _monthSalesTotal.value = 0.0
@@ -51,6 +52,9 @@ class SalesViewModel(
 
     private val _recentSales = MutableLiveData<List<Sale>>(emptyList())
     val recentSales: LiveData<List<Sale>> = _recentSales
+
+    private val _totalSalesAmount = MutableLiveData(0.0)
+    val totalSalesAmount: LiveData<Double> = _totalSalesAmount
 
     private val _customers = MutableLiveData<List<Customer>>(emptyList())
     val customers: LiveData<List<Customer>> = _customers
@@ -438,6 +442,7 @@ class SalesViewModel(
             if (version != shopSelectionVersion) return@collect
             println("📊 SalesViewModel - Received ${sales.size} sales")
             _recentSales.value = sales.take(20)
+            _totalSalesAmount.value = sales.sumOf { it.amount }
 
             val todayTotal = calculateTodayTotal(sales)
             _todaySalesTotal.value = todayTotal
@@ -532,13 +537,7 @@ class SalesViewModel(
 
             val timestamp = dateString.toLongOrNull()
             if (timestamp != null) {
-                calendar.timeInMillis = timestamp
-                return calendar
-            }
-
-            val timestampSeconds = dateString.toLongOrNull()
-            if (timestampSeconds != null && timestampSeconds < 10000000000L) {
-                calendar.timeInMillis = timestampSeconds * 1000
+                calendar.timeInMillis = if (timestamp < 10_000_000_000L) timestamp * 1_000 else timestamp
                 return calendar
             }
 

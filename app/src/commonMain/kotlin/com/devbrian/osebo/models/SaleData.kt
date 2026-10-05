@@ -16,10 +16,10 @@ data class SaleData(
 
 @Serializable
 data class ShopInfo(
-    val id: String?,
-    val name: String?,
-    val address: String?,
-    val phone: String?,
-    val description: String?,
-    val email: String?
+    val id: String? = null,
+    val name: String? = null,
+    val address: String? = null,
+    val phone: String? = null,
+    val description: String? = null,
+    val email: String? = null,
 )
