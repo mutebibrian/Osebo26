@@ -52,9 +52,17 @@ import com.devbrian.osebo.resources.Res
 import com.devbrian.osebo.resources.iconsax_add_employee
 import com.devbrian.osebo.resources.iconsax_add_product
 import com.devbrian.osebo.resources.iconsax_balance
+import com.devbrian.osebo.resources.iconsax_box_bold
+import com.devbrian.osebo.resources.iconsax_briefcase_bold
+import com.devbrian.osebo.resources.iconsax_category_bold
+import com.devbrian.osebo.resources.iconsax_coffee_bold
+import com.devbrian.osebo.resources.iconsax_global_bold
+import com.devbrian.osebo.resources.iconsax_health_bold
+import com.devbrian.osebo.resources.iconsax_monitor_bold
 import com.devbrian.osebo.resources.iconsax_new_sale
 import com.devbrian.osebo.resources.iconsax_notification
 import com.devbrian.osebo.resources.iconsax_reports
+import com.devbrian.osebo.resources.iconsax_scissor_bold
 import com.devbrian.osebo.resources.iconsax_shop_bold
 import com.devbrian.osebo.resources.iconsax_shops
 import com.devbrian.osebo.resources.iconsax_today_expenses
@@ -88,6 +96,7 @@ data class DashboardUiState(
     val isLoading: Boolean = false,
     val isShopSelected: Boolean = false,
     val selectedShopName: String = "",
+    val selectedShopType: String = "",
     val periodFilter: DashboardPeriodFilter = DashboardPeriodFilter.Today,
     val todaySales: String = "UGX 0",
     val todayExpenses: String = "UGX 0",
@@ -238,6 +247,10 @@ fun DashboardScreen(
                 ProfileGreetingHeader(
                     greeting = state.greeting,
                     userName = state.userName,
+                    shopIcon = dashboardShopCategoryIcon(
+                        shopType = state.selectedShopType,
+                        isShopSelected = state.isShopSelected,
+                    ),
                     onShopPickerClick = onShopPickerClick,
                     onNotificationsClick = onNotificationsClick,
                 )
@@ -376,6 +389,7 @@ private fun OverviewFeatureCard(
 private fun ProfileGreetingHeader(
     greeting: String,
     userName: String,
+    shopIcon: DrawableResource,
     onShopPickerClick: () -> Unit,
     onNotificationsClick: () -> Unit,
 ) {
@@ -426,8 +440,9 @@ private fun ProfileGreetingHeader(
 
         HeaderCircleButton(
             onClick = onShopPickerClick,
-            icon = Res.drawable.iconsax_shop_bold,
+            icon = shopIcon,
             contentDescription = "Switch shop",
+            tint = Color(0xFF087FC4),
         )
 
         Spacer(Modifier.width(8.dp))
@@ -445,6 +460,7 @@ private fun HeaderCircleButton(
     onClick: () -> Unit,
     icon: DrawableResource,
     contentDescription: String,
+    tint: Color = Color(0xFF171B1F),
 ) {
     Box(
             modifier = Modifier
@@ -462,10 +478,27 @@ private fun HeaderCircleButton(
             Icon(
                 painter = painterResource(icon),
                 contentDescription = contentDescription,
-                tint = Color(0xFF171B1F),
+                tint = tint,
                 modifier = Modifier.size(23.dp),
             )
         }
+}
+
+private fun dashboardShopCategoryIcon(
+    shopType: String,
+    isShopSelected: Boolean,
+): DrawableResource {
+    if (!isShopSelected) return Res.drawable.iconsax_category_bold
+    return when (shopType.trim().lowercase()) {
+        "restaurant", "food", "cafe" -> Res.drawable.iconsax_coffee_bold
+        "salon", "spa", "beauty" -> Res.drawable.iconsax_scissor_bold
+        "pharmacy", "medical", "health" -> Res.drawable.iconsax_health_bold
+        "electronics", "computer", "technology" -> Res.drawable.iconsax_monitor_bold
+        "online", "ecommerce", "e-commerce" -> Res.drawable.iconsax_global_bold
+        "wholesale", "manufacturing", "hardware" -> Res.drawable.iconsax_box_bold
+        "service", "professional" -> Res.drawable.iconsax_briefcase_bold
+        else -> Res.drawable.iconsax_shop_bold
+    }
 }
 
 @Composable

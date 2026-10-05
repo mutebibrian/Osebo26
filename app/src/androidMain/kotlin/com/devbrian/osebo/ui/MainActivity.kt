@@ -307,6 +307,7 @@ class MainActivity : AppCompatActivity() {
                 shopUuid = shop.effectiveUuid.ifBlank { shop.id },
                 shopName = shop.name,
             )
+            preferenceManager.saveBusinessType(shop.shopType.orEmpty())
             preferenceManager.saveSubscriptionStatus(shop.subscriptionStatus.uppercase(Locale.US))
             preferenceManager.saveSubscriptionType(shop.subscriptionType.orEmpty())
             preferenceManager.saveSubscriptionExpiry(shop.subscriptionExpiry.orEmpty())

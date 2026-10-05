@@ -232,6 +232,7 @@ class MainDashboardFragment : Fragment(), ShopSelectionAware {
             isLoading = true,
             isShopSelected = selectedShopId.isNotBlank(),
             selectedShopName = preferenceManager.getCurrentShopName(),
+            selectedShopType = if (selectedShopId.isNotBlank()) preferenceManager.getBusinessType() else "",
         )
 
         dashboardLoadJob = viewLifecycleOwner.lifecycleScope.launch {
@@ -248,6 +249,7 @@ class MainDashboardFragment : Fragment(), ShopSelectionAware {
                                 uiState = uiState.copy(
                                     isShopSelected = selectedShop != null,
                                     selectedShopName = selectedShop?.name.orEmpty(),
+                                    selectedShopType = selectedShop?.shopType.orEmpty(),
                                 )
                                 val totals = loadActualSalesData(displayedShops)
 
@@ -272,6 +274,7 @@ class MainDashboardFragment : Fragment(), ShopSelectionAware {
                             uiState = uiState.copy(
                                 isShopSelected = selectedShop != null,
                                 selectedShopName = selectedShop?.name.orEmpty(),
+                                selectedShopType = selectedShop?.shopType.orEmpty(),
                             )
                             val totals = loadActualSalesData(displayedShops)
                             updateTotals(totals, displayedShops.size)
