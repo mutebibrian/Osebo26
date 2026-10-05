@@ -70,14 +70,23 @@ interface ProductDao {
     @Query("SELECT COUNT(*) FROM products")
     suspend fun getProductCount(): Int
 
+    @Query("SELECT COUNT(*) FROM products WHERE shopId = :shopId")
+    suspend fun getProductCountByShop(shopId: String): Int
+
     @Query("SELECT COUNT(*) FROM products WHERE stock <= :threshold")
     suspend fun getLowStockCount(threshold: Double): Int
+
+    @Query("SELECT COUNT(*) FROM products WHERE shopId = :shopId AND stock <= :threshold")
+    suspend fun getLowStockCountByShop(shopId: String, threshold: Double): Int
 
     @Query("SELECT COUNT(*) FROM products WHERE stock <= 0")
     suspend fun getOutOfStockCount(): Int
 
     @Query("SELECT SUM(price * stock) FROM products")
     suspend fun getTotalInventoryValue(): Double?
+
+    @Query("SELECT SUM(price * stock) FROM products WHERE shopId = :shopId")
+    suspend fun getTotalInventoryValueByShop(shopId: String): Double?
 
     @Query("SELECT SUM(cost * stock) FROM products")
     suspend fun getTotalCostValue(): Double?

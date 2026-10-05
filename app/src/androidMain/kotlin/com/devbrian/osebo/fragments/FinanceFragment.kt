@@ -28,10 +28,20 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
-class FinanceFragment : Fragment() {
+class FinanceFragment : Fragment(), ShopSelectionAware {
     private val viewModel: FinanceViewModel by viewModel()
     private var uiState by mutableStateOf(FinanceUiState())
     private var latestTransactions: List<Transaction> = emptyList()
+
+    override fun onShopSelectionChanged() {
+        latestTransactions = emptyList()
+        uiState = FinanceUiState(
+            shopName = viewModel.refreshCurrentShopInfo(),
+            selectedPeriod = uiState.selectedPeriod,
+            isLoading = true,
+        )
+        loadFinancialData()
+    }
 
     private val periods = listOf(
         "Today",

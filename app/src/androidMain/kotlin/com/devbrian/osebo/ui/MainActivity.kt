@@ -32,11 +32,14 @@ import com.devbrian.osebo.data.repository.ShopRepositoryImpl
 import com.devbrian.osebo.data.repository.SubscriptionRepository
 import com.devbrian.osebo.databinding.ActivityMainBinding
 import com.devbrian.osebo.fragments.MainDashboardFragment
+import com.devbrian.osebo.fragments.ShopSelectionAware
 import com.devbrian.osebo.data.models.Shop
 import com.devbrian.osebo.models.PermissionType
 import com.devbrian.osebo.ui.components.MoreMenuItem
 import com.devbrian.osebo.ui.components.MoreMenuSection
 import com.devbrian.osebo.ui.components.MoreMenuSheet
+import com.devbrian.osebo.ui.components.ShopPickerOverlay
+import com.devbrian.osebo.ui.components.ShopPickerUiState
 import com.devbrian.osebo.ui.components.UserBottomNavigation
 import com.devbrian.osebo.ui.components.UserNavigationItem
 import com.devbrian.osebo.ui.theme.OseboTheme
@@ -101,6 +104,22 @@ class MainActivity : AppCompatActivity() {
         R.id.receiptFragment,
     )
 
+    private val shopPickerDestinations = setOf(
+        R.id.mainDashboardFragment,
+        R.id.shopDashboardFragment,
+        R.id.inventoryFragment,
+        R.id.productDetailsFragment,
+        R.id.restockFragment,
+        R.id.salesFragment,
+        R.id.financeFragment,
+        R.id.financialStatementFragment,
+        R.id.transactionsFragment,
+        R.id.reportsFragment,
+        R.id.customersFragment,
+        R.id.employeesFragment,
+        R.id.suppliersFragment,
+    )
+
     private var isFabMenuOpen = false
     private var subscriptionCheckInProgress = false
     private var isSubscriptionRefreshInProgress = false
@@ -110,6 +129,8 @@ class MainActivity : AppCompatActivity() {
         mutableStateOf(UserNavigationItem.Home)
     private val isMoreMenuVisible: MutableState<Boolean> = mutableStateOf(false)
     private val moreMenuSections: MutableState<List<MoreMenuSection>> = mutableStateOf(emptyList())
+    private val shopPickerState: MutableState<ShopPickerUiState> = mutableStateOf(ShopPickerUiState())
+    private lateinit var shopPickerView: ComposeView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -124,6 +145,7 @@ class MainActivity : AppCompatActivity() {
         setupFloatingActionButtons()
         setupNavControllerListener()
         setupUserBottomNavigation()
+        setupShopPicker()
 
         loadInitialData()
     }
@@ -183,6 +205,124 @@ class MainActivity : AppCompatActivity() {
         binding.mainFab.visibility = View.GONE
         binding.fabSale.visibility = View.GONE
         binding.fabProduct.visibility = View.GONE
+    }
+
+    private fun setupShopPicker() {
+        shopPickerState.value = shopPickerState.value.copy(
+            selectedShopId = preferenceManager.getManuallySelectedShopId(),
+            fallbackShopName = preferenceManager.getCurrentShopName(),
+            isHome = navController.currentDestination?.id == R.id.mainDashboardFragment,
+        )
+        shopPickerView = ComposeView(this).apply {
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+            setContent {
+                OseboTheme {
+                    ShopPickerOverlay(
+                        state = shopPickerState.value,
+                        onOpen = ::openShopPicker,
+                        onDismiss = ::dismissShopPicker,
+                        onSelect = ::selectShopFromPicker,
+                    )
+                }
+            }
+        }
+        binding.contentOverlay.addView(
+            shopPickerView,
+            FrameLayout.LayoutParams(
+                (48 * resources.displayMetrics.density).toInt(),
+                (48 * resources.displayMetrics.density).toInt(),
+                Gravity.TOP or Gravity.END,
+            ),
+        )
+        updateShopPickerVisibility(navController.currentDestination?.id)
+    }
+
+    private fun updateShopPickerVisibility(destinationId: Int?) {
+        shopPickerState.value = shopPickerState.value.copy(
+            isHome = destinationId == R.id.mainDashboardFragment,
+            isOpen = false,
+        )
+        if (::shopPickerView.isInitialized) {
+            (shopPickerView.layoutParams as? FrameLayout.LayoutParams)?.let { params ->
+                params.topMargin = ((if (destinationId == R.id.mainDashboardFragment) 48 else 44) *
+                    resources.displayMetrics.density).toInt()
+                params.marginEnd = (76 * resources.displayMetrics.density).toInt()
+                shopPickerView.layoutParams = params
+            }
+            shopPickerView.visibility =
+                if (destinationId in shopPickerDestinations &&
+                    destinationId != R.id.mainDashboardFragment
+                ) View.VISIBLE else View.GONE
+        }
+    }
+
+    fun openShopPicker() {
+        if (::shopPickerView.isInitialized) shopPickerView.visibility = View.VISIBLE
+        shopPickerState.value = shopPickerState.value.copy(isOpen = true)
+        lifecycleScope.launch { reloadShopPickerShops() }
+    }
+
+    private fun dismissShopPicker() {
+        shopPickerState.value = shopPickerState.value.copy(isOpen = false)
+        hideHomeShopPickerHost()
+    }
+
+    private fun hideHomeShopPickerHost() {
+        if (::shopPickerView.isInitialized &&
+            navController.currentDestination?.id == R.id.mainDashboardFragment
+        ) {
+            shopPickerView.visibility = View.GONE
+        }
+    }
+
+    private suspend fun reloadShopPickerShops() {
+        val cached = shopRepository.getShops()
+        if (cached is Resource.Success && !cached.data.isNullOrEmpty()) {
+            updateShopPickerShops(cached.data)
+        }
+        val refreshed = shopRepository.refreshShops()
+        if (refreshed is Resource.Success) {
+            val shops = shopRepository.getShops()
+            if (shops is Resource.Success) updateShopPickerShops(shops.data.orEmpty())
+        } else {
+            shopPickerState.value = shopPickerState.value.copy(isLoading = false)
+        }
+    }
+
+    private fun updateShopPickerShops(shops: List<Shop>) {
+        shopPickerState.value = shopPickerState.value.copy(
+            shops = shops,
+            selectedShopId = preferenceManager.getManuallySelectedShopId(),
+            fallbackShopName = preferenceManager.getCurrentShopName(),
+            isLoading = false,
+        )
+    }
+
+    private fun selectShopFromPicker(shop: Shop?) {
+        if (shop == null) {
+            preferenceManager.clearManualShopSelection()
+        } else {
+            preferenceManager.selectShopManually(
+                shopId = shop.id,
+                shopUuid = shop.effectiveUuid.ifBlank { shop.id },
+                shopName = shop.name,
+            )
+            preferenceManager.saveSubscriptionStatus(shop.subscriptionStatus.uppercase(Locale.US))
+            preferenceManager.saveSubscriptionType(shop.subscriptionType.orEmpty())
+            preferenceManager.saveSubscriptionExpiry(shop.subscriptionExpiry.orEmpty())
+            loadCurrentShopData()
+            refreshSubscriptionForCurrentShop()
+        }
+        shopPickerState.value = shopPickerState.value.copy(
+            selectedShopId = preferenceManager.getManuallySelectedShopId(),
+            fallbackShopName = preferenceManager.getCurrentShopName(),
+            isOpen = false,
+        )
+        hideHomeShopPickerHost()
+        refreshMoreMenuSections()
+        val navHost = supportFragmentManager.findFragmentById(R.id.fragment_container) as? NavHostFragment
+        (navHost?.childFragmentManager?.primaryNavigationFragment as? ShopSelectionAware)
+            ?.onShopSelectionChanged()
     }
 
     private fun handleBottomNavigationSelection(item: UserNavigationItem) {
@@ -405,6 +545,7 @@ class MainActivity : AppCompatActivity() {
         navController.addOnDestinationChangedListener { _, destination, arguments ->
             Log.d("NavDrawer_DEBUG", "📍 Destination changed to: ${destination.label} (ID: ${destination.id})")
             syncBottomNavigation(destination.id)
+            updateShopPickerVisibility(destination.id)
 
             if (destination.id == R.id.mainDashboardFragment) {
                 showFab()
@@ -483,7 +624,6 @@ class MainActivity : AppCompatActivity() {
     private fun loadInitialData() {
         if (isDataLoading) return
         isDataLoading = true
-        showDataLoading()
 
         lifecycleScope.launch {
             try {
@@ -518,7 +658,9 @@ class MainActivity : AppCompatActivity() {
 
                                         preferenceManager.saveCurrentShopId(selectedShop.id)
                                         preferenceManager.saveCurrentShopName(selectedShop.name)
-                                        preferenceManager.saveCurrentShopUuid(selectedShop.id)
+                                        preferenceManager.saveCurrentShopUuid(
+                                            selectedShop.effectiveUuid.ifBlank { selectedShop.id }
+                                        )
                                         preferenceManager.saveHasShop(true)
                                         preferenceManager.saveSubscriptionStatus(selectedShop.subscriptionStatus.uppercase())
                                         preferenceManager.saveSubscriptionExpiry(selectedShop.subscriptionExpiry ?: "")
@@ -527,6 +669,8 @@ class MainActivity : AppCompatActivity() {
                                         println("✅ Selected shop: ${selectedShop.name}")
                                     }
                                 }
+
+                                updateShopPickerShops(shopList)
 
                                 refreshCurrentSubscriptionStatus()
                                 loadCurrentShopData()
@@ -538,6 +682,11 @@ class MainActivity : AppCompatActivity() {
 
                     is Resource.Error -> {
                         println("❌ Failed to refresh shops: ${result.message}")
+
+                        val cachedShops = shopRepository.getShops()
+                        if (cachedShops is Resource.Success) {
+                            updateShopPickerShops(cachedShops.data.orEmpty())
+                        }
 
                         val isAuthError = result.message?.let { msg ->
                             msg.contains("Session expired", ignoreCase = true) ||
@@ -580,7 +729,7 @@ class MainActivity : AppCompatActivity() {
                 e.printStackTrace()
             } finally {
                 isDataLoading = false
-                hideDataLoading()
+                shopPickerState.value = shopPickerState.value.copy(isLoading = false)
             }
         }
     }

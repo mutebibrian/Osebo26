@@ -19,7 +19,7 @@ class InventoryRepository(
 
     // Get all products as Flow
     fun getProducts(): Flow<List<Product>> {
-        return database.productDao().getAllProducts()
+        return database.productDao().getProductsByShop(preferenceManager.getCurrentShopId())
             .map { entities ->
                 entities.map { it.toProduct() }
             }
@@ -27,7 +27,7 @@ class InventoryRepository(
 
     // Get low stock products
     fun getLowStockProducts(threshold: Int = 10): Flow<List<Product>> {
-        return database.productDao().getAllProducts()
+        return database.productDao().getProductsByShop(preferenceManager.getCurrentShopId())
             .map { entities ->
                 entities.filter { it.stock <= threshold }
                     .map { it.toProduct() }
@@ -37,7 +37,8 @@ class InventoryRepository(
     // Search products
     suspend fun searchProducts(query: String): List<Product> {
         val entities = database.productDao().searchProducts(query)
-        return entities.map { it.toProduct() }
+        val shopId = preferenceManager.getCurrentShopId()
+        return entities.filter { it.shopId == shopId }.map { it.toProduct() }
     }
 
     // Get product by ID
@@ -198,9 +199,10 @@ class InventoryRepository(
 
     // Get inventory statistics
     suspend fun getInventoryStats(): InventoryStats {
-        val totalItems = database.productDao().getProductCount()
-        val lowStockCount = database.productDao().getLowStockCount(10.0)
-        val totalValue = database.productDao().getTotalInventoryValue() ?: 0.0
+        val shopId = preferenceManager.getCurrentShopId()
+        val totalItems = database.productDao().getProductCountByShop(shopId)
+        val lowStockCount = database.productDao().getLowStockCountByShop(shopId, 10.0)
+        val totalValue = database.productDao().getTotalInventoryValueByShop(shopId) ?: 0.0
 
         return InventoryStats(
             totalItems = totalItems,

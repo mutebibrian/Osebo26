@@ -13,6 +13,7 @@ class PreferenceManager private constructor(private val context: Context) {
         private const val KEY_USER_LOGGED_IN = "user_logged_in"
         private const val KEY_LAST_LOGIN = "last_login"
         private const val KEY_LAST_SESSION_ACTIVITY = "last_session_activity"
+        private const val KEY_MANUALLY_SELECTED_SHOP_ID = "manually_selected_shop_id"
 
         @Volatile
         private var instance: PreferenceManager? = null
@@ -199,6 +200,7 @@ class PreferenceManager private constructor(private val context: Context) {
             remove("user_phone")
             remove("user_role")
             remove("user_verified")
+            remove(KEY_MANUALLY_SELECTED_SHOP_ID)
             remove("user_logged_in")
         }.apply()
     }
@@ -218,6 +220,7 @@ class PreferenceManager private constructor(private val context: Context) {
             remove("user_phone")
             remove("user_role")
             remove("user_verified")
+            remove(KEY_MANUALLY_SELECTED_SHOP_ID)
         }.commit()
         clearTempCredentials()
     }
@@ -231,6 +234,23 @@ class PreferenceManager private constructor(private val context: Context) {
             putString("current_shop_name", shopName)
             putBoolean("has_shop", true)
         }.apply()
+    }
+
+    fun selectShopManually(shopId: String, shopUuid: String, shopName: String) {
+        prefs.edit().apply {
+            putString("current_shop_id", shopId)
+            putString("current_shop_uuid", shopUuid)
+            putString("current_shop_name", shopName)
+            putString(KEY_MANUALLY_SELECTED_SHOP_ID, shopId)
+            putBoolean("has_shop", true)
+        }.commit()
+    }
+
+    fun getManuallySelectedShopId(): String =
+        prefs.getString(KEY_MANUALLY_SELECTED_SHOP_ID, "") ?: ""
+
+    fun clearManualShopSelection() {
+        prefs.edit().remove(KEY_MANUALLY_SELECTED_SHOP_ID).commit()
     }
 
     fun saveCurrentShopUuid(uuid: String) {
@@ -266,6 +286,7 @@ class PreferenceManager private constructor(private val context: Context) {
             remove("current_shop_id")
             remove("current_shop_uuid")
             remove("current_shop_name")
+            remove(KEY_MANUALLY_SELECTED_SHOP_ID)
             remove("business_type")
             remove("shop_location")
             remove("shop_contact")

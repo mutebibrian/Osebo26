@@ -34,6 +34,21 @@ class SalesViewModel(
     private val database: AppDatabase
 ) : ViewModel() {
 
+    private var shopSelectionVersion = 0
+
+    fun onShopSelectionChanged() {
+        shopSelectionVersion++
+        _recentSales.value = emptyList()
+        _todaySalesTotal.value = 0.0
+        _todaySalesCount.value = 0
+        _monthSalesTotal.value = 0.0
+        _monthSalesCount.value = 0
+        _salesGrowth.value = 0.0
+        _topSellingProducts.value = emptyList()
+        _isLoading.value = true
+        refreshSales()
+    }
+
     private val _recentSales = MutableLiveData<List<Sale>>(emptyList())
     val recentSales: LiveData<List<Sale>> = _recentSales
 
@@ -402,23 +417,25 @@ class SalesViewModel(
     }
 
     fun loadRecentSales() {
+        val version = shopSelectionVersion
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                loadRecentSalesFromCache()
+                loadRecentSalesFromCache(version)
             } catch (e: Exception) {
                 println("❌ Error loading sales: ${e.message}")
                 e.printStackTrace()
                 _errorMessage.value = e.message ?: "Failed to load sales"
             } finally {
-                _isLoading.value = false
+                if (version == shopSelectionVersion) _isLoading.value = false
             }
         }
     }
 
-    private suspend fun loadRecentSalesFromCache() {
+    private suspend fun loadRecentSalesFromCache(version: Int = shopSelectionVersion) {
         println("📊 SalesViewModel - Loading recent sales...")
         salesRepository.getRecentSales(limit = 10_000).collect { sales ->
+            if (version != shopSelectionVersion) return@collect
             println("📊 SalesViewModel - Received ${sales.size} sales")
             _recentSales.value = sales.take(20)
 
@@ -675,33 +692,35 @@ class SalesViewModel(
     }
 
     fun refreshSales() {
+        val version = shopSelectionVersion
         viewModelScope.launch {
             _isLoading.value = true
             try {
                 val refreshResult = salesRepository.refreshSalesFromServer()
+                if (version != shopSelectionVersion) return@launch
                 if (refreshResult is Resource.Error && _recentSales.value.isNullOrEmpty()) {
                     _errorMessage.value = refreshResult.message
                 }
 
-                loadRecentSalesFromCache()
-                refreshSalesAnalytics()
+                loadRecentSalesFromCache(version)
+                refreshSalesAnalytics(version)
             } catch (error: Exception) {
                 if (_recentSales.value.isNullOrEmpty()) {
                     _errorMessage.value = error.message ?: "Unable to refresh sales"
                 }
             } finally {
-                _isLoading.value = false
+                if (version == shopSelectionVersion) _isLoading.value = false
             }
         }
     }
 
-    private suspend fun refreshSalesAnalytics() {
+    private suspend fun refreshSalesAnalytics(version: Int) {
         val shopId = preferences.getShopIdentifierForApi()
         if (shopId.isBlank()) return
 
         try {
             val summaryResponse = apiService.getShopSummary(shopId)
-            if (summaryResponse.isSuccessful && summaryResponse.body()?.success == true) {
+            if (version == shopSelectionVersion && summaryResponse.isSuccessful && summaryResponse.body()?.success == true) {
                 summaryResponse.body()?.data?.let { summary ->
                     _todaySalesTotal.value = summary.todaySales
                 }
@@ -712,7 +731,7 @@ class SalesViewModel(
 
         try {
             val comparisonResponse = apiService.getSalesComparison(shopId, "monthly")
-            if (comparisonResponse.isSuccessful && comparisonResponse.body()?.success == true) {
+            if (version == shopSelectionVersion && comparisonResponse.isSuccessful && comparisonResponse.body()?.success == true) {
                 comparisonResponse.body()?.data?.let { comparison ->
                     _monthSalesTotal.value = comparison.currentSales
                     _salesGrowth.value = comparison.growthPercentage
@@ -724,7 +743,7 @@ class SalesViewModel(
 
         try {
             val topProductsResponse = apiService.getTopStockItems(shopId)
-            if (topProductsResponse.isSuccessful && topProductsResponse.body()?.success == true) {
+            if (version == shopSelectionVersion && topProductsResponse.isSuccessful && topProductsResponse.body()?.success == true) {
                 _topSellingProducts.value = topProductsResponse.body()?.data?.items.orEmpty()
             }
         } catch (error: Exception) {

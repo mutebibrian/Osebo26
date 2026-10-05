@@ -12,6 +12,7 @@ import com.devbrian.osebo.ui.screens.CustomersUiState
 import com.devbrian.osebo.utils.Resource
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -24,6 +25,7 @@ class CustomerViewModel(
     val uiState: State<CustomersUiState> = _uiState
 
     private var allCustomers: List<Customer> = emptyList()
+    private var customersJob: Job? = null
 
     init {
         observeCustomers()
@@ -31,7 +33,8 @@ class CustomerViewModel(
     }
 
     private fun observeCustomers() {
-        viewModelScope.launch {
+        customersJob?.cancel()
+        customersJob = viewModelScope.launch {
             repository.getAllCustomers()
                 .catch { e -> update { it.copy(errorMessage = "Error loading customers: ${e.message}") } }
                 .collectLatest { customers ->
@@ -39,6 +42,14 @@ class CustomerViewModel(
                     applyFilter(_uiState.value.searchQuery)
                 }
         }
+    }
+
+    fun onShopSelectionChanged() {
+        customersJob?.cancel()
+        allCustomers = emptyList()
+        _uiState.value = CustomersUiState(isLoading = true)
+        observeCustomers()
+        refreshCustomers()
     }
 
     fun onSearchQueryChange(query: String) {

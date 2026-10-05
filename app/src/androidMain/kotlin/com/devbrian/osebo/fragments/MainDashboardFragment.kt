@@ -31,6 +31,8 @@ import com.devbrian.osebo.ui.theme.OseboTheme
 import com.devbrian.osebo.utils.PermissionManager
 import com.devbrian.osebo.utils.Resource
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
 import java.text.NumberFormat
 import java.util.*
 import org.koin.android.ext.android.inject
@@ -44,7 +46,7 @@ private data class DashboardTotals(
     val todayExpenses: Double = 0.0,
 )
 
-class MainDashboardFragment : Fragment() {
+class MainDashboardFragment : Fragment(), ShopSelectionAware {
 
     private lateinit var preferenceManager: PreferenceManager
     private lateinit var permissionManager: PermissionManager
@@ -62,6 +64,11 @@ class MainDashboardFragment : Fragment() {
 
     private var uiState by mutableStateOf(DashboardUiState())
     private var currentShops: List<Shop> = emptyList()
+    private var dashboardLoadJob: Job? = null
+
+    override fun onShopSelectionChanged() {
+        loadDashboardData()
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -76,6 +83,9 @@ class MainDashboardFragment : Fragment() {
                 OseboTheme {
                     DashboardScreen(
                         state = uiState,
+                        onShopPickerClick = {
+                            (activity as? MainActivity)?.openShopPicker()
+                        },
                         onNotificationsClick = {
                             Toast.makeText(
                                 requireContext(),
@@ -195,23 +205,6 @@ class MainDashboardFragment : Fragment() {
         Toast.makeText(requireContext(), "${shop.name} is now active", Toast.LENGTH_SHORT).show()
     }
 
-    private fun saveCurrentShop(shop: Shop) {
-        val uuid = shop.uuid ?: shop.id
-        preferenceManager.saveCurrentShopId(shop.id)
-        preferenceManager.saveCurrentShopUuid(uuid)
-        preferenceManager.saveCurrentShopName(shop.name)
-        preferenceManager.saveHasShop(true)
-
-        if (shop.isSubscriptionActive) {
-            val status = if (shop.subscription?.isTrial == true) "TRIAL" else "ACTIVE"
-            preferenceManager.saveSubscriptionStatus(status)
-            shop.subscriptionType?.let { preferenceManager.saveSubscriptionType(it) }
-            shop.subscriptionExpiry?.let { preferenceManager.saveSubscriptionExpiry(it) }
-            shop.subscription?.id?.let { preferenceManager.saveSubscriptionId(it) }
-        }
-        Log.d(TAG, "Saved shop UUID: $uuid, ID: ${shop.id}")
-    }
-
     // ===== DIALOGS =====
     private fun showSubscriptionRequiredDialog(shop: Shop) {
         androidx.appcompat.app.AlertDialog.Builder(requireContext())
@@ -233,9 +226,15 @@ class MainDashboardFragment : Fragment() {
 
     // ===== LOAD DATA =====
     fun loadDashboardData() {
-        uiState = uiState.copy(isLoading = true)
+        dashboardLoadJob?.cancel()
+        val selectedShopId = preferenceManager.getManuallySelectedShopId()
+        uiState = uiState.copy(
+            isLoading = true,
+            isShopSelected = selectedShopId.isNotBlank(),
+            selectedShopName = preferenceManager.getCurrentShopName(),
+        )
 
-        lifecycleScope.launch {
+        dashboardLoadJob = viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val refreshResult = shopRepository.refreshShops()
                 when (refreshResult) {
@@ -244,13 +243,16 @@ class MainDashboardFragment : Fragment() {
                         if (shopsResult is Resource.Success) {
                             val shops = shopsResult.data ?: emptyList()
                             if (shops.isNotEmpty()) {
-                                val selectedShop = shops.find { it.isSubscriptionActive } ?: shops.first()
-                                saveCurrentShop(selectedShop)
+                                val selectedShop = shops.find { it.id == selectedShopId }
+                                val displayedShops = selectedShop?.let(::listOf) ?: shops
+                                uiState = uiState.copy(
+                                    isShopSelected = selectedShop != null,
+                                    selectedShopName = selectedShop?.name.orEmpty(),
+                                )
+                                val totals = loadActualSalesData(displayedShops)
 
-                                val totals = loadActualSalesData(shops)
-
-                                updateTotals(totals, shops.size)
-                                submitShops(shops, selectedShop.id)
+                                updateTotals(totals, displayedShops.size)
+                                submitShops(shops, selectedShop?.id)
                                 dashboardRepository.refreshDashboardData()
                                 updateTrendData()
                             } else {
@@ -265,12 +267,15 @@ class MainDashboardFragment : Fragment() {
                         val shopsResult = shopRepository.getShops()
                         if (shopsResult is Resource.Success && shopsResult.data?.isNotEmpty() == true) {
                             val shops = shopsResult.data
-                            val selectedShop = shops.find { it.isSubscriptionActive } ?: shops.first()
-                            saveCurrentShop(selectedShop)
-
-                            val totals = loadActualSalesData(shops)
-                            updateTotals(totals, shops.size)
-                            submitShops(shops, selectedShop.id)
+                            val selectedShop = shops.find { it.id == selectedShopId }
+                            val displayedShops = selectedShop?.let(::listOf) ?: shops
+                            uiState = uiState.copy(
+                                isShopSelected = selectedShop != null,
+                                selectedShopName = selectedShop?.name.orEmpty(),
+                            )
+                            val totals = loadActualSalesData(displayedShops)
+                            updateTotals(totals, displayedShops.size)
+                            submitShops(shops, selectedShop?.id)
                             updateTrendData()
                             Toast.makeText(requireContext(), "Using cached shop data", Toast.LENGTH_SHORT).show()
                         } else {
@@ -280,6 +285,8 @@ class MainDashboardFragment : Fragment() {
                     is Resource.Loading -> {}
                 }
                 uiState = uiState.copy(isLoading = false)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 uiState = uiState.copy(isLoading = false)
                 Toast.makeText(requireContext(), e.message ?: "Error loading data", Toast.LENGTH_LONG).show()
@@ -407,6 +414,10 @@ class MainDashboardFragment : Fragment() {
     }
 
     private fun hasActiveShopWithSubscription(): Boolean {
+        val selectedShopId = preferenceManager.getManuallySelectedShopId()
+        if (selectedShopId.isNotBlank()) {
+            return currentShops.find { it.id == selectedShopId }?.isSubscriptionActive == true
+        }
         return preferenceManager.hasActiveSubscription() ||
             currentShops.any { it.isSubscriptionActive }
     }

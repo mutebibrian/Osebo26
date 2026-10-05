@@ -27,7 +27,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
-class FinancialStatementFragment : Fragment() {
+class FinancialStatementFragment : Fragment(), ShopSelectionAware {
     private val viewModel: FinancialStatementViewModel by viewModel()
     private var uiState by mutableStateOf(FinancialStatementUiState())
 
@@ -38,6 +38,16 @@ class FinancialStatementFragment : Fragment() {
         "This Quarter",
         "This Year",
     )
+
+    override fun onShopSelectionChanged() {
+        uiState = FinancialStatementUiState(
+            shopName = PreferenceManager.getInstance(requireContext())
+                .getCurrentShopName().ifBlank { "My shop" },
+            selectedPeriod = uiState.selectedPeriod,
+            isLoading = true,
+        )
+        loadData()
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,

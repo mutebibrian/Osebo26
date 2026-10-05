@@ -25,10 +25,16 @@ import org.koin.androidx.viewmodel.ext.android.viewModel
 import java.text.NumberFormat
 import java.util.Locale
 
-class TransactionsFragment : Fragment() {
+class TransactionsFragment : Fragment(), ShopSelectionAware {
     private val viewModel: TransactionViewModel by viewModel()
     private var uiState by mutableStateOf(TransactionsUiState())
     private var sourceTransactions: List<Transaction> = emptyList()
+
+    override fun onShopSelectionChanged() {
+        sourceTransactions = emptyList()
+        uiState = TransactionsUiState(isLoading = true)
+        viewModel.loadTransactions()
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,

@@ -10,6 +10,7 @@ import com.devbrian.osebo.models.Product
 import com.devbrian.osebo.utils.NetworkUtils
 import com.devbrian.osebo.utils.Resource
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -19,6 +20,19 @@ class InventoryViewModel(
     private val repository: InventoryRepository,
     private val context: Context
 ) : ViewModel() {
+
+    private var productsJob: Job? = null
+    private var shopSelectionVersion = 0
+
+    fun onShopSelectionChanged() {
+        shopSelectionVersion++
+        productsJob?.cancel()
+        _products.value = emptyList()
+        _stats.value = InventoryRepository.InventoryStats(0, 0, 0.0)
+        _isRefreshing.value = true
+        observeProducts()
+        refreshProducts()
+    }
 
     private val _products = MutableLiveData<List<Product>>(emptyList())
     val products: LiveData<List<Product>> = _products
@@ -54,9 +68,10 @@ class InventoryViewModel(
     }
 
     private fun observeProducts() {
-        viewModelScope.launch {
+        val version = shopSelectionVersion
+        productsJob = viewModelScope.launch {
             repository.getProducts().collectLatest { productList ->
-                _products.value = productList
+                if (version == shopSelectionVersion) _products.value = productList
             }
         }
     }
@@ -78,25 +93,29 @@ class InventoryViewModel(
     }
 
     fun loadStats() {
+        val version = shopSelectionVersion
         viewModelScope.launch {
             val stats = repository.getInventoryStats()
-            _stats.value = stats
+            if (version == shopSelectionVersion) _stats.value = stats
         }
     }
 
     fun refreshProducts() {
+        val version = shopSelectionVersion
         viewModelScope.launch {
             _isRefreshing.value = true
 
             if (!NetworkUtils.isNetworkAvailable(context)) {
                 _isOffline.value = true
                 _errorMessage.value = "You're offline. Showing cached data."
-                _isRefreshing.value = false
+                if (version == shopSelectionVersion) _isRefreshing.value = false
                 return@launch
             }
 
             _isOffline.value = false
             val result = repository.refreshProducts()
+
+            if (version != shopSelectionVersion) return@launch
 
             if (result is Resource.Error) {
                 _errorMessage.value = result.message
@@ -265,5 +284,3 @@ class InventoryViewModel(
                 !NetworkUtils.isMeteredConnection(context)
     }
 }
-
-

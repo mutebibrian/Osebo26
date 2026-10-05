@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.sp
 import com.devbrian.osebo.resources.Res
 import com.devbrian.osebo.resources.iconsax_total_sales
 import com.devbrian.osebo.resources.inventory_products
+import com.devbrian.osebo.ui.components.SkeletonBlock
 import com.devbrian.osebo.ui.theme.oseboFontFamily
 import org.jetbrains.compose.resources.painterResource
 
@@ -604,15 +605,26 @@ private fun TopProductsCard(products: List<TopSellingProductUi>) {
 
 @Composable
 private fun LoadingSalesCard() {
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(150.dp)
             .clip(RoundedCornerShape(22.dp))
-            .background(SoftSurface),
-        contentAlignment = Alignment.Center,
+            .background(SoftSurface)
+            .padding(18.dp),
     ) {
-        CircularProgressIndicator(color = OseboBlue, strokeWidth = 2.dp, modifier = Modifier.size(26.dp))
+        repeat(3) { index ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                SkeletonBlock(Modifier.size(42.dp), CircleShape)
+                Spacer(Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    SkeletonBlock(Modifier.fillMaxWidth(0.62f).height(13.dp))
+                    Spacer(Modifier.height(8.dp))
+                    SkeletonBlock(Modifier.fillMaxWidth(0.38f).height(10.dp))
+                }
+                SkeletonBlock(Modifier.width(60.dp).height(14.dp))
+            }
+            if (index < 2) Spacer(Modifier.height(18.dp))
+        }
     }
 }
 

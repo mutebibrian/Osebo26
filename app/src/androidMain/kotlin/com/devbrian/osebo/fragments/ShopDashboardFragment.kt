@@ -26,7 +26,7 @@ import kotlinx.coroutines.launch
 import org.koin.androidx.viewmodel.ext.android.viewModel
 import java.util.Locale
 
-class ShopDashboardFragment : Fragment() {
+class ShopDashboardFragment : Fragment(), ShopSelectionAware {
     private val args: ShopDashboardFragmentArgs by navArgs()
     private val viewModel: DashboardViewModel by viewModel()
     private var uiState by mutableStateOf(ShopDashboardUiState())
@@ -71,14 +71,25 @@ class ShopDashboardFragment : Fragment() {
         Log.d("ShopDashboard", "Loading dashboard for shop: $shopId")
 
         PreferenceManager.getInstance(requireContext()).apply {
-            saveCurrentShopId(shopId)
-            saveCurrentShopUuid(shopId)
+            if (getManuallySelectedShopId().isBlank()) {
+                saveCurrentShopId(shopId)
+                saveCurrentShopUuid(shopId)
+            }
             uiState = uiState.copy(
                 shopName = getCurrentShopName().ifBlank { "Your shop" },
             )
         }
 
         observeViewModel()
+        viewModel.loadDashboardData()
+    }
+
+    override fun onShopSelectionChanged() {
+        val preferences = PreferenceManager.getInstance(requireContext())
+        uiState = ShopDashboardUiState(
+            shopName = preferences.getCurrentShopName().ifBlank { "Your shop" },
+            isLoading = true,
+        )
         viewModel.loadDashboardData()
     }
 

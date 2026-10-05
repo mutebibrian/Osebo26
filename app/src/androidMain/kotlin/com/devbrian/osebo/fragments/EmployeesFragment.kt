@@ -31,16 +31,29 @@ import java.net.SocketTimeoutException
 import java.util.Locale
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.android.ext.android.inject
 
-class EmployeesFragment : Fragment() {
+class EmployeesFragment : Fragment(), ShopSelectionAware {
     private val preferenceManager: PreferenceManager by inject()
     private val apiService: ApiService by inject()
     private lateinit var permissionManager: PermissionManager
     private var uiState by mutableStateOf(EmployeesUiState())
     private var sourceEmployees: List<Employee> = emptyList()
+    private var employeeLoadJob: Job? = null
+
+    override fun onShopSelectionChanged() {
+        employeeLoadJob?.cancel()
+        sourceEmployees = emptyList()
+        uiState = EmployeesUiState(
+            shopName = preferenceManager.getCurrentShopName().ifBlank { "My shop" },
+            isLoading = true,
+        )
+        checkAccessAndLoadData()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -98,7 +111,8 @@ class EmployeesFragment : Fragment() {
     }
 
     private fun loadEmployeeData() {
-        viewLifecycleOwner.lifecycleScope.launch {
+        employeeLoadJob?.cancel()
+        employeeLoadJob = viewLifecycleOwner.lifecycleScope.launch {
             uiState = uiState.copy(isLoading = true)
             try {
                 val token = preferenceManager.getAuthToken()
@@ -123,13 +137,16 @@ class EmployeesFragment : Fragment() {
                 }
 
                 val response = withContext(Dispatchers.IO) {
-                    apiService.getEmployees("Bearer $token")
+                    apiService.getEmployees("Bearer $token", shopUuid)
                 }
 
                 if (response.isSuccessful) {
                     val body: EmployeeResponse? = response.body()
                     if (body != null && body.success) {
-                        updateEmployees(convertToEmployees(body.data.orEmpty()))
+                        updateEmployees(convertToEmployees(body.data.orEmpty().filter {
+                            it.shopId == null || it.shopId == shopUuid ||
+                                it.shopId == preferenceManager.getCurrentShopId()
+                        }))
                     } else {
                         clearEmployees()
                         showMessage(body?.message ?: "Failed to load employees")
@@ -138,6 +155,8 @@ class EmployeesFragment : Fragment() {
                     clearEmployees()
                     handleErrorResponse(response.code(), response.message(), response.errorBody()?.string())
                 }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
             } catch (_: ConnectException) {
                 clearEmployees()
                 showMessage("Network error. Please check your connection.")

@@ -30,16 +30,29 @@ import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.util.Locale
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.android.ext.android.inject
 
-class SuppliersFragment : Fragment() {
+class SuppliersFragment : Fragment(), ShopSelectionAware {
     private val preferenceManager: PreferenceManager by inject()
     private val apiService: ApiService by inject()
     private lateinit var permissionManager: PermissionManager
     private var uiState by mutableStateOf(SuppliersUiState())
     private var sourceSuppliers: List<Supplier> = emptyList()
+    private var supplierLoadJob: Job? = null
+
+    override fun onShopSelectionChanged() {
+        supplierLoadJob?.cancel()
+        sourceSuppliers = emptyList()
+        uiState = SuppliersUiState(
+            shopName = preferenceManager.getCurrentShopName().ifBlank { "My shop" },
+            isLoading = true,
+        )
+        checkAccessAndLoadSuppliers()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -90,7 +103,8 @@ class SuppliersFragment : Fragment() {
     }
 
     private fun loadSuppliers() {
-        viewLifecycleOwner.lifecycleScope.launch {
+        supplierLoadJob?.cancel()
+        supplierLoadJob = viewLifecycleOwner.lifecycleScope.launch {
             uiState = uiState.copy(isLoading = true)
             try {
                 val shopUuid = preferenceManager.getCurrentShopUuid()
@@ -111,6 +125,8 @@ class SuppliersFragment : Fragment() {
                     clearSuppliers()
                     showMessage(body?.message ?: "Failed to load suppliers")
                 }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
             } catch (_: ConnectException) {
                 clearSuppliers()
                 showMessage("Network error. Please check your connection.")

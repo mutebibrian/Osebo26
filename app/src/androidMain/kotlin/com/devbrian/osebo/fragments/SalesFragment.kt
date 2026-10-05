@@ -26,9 +26,14 @@ import java.util.Locale
 import java.util.TimeZone
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
-class SalesFragment : Fragment() {
+class SalesFragment : Fragment(), ShopSelectionAware {
     private val viewModel: SalesViewModel by viewModel()
     private var uiState by mutableStateOf(SalesUiState())
+
+    override fun onShopSelectionChanged() {
+        uiState = SalesUiState(isLoading = true)
+        viewModel.onShopSelectionChanged()
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,

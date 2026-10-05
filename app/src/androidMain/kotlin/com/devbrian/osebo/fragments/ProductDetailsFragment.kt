@@ -22,7 +22,7 @@ import java.text.NumberFormat
 import java.util.Locale
 import kotlin.apply
 
-class ProductDetailsFragment : Fragment() {
+class ProductDetailsFragment : Fragment(), ShopSelectionAware {
 
     private var _binding: FragmentProductDetailsBinding? = null
     private val binding get() = _binding!!
@@ -31,6 +31,11 @@ class ProductDetailsFragment : Fragment() {
     private val args: ProductDetailsFragmentArgs by navArgs()
 
     private var currentProduct: Product? = null
+
+    override fun onShopSelectionChanged() {
+        currentProduct = null
+        findNavController().navigateUp()
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -264,5 +269,4 @@ class ProductDetailsFragment : Fragment() {
         _binding = null
     }
 }
-
 

@@ -19,9 +19,14 @@ import com.devbrian.osebo.ui.theme.OseboTheme
 import com.devbrian.osebo.ui.viewmodels.InventoryViewModel
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
-class InventoryFragment : Fragment() {
+class InventoryFragment : Fragment(), ShopSelectionAware {
     private val viewModel: InventoryViewModel by viewModel()
     private var uiState by mutableStateOf(InventoryUiState())
+
+    override fun onShopSelectionChanged() {
+        uiState = uiState.copy(products = emptyList(), isLoading = true)
+        viewModel.onShopSelectionChanged()
+    }
 
     private val productsBackCallback = object : OnBackPressedCallback(false) {
         override fun handleOnBackPressed() {
