@@ -71,10 +71,11 @@ class ShopDashboardFragment : Fragment(), ShopSelectionAware {
         Log.d("ShopDashboard", "Loading dashboard for shop: $shopId")
 
         PreferenceManager.getInstance(requireContext()).apply {
-            if (getManuallySelectedShopId().isBlank()) {
-                saveCurrentShopId(shopId)
-                saveCurrentShopUuid(shopId)
-            }
+            selectShopManually(
+                shopId = shopId,
+                shopUuid = shopId,
+                shopName = getCurrentShopName().ifBlank { "Your shop" },
+            )
             uiState = uiState.copy(
                 shopName = getCurrentShopName().ifBlank { "Your shop" },
             )
