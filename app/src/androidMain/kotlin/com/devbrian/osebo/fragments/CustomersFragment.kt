@@ -11,9 +11,11 @@ import com.devbrian.osebo.ui.theme.OseboTheme
 import com.devbrian.osebo.ui.viewmodels.CustomerViewModel
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
-class CustomersFragment : Fragment() {
+class CustomersFragment : Fragment(), ShopSelectionAware {
 
     private val viewModel: CustomerViewModel by viewModel()
+
+    override fun onShopSelectionChanged() = viewModel.onShopSelectionChanged()
 
     override fun onCreateView(
         inflater: LayoutInflater,

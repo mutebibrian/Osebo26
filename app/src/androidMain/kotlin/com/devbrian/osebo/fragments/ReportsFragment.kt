@@ -24,12 +24,23 @@ import java.text.NumberFormat
 import java.util.Locale
 import kotlin.math.abs
 
-class ReportsFragment : Fragment() {
+class ReportsFragment : Fragment(), ShopSelectionAware {
     private val viewModel: ReportsViewModel by viewModel()
     private lateinit var preferenceManager: PreferenceManager
     private var uiState by mutableStateOf(ReportsUiState())
 
     private val periods = listOf("Daily", "Weekly", "Monthly", "Quarterly", "Yearly")
+
+    override fun onShopSelectionChanged() {
+        val period = uiState.selectedPeriod
+        uiState = ReportsUiState(
+            selectedPeriod = period,
+            shopName = preferenceManager.getCurrentShopName().ifBlank { "My shop" },
+            hasShop = preferenceManager.getShopIdentifierForApi().isNotEmpty(),
+            isLoading = true,
+        )
+        loadReports()
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,

@@ -2,6 +2,7 @@ package com.devbrian.osebo.ui.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -45,7 +46,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.sp
 import com.devbrian.osebo.resources.Res
 import com.devbrian.osebo.resources.iconsax_total_sales
 import com.devbrian.osebo.resources.inventory_products
+import com.devbrian.osebo.ui.components.SkeletonBlock
 import com.devbrian.osebo.ui.theme.oseboFontFamily
 import org.jetbrains.compose.resources.painterResource
 
@@ -78,6 +79,7 @@ data class TopSellingProductUi(
 )
 
 data class SalesUiState(
+    val totalSales: String = "UGX 0",
     val todaySales: String = "UGX 0",
     val todayTransactions: Int = 0,
     val monthSales: String = "UGX 0",
@@ -178,30 +180,6 @@ fun SalesScreen(
                 Spacer(Modifier.height(24.dp))
 
                 MonthSalesCard(state)
-
-                Spacer(Modifier.height(14.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    SmallMetricCard(
-                        label = "Today's sales",
-                        value = state.todaySales,
-                        supporting = "${state.todayTransactions} transaction${if (state.todayTransactions == 1) "" else "s"}",
-                        background = listOf(Color(0xFFD7F2F5), Color(0xFFF0FAFA)),
-                        accent = Color(0xFF2398A8),
-                        modifier = Modifier.weight(1f),
-                    )
-                    SmallMetricCard(
-                        label = "This month",
-                        value = "${state.monthTransactions}",
-                        supporting = "transactions",
-                        background = listOf(Color(0xFFECE3FA), Color(0xFFF9F5FD)),
-                        accent = Color(0xFF7E55BF),
-                        modifier = Modifier.weight(1f),
-                    )
-                }
 
                 Spacer(Modifier.height(18.dp))
 
@@ -344,20 +322,14 @@ private fun MonthSalesCard(state: SalesUiState) {
     val poppins = oseboFontFamily()
     val growth = state.growthPercentage
     val growthLabel = when {
-        growth > 0 -> "+${formatPercentage(growth)}% from last month"
-        growth < 0 -> "${formatPercentage(growth)}% from last month"
-        else -> "No change from last month"
+        growth > 0 -> "+${formatPercentage(growth)}% monthly change"
+        growth < 0 -> "${formatPercentage(growth)}% monthly change"
+        else -> "No monthly change"
     }
     val shape = RoundedCornerShape(28.dp)
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(
-                elevation = 12.dp,
-                shape = shape,
-                ambientColor = Color(0xFFB7D7F7).copy(alpha = 0.38f),
-                spotColor = Color(0xFFB7D7F7).copy(alpha = 0.3f),
-            )
             .clip(shape)
             .background(
                 Brush.linearGradient(
@@ -366,83 +338,98 @@ private fun MonthSalesCard(state: SalesUiState) {
                     end = Offset.Infinite,
                 ),
             )
-            .padding(20.dp),
+            .border(1.dp, Color.White.copy(alpha = 0.9f), shape)
+            .padding(18.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(verticalAlignment = Alignment.Top) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "TOTAL SALES",
+                    color = OseboBlue,
+                    fontFamily = poppins,
+                    fontSize = 8.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.9.sp,
+                )
+                Text(
+                    text = state.totalSales,
+                    color = Color(0xFF14243A),
+                    fontFamily = poppins,
+                    fontSize = 28.sp,
+                    lineHeight = 34.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = growthLabel,
+                    color = if (growth < 0) Color(0xFFD75E81) else OseboBlue,
+                    fontFamily = poppins,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
             Box(
                 modifier = Modifier
-                    .size(44.dp)
-                    .clip(RoundedCornerShape(15.dp))
-                    .background(Color.White.copy(alpha = 0.78f)),
+                    .size(42.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.8f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     painter = painterResource(Res.drawable.iconsax_total_sales),
                     contentDescription = null,
                     tint = OseboBlue,
-                    modifier = Modifier.size(24.dp),
+                    modifier = Modifier.size(22.dp),
                 )
             }
-            Text(
-                text = "Monthly sales",
-                color = Muted,
-                fontFamily = poppins,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier.padding(start = 12.dp),
+        }
+
+        Spacer(Modifier.height(18.dp))
+
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            SalesDetailCard(
+                label = "Today's sales",
+                value = state.todaySales,
+                supporting = "${state.todayTransactions} transaction${if (state.todayTransactions == 1) "" else "s"}",
+                modifier = Modifier.weight(1f),
+            )
+            SalesDetailCard(
+                label = "This month",
+                value = state.monthSales,
+                supporting = "${state.monthTransactions} transaction${if (state.monthTransactions == 1) "" else "s"}",
+                modifier = Modifier.weight(1f),
             )
         }
-        Spacer(Modifier.height(20.dp))
-        Text(
-            text = state.monthSales,
-            color = Ink,
-            fontFamily = poppins,
-            fontSize = 29.sp,
-            lineHeight = 35.sp,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        Spacer(Modifier.height(4.dp))
-        Text(
-            text = growthLabel,
-            color = if (growth < 0) Color(0xFFD75E81) else Color(0xFF448FE8),
-            fontFamily = poppins,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Medium,
-        )
     }
 }
 
 @Composable
-private fun SmallMetricCard(
+private fun SalesDetailCard(
     label: String,
     value: String,
     supporting: String,
-    background: List<Color>,
-    accent: Color,
     modifier: Modifier = Modifier,
 ) {
     val poppins = oseboFontFamily()
     Column(
         modifier = modifier
-            .height(126.dp)
-            .clip(RoundedCornerShape(24.dp))
-            .background(Brush.linearGradient(background))
-            .padding(16.dp),
-        verticalArrangement = Arrangement.SpaceBetween,
+            .clip(RoundedCornerShape(17.dp))
+            .background(Color.White.copy(alpha = 0.74f))
+            .padding(horizontal = 13.dp, vertical = 12.dp),
     ) {
-        Text(label, color = Muted, fontFamily = poppins, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+        Text(label, color = Muted, fontFamily = poppins, fontSize = 9.sp, fontWeight = FontWeight.Medium)
+        Spacer(Modifier.height(5.dp))
         Text(
             text = value,
             color = Ink,
             fontFamily = poppins,
-            fontSize = 20.sp,
+            fontSize = 17.sp,
             fontWeight = FontWeight.SemiBold,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
-        Text(supporting, color = accent, fontFamily = poppins, fontSize = 10.sp, fontWeight = FontWeight.Medium)
+        Text(supporting, color = Muted, fontFamily = poppins, fontSize = 8.sp, maxLines = 1)
     }
 }
 
@@ -604,15 +591,26 @@ private fun TopProductsCard(products: List<TopSellingProductUi>) {
 
 @Composable
 private fun LoadingSalesCard() {
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(150.dp)
             .clip(RoundedCornerShape(22.dp))
-            .background(SoftSurface),
-        contentAlignment = Alignment.Center,
+            .background(SoftSurface)
+            .padding(18.dp),
     ) {
-        CircularProgressIndicator(color = OseboBlue, strokeWidth = 2.dp, modifier = Modifier.size(26.dp))
+        repeat(3) { index ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                SkeletonBlock(Modifier.size(42.dp), CircleShape)
+                Spacer(Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    SkeletonBlock(Modifier.fillMaxWidth(0.62f).height(13.dp))
+                    Spacer(Modifier.height(8.dp))
+                    SkeletonBlock(Modifier.fillMaxWidth(0.38f).height(10.dp))
+                }
+                SkeletonBlock(Modifier.width(60.dp).height(14.dp))
+            }
+            if (index < 2) Spacer(Modifier.height(18.dp))
+        }
     }
 }
 

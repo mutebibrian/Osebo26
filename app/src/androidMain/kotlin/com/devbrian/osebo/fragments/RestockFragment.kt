@@ -23,10 +23,16 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
-class RestockFragment : Fragment() {
+class RestockFragment : Fragment(), ShopSelectionAware {
     private val viewModel: InventoryViewModel by viewModel()
     private var uiState by mutableStateOf(AddStockUiState())
     private var allProducts: List<Product> = emptyList()
+
+    override fun onShopSelectionChanged() {
+        allProducts = emptyList()
+        uiState = AddStockUiState(isLoading = true)
+        viewModel.onShopSelectionChanged()
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,

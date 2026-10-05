@@ -45,10 +45,10 @@ class FinanceViewModel(
     val error: LiveData<String?> = _error
 
     init {
-        loadCurrentShopInfo()
+        refreshCurrentShopInfo()
     }
 
-    private fun loadCurrentShopInfo() {
+    fun refreshCurrentShopInfo(): String {
         val shopName = preferenceManager.getCurrentShopName()
         val shopId = preferenceManager.getShopIdentifierForApi()
 
@@ -57,6 +57,7 @@ class FinanceViewModel(
         if (shopId.isEmpty()) {
             _error.value = "No shop selected. Please select a shop first."
         }
+        return _currentShopName.value.orEmpty()
     }
 
     fun loadTransactions(startDate: String? = null, endDate: String? = null) {

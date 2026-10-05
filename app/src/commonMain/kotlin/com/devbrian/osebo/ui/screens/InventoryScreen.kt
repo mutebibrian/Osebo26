@@ -39,6 +39,7 @@ import com.devbrian.osebo.resources.inventory_add_stock
 import com.devbrian.osebo.resources.inventory_products
 import com.devbrian.osebo.resources.inventory_remove_stock
 import com.devbrian.osebo.resources.inventory_stock_transfer
+import com.devbrian.osebo.ui.components.SkeletonBlock
 import com.devbrian.osebo.ui.theme.oseboFontFamily
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
@@ -248,13 +249,7 @@ private fun ProductsList(
 
         when {
             state.isLoading && state.products.isEmpty() -> {
-                Text(
-                    text = "Loading products…",
-                    color = Color(0xFF7A838D),
-                    fontFamily = poppins,
-                    fontSize = 14.sp,
-                    modifier = Modifier.padding(horizontal = 24.dp),
-                )
+                ProductsSkeleton()
             }
 
             state.products.isEmpty() -> {
@@ -295,6 +290,31 @@ private fun ProductsList(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ProductsSkeleton() {
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
+        repeat(4) { index ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(Color(0xFFF7F9FA))
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                SkeletonBlock(Modifier.size(52.dp), RoundedCornerShape(14.dp))
+                Spacer(Modifier.size(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    SkeletonBlock(Modifier.fillMaxWidth(0.7f).height(14.dp))
+                    Spacer(Modifier.height(9.dp))
+                    SkeletonBlock(Modifier.fillMaxWidth(0.42f).height(11.dp))
+                }
+            }
+            if (index < 3) Spacer(Modifier.height(12.dp))
         }
     }
 }

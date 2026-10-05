@@ -52,9 +52,18 @@ import com.devbrian.osebo.resources.Res
 import com.devbrian.osebo.resources.iconsax_add_employee
 import com.devbrian.osebo.resources.iconsax_add_product
 import com.devbrian.osebo.resources.iconsax_balance
+import com.devbrian.osebo.resources.iconsax_box_bold
+import com.devbrian.osebo.resources.iconsax_briefcase_bold
+import com.devbrian.osebo.resources.iconsax_category_bold
+import com.devbrian.osebo.resources.iconsax_coffee_bold
+import com.devbrian.osebo.resources.iconsax_global_bold
+import com.devbrian.osebo.resources.iconsax_health_bold
+import com.devbrian.osebo.resources.iconsax_monitor_bold
 import com.devbrian.osebo.resources.iconsax_new_sale
 import com.devbrian.osebo.resources.iconsax_notification
 import com.devbrian.osebo.resources.iconsax_reports
+import com.devbrian.osebo.resources.iconsax_scissor_bold
+import com.devbrian.osebo.resources.iconsax_shop_bold
 import com.devbrian.osebo.resources.iconsax_shops
 import com.devbrian.osebo.resources.iconsax_today_expenses
 import com.devbrian.osebo.resources.iconsax_today_sales
@@ -85,6 +94,9 @@ data class DashboardUiState(
     val userName: String = "",
     val currentDate: String = "",
     val isLoading: Boolean = false,
+    val isShopSelected: Boolean = false,
+    val selectedShopName: String = "",
+    val selectedShopType: String = "",
     val periodFilter: DashboardPeriodFilter = DashboardPeriodFilter.Today,
     val todaySales: String = "UGX 0",
     val todayExpenses: String = "UGX 0",
@@ -118,6 +130,7 @@ private data class DashboardQuickAction(
 fun DashboardScreen(
     state: DashboardUiState,
     onNotificationsClick: () -> Unit = {},
+    onShopPickerClick: () -> Unit = {},
     onAddProductClick: () -> Unit = {},
     onNewSaleClick: () -> Unit = {},
     onAddEmployeeClick: () -> Unit = {},
@@ -132,7 +145,7 @@ fun DashboardScreen(
         size = maxOf(state.salesTrend.size, state.expensesTrend.size, 4),
         init = { state.shops.size.toFloat() },
     )
-    val metrics = listOf(
+    val allBusinessMetrics = listOf(
         DashboardMetric(
             "Today's Sales",
             currencyAmount(state.todaySales),
@@ -188,6 +201,14 @@ fun DashboardScreen(
             state.expensesTrend,
         ),
     )
+    val metrics = if (state.isShopSelected) {
+        allBusinessMetrics.filter {
+            it.label == "Today's Sales" || it.label == "Today's Balance" ||
+                it.label == "Total Sales" || it.label == "Total Expenses"
+        }
+    } else {
+        allBusinessMetrics
+    }
     val quickActions = listOf(
         DashboardQuickAction(
             "Add product",
@@ -226,6 +247,11 @@ fun DashboardScreen(
                 ProfileGreetingHeader(
                     greeting = state.greeting,
                     userName = state.userName,
+                    shopIcon = dashboardShopCategoryIcon(
+                        shopType = state.selectedShopType,
+                        isShopSelected = state.isShopSelected,
+                    ),
+                    onShopPickerClick = onShopPickerClick,
                     onNotificationsClick = onNotificationsClick,
                 )
 
@@ -235,6 +261,8 @@ fun DashboardScreen(
                     metrics = metrics,
                     isLoading = state.isLoading,
                     shimmerBrush = valueShimmer,
+                    title = if (state.isShopSelected) "Shop overview" else "Business overview",
+                    subtitle = if (state.isShopSelected) state.selectedShopName else "Your shops at a glance",
                 )
 
                 Spacer(Modifier.height(30.dp))
@@ -264,22 +292,24 @@ fun DashboardScreen(
                     }
                 }
 
-                Spacer(Modifier.height(30.dp))
+                if (!state.isShopSelected) {
+                    Spacer(Modifier.height(30.dp))
 
-                Text(
-                    text = "Shop performance",
-                    color = Color(0xFF171B1F),
-                    fontFamily = poppins,
-                    fontSize = 21.sp,
-                    fontWeight = FontWeight.SemiBold,
-                )
+                    Text(
+                        text = "Shop performance",
+                        color = Color(0xFF171B1F),
+                        fontFamily = poppins,
+                        fontSize = 21.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
 
-                Spacer(Modifier.height(14.dp))
+                    Spacer(Modifier.height(14.dp))
 
-                ShopPerformanceChart(
-                    isLoading = state.isLoading,
-                    shimmerBrush = valueShimmer,
-                )
+                    ShopPerformanceChart(
+                        isLoading = state.isLoading,
+                        shimmerBrush = valueShimmer,
+                    )
+                }
             }
         }
     }
@@ -290,6 +320,8 @@ private fun OverviewFeatureCard(
     metrics: List<DashboardMetric>,
     isLoading: Boolean,
     shimmerBrush: Brush,
+    title: String,
+    subtitle: String,
 ) {
     val poppins = oseboFontFamily()
     Column(
@@ -307,21 +339,21 @@ private fun OverviewFeatureCard(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Business overview",
+                    text = title,
                     color = Color(0xFF171B1F),
                     fontFamily = poppins,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    text = "Your shop at a glance",
+                    text = subtitle,
                     color = Color(0xFF7A8187),
                     fontFamily = poppins,
                     fontSize = 10.sp,
                 )
             }
             Text(
-                text = "6 metrics",
+                text = "${metrics.size} metrics",
                 color = Color(0xFF087FC4),
                 fontFamily = poppins,
                 fontSize = 9.sp,
@@ -357,6 +389,8 @@ private fun OverviewFeatureCard(
 private fun ProfileGreetingHeader(
     greeting: String,
     userName: String,
+    shopIcon: DrawableResource,
+    onShopPickerClick: () -> Unit,
     onNotificationsClick: () -> Unit,
 ) {
     val poppins = oseboFontFamily()
@@ -404,7 +438,31 @@ private fun ProfileGreetingHeader(
             )
         }
 
-        Box(
+        HeaderCircleButton(
+            onClick = onShopPickerClick,
+            icon = shopIcon,
+            contentDescription = "Switch shop",
+            tint = Color(0xFF087FC4),
+        )
+
+        Spacer(Modifier.width(8.dp))
+
+        HeaderCircleButton(
+            onClick = onNotificationsClick,
+            icon = Res.drawable.iconsax_notification,
+            contentDescription = "Notifications",
+        )
+    }
+}
+
+@Composable
+private fun HeaderCircleButton(
+    onClick: () -> Unit,
+    icon: DrawableResource,
+    contentDescription: String,
+    tint: Color = Color(0xFF171B1F),
+) {
+    Box(
             modifier = Modifier
                 .size(48.dp)
                 .clip(CircleShape)
@@ -413,17 +471,33 @@ private fun ProfileGreetingHeader(
                     role = androidx.compose.ui.semantics.Role.Button,
                     indication = null,
                     interactionSource = remember { MutableInteractionSource() },
-                    onClick = onNotificationsClick,
+                    onClick = onClick,
                 ),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                painter = painterResource(Res.drawable.iconsax_notification),
-                contentDescription = "Notifications",
-                tint = Color(0xFF171B1F),
-                modifier = Modifier.size(24.dp),
+                painter = painterResource(icon),
+                contentDescription = contentDescription,
+                tint = tint,
+                modifier = Modifier.size(23.dp),
             )
         }
+}
+
+private fun dashboardShopCategoryIcon(
+    shopType: String,
+    isShopSelected: Boolean,
+): DrawableResource {
+    if (!isShopSelected) return Res.drawable.iconsax_category_bold
+    return when (shopType.trim().lowercase()) {
+        "restaurant", "food", "cafe" -> Res.drawable.iconsax_coffee_bold
+        "salon", "spa", "beauty" -> Res.drawable.iconsax_scissor_bold
+        "pharmacy", "medical", "health" -> Res.drawable.iconsax_health_bold
+        "electronics", "computer", "technology" -> Res.drawable.iconsax_monitor_bold
+        "online", "ecommerce", "e-commerce" -> Res.drawable.iconsax_global_bold
+        "wholesale", "manufacturing", "hardware" -> Res.drawable.iconsax_box_bold
+        "service", "professional" -> Res.drawable.iconsax_briefcase_bold
+        else -> Res.drawable.iconsax_shop_bold
     }
 }
 

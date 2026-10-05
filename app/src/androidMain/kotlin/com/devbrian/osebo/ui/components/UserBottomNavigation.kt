@@ -54,7 +54,7 @@ fun UserBottomNavigation(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(start = 18.dp, end = 18.dp, bottom = 16.dp),
+            .padding(start = 18.dp, top = 16.dp, end = 18.dp, bottom = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -63,10 +63,10 @@ fun UserBottomNavigation(
                 .weight(1f)
                 .height(64.dp)
                 .shadow(
-                    elevation = 10.dp,
+                    elevation = 16.dp,
                     shape = RoundedCornerShape(32.dp),
-                    ambientColor = Color(0x180C2434),
-                    spotColor = Color(0x180C2434),
+                    ambientColor = Color(0x300C2434),
+                    spotColor = Color(0x400C2434),
                 )
                 .clip(RoundedCornerShape(32.dp))
                 .background(Color(0xFFF7F8F9))
@@ -87,10 +87,10 @@ fun UserBottomNavigation(
             modifier = Modifier
                 .size(64.dp)
                 .shadow(
-                    elevation = 10.dp,
+                    elevation = 16.dp,
                     shape = CircleShape,
-                    ambientColor = Color(0x260075BC),
-                    spotColor = Color(0x260075BC),
+                    ambientColor = Color(0x300075BC),
+                    spotColor = Color(0x400075BC),
                 )
                 .clip(CircleShape)
                 .background(Color(0xFF0783CF))

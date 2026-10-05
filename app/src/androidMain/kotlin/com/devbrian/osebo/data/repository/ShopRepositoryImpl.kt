@@ -100,11 +100,16 @@ class ShopRepositoryImpl(
 
                     println("✅ Saved ${entities.size} shops to database")
 
-                    // Find active shop using the DTO's helper property
+                    // Keep the user's choice when the shop list refreshes. An inactive
+                    // subscription affects access, but must not silently switch shops.
                     val currentShopId = preferenceManager.getCurrentShopId()
-                    val activeShop = shops.find {
-                        it.id == currentShopId && it.hasActiveSubscription
-                    } ?: shops.find { it.hasActiveSubscription }
+                    val activeShop = shops.find { it.id == currentShopId }
+                        ?: shops.find { it.hasActiveSubscription }
+
+                    val manuallySelectedId = preferenceManager.getManuallySelectedShopId()
+                    if (manuallySelectedId.isNotBlank() && shops.none { it.id == manuallySelectedId }) {
+                        preferenceManager.clearManualShopSelection()
+                    }
 
                     if (activeShop != null) {
                         println("✅ Found active shop: ${activeShop.name}")
@@ -114,7 +119,9 @@ class ShopRepositoryImpl(
                         preferenceManager.saveCurrentShopName(activeShop.name)
                         preferenceManager.saveCurrentShopUuid(activeShop.id)
                         preferenceManager.saveHasShop(true)
-                        preferenceManager.saveSubscriptionStatus("ACTIVE")
+                        preferenceManager.saveSubscriptionStatus(
+                            if (activeShop.hasActiveSubscription) "ACTIVE" else "INACTIVE"
+                        )
                         preferenceManager.saveSubscriptionId(activeShop.subscription?.id ?: "")
                         preferenceManager.saveSubscriptionType(activeShop.subscription?.packageType ?: "")
                         preferenceManager.saveSubscriptionExpiry(activeShop.subscription?.endsAt ?: "")

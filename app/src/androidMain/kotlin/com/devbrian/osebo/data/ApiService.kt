@@ -132,7 +132,10 @@ interface ApiService {
     ): Response<CreateEmployeeResponse>
 
     @GET("api/v1/users")
-    suspend fun getEmployees(@Header("Authorization") token: String): Response<EmployeeResponse>
+    suspend fun getEmployees(
+        @Header("Authorization") token: String,
+        @Query("shopId") shopId: String,
+    ): Response<EmployeeResponse>
 
     @PUT("api/v1/users/{userId}")
     suspend fun updateEmployee(

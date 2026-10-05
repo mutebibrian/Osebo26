@@ -58,7 +58,7 @@ data class SaleApiData(
     val type: String? = null,
 
     @SerialName("customer")
-    val customer: CustomerDto? = null,
+    val customer: SaleCustomerDto? = null,
 
     @SerialName("shop")
     val shop: ShopInfo? = null,
@@ -74,7 +74,7 @@ data class SaleApiData(
 object SaleApiDataSerializer : JsonTransformingSerializer<SaleApiData>(SaleApiData.serializer()) {
     override fun transformDeserialize(element: JsonElement): JsonElement =
         element.withAlternateKeys(
-            "invoiceNumber" to listOf("invoice_number"),
+            "invoiceNumber" to listOf("invoice_number", "sale_ref"),
             "createdAt" to listOf("created_at"),
             "total_price" to listOf("totalPrice", "total_amount"),
             "paid_amount" to listOf("paidAmount"),
@@ -84,6 +84,15 @@ object SaleApiDataSerializer : JsonTransformingSerializer<SaleApiData>(SaleApiDa
             "salePayments" to listOf("sale_payments", "payments"),
         )
 }
+
+@Serializable
+data class SaleCustomerDto(
+    @SerialName("id")
+    val id: String = "",
+
+    @SerialName("name")
+    val name: String = "",
+)
 
 @Serializable
 data class SaleStockItemDto(
@@ -104,7 +113,7 @@ data class SaleStockItemDto(
     val amount: Double,
 
     @SerialName("stockItem")
-    val stockItem: StockItemDto? = null
+    val stockItem: JsonElement? = null
 )
 
 @Serializable
