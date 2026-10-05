@@ -246,7 +246,7 @@ class MainActivity : AppCompatActivity() {
             (shopPickerView.layoutParams as? FrameLayout.LayoutParams)?.let { params ->
                 params.topMargin = ((if (destinationId == R.id.mainDashboardFragment) 48 else 44) *
                     resources.displayMetrics.density).toInt()
-                params.marginEnd = (76 * resources.displayMetrics.density).toInt()
+                params.marginEnd = (20 * resources.displayMetrics.density).toInt()
                 shopPickerView.layoutParams = params
             }
             shopPickerView.visibility =
