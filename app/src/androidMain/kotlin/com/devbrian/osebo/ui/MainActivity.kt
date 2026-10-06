@@ -131,6 +131,7 @@ class MainActivity : AppCompatActivity() {
     private val moreMenuSections: MutableState<List<MoreMenuSection>> = mutableStateOf(emptyList())
     private val shopPickerState: MutableState<ShopPickerUiState> = mutableStateOf(ShopPickerUiState())
     private lateinit var shopPickerView: ComposeView
+    private lateinit var bottomNavigationView: ComposeView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -166,7 +167,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupUserBottomNavigation() {
-        val bottomNavigation = ComposeView(this).apply {
+        bottomNavigationView = ComposeView(this).apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
                 OseboTheme {
@@ -194,7 +195,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.contentOverlay.addView(
-            bottomNavigation,
+            bottomNavigationView,
             FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -205,6 +206,14 @@ class MainActivity : AppCompatActivity() {
         binding.mainFab.visibility = View.GONE
         binding.fabSale.visibility = View.GONE
         binding.fabProduct.visibility = View.GONE
+        updateBottomNavigationVisibility(navController.currentDestination?.id)
+    }
+
+    private fun updateBottomNavigationVisibility(destinationId: Int?) {
+        if (::bottomNavigationView.isInitialized) {
+            bottomNavigationView.visibility =
+                if (destinationId == R.id.newSaleFragment) View.GONE else View.VISIBLE
+        }
     }
 
     private fun setupShopPicker() {
@@ -546,6 +555,7 @@ class MainActivity : AppCompatActivity() {
         navController.addOnDestinationChangedListener { _, destination, arguments ->
             Log.d("NavDrawer_DEBUG", "📍 Destination changed to: ${destination.label} (ID: ${destination.id})")
             syncBottomNavigation(destination.id)
+            updateBottomNavigationVisibility(destination.id)
             updateShopPickerVisibility(destination.id)
 
             if (destination.id == R.id.mainDashboardFragment) {

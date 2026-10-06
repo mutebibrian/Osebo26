@@ -260,8 +260,7 @@
     <fragment
         android:id="@+id/newSaleFragment"
         android:name="com.devbrian.osebo.fragments.NewSaleFragment"
-        android:label="New Sale"
-        tools:layout="@layout/fragment_new_sale">
+        android:label="New Sale">
 
         <action
             android:id="@+id/action_newSaleFragment_to_paymentFragment"
