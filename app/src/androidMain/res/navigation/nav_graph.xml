@@ -655,8 +655,7 @@
     <dialog
         android:id="@+id/paymentDialogFragment"
         android:name="com.devbrian.osebo.fragments.PaymentDialogFragment"
-        android:label="Payment"
-        tools:layout="@layout/fragment_payment_dialog">
+        android:label="Payment">
 
         <argument
             android:name="shopId"
@@ -769,8 +768,7 @@
     <fragment
         android:id="@+id/subscriptionPaymentFragment"
         android:name="com.devbrian.osebo.fragments.SubscriptionPaymentFragment"
-        android:label="Complete Payment"
-        tools:layout="@layout/fragment_subscription_payment">
+        android:label="Complete Payment">
 
         <argument
             android:name="shop"
@@ -853,8 +851,7 @@
     <fragment
         android:id="@+id/editShopFragment"
         android:name="com.devbrian.osebo.fragments.EditShopFragment"
-        android:label="Edit Shop"
-        tools:layout="@layout/fragment_edit_shop">
+        android:label="Edit Shop">
 
         <argument
             android:name="shop"
