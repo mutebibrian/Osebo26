@@ -212,7 +212,10 @@ class MainActivity : AppCompatActivity() {
     private fun updateBottomNavigationVisibility(destinationId: Int?) {
         if (::bottomNavigationView.isInitialized) {
             bottomNavigationView.visibility =
-                if (destinationId == R.id.newSaleFragment) View.GONE else View.VISIBLE
+                if (destinationId == R.id.newSaleFragment ||
+                    destinationId == R.id.addProductFragment ||
+                    destinationId == R.id.restockFragment
+                ) View.GONE else View.VISIBLE
         }
     }
 

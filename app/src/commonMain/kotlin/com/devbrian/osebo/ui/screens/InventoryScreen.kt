@@ -2,6 +2,7 @@ package com.devbrian.osebo.ui.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,6 +27,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -61,7 +65,7 @@ data class InventoryUiState(
 private data class InventoryQuickAction(
     val label: String,
     val icon: DrawableResource,
-    val background: Color,
+    val background: List<Color>,
     val onClick: () -> Unit,
 )
 
@@ -101,25 +105,25 @@ fun InventoryScreen(
                     InventoryQuickAction(
                         label = "Add product",
                         icon = Res.drawable.inventory_products,
-                        background = Color(0xFFEAF2FF),
+                        background = listOf(Color(0xFFD6E8FF), Color(0xFFF1F6FF)),
                         onClick = onAddProductClick,
                     ),
                     InventoryQuickAction(
                         label = "Add stock",
                         icon = Res.drawable.inventory_add_stock,
-                        background = Color(0xFFECEBFF),
+                        background = listOf(Color(0xFFE3E3FF), Color(0xFFF6F5FF)),
                         onClick = onAddStockClick,
                     ),
                     InventoryQuickAction(
                         label = "Remove stock",
                         icon = Res.drawable.inventory_remove_stock,
-                        background = Color(0xFFF5ECFC),
+                        background = listOf(Color(0xFFECE3FA), Color(0xFFF9F5FD)),
                         onClick = onRemoveStockClick,
                     ),
                     InventoryQuickAction(
                         label = "Transfer",
                         icon = Res.drawable.inventory_stock_transfer,
-                        background = Color(0xFFE5F7F7),
+                        background = listOf(Color(0xFFD7F2F5), Color(0xFFF0FAFA)),
                         onClick = onStockTransfersClick,
                     ),
                 ),
@@ -213,21 +217,31 @@ private fun InventoryQuickActions(actions: List<InventoryQuickAction>) {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         actions.forEach { action ->
+            val shape = RoundedCornerShape(22.dp)
             Column(
                 modifier = Modifier
                     .weight(1f)
                     .height(86.dp)
-                    .clip(RoundedCornerShape(22.dp))
-                    .background(action.background)
+                    .shadow(
+                        elevation = 9.dp,
+                        shape = shape,
+                        ambientColor = action.background.first().copy(alpha = 0.28f),
+                        spotColor = action.background.first().copy(alpha = 0.2f),
+                    )
+                    .clip(shape)
+                    .background(Brush.linearGradient(action.background, Offset.Zero, Offset.Infinite))
+                    .border(1.dp, Color.White.copy(alpha = 0.92f), shape)
                     .clickable(onClick = action.onClick)
-                    .padding(horizontal = 8.dp, vertical = 9.dp),
-                verticalArrangement = Arrangement.SpaceBetween,
+                    .padding(horizontal = 6.dp, vertical = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
             ) {
                 Image(
                     painter = painterResource(action.icon),
                     contentDescription = null,
-                    modifier = Modifier.size(34.dp),
+                    modifier = Modifier.size(38.dp),
                 )
+                Spacer(Modifier.height(7.dp))
                 Text(
                     text = action.label,
                     color = Color(0xFF171B1F),
@@ -237,6 +251,7 @@ private fun InventoryQuickActions(actions: List<InventoryQuickAction>) {
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 )
             }
         }

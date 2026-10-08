@@ -504,8 +504,7 @@
     <fragment
         android:id="@+id/addProductFragment"
         android:name="com.devbrian.osebo.fragments.AddProductFragment"
-        android:label="Add Product"
-        tools:layout="@layout/fragment_add_product">
+        android:label="Add Product">
 
         <argument
             android:name="productId"

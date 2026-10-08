@@ -1,266 +1,232 @@
 package com.devbrian.osebo.fragments
 
 import android.os.Bundle
-import android.text.TextUtils
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.Fragment
-import org.koin.androidx.viewmodel.ext.android.viewModel
 import androidx.navigation.fragment.findNavController
-import com.devbrian.osebo.databinding.FragmentAddProductBinding
 import com.devbrian.osebo.models.Product
+import com.devbrian.osebo.ui.screens.AddProductScreen
+import com.devbrian.osebo.ui.screens.AddProductUiState
+import com.devbrian.osebo.ui.theme.OseboTheme
 import com.devbrian.osebo.ui.viewmodels.InventoryViewModel
+import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class AddProductFragment : Fragment() {
-
-    private var _binding: FragmentAddProductBinding? = null
-    private val binding get() = _binding!!
-
     private val viewModel: InventoryViewModel by viewModel()
-
-    private var isEditMode = false
+    private var uiState by mutableStateOf(AddProductUiState())
     private var productId: String? = null
+    private var editingProduct: Product? = null
+    private var editFieldsLoaded = false
+
+    private val categories = listOf(
+        "Electronics",
+        "Clothing",
+        "Food & Beverages",
+        "Home & Garden",
+        "Health & Beauty",
+        "Sports",
+        "Other",
+    )
+    private val units = listOf("Piece", "kg", "g", "Litre", "ml", "Meter", "Box", "Pack")
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        productId = arguments?.let(AddProductFragmentArgs::fromBundle)?.productId
+        uiState = uiState.copy(isEditMode = !productId.isNullOrBlank())
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        _binding = FragmentAddProductBinding.inflate(inflater, container, false)
-        return binding.root
+        savedInstanceState: Bundle?,
+    ): View = ComposeView(requireContext()).apply {
+        setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+        setContent {
+            OseboTheme {
+                AddProductScreen(
+                    state = uiState,
+                    categories = categories,
+                    units = units,
+                    onStateChange = { uiState = it },
+                    onBackClick = { findNavController().navigateUp() },
+                    onUploadImageClick = { showMessage("Image upload coming soon") },
+                    onSaveClick = ::validateAndSave,
+                )
+            }
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-        setupToolbar()
-        setupDropdowns()
-        setupClickListeners()
-        setupObservers()
-        checkEditMode()
+        observeViewModel()
+        if (uiState.isEditMode) viewModel.refreshProducts()
     }
 
-    private fun setupDropdowns() {
-        // Setup Categories
-        val categories = arrayOf("Electronics", "Clothing", "Food & Beverages", "Home & Garden", "Health & Beauty", "Sports", "Other")
-        val categoryAdapter = android.widget.ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, categories)
-        binding.spinnerCategory.setAdapter(categoryAdapter)
-
-        // Setup Units
-        val units = arrayOf("Piece", "kg", "g", "Litre", "ml", "Meter", "Box", "Pack")
-        val unitAdapter = android.widget.ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, units)
-        binding.spinnerUnit.setAdapter(unitAdapter)
-    }
-
-    private fun setupToolbar() {
-        binding.toolbar.setNavigationOnClickListener {
-            findNavController().navigateUp()
-        }
-    }
-
-    private fun setupClickListeners() {
-        binding.btnUploadImage.setOnClickListener {
-            Toast.makeText(requireContext(), "Image upload coming soon", Toast.LENGTH_SHORT).show()
-        }
-
-        binding.btnSave.setOnClickListener {
-            if (validateInputs()) {
-                saveProduct()
+    private fun observeViewModel() {
+        viewModel.products.observe(viewLifecycleOwner) { products ->
+            if (uiState.isEditMode && !editFieldsLoaded) {
+                products.firstOrNull { it.id == productId }?.let(::loadProduct)
             }
         }
-
-        binding.btnCancel.setOnClickListener {
-            findNavController().navigateUp()
+        viewModel.isLoading.observe(viewLifecycleOwner) { loading ->
+            uiState = uiState.copy(isLoading = loading)
         }
-    }
-
-    private fun setupObservers() {
-        viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
-            binding.btnSave.isEnabled = !isLoading
-            binding.btnSave.text = if (isLoading) "Saving..." else if (isEditMode) "Update Product" else "Save Product"
+        viewModel.isOffline.observe(viewLifecycleOwner) { offline ->
+            uiState = uiState.copy(isOffline = offline)
         }
-
         viewModel.errorMessage.observe(viewLifecycleOwner) { message ->
             message?.let {
-                Toast.makeText(requireContext(), it, Toast.LENGTH_LONG).show()
+                showMessage(it, Toast.LENGTH_LONG)
                 viewModel.clearMessages()
             }
         }
-
         viewModel.successMessage.observe(viewLifecycleOwner) { message ->
             message?.let {
-                Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
+                showMessage(it)
                 viewModel.clearMessages()
                 findNavController().navigateUp()
             }
         }
-
-        viewModel.isOffline.observe(viewLifecycleOwner) { isOffline ->
-            if (isOffline) {
-                Toast.makeText(
-                    requireContext(),
-                    "You're offline. Product will be saved locally and synced when online.",
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-        }
     }
 
-    private fun checkEditMode() {
-        arguments?.let {
-            productId = AddProductFragmentArgs.fromBundle(it).productId
-            if (!productId.isNullOrEmpty()) {
-                isEditMode = true
-                binding.toolbar.title = "Edit Product"
-                loadProductForEdit(productId!!)
-            }
-        }
-    }
-
-    private fun loadProductForEdit(productId: String) {
-        val product = viewModel.getProductById(productId)
-        product?.let {
-            populateFields(it)
-        }
-    }
-
-    private fun populateFields(product: Product) {
-        binding.etProductName.setText(product.name)
-        binding.etSku.setText(product.sku)
-        binding.etBarcode.setText(product.barcode ?: "")
-        binding.spinnerCategory.setText(product.category, false)
-        binding.spinnerUnit.setText(product.unit ?: "", false)
-        binding.etSupplier.setText(product.supplierName ?: "")
-        binding.etDescription.setText(product.description ?: "")
-        binding.etPrice.setText(product.price.toString())
-        binding.etCost.setText(product.cost?.toString() ?: "")
-        // Convert Double to Int for display (but store as string)
-        binding.etStock.setText(if (product.stock == product.stock.toInt().toDouble()) {
-            product.stock.toInt().toString()
-        } else {
-            product.stock.toString()
-        })
-        binding.etLowStockThreshold.setText(product.lowStockThreshold.toString())
-        binding.etLocation.setText(product.location ?: "")
-        binding.etTaxRate.setText(product.taxRate?.toString() ?: "")
-        binding.etWeight.setText(product.weight?.toString() ?: "")
-    }
-
-    private fun validateInputs(): Boolean {
-        var isValid = true
-
-        binding.etProductName.error = null
-        binding.etSku.error = null
-        binding.etPrice.error = null
-        binding.etStock.error = null
-        binding.etLowStockThreshold.error = null
-        binding.spinnerCategory.error = null
-
-        val name = binding.etProductName.text.toString().trim()
-        if (TextUtils.isEmpty(name)) {
-            binding.etProductName.error = "Product name is required"
-            isValid = false
-        }
-
-        val sku = binding.etSku.text.toString().trim()
-        if (TextUtils.isEmpty(sku)) {
-            binding.etSku.error = "SKU is required"
-            isValid = false
-        }
-
-        val category = binding.spinnerCategory.text.toString().trim()
-        if (TextUtils.isEmpty(category)) {
-            binding.spinnerCategory.error = "Category is required"
-            isValid = false
-        }
-
-        val priceStr = binding.etPrice.text.toString().trim()
-        if (TextUtils.isEmpty(priceStr)) {
-            binding.etPrice.error = "Price is required"
-            isValid = false
-        } else {
-            try {
-                priceStr.toDouble()
-            } catch (e: NumberFormatException) {
-                binding.etPrice.error = "Invalid price format"
-                isValid = false
-            }
-        }
-
-        val stockStr = binding.etStock.text.toString().trim()
-        if (TextUtils.isEmpty(stockStr)) {
-            binding.etStock.error = "Stock quantity is required"
-            isValid = false
-        } else {
-            try {
-                stockStr.toDouble()  // Changed from toInt() to toDouble()
-            } catch (e: NumberFormatException) {
-                binding.etStock.error = "Invalid stock format"
-                isValid = false
-            }
-        }
-
-        val thresholdStr = binding.etLowStockThreshold.text.toString().trim()
-        if (TextUtils.isEmpty(thresholdStr)) {
-            binding.etLowStockThreshold.error = "Low stock threshold is required"
-            isValid = false
-        } else {
-            try {
-                thresholdStr.toInt()
-            } catch (e: NumberFormatException) {
-                binding.etLowStockThreshold.error = "Invalid threshold format"
-                isValid = false
-            }
-        }
-
-        return isValid
-    }
-
-    private fun saveProduct() {
-        // Parse stock as Double
-        val stockValue = binding.etStock.text.toString().trim().toDouble()
-
-        val product = Product(
-            id = productId ?: "",
-            name = binding.etProductName.text.toString().trim(),
-            sku = binding.etSku.text.toString().trim(),
-            category = binding.spinnerCategory.text.toString().trim(),
-            categoryId = null,
-            price = binding.etPrice.text.toString().toDouble(),
-            cost = binding.etCost.text.toString().trim().takeIf { it.isNotEmpty() }?.toDouble(),
-            stock = stockValue,  // Now using Double
-            lowStockThreshold = binding.etLowStockThreshold.text.toString().toInt(),
-            imageUrl = null,
-            description = binding.etDescription.text.toString().trim().takeIf { it.isNotEmpty() },
-            barcode = binding.etBarcode.text.toString().trim().takeIf { it.isNotEmpty() },
-            supplierId = null,
-            supplierName = binding.etSupplier.text.toString().trim().takeIf { it.isNotEmpty() },
-            taxRate = binding.etTaxRate.text.toString().trim().takeIf { it.isNotEmpty() }?.toDouble(),
-            weight = binding.etWeight.text.toString().trim().takeIf { it.isNotEmpty() }?.toDouble(),
-            dimensions = null,
-            location = binding.etLocation.text.toString().trim().takeIf { it.isNotEmpty() },
-            isActive = true,
-            createdAt = null,
-            updatedAt = null,
-            maxDiscount = null,
-            unit = binding.spinnerUnit.text.toString().trim().takeIf { it.isNotEmpty() },
-            allowsFloatQuantity = null,
-            shopId = null,
-            shopName = null,
-            photos = null
+    private fun loadProduct(product: Product) {
+        editingProduct = product
+        editFieldsLoaded = true
+        uiState = uiState.copy(
+            name = product.name,
+            sku = product.sku,
+            barcode = product.barcode.orEmpty(),
+            category = product.category.orEmpty(),
+            unit = product.unit.orEmpty(),
+            supplier = product.supplierName.orEmpty(),
+            description = product.description.orEmpty(),
+            price = product.price.toEditableNumber(),
+            cost = product.cost?.toEditableNumber().orEmpty(),
+            stock = product.stock.toEditableNumber(),
+            lowStockThreshold = product.lowStockThreshold?.toString().orEmpty(),
+            location = product.location.orEmpty(),
+            taxRate = product.taxRate?.toEditableNumber().orEmpty(),
+            weight = product.weight?.toEditableNumber().orEmpty(),
         )
-
-        if (isEditMode && !productId.isNullOrEmpty()) {
-            viewModel.updateProduct(product)
-        } else {
-            viewModel.createProduct(product)
-        }
     }
 
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
+    private fun validateAndSave() {
+        val nameError = if (uiState.name.isBlank()) "Product name is required" else null
+        val skuError = if (uiState.sku.isBlank()) "SKU is required" else null
+        val categoryError = if (uiState.category.isBlank()) "Category is required" else null
+        val price = uiState.price.toDoubleOrNull()
+        val priceError = when {
+            uiState.price.isBlank() -> "Selling price is required"
+            price == null -> "Enter a valid price"
+            price < 0 -> "Price cannot be negative"
+            else -> null
+        }
+        val cost = uiState.cost.toDoubleOrNull()
+        val costError = when {
+            uiState.cost.isBlank() -> null
+            cost == null -> "Enter a valid cost"
+            cost < 0 -> "Cost cannot be negative"
+            else -> null
+        }
+        val stock = uiState.stock.toDoubleOrNull()
+        val stockError = when {
+            uiState.stock.isBlank() -> "Current stock is required"
+            stock == null -> "Enter a valid quantity"
+            stock < 0 -> "Stock cannot be negative"
+            else -> null
+        }
+        val threshold = uiState.lowStockThreshold.toIntOrNull()
+        val thresholdError = when {
+            uiState.lowStockThreshold.isBlank() -> "Low-stock alert is required"
+            threshold == null -> "Enter a whole number"
+            threshold < 0 -> "Alert cannot be negative"
+            else -> null
+        }
+        val tax = uiState.taxRate.toDoubleOrNull()
+        val taxError = when {
+            uiState.taxRate.isBlank() -> null
+            tax == null -> "Enter a valid rate"
+            tax !in 0.0..100.0 -> "Use a rate from 0 to 100"
+            else -> null
+        }
+        val weight = uiState.weight.toDoubleOrNull()
+        val weightError = when {
+            uiState.weight.isBlank() -> null
+            weight == null -> "Enter a valid weight"
+            weight < 0 -> "Weight cannot be negative"
+            else -> null
+        }
+
+        val detailsInvalid = nameError != null || skuError != null || categoryError != null
+        val stockInvalid = priceError != null || costError != null || stockError != null ||
+            thresholdError != null || taxError != null || weightError != null
+        uiState = uiState.copy(
+            currentStep = if (detailsInvalid) 0 else 1,
+            nameError = nameError,
+            skuError = skuError,
+            categoryError = categoryError,
+            priceError = priceError,
+            costError = costError,
+            stockError = stockError,
+            thresholdError = thresholdError,
+            taxError = taxError,
+            weightError = weightError,
+        )
+        if (detailsInvalid || stockInvalid) return
+
+        val existing = editingProduct
+        val product = if (existing != null) {
+            existing.copy(
+                name = uiState.name.trim(),
+                sku = uiState.sku.trim(),
+                barcode = uiState.barcode.trim().ifBlank { null },
+                category = uiState.category,
+                unit = uiState.unit.ifBlank { null },
+                supplierName = uiState.supplier.trim().ifBlank { null },
+                description = uiState.description.trim().ifBlank { null },
+                price = price!!,
+                cost = cost,
+                stock = stock!!,
+                lowStockThreshold = threshold,
+                location = uiState.location.trim().ifBlank { null },
+                taxRate = tax,
+                weight = weight,
+            )
+        } else {
+            Product(
+                id = "",
+                name = uiState.name.trim(),
+                sku = uiState.sku.trim(),
+                category = uiState.category,
+                price = price!!,
+                cost = cost,
+                stock = stock!!,
+                lowStockThreshold = threshold,
+                description = uiState.description.trim().ifBlank { null },
+                barcode = uiState.barcode.trim().ifBlank { null },
+                supplierName = uiState.supplier.trim().ifBlank { null },
+                taxRate = tax,
+                weight = weight,
+                location = uiState.location.trim().ifBlank { null },
+                unit = uiState.unit.ifBlank { null },
+            )
+        }
+
+        if (existing != null) viewModel.updateProduct(product) else viewModel.createProduct(product)
+    }
+
+    private fun Double.toEditableNumber(): String =
+        if (this == toInt().toDouble()) toInt().toString() else toString()
+
+    private fun showMessage(message: String, duration: Int = Toast.LENGTH_SHORT) {
+        if (isAdded) Toast.makeText(requireContext(), message, duration).show()
     }
 }

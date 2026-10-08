@@ -1,6 +1,5 @@
 package com.devbrian.osebo.ui.screens
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -33,9 +32,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -44,6 +42,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.devbrian.osebo.resources.Res
+import com.devbrian.osebo.resources.iconsax_arrow_left
+import com.devbrian.osebo.resources.iconsax_search
 import com.devbrian.osebo.resources.inventory_products
 import com.devbrian.osebo.ui.theme.oseboFontFamily
 import org.jetbrains.compose.resources.painterResource
@@ -129,7 +129,7 @@ fun AddStockScreen(
                             contentPadding = PaddingValues(
                                 start = 20.dp,
                                 end = 20.dp,
-                                bottom = if (selectedCount > 0) 230.dp else 136.dp,
+                                bottom = if (selectedCount > 0) 132.dp else 32.dp,
                             ),
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
@@ -154,7 +154,7 @@ fun AddStockScreen(
                     onClick = onAddStockClick,
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
-                        .padding(start = 20.dp, end = 20.dp, bottom = 112.dp),
+                        .padding(start = 20.dp, end = 20.dp, bottom = 20.dp),
                 )
             }
         }
@@ -170,20 +170,12 @@ private fun AddStockHeader(onBackClick: () -> Unit) {
             .padding(horizontal = 20.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            modifier = Modifier
-                .size(42.dp)
-                .clip(CircleShape)
-                .background(Color(0xFFF4F6F8))
-                .clickable(onClick = onBackClick),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = "‹",
-                color = Color(0xFF171B1F),
-                fontSize = 31.sp,
-                lineHeight = 31.sp,
-                fontWeight = FontWeight.Normal,
+        androidx.compose.material3.IconButton(onClick = onBackClick, modifier = Modifier.size(42.dp)) {
+            androidx.compose.material3.Icon(
+                painter = painterResource(Res.drawable.iconsax_arrow_left),
+                contentDescription = "Back",
+                tint = Color(0xFF171B1F),
+                modifier = Modifier.size(23.dp),
             )
         }
 
@@ -226,7 +218,12 @@ private fun StockSearchField(
                     .padding(horizontal = 18.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                SearchGlyph()
+                androidx.compose.material3.Icon(
+                    painter = painterResource(Res.drawable.iconsax_search),
+                    contentDescription = null,
+                    tint = Color(0xFF65707B),
+                    modifier = Modifier.size(19.dp),
+                )
                 Spacer(Modifier.width(12.dp))
                 Box(modifier = Modifier.weight(1f)) {
                     if (query.isBlank()) {
@@ -245,25 +242,6 @@ private fun StockSearchField(
 }
 
 @Composable
-private fun SearchGlyph() {
-    Canvas(modifier = Modifier.size(19.dp)) {
-        drawCircle(
-            color = Color(0xFF65707B),
-            radius = size.minDimension * 0.31f,
-            center = Offset(size.width * 0.43f, size.height * 0.42f),
-            style = Stroke(width = 2.dp.toPx()),
-        )
-        drawLine(
-            color = Color(0xFF65707B),
-            start = Offset(size.width * 0.66f, size.height * 0.66f),
-            end = Offset(size.width * 0.88f, size.height * 0.88f),
-            strokeWidth = 2.dp.toPx(),
-            cap = StrokeCap.Round,
-        )
-    }
-}
-
-@Composable
 private fun AddStockProductRow(
     product: AddStockProductUi,
     quantity: String,
@@ -273,15 +251,27 @@ private fun AddStockProductRow(
 ) {
     val poppins = oseboFontFamily()
     val hasQuantity = (quantity.toDoubleOrNull() ?: 0.0) > 0.0
+    val shape = RoundedCornerShape(26.dp)
+    val gradient = if (hasQuantity) {
+        listOf(Color(0xFFD6E8FF), Color(0xFFF1F6FF))
+    } else {
+        listOf(Color(0xFFF7F9FA), Color(0xFFFFFFFF))
+    }
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(if (hasQuantity) Color(0xFFF0F7FF) else Color(0xFFF8F9FA))
+            .shadow(
+                elevation = if (hasQuantity) 10.dp else 6.dp,
+                shape = shape,
+                ambientColor = gradient.first().copy(alpha = 0.24f),
+                spotColor = gradient.first().copy(alpha = 0.18f),
+            )
+            .clip(shape)
+            .background(Brush.linearGradient(gradient, Offset.Zero, Offset.Infinite))
             .border(
-                width = 1.dp,
-                color = if (hasQuantity) Color(0xFFCBE4FA) else Color.Transparent,
-                shape = RoundedCornerShape(20.dp),
+                width = if (hasQuantity) 1.5.dp else 1.dp,
+                color = if (hasQuantity) Color(0xFF7EB9EC) else Color.White.copy(alpha = 0.92f),
+                shape = shape,
             )
             .padding(16.dp),
     ) {
@@ -445,14 +435,20 @@ private fun AddStockActionBar(
         modifier = modifier
             .fillMaxWidth()
             .shadow(
-                elevation = 12.dp,
-                shape = RoundedCornerShape(26.dp),
+                elevation = 14.dp,
+                shape = RoundedCornerShape(30.dp),
                 ambientColor = Color(0xFFD6E8FF),
                 spotColor = Color(0xFFBFDDFC),
             )
-            .clip(RoundedCornerShape(26.dp))
-            .background(Color.White)
-            .border(1.dp, Color(0xFFE8EEF4), RoundedCornerShape(26.dp))
+            .clip(RoundedCornerShape(30.dp))
+            .background(
+                Brush.linearGradient(
+                    listOf(Color(0xFFD6E8FF), Color(0xFFF1F6FF)),
+                    Offset.Zero,
+                    Offset.Infinite,
+                ),
+            )
+            .border(1.dp, Color.White.copy(alpha = 0.92f), RoundedCornerShape(30.dp))
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -479,9 +475,9 @@ private fun AddStockActionBar(
         Button(
             onClick = onClick,
             enabled = !isProcessing,
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(50),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF1389CB),
+                containerColor = Color(0xFF171B1F),
                 contentColor = Color.White,
             ),
             contentPadding = PaddingValues(horizontal = 20.dp, vertical = 13.dp),
