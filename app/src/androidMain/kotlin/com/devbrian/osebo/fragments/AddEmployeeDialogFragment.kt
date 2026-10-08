@@ -1,44 +1,50 @@
 package com.devbrian.osebo.fragments
 
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
-import android.text.InputType
+import android.util.Patterns
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ArrayAdapter
+import android.view.WindowManager
 import android.widget.Toast
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.DialogFragment
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
-import com.devbrian.osebo.R
-import com.devbrian.osebo.data.PreferenceManager
 import com.devbrian.osebo.data.ApiService
+import com.devbrian.osebo.data.PreferenceManager
 import com.devbrian.osebo.data.remote.dto.request.EmployeeData
 import com.devbrian.osebo.data.remote.dto.request.EmployeeRequest
-import com.devbrian.osebo.databinding.FragmentAddEmployeeDialogBinding
 import com.devbrian.osebo.models.CreateEmployeeResponse
 import com.devbrian.osebo.models.PermissionType
 import com.devbrian.osebo.models.Role
-import com.devbrian.osebo.utils.PermissionManager
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import retrofit2.HttpException
-import retrofit2.Response
+import com.devbrian.osebo.ui.screens.EmployeeFormScreen
+import com.devbrian.osebo.ui.screens.EmployeeFormUiState
+import com.devbrian.osebo.ui.theme.OseboTheme
 import java.io.IOException
 import java.util.UUID
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.android.ext.android.inject
+import retrofit2.HttpException
+import retrofit2.Response
 
 class AddEmployeeDialogFragment : DialogFragment() {
-
-    private var _binding: FragmentAddEmployeeDialogBinding? = null
-    private val binding get() = _binding!!
-
     private val preferenceManager: PreferenceManager by inject()
-
     private val apiService: ApiService by inject()
 
-    private lateinit var permissionManager: PermissionManager
-    private var availableRoles: List<Role> = listOf()
+    private val titles = listOf("Mr", "Mrs", "Ms", "Dr", "Prof", "Rev")
+    private val countryCodes = listOf("UG (+256)", "KE (+254)", "TZ (+255)", "RW (+250)", "SS (+211)")
+    private var availableRoles: List<Role> = emptyList()
+    private var formState by mutableStateOf(EmployeeFormUiState())
 
     interface OnEmployeeAddedListener {
         fun onEmployeeAdded(employeeData: EmployeeData)
@@ -50,227 +56,197 @@ class AddEmployeeDialogFragment : DialogFragment() {
         this.listener = listener
     }
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        _binding = FragmentAddEmployeeDialogBinding.inflate(inflater, container, false)
-        return binding.root
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        permissionManager = PermissionManager(requireContext())
-        setupSpinners()
-        setupClickListeners()
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
         loadDefaultRoles()
     }
 
-    private fun setupSpinners() {
-        val titles = arrayOf("Mr", "Mrs", "Ms", "Dr", "Prof", "Rev")
-        val titleAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, titles)
-        titleAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        binding.spinnerTitle.adapter = titleAdapter
-
-        val countryCodes = arrayOf("UG (+256)", "KE (+254)", "TZ (+255)", "RW (+250)", "SS (+211)")
-        val countryAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, countryCodes)
-        countryAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        binding.spinnerCountryCode.adapter = countryAdapter
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
+    ): View = ComposeView(requireContext()).apply {
+        setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+        setContent {
+            OseboTheme {
+                EmployeeFormScreen(
+                    state = formState,
+                    titles = titles,
+                    roles = availableRoles.map { it.name },
+                    countryCodes = countryCodes,
+                    onStateChange = { formState = it },
+                    onContinue = ::validateRequiredDetails,
+                    onSubmit = ::validateAndSubmit,
+                    onDismiss = ::dismiss,
+                )
+            }
+        }
     }
 
     private fun loadDefaultRoles() {
         val shopId = preferenceManager.getCurrentShopId()
-        val isMultiShopOwner = preferenceManager.isMultiShopOwner()
-
-        availableRoles = if (isMultiShopOwner) {
+        availableRoles = if (preferenceManager.isMultiShopOwner()) {
             listOf(
-                Role(id = "admin", name = "Admin", description = "Shop administrator",
-                    permissions = listOf(PermissionType.VIEW_INVENTORY, PermissionType.MANAGE_INVENTORY,
-                        PermissionType.VIEW_SALES, PermissionType.PROCESS_SALES,
-                        PermissionType.VIEW_EMPLOYEES, PermissionType.MANAGE_EMPLOYEES,
-                        PermissionType.VIEW_CUSTOMERS, PermissionType.VIEW_REPORTS),
-                    shopId = shopId),
-                Role(id = "manager", name = "Manager", description = "Manages daily operations",
-                    permissions = listOf(PermissionType.VIEW_INVENTORY, PermissionType.MANAGE_INVENTORY,
-                        PermissionType.VIEW_SALES, PermissionType.PROCESS_SALES,
-                        PermissionType.VIEW_EMPLOYEES, PermissionType.VIEW_CUSTOMERS,
-                        PermissionType.VIEW_REPORTS),
-                    shopId = shopId),
-                Role(id = "staff", name = "Staff", description = "General staff member",
-                    permissions = listOf(PermissionType.VIEW_INVENTORY, PermissionType.VIEW_SALES,
-                        PermissionType.PROCESS_SALES, PermissionType.VIEW_CUSTOMERS),
-                    shopId = shopId)
+                Role(
+                    id = "admin",
+                    name = "Admin",
+                    description = "Shop administrator",
+                    permissions = listOf(
+                        PermissionType.VIEW_INVENTORY,
+                        PermissionType.MANAGE_INVENTORY,
+                        PermissionType.VIEW_SALES,
+                        PermissionType.PROCESS_SALES,
+                        PermissionType.VIEW_EMPLOYEES,
+                        PermissionType.MANAGE_EMPLOYEES,
+                        PermissionType.VIEW_CUSTOMERS,
+                        PermissionType.VIEW_REPORTS,
+                    ),
+                    shopId = shopId,
+                ),
+                managerRole(shopId),
+                staffRole(shopId),
             )
         } else {
-            listOf(
-                Role(id = "manager", name = "Manager", description = "Manages daily operations",
-                    permissions = listOf(PermissionType.VIEW_INVENTORY, PermissionType.MANAGE_INVENTORY,
-                        PermissionType.VIEW_SALES, PermissionType.PROCESS_SALES,
-                        PermissionType.VIEW_EMPLOYEES, PermissionType.VIEW_CUSTOMERS,
-                        PermissionType.VIEW_REPORTS),
-                    shopId = shopId),
-                Role(id = "staff", name = "Staff", description = "General staff member",
-                    permissions = listOf(PermissionType.VIEW_INVENTORY, PermissionType.VIEW_SALES,
-                        PermissionType.PROCESS_SALES, PermissionType.VIEW_CUSTOMERS),
-                    shopId = shopId)
-            )
+            listOf(managerRole(shopId), staffRole(shopId))
         }
-
-        val roleNames = availableRoles.map { it.name }
-        val roleAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, roleNames)
-        roleAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        binding.spinnerRole.adapter = roleAdapter
+        formState = formState.copy(role = availableRoles.firstOrNull()?.name.orEmpty())
     }
 
-    private fun setupClickListeners() {
-        binding.btnSubmit.setOnClickListener { validateAndSubmit() }
-        binding.btnClose.setOnClickListener { dismiss() }
-        binding.ivTogglePassword.setOnClickListener { togglePasswordVisibility() }
-        binding.ivToggleConfirmPassword.setOnClickListener { toggleConfirmPasswordVisibility() }
-    }
+    private fun managerRole(shopId: String) = Role(
+        id = "manager",
+        name = "Manager",
+        description = "Manages daily operations",
+        permissions = listOf(
+            PermissionType.VIEW_INVENTORY,
+            PermissionType.MANAGE_INVENTORY,
+            PermissionType.VIEW_SALES,
+            PermissionType.PROCESS_SALES,
+            PermissionType.VIEW_EMPLOYEES,
+            PermissionType.VIEW_CUSTOMERS,
+            PermissionType.VIEW_REPORTS,
+        ),
+        shopId = shopId,
+    )
 
-    private fun togglePasswordVisibility() {
-        val currentInputType = binding.etPassword.inputType
-        if (currentInputType == (InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD)) {
-            binding.etPassword.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
-            binding.ivTogglePassword.setImageResource(R.drawable.ic_visibility_off)
-        } else {
-            binding.etPassword.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
-            binding.ivTogglePassword.setImageResource(R.drawable.ic_visibility)
-        }
-        binding.etPassword.setSelection(binding.etPassword.text?.length ?: 0)
-    }
+    private fun staffRole(shopId: String) = Role(
+        id = "staff",
+        name = "Staff",
+        description = "General staff member",
+        permissions = listOf(
+            PermissionType.VIEW_INVENTORY,
+            PermissionType.VIEW_SALES,
+            PermissionType.PROCESS_SALES,
+            PermissionType.VIEW_CUSTOMERS,
+        ),
+        shopId = shopId,
+    )
 
-    private fun toggleConfirmPasswordVisibility() {
-        val currentInputType = binding.etConfirmPassword.inputType
-        if (currentInputType == (InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD)) {
-            binding.etConfirmPassword.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
-            binding.ivToggleConfirmPassword.setImageResource(R.drawable.ic_visibility_off)
-        } else {
-            binding.etConfirmPassword.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
-            binding.ivToggleConfirmPassword.setImageResource(R.drawable.ic_visibility)
+    private fun validateRequiredDetails() {
+        val state = formState
+        val firstNameError = "First name is required".takeIf { state.firstName.trim().isEmpty() }
+        val lastNameError = "Last name is required".takeIf { state.lastName.trim().isEmpty() }
+        val roleError = "Choose a role".takeIf { availableRoles.none { it.name == state.role } }
+        val phoneError = when {
+            state.phone.isBlank() -> "Phone number is required"
+            state.phone.length < 9 -> "Use at least 9 digits"
+            else -> null
         }
-        binding.etConfirmPassword.setSelection(binding.etConfirmPassword.text?.length ?: 0)
+        val passwordError = when {
+            state.password.isEmpty() -> "Password is required"
+            state.password.length < 6 -> "Use at least 6 characters"
+            else -> null
+        }
+        val confirmPasswordError = when {
+            state.confirmPassword.isEmpty() -> "Confirm the password"
+            state.confirmPassword != state.password -> "Passwords do not match"
+            else -> null
+        }
+        val hasError = listOf(firstNameError, lastNameError, roleError, phoneError, passwordError, confirmPasswordError).any { it != null }
+        formState = state.copy(
+            firstNameError = firstNameError,
+            lastNameError = lastNameError,
+            roleError = roleError,
+            phoneError = phoneError,
+            passwordError = passwordError,
+            confirmPasswordError = confirmPasswordError,
+            submitError = if (hasError) "Check the highlighted account details." else null,
+            currentStep = if (hasError) 0 else 1,
+        )
     }
 
     private fun validateAndSubmit() {
-        clearErrors()
+        validateRequiredDetails()
+        if (formState.currentStep == 0) return
 
-        val title = binding.spinnerTitle.selectedItem.toString()
-        val firstName = binding.etFirstName.text.toString().trim()
-        val lastName = binding.etLastName.text.toString().trim()
-        val selectedRoleName = binding.spinnerRole.selectedItem?.toString() ?: ""
-        val countryCode = binding.spinnerCountryCode.selectedItem.toString()
-        val phone = binding.etPhone.text.toString().trim()
-        val password = binding.etPassword.text.toString()
-        val confirmPassword = binding.etConfirmPassword.text.toString()
-        val email = binding.etEmail.text.toString().trim()
-        val residence = binding.etResidence.text.toString().trim()
-        val kinName = binding.etKinName.text.toString().trim()
-        val kinPhone = binding.etKinPhone.text.toString().trim()
-
-        var isValid = true
-
-        if (firstName.isEmpty()) { binding.tilFirstName.error = "First name is required"; isValid = false }
-        if (lastName.isEmpty()) { binding.tilLastName.error = "Last name is required"; isValid = false }
-        if (phone.isEmpty()) { binding.tilPhone.error = "Phone number is required"; isValid = false }
-        else if (phone.length < 9) { binding.tilPhone.error = "Phone number must be at least 9 digits"; isValid = false }
-        if (password.isEmpty()) { binding.tilPassword.error = "Password is required"; isValid = false }
-        else if (password.length < 6) { binding.tilPassword.error = "Password must be at least 6 characters"; isValid = false }
-        if (confirmPassword.isEmpty()) { binding.tilConfirmPassword.error = "Please confirm password"; isValid = false }
-        else if (password != confirmPassword) { binding.tilConfirmPassword.error = "Passwords do not match"; isValid = false }
-        if (email.isNotEmpty() && !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            binding.tilEmail.error = "Invalid email format"; isValid = false
+        val emailError = if (formState.email.isNotBlank() && !Patterns.EMAIL_ADDRESS.matcher(formState.email.trim()).matches()) {
+            "Enter a valid email address"
+        } else {
+            null
         }
-        if (!isValid) return
-
-        val selectedRole = availableRoles.find { it.name == selectedRoleName }
-        if (selectedRole == null) {
-            Toast.makeText(requireContext(), "Please select a valid role", Toast.LENGTH_SHORT).show()
+        if (emailError != null) {
+            formState = formState.copy(emailError = emailError, submitError = "Check the highlighted contact detail.")
             return
         }
 
-        showLoading(true)
+        val selectedRole = availableRoles.firstOrNull { it.name == formState.role }
+        if (selectedRole == null) {
+            formState = formState.copy(currentStep = 0, roleError = "Choose a valid role")
+            return
+        }
 
-        // IMPORTANT: Get the current shop ID from PreferenceManager
         val shopUuid = preferenceManager.getCurrentShopUuid()
-        val shopId = preferenceManager.getCurrentShopId()
-
-        println("🏪 AddEmployee - Shop UUID: $shopUuid")
-        println("🏪 AddEmployee - Shop ID: $shopId")
-
         if (shopUuid.isEmpty() || !isValidUUID(shopUuid)) {
-            showLoading(false)
             showError("No shop selected. Please select a shop first.")
             return
         }
 
-        val employeeRequest = EmployeeRequest(
-            firstName = firstName,
-            lastName = lastName,
-            password = password,
-            phone = extractPhoneNumber(countryCode) + phone,
-            title = title,
-            role = selectedRole.id,
-            shopId = shopUuid,
-            kinName = kinName.ifEmpty { null },
-            kinPhone = kinPhone.ifEmpty { null },
-            residence = residence.ifEmpty { null },
-            email = email.ifEmpty { null }
+        submitEmployee(
+            EmployeeRequest(
+                firstName = formState.firstName.trim(),
+                lastName = formState.lastName.trim(),
+                password = formState.password,
+                phone = extractPhoneNumber(formState.countryCode) + formState.phone,
+                title = formState.title,
+                role = selectedRole.id,
+                shopId = shopUuid,
+                kinName = formState.kinName.trim().ifEmpty { null },
+                kinPhone = formState.kinPhone.trim().ifEmpty { null },
+                residence = formState.residence.trim().ifEmpty { null },
+                email = formState.email.trim().ifEmpty { null },
+            ),
         )
-
-        println("📦 AddEmployee - Request: $employeeRequest")
-        println("🏪 AddEmployee - Employee will be assigned to shop: $shopUuid")
-
-        submitEmployee(employeeRequest)
     }
 
-    private fun extractPhoneNumber(countryCode: String): String {
-        return when {
-            countryCode.contains("256") -> "+256"
-            countryCode.contains("254") -> "+254"
-            countryCode.contains("255") -> "+255"
-            countryCode.contains("250") -> "+250"
-            countryCode.contains("211") -> "+211"
-            else -> "+256"
-        }
+    private fun extractPhoneNumber(countryCode: String): String = when {
+        countryCode.contains("254") -> "+254"
+        countryCode.contains("255") -> "+255"
+        countryCode.contains("250") -> "+250"
+        countryCode.contains("211") -> "+211"
+        else -> "+256"
     }
 
     private fun submitEmployee(request: EmployeeRequest) {
         lifecycleScope.launch {
+            showLoading(true)
             try {
-                showLoading(true)
-
                 val token = preferenceManager.getAuthToken()
                 val shopUuid = preferenceManager.getCurrentShopUuid()
-
-                println("🔐 AddEmployee - Token exists: ${token.isNotEmpty()}, length: ${token.length}")
-                println("🏪 AddEmployee - Shop UUID: $shopUuid")
-                println("📦 AddEmployee - Request: $request")
-
                 if (shopUuid.isEmpty() || !isValidUUID(shopUuid)) {
-                    showLoading(false)
                     showError("Invalid shop configuration. Please log in again.")
                     return@launch
                 }
-
-                // Call API with shop ID in the header
                 val response = withContext(Dispatchers.IO) {
                     apiService.createEmployee("Bearer $token", request)
                 }
-
                 handleResponse(response)
-
-            } catch (e: IOException) {
-                showLoading(false)
+            } catch (_: IOException) {
                 showError("Network error. Please check your connection")
-            } catch (e: HttpException) {
+            } catch (error: HttpException) {
+                showError("Server error: ${error.code()}")
+            } catch (error: Exception) {
+                showError("Unexpected error: ${error.message}")
+            } finally {
                 showLoading(false)
-                showError("Server error: ${e.code()}")
-            } catch (e: Exception) {
-                showLoading(false)
-                showError("Unexpected error: ${e.message}")
             }
         }
     }
@@ -279,42 +255,22 @@ class AddEmployeeDialogFragment : DialogFragment() {
         withContext(Dispatchers.Main) {
             if (response.isSuccessful) {
                 val body = response.body()
-                println("✅ AddEmployee - Response body: $body")
-                println("✅ AddEmployee - Success: ${body?.success}, Data: ${body?.data}")
-
-                if (body != null && body.success) {
-                    val employeeData = body.data
-                    if (employeeData != null) {
-                        showLoading(false)
-
-                        // Verify the employee was assigned to the shop
-                        println("✅ Employee created with ID: ${employeeData.id}")
-                        println("   Name: ${employeeData.firstName} ${employeeData.lastName}")
-                        println("   Role: ${employeeData.role}")
-                        println("   Shop ID: ${employeeData.shopId ?: "Not assigned"}")
-
-                        val message = if (employeeData.shopId.isNullOrEmpty()) {
-                            "${employeeData.firstName} ${employeeData.lastName} added but not assigned to any shop! Please assign manually."
-                        } else {
-                            "${employeeData.firstName} ${employeeData.lastName} added successfully!"
-                        }
-
-                        Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
-
-                        listener?.onEmployeeAdded(employeeData)
-                        dismiss()
+                val employee = body?.data
+                if (body?.success == true && employee != null) {
+                    val message = if (employee.shopId.isNullOrEmpty()) {
+                        "${employee.firstName} ${employee.lastName} was added but still needs a shop assignment."
                     } else {
-                        showLoading(false)
-                        showError("No employee data returned from server")
+                        "${employee.firstName} ${employee.lastName} added successfully"
                     }
+                    Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
+                    listener?.onEmployeeAdded(employee)
+                    dismiss()
                 } else {
-                    showLoading(false)
                     showError(body?.message ?: "Failed to add employee")
                 }
             } else {
-                showLoading(false)
                 val errorBody = response.errorBody()?.string()
-                val errorMsg = when (response.code()) {
+                val errorMessage = when (response.code()) {
                     400 -> extractValidationError(errorBody) ?: "Invalid employee data"
                     401 -> "Session expired. Please login again"
                     403 -> "You don't have permission to add employees"
@@ -322,8 +278,7 @@ class AddEmployeeDialogFragment : DialogFragment() {
                     500 -> "Server error. Please try again later"
                     else -> "Failed to add employee: ${response.message()}"
                 }
-                println("❌ AddEmployee - HTTP ${response.code()}: $errorBody")
-                showError(errorMsg)
+                showError(errorMessage)
             }
         }
     }
@@ -338,61 +293,43 @@ class AddEmployeeDialogFragment : DialogFragment() {
                 val firstError = dataArray.getJSONObject(0)
                 val property = firstError.optString("property", "")
                 val errors = firstError.optJSONArray("errors")
-                val errorMsg = errors?.getString(0) ?: "Validation failed"
-                if (property.isNotEmpty()) "$property: $errorMsg" else errorMsg
+                val validationMessage = errors?.getString(0) ?: "Validation failed"
+                if (property.isNotEmpty()) "$property: $validationMessage" else validationMessage
             } else {
                 message.ifEmpty { "Validation failed" }
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             errorBody
         }
     }
 
-    private fun isValidUUID(uuid: String): Boolean {
-        return try {
-            UUID.fromString(uuid)
-            true
-        } catch (e: IllegalArgumentException) {
-            false
-        }
-    }
-
-    private fun clearErrors() {
-        binding.tilFirstName.error = null
-        binding.tilLastName.error = null
-        binding.tilPhone.error = null
-        binding.tilPassword.error = null
-        binding.tilConfirmPassword.error = null
-        binding.tilEmail.error = null
-        binding.tilResidence.error = null
-        binding.tilKinName.error = null
-        binding.tilKinPhone.error = null
+    private fun isValidUUID(uuid: String): Boolean = try {
+        UUID.fromString(uuid)
+        true
+    } catch (_: IllegalArgumentException) {
+        false
     }
 
     private fun showLoading(show: Boolean) {
-        binding.progressBar.visibility = if (show) View.VISIBLE else View.GONE
-        binding.btnSubmit.isEnabled = !show
-        binding.btnClose.isEnabled = !show
-        binding.btnSubmit.text = if (show) "Adding..." else "Add Employee"
+        formState = formState.copy(isLoading = show)
     }
 
     private fun showError(message: String) {
         if (isAdded) {
+            formState = formState.copy(submitError = message)
             Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
         }
     }
 
     override fun onStart() {
         super.onStart()
-        dialog?.window?.setLayout(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        )
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
+        dialog?.window?.apply {
+            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+            setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+            WindowCompat.setDecorFitsSystemWindows(this, false)
+            WindowCompat.getInsetsController(this, decorView).hide(WindowInsetsCompat.Type.systemBars())
+        }
     }
 
     companion object {
