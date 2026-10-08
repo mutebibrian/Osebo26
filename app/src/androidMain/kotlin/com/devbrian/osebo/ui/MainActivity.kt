@@ -214,7 +214,8 @@ class MainActivity : AppCompatActivity() {
             bottomNavigationView.visibility =
                 if (destinationId == R.id.newSaleFragment ||
                     destinationId == R.id.addProductFragment ||
-                    destinationId == R.id.restockFragment
+                    destinationId == R.id.restockFragment ||
+                    destinationId == R.id.paymentFragment
                 ) View.GONE else View.VISIBLE
         }
     }

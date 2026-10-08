@@ -615,6 +615,7 @@ class SalesViewModel(
         paymentMethod: String,
         reference: String?,
         phoneNumber: String?,
+        userNotes: String? = null,
         totalAmount: Float,
         saleType: String = "sale"
     ) {
@@ -630,7 +631,11 @@ class SalesViewModel(
                 }
 
                 val notes = buildString {
-                    reference?.let { append("Ref: $it") }
+                    userNotes?.let { append(it) }
+                    reference?.let {
+                        if (isNotEmpty()) append(", ")
+                        append("Ref: $it")
+                    }
                     if (phoneNumber != null) {
                         if (isNotEmpty()) append(", ")
                         append("Phone: $phoneNumber")

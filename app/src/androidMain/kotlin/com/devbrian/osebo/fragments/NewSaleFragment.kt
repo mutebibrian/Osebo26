@@ -256,6 +256,7 @@ class NewSaleFragment : Fragment() {
             else -> runCatching {
                 NewSaleFragmentDirections.actionNewSaleFragmentToPaymentFragment(
                     customerId = customer.id,
+                    customerName = customer.name,
                     cartItems = cartItems.toTypedArray(),
                     totalAmount = totalAmount,
                 )

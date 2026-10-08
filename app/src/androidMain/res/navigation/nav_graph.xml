@@ -271,14 +271,18 @@
     <fragment
         android:id="@+id/paymentFragment"
         android:name="com.devbrian.osebo.fragments.PaymentFragment"
-        android:label="Payment"
-        tools:layout="@layout/fragment_payment">
+        android:label="Payment">
 
         <argument
             android:name="customerId"
             app:argType="string"
             android:defaultValue="@null"
             app:nullable="true" />
+
+        <argument
+            android:name="customerName"
+            app:argType="string"
+            android:defaultValue="Walk-in Customer" />
 
         <argument
             android:name="cartItems"
