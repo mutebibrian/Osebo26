@@ -370,11 +370,11 @@ fun App() {
                             )
                             AppTab.Inventory -> InventoryScreen(
                                 state = InventoryUiState(),
-                                onProductsClick = {},
+                                onQueryChange = {},
+                                onAddProductClick = {},
                                 onStockTransfersClick = {},
                                 onAddStockClick = { destination = Destination.AddStock },
                                 onRemoveStockClick = {},
-                                onBackToInventory = {},
                                 onProductClick = {},
                             )
                             AppTab.Finance -> FinanceScreen(
