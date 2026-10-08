@@ -43,9 +43,7 @@ class InventoryFragment : Fragment(), ShopSelectionAware {
                             showUpcomingMessage("Stock transfers")
                         },
                         onAddStockClick = ::navigateToRestock,
-                        onRemoveStockClick = {
-                            showUpcomingMessage("Remove stock")
-                        },
+                        onRemoveStockClick = ::navigateToRemoveStock,
                         onProductClick = ::navigateToProductDetails,
                     )
                 }
@@ -102,6 +100,11 @@ class InventoryFragment : Fragment(), ShopSelectionAware {
 
     private fun navigateToRestock() {
         val action = InventoryFragmentDirections.actionInventoryToRestock()
+        findNavController().navigate(action)
+    }
+
+    private fun navigateToRemoveStock() {
+        val action = InventoryFragmentDirections.actionInventoryToRemoveStock()
         findNavController().navigate(action)
     }
 

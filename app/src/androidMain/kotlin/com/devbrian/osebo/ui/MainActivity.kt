@@ -79,6 +79,7 @@ class MainActivity : AppCompatActivity() {
         R.id.suppliersFragment,
         R.id.paymentFragment,
         R.id.receiptFragment,
+        R.id.removeStockFragment,
     )
 
     private val managementRequiredDestinations = setOf(
@@ -95,6 +96,7 @@ class MainActivity : AppCompatActivity() {
         R.id.addProductFragment,
         R.id.productDetailsFragment,
         R.id.restockFragment,
+        R.id.removeStockFragment,
     )
 
     private val salesBottomNavigationDestinations = setOf(
@@ -110,6 +112,7 @@ class MainActivity : AppCompatActivity() {
         R.id.inventoryFragment,
         R.id.productDetailsFragment,
         R.id.restockFragment,
+        R.id.removeStockFragment,
         R.id.salesFragment,
         R.id.financeFragment,
         R.id.financialStatementFragment,
@@ -215,6 +218,7 @@ class MainActivity : AppCompatActivity() {
                 if (destinationId == R.id.newSaleFragment ||
                     destinationId == R.id.addProductFragment ||
                     destinationId == R.id.restockFragment ||
+                    destinationId == R.id.removeStockFragment ||
                     destinationId == R.id.paymentFragment
                 ) View.GONE else View.VISIBLE
         }

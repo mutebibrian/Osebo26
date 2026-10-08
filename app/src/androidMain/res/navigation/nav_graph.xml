@@ -477,6 +477,10 @@
             app:destination="@id/restockFragment" />
 
         <action
+            android:id="@+id/action_inventory_to_removeStock"
+            app:destination="@id/removeStockFragment" />
+
+        <action
             android:id="@+id/action_inventory_to_productDetails"
             app:destination="@id/productDetailsFragment">
             <argument
@@ -497,6 +501,11 @@
         android:id="@+id/restockFragment"
         android:name="com.devbrian.osebo.fragments.RestockFragment"
         android:label="Add Stock" />
+
+    <fragment
+        android:id="@+id/removeStockFragment"
+        android:name="com.devbrian.osebo.fragments.RemoveStockFragment"
+        android:label="Remove Stock" />
 
     <!-- Add Expense Fragment -->
     <fragment

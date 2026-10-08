@@ -52,11 +52,17 @@ data class AddStockProductUi(
     val id: String,
     val name: String,
     val sku: String,
+    val stockAmount: Double,
     val currentStock: String,
     val unit: String,
     val allowsDecimalQuantity: Boolean,
     val isLowStock: Boolean,
 )
+
+enum class StockAdjustmentMode {
+    Add,
+    Remove,
+}
 
 data class AddStockUiState(
     val products: List<AddStockProductUi> = emptyList(),
@@ -69,6 +75,7 @@ data class AddStockUiState(
 @Composable
 fun AddStockScreen(
     state: AddStockUiState,
+    mode: StockAdjustmentMode = StockAdjustmentMode.Add,
     onBackClick: () -> Unit,
     onQueryChange: (String) -> Unit,
     onQuantityChange: (String, String) -> Unit,
@@ -96,7 +103,7 @@ fun AddStockScreen(
                     .fillMaxSize()
                     .padding(top = 48.dp),
             ) {
-                AddStockHeader(onBackClick)
+                AddStockHeader(mode = mode, onBackClick = onBackClick)
 
                 Spacer(Modifier.height(22.dp))
 
@@ -136,6 +143,7 @@ fun AddStockScreen(
                             items(filteredProducts, key = { it.id }) { product ->
                                 AddStockProductRow(
                                     product = product,
+                                    mode = mode,
                                     quantity = state.quantities[product.id].orEmpty(),
                                     onQuantityChange = { onQuantityChange(product.id, it) },
                                     onDecrease = { onDecreaseQuantity(product.id) },
@@ -149,6 +157,7 @@ fun AddStockScreen(
 
             if (selectedCount > 0) {
                 AddStockActionBar(
+                    mode = mode,
                     selectedCount = selectedCount,
                     isProcessing = state.isProcessing,
                     onClick = onAddStockClick,
@@ -162,7 +171,7 @@ fun AddStockScreen(
 }
 
 @Composable
-private fun AddStockHeader(onBackClick: () -> Unit) {
+private fun AddStockHeader(mode: StockAdjustmentMode, onBackClick: () -> Unit) {
     val poppins = oseboFontFamily()
     Row(
         modifier = Modifier
@@ -180,7 +189,7 @@ private fun AddStockHeader(onBackClick: () -> Unit) {
         }
 
         Text(
-            text = "Add Stock",
+            text = if (mode == StockAdjustmentMode.Add) "Add Stock" else "Remove Stock",
             color = Color(0xFF171B1F),
             fontFamily = poppins,
             fontSize = 24.sp,
@@ -244,16 +253,23 @@ private fun StockSearchField(
 @Composable
 private fun AddStockProductRow(
     product: AddStockProductUi,
+    mode: StockAdjustmentMode,
     quantity: String,
     onQuantityChange: (String) -> Unit,
     onDecrease: () -> Unit,
     onIncrease: () -> Unit,
 ) {
     val poppins = oseboFontFamily()
-    val hasQuantity = (quantity.toDoubleOrNull() ?: 0.0) > 0.0
+    val quantityValue = quantity.toDoubleOrNull() ?: 0.0
+    val hasQuantity = quantityValue > 0.0
+    val canIncrease = mode == StockAdjustmentMode.Add || quantityValue < product.stockAmount
     val shape = RoundedCornerShape(26.dp)
     val gradient = if (hasQuantity) {
-        listOf(Color(0xFFD6E8FF), Color(0xFFF1F6FF))
+        if (mode == StockAdjustmentMode.Add) {
+            listOf(Color(0xFFD6E8FF), Color(0xFFF1F6FF))
+        } else {
+            listOf(Color(0xFFF5E1EA), Color(0xFFFFF5F8))
+        }
     } else {
         listOf(Color(0xFFF7F9FA), Color(0xFFFFFFFF))
     }
@@ -270,7 +286,11 @@ private fun AddStockProductRow(
             .background(Brush.linearGradient(gradient, Offset.Zero, Offset.Infinite))
             .border(
                 width = if (hasQuantity) 1.5.dp else 1.dp,
-                color = if (hasQuantity) Color(0xFF7EB9EC) else Color.White.copy(alpha = 0.92f),
+                color = when {
+                    !hasQuantity -> Color.White.copy(alpha = 0.92f)
+                    mode == StockAdjustmentMode.Add -> Color(0xFF7EB9EC)
+                    else -> Color(0xFFE5A5BA)
+                },
                 shape = shape,
             )
             .padding(16.dp),
@@ -330,7 +350,7 @@ private fun AddStockProductRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "Quantity to add",
+                text = if (mode == StockAdjustmentMode.Add) "Quantity to add" else "Quantity to remove",
                 color = Color(0xFF65707B),
                 fontFamily = poppins,
                 fontSize = 12.sp,
@@ -382,7 +402,13 @@ private fun AddStockProductRow(
                 },
             )
 
-            QuantityButton(label = "+", enabled = true, isPrimary = true, onClick = onIncrease)
+            QuantityButton(
+                label = "+",
+                enabled = canIncrease,
+                isPrimary = true,
+                primaryColor = if (mode == StockAdjustmentMode.Add) Color(0xFF1389CB) else Color(0xFFE34F68),
+                onClick = onIncrease,
+            )
         }
     }
 }
@@ -392,6 +418,7 @@ private fun QuantityButton(
     label: String,
     enabled: Boolean,
     isPrimary: Boolean = false,
+    primaryColor: Color = Color(0xFF1389CB),
     onClick: () -> Unit,
 ) {
     Box(
@@ -401,7 +428,7 @@ private fun QuantityButton(
             .background(
                 when {
                     !enabled -> Color(0xFFE9ECEF)
-                    isPrimary -> Color(0xFF1389CB)
+                    isPrimary -> primaryColor
                     else -> Color.White
                 },
             )
@@ -425,6 +452,7 @@ private fun QuantityButton(
 
 @Composable
 private fun AddStockActionBar(
+    mode: StockAdjustmentMode,
     selectedCount: Int,
     isProcessing: Boolean,
     onClick: () -> Unit,
@@ -437,13 +465,17 @@ private fun AddStockActionBar(
             .shadow(
                 elevation = 14.dp,
                 shape = RoundedCornerShape(30.dp),
-                ambientColor = Color(0xFFD6E8FF),
-                spotColor = Color(0xFFBFDDFC),
+                ambientColor = if (mode == StockAdjustmentMode.Add) Color(0xFFD6E8FF) else Color(0xFFF5E1EA),
+                spotColor = if (mode == StockAdjustmentMode.Add) Color(0xFFBFDDFC) else Color(0xFFEAC1CF),
             )
             .clip(RoundedCornerShape(30.dp))
             .background(
                 Brush.linearGradient(
-                    listOf(Color(0xFFD6E8FF), Color(0xFFF1F6FF)),
+                    if (mode == StockAdjustmentMode.Add) {
+                        listOf(Color(0xFFD6E8FF), Color(0xFFF1F6FF))
+                    } else {
+                        listOf(Color(0xFFF5E1EA), Color(0xFFFFF5F8))
+                    },
                     Offset.Zero,
                     Offset.Infinite,
                 ),
@@ -465,7 +497,7 @@ private fun AddStockActionBar(
                 fontWeight = FontWeight.SemiBold,
             )
             Text(
-                text = "Ready to update",
+                text = if (mode == StockAdjustmentMode.Add) "Ready to update" else "Ready to deduct",
                 color = Color(0xFF7A838D),
                 fontFamily = poppins,
                 fontSize = 11.sp,
@@ -483,7 +515,11 @@ private fun AddStockActionBar(
             contentPadding = PaddingValues(horizontal = 20.dp, vertical = 13.dp),
         ) {
             Text(
-                text = if (isProcessing) "Updating…" else "Add stock",
+                text = when {
+                    isProcessing -> "Updating…"
+                    mode == StockAdjustmentMode.Add -> "Add stock"
+                    else -> "Remove stock"
+                },
                 fontFamily = poppins,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
