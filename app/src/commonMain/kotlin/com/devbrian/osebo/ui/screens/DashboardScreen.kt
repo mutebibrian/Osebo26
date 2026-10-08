@@ -13,6 +13,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -22,17 +23,22 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,6 +49,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -55,6 +62,7 @@ import com.devbrian.osebo.resources.iconsax_balance
 import com.devbrian.osebo.resources.iconsax_box_bold
 import com.devbrian.osebo.resources.iconsax_briefcase_bold
 import com.devbrian.osebo.resources.iconsax_category_bold
+import com.devbrian.osebo.resources.iconsax_calendar
 import com.devbrian.osebo.resources.iconsax_coffee_bold
 import com.devbrian.osebo.resources.iconsax_global_bold
 import com.devbrian.osebo.resources.iconsax_health_bold
@@ -72,6 +80,7 @@ import com.devbrian.osebo.resources.iconsax_total_sales
 import com.devbrian.osebo.ui.theme.oseboFontFamily
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
+import kotlin.math.roundToInt
 
 data class DashboardShopUi(
     val id: String,
@@ -104,6 +113,7 @@ data class DashboardUiState(
     val totalShopsLabel: String = "0 Shops",
     val totalSales: String = "UGX 0",
     val totalExpenses: String = "UGX 0",
+    val performanceLabels: List<String> = emptyList(),
     val salesTrend: List<Float> = emptyList(),
     val expensesTrend: List<Float> = emptyList(),
     val shopPerformances: List<DashboardShopPerformanceUi> = emptyList(),
@@ -292,24 +302,23 @@ fun DashboardScreen(
                     }
                 }
 
-                if (!state.isShopSelected) {
-                    Spacer(Modifier.height(30.dp))
+                Spacer(Modifier.height(30.dp))
 
-                    Text(
-                        text = "Shop performance",
-                        color = Color(0xFF171B1F),
-                        fontFamily = poppins,
-                        fontSize = 21.sp,
-                        fontWeight = FontWeight.SemiBold,
-                    )
+                Text(
+                    text = "Performance",
+                    color = Color(0xFF171B1F),
+                    fontFamily = poppins,
+                    fontSize = 21.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
 
-                    Spacer(Modifier.height(14.dp))
+                Spacer(Modifier.height(14.dp))
 
-                    ShopPerformanceChart(
-                        isLoading = state.isLoading,
-                        shimmerBrush = valueShimmer,
-                    )
-                }
+                ShopPerformanceChart(
+                    state = state,
+                    isLoading = state.isLoading,
+                    shimmerBrush = valueShimmer,
+                )
             }
         }
     }
@@ -709,126 +718,321 @@ private fun MetricSparkline(
 
 @Composable
 private fun ShopPerformanceChart(
+    state: DashboardUiState,
     isLoading: Boolean,
     shimmerBrush: Brush,
 ) {
     val poppins = oseboFontFamily()
+    val pointCount = maxOf(
+        state.performanceLabels.size,
+        state.salesTrend.size,
+        state.expensesTrend.size,
+    ).coerceAtMost(7)
+    val sales = state.salesTrend.takeLast(pointCount)
+    val expenses = state.expensesTrend.takeLast(pointCount)
+    val shortenedLabels = state.performanceLabels.takeLast(pointCount).map(::shortPerformanceLabel)
+    val labels = if (shortenedLabels.size > 1 && shortenedLabels.distinct().size == 1) {
+        shortenedLabels.mapIndexed { index, label -> "$label ${index + 1}" }
+    } else {
+        shortenedLabels
+    }
+    val hasData = sales.any { it != 0f } || expenses.any { it != 0f }
+    var selectedIndex by remember(sales, expenses, labels) {
+        mutableStateOf<Int?>(if (pointCount > 0) pointCount - 1 else null)
+    }
+    val shape = RoundedCornerShape(30.dp)
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(28.dp))
-            .background(Color.White)
+            .clip(shape)
+            .background(
+                Brush.linearGradient(
+                    listOf(Color(0xFFF0EFFD), Color(0xFFF9F8FF)),
+                    start = Offset.Zero,
+                    end = Offset.Infinite,
+                ),
+            )
+            .border(1.dp, Color.White.copy(alpha = 0.95f), shape)
             .padding(18.dp),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.Bottom,
+            verticalAlignment = Alignment.Top,
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Overall performance",
-                    color = Color(0xFF697076),
+                    text = if (state.isShopSelected) {
+                        "${state.selectedShopName.ifBlank { "Shop" }} performance"
+                    } else {
+                        "All shops performance"
+                    },
+                    color = Color(0xFF171B1F),
                     fontFamily = poppins,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Normal,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold,
                 )
-                if (isLoading) {
-                    Box(
-                        modifier = Modifier
-                            .width(48.dp)
-                            .height(36.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(shimmerBrush),
-                    )
-                } else {
-                    Text(
-                        text = "0",
-                        color = Color(0xFF171B1F),
-                        fontFamily = poppins,
-                        fontSize = 30.sp,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
+                Text(
+                    text = if (state.isShopSelected) "Sales and expenses for this shop" else "Combined sales and expenses",
+                    color = Color(0xFF7A8187),
+                    fontFamily = poppins,
+                    fontSize = 8.sp,
+                )
             }
-            Text(
-                text = "This week",
-                color = Color(0xFF7A8187),
-                fontFamily = poppins,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Medium,
-            )
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(Color.White.copy(alpha = 0.86f))
+                    .padding(horizontal = 10.dp, vertical = 7.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "Recent",
+                    color = Color(0xFF59636C),
+                    fontFamily = poppins,
+                    fontSize = 8.sp,
+                    fontWeight = FontWeight.Medium,
+                )
+                Spacer(Modifier.width(5.dp))
+                Icon(
+                    painter = painterResource(Res.drawable.iconsax_calendar),
+                    contentDescription = null,
+                    tint = Color(0xFF7A8187),
+                    modifier = Modifier.size(13.dp),
+                )
+            }
         }
 
-        Spacer(Modifier.height(18.dp))
+        Spacer(Modifier.height(15.dp))
 
-        Canvas(
+        if (isLoading) {
+            Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+                repeat(2) {
+                    Column {
+                        Box(Modifier.width(46.dp).height(8.dp).clip(CircleShape).background(shimmerBrush))
+                        Spacer(Modifier.height(5.dp))
+                        Box(Modifier.width(70.dp).height(22.dp).clip(RoundedCornerShape(7.dp)).background(shimmerBrush))
+                    }
+                }
+            }
+        } else {
+            Row(horizontalArrangement = Arrangement.spacedBy(22.dp)) {
+                PerformanceLegend(
+                    label = "SALES",
+                    value = compactPerformanceAmount(sales.sum()),
+                    color = PerformanceSalesBlue,
+                )
+                PerformanceLegend(
+                    label = "EXPENSES",
+                    value = compactPerformanceAmount(expenses.sum()),
+                    color = PerformanceExpenseRed,
+                )
+            }
+        }
+
+        Spacer(Modifier.height(14.dp))
+
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(120.dp),
+                .height(176.dp),
         ) {
-            val gridColor = Color(0xFFDDE2E5)
-            val lineColor = Color(0xFF0783CF)
-            repeat(4) { index ->
-                val y = size.height * index / 3f
-                drawLine(
-                    color = gridColor,
-                    start = Offset(0f, y),
-                    end = Offset(size.width, y),
-                    strokeWidth = 1.dp.toPx(),
+            if (isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(shimmerBrush),
                 )
-            }
+            } else {
+                val plottedSales = if (pointCount > 0) sales else List(7) { 0f }
+                val plottedExpenses = if (pointCount > 0) expenses else List(7) { 0f }
+                val plottedCount = maxOf(plottedSales.size, plottedExpenses.size).coerceAtLeast(2)
+                Canvas(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(142.dp)
+                        .pointerInput(plottedCount) {
+                            detectTapGestures { position ->
+                                selectedIndex = ((position.x / size.width) * (plottedCount - 1))
+                                    .roundToInt()
+                                    .coerceIn(0, plottedCount - 1)
+                            }
+                        },
+                ) {
+                    val topPadding = 10.dp.toPx()
+                    val bottomPadding = 12.dp.toPx()
+                    val chartHeight = size.height - topPadding - bottomPadding
+                    repeat(4) { index ->
+                        val y = topPadding + chartHeight * index / 3f
+                        drawLine(
+                            color = Color.White.copy(alpha = 0.9f),
+                            start = Offset(0f, y),
+                            end = Offset(size.width, y),
+                            strokeWidth = 1.dp.toPx(),
+                        )
+                    }
 
-            val baseline = size.height * 0.72f
-            val chartPath = Path().apply {
-                moveTo(0f, baseline)
-                cubicTo(
-                    size.width * 0.2f,
-                    baseline,
-                    size.width * 0.34f,
-                    baseline,
-                    size.width * 0.5f,
-                    baseline,
-                )
-                cubicTo(
-                    size.width * 0.66f,
-                    baseline,
-                    size.width * 0.82f,
-                    baseline,
-                    size.width,
-                    baseline,
-                )
+                    val allValues = plottedSales + plottedExpenses
+                    val maximum = (allValues.maxOrNull() ?: 0f).coerceAtLeast(1f)
+                    fun offsets(values: List<Float>): List<Offset> {
+                        val padded = if (values.size < plottedCount) {
+                            List(plottedCount - values.size) { 0f } + values
+                        } else values
+                        return padded.mapIndexed { index, value ->
+                            Offset(
+                                x = index * (size.width / (plottedCount - 1)),
+                                y = topPadding + chartHeight * (1f - (value / maximum).coerceIn(0f, 1f)),
+                            )
+                        }
+                    }
+
+                    val salesOffsets = offsets(plottedSales)
+                    val expenseOffsets = offsets(plottedExpenses)
+                    if (hasData) {
+                        drawPerformancePath(salesOffsets, PerformanceSalesBlue)
+                        drawPerformancePath(expenseOffsets, PerformanceExpenseRed)
+                    }
+
+                    selectedIndex?.takeIf { hasData }?.coerceIn(0, plottedCount - 1)?.let { index ->
+                        val x = index * (size.width / (plottedCount - 1))
+                        drawLine(
+                            color = Color(0xFF343851).copy(alpha = 0.45f),
+                            start = Offset(x, topPadding),
+                            end = Offset(x, size.height - bottomPadding),
+                            strokeWidth = 1.dp.toPx(),
+                            pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(5.dp.toPx(), 5.dp.toPx())),
+                        )
+                        listOf(
+                            salesOffsets[index] to PerformanceSalesBlue,
+                            expenseOffsets[index] to PerformanceExpenseRed,
+                        ).forEach { (point, color) ->
+                            drawCircle(Color.White, 5.dp.toPx(), point)
+                            drawCircle(color, 3.dp.toPx(), point)
+                        }
+                    }
+                }
+
+                val visibleIndex = selectedIndex?.takeIf { pointCount > 0 && hasData }?.coerceIn(0, pointCount - 1)
+                if (visibleIndex != null) {
+                    val tooltipWidth = 116.dp
+                    val fraction = if (pointCount <= 1) 0.5f else visibleIndex.toFloat() / (pointCount - 1)
+                    val left = (maxWidth * fraction - tooltipWidth / 2).coerceIn(0.dp, maxWidth - tooltipWidth)
+                    Column(
+                        modifier = Modifier
+                            .offset(x = left, y = 1.dp)
+                            .width(tooltipWidth)
+                            .clip(RoundedCornerShape(15.dp))
+                            .background(Color(0xFF2C3152))
+                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                    ) {
+                        Text(
+                            text = labels.getOrNull(visibleIndex) ?: "Recent",
+                            color = Color.White.copy(alpha = 0.72f),
+                            fontFamily = poppins,
+                            fontSize = 7.sp,
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            TooltipValue("Sales", sales.getOrNull(visibleIndex) ?: 0f, PerformanceSalesBlue)
+                            TooltipValue("Expenses", expenses.getOrNull(visibleIndex) ?: 0f, PerformanceExpenseRed)
+                        }
+                    }
+                }
             }
-            drawPath(
-                path = chartPath,
-                color = lineColor,
-                style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round),
-            )
-            drawCircle(
-                color = Color.White,
-                radius = 5.dp.toPx(),
-                center = Offset(size.width * 0.72f, baseline),
-            )
-            drawCircle(
-                color = lineColor,
-                radius = 3.dp.toPx(),
-                center = Offset(size.width * 0.72f, baseline),
-            )
         }
 
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun").forEach { day ->
+            val displayLabels = if (labels.isEmpty()) listOf("—", "—", "—", "—", "—", "—", "—") else labels
+            displayLabels.forEach { label ->
                 Text(
-                    text = day,
+                    text = label,
                     color = Color(0xFF92989D),
                     fontFamily = poppins,
-                    fontSize = 9.sp,
+                    fontSize = 7.sp,
                     fontWeight = FontWeight.Normal,
                     textAlign = TextAlign.Center,
                 )
             }
         }
+
+        if (!isLoading && !hasData) {
+            Text(
+                text = "Performance will appear after sales or expenses are recorded.",
+                modifier = Modifier.fillMaxWidth().padding(top = 11.dp),
+                color = Color(0xFF7A8187),
+                fontFamily = poppins,
+                fontSize = 8.sp,
+                textAlign = TextAlign.Center,
+            )
+        }
     }
 }
+
+@Composable
+private fun PerformanceLegend(label: String, value: String, color: Color) {
+    val poppins = oseboFontFamily()
+    Column {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(label, color = Color(0xFF7A8187), fontFamily = poppins, fontSize = 7.sp, fontWeight = FontWeight.Medium)
+            Spacer(Modifier.width(5.dp))
+            Box(Modifier.width(10.dp).height(2.dp).clip(CircleShape).background(color))
+        }
+        Text(value, color = Color(0xFF20253C), fontFamily = poppins, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+@Composable
+private fun TooltipValue(label: String, value: Float, color: Color) {
+    val poppins = oseboFontFamily()
+    Column {
+        Text(compactPerformanceAmount(value), color = Color.White, fontFamily = poppins, fontSize = 8.sp, fontWeight = FontWeight.SemiBold)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(4.dp).clip(CircleShape).background(color))
+            Text(label, modifier = Modifier.padding(start = 3.dp), color = Color.White.copy(alpha = 0.72f), fontFamily = poppins, fontSize = 6.sp)
+        }
+    }
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawPerformancePath(
+    points: List<Offset>,
+    color: Color,
+) {
+    if (points.size < 2) return
+    val path = Path().apply {
+        moveTo(points.first().x, points.first().y)
+        points.zipWithNext().forEach { (previous, current) ->
+            val midpoint = (previous.x + current.x) / 2f
+            cubicTo(midpoint, previous.y, midpoint, current.y, current.x, current.y)
+        }
+    }
+    drawPath(
+        path = path,
+        color = color,
+        style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round),
+    )
+}
+
+private fun compactPerformanceAmount(value: Float): String = when {
+    value >= 1_000_000f -> "UGX ${formatPerformanceDecimal(value / 1_000_000f)}M"
+    value >= 1_000f -> "UGX ${formatPerformanceDecimal(value / 1_000f)}K"
+    else -> "UGX ${value.roundToInt()}"
+}
+
+private fun formatPerformanceDecimal(value: Float): String {
+    val rounded = (value * 10).roundToInt() / 10f
+    return if (rounded % 1f == 0f) rounded.roundToInt().toString() else rounded.toString()
+}
+
+private fun shortPerformanceLabel(label: String): String {
+    val cleaned = label.substringBefore('T')
+    val dateParts = cleaned.split("-")
+    if (dateParts.size >= 3) return dateParts.last().trimStart('0').ifBlank { "0" }
+    return label.take(3)
+}
+
+private val PerformanceSalesBlue = Color(0xFF2024D8)
+private val PerformanceExpenseRed = Color(0xFFE21B24)

@@ -107,6 +107,24 @@ class DashboardRepository(
         }
     }
 
+    suspend fun fetchShopTimeSeries(shopUuid: String): ShopTimeSeriesData? {
+        return try {
+            val response = apiService.getTimeSeries(shopUuid, "monthly")
+            if (response.isSuccessful && response.body()?.success == true) {
+                response.body()?.data?.let {
+                    ShopTimeSeriesData(
+                        labels = it.xAxis,
+                        sales = it.sales,
+                        expenses = it.expenses,
+                    )
+                }
+            } else null
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching time series for $shopUuid: ${e.message}")
+            null
+        }
+    }
+
     // ===== EXISTING PRIVATE METHODS (keep unchanged) =====
     private suspend fun fetchAndSaveShopSummary(shopUuid: String) {
         try {
@@ -234,4 +252,10 @@ data class ShopSummaryData(
 data class ShopFinancialData(
     val totalSales: Double,
     val totalExpenses: Double,
+)
+
+data class ShopTimeSeriesData(
+    val labels: List<String>,
+    val sales: List<Double>,
+    val expenses: List<Double>,
 )
