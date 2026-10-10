@@ -5,6 +5,11 @@
     android:id="@+id/nav_graph"
     app:startDestination="@id/mainDashboardFragment">
 
+    <fragment
+        android:id="@+id/oseboAiFragment"
+        android:name="com.devbrian.osebo.fragments.OseboAiFragment"
+        android:label="Osebo AI" />
+
     <!-- MAIN DASHBOARD - Overview of ALL shops -->
     <fragment
         android:id="@+id/mainDashboardFragment"

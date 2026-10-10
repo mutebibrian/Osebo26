@@ -193,11 +193,10 @@ class MainActivity : AppCompatActivity() {
                         selectedItem = selectedBottomNavigationItem.value,
                         onItemSelected = ::handleBottomNavigationSelection,
                         onOseboAiClick = {
-                            Toast.makeText(
-                                this@MainActivity,
-                                "Osebo AI is coming next",
-                                Toast.LENGTH_SHORT,
-                            ).show()
+                            dismissMoreMenu()
+                            if (navController.currentDestination?.id != R.id.oseboAiFragment) {
+                                navController.navigate(R.id.oseboAiFragment)
+                            }
                         },
                     )
 
@@ -234,7 +233,8 @@ class MainActivity : AppCompatActivity() {
                     destinationId == R.id.addProductFragment ||
                     destinationId == R.id.restockFragment ||
                     destinationId == R.id.removeStockFragment ||
-                    destinationId == R.id.paymentFragment
+                    destinationId == R.id.paymentFragment ||
+                    destinationId == R.id.oseboAiFragment
                 ) View.GONE else View.VISIBLE
         }
     }
