@@ -3,6 +3,7 @@ package com.devbrian.osebo.di
 import com.devbrian.osebo.data.mapper.AccountMapper
 import com.devbrian.osebo.data.mapper.SubscriptionMapper
 import com.devbrian.osebo.data.repository.AccountRepository
+import com.devbrian.osebo.data.repository.AiAssistantRepository
 import com.devbrian.osebo.data.repository.CustomerRepository
 import com.devbrian.osebo.data.repository.DashboardRepository
 import com.devbrian.osebo.data.repository.FinanceRepository
@@ -33,6 +34,7 @@ val repositoryModule = module {
     single { InventoryRepository(get(), get(), get()) }
     single { CustomerRepository(get(), get(), get(), get()) }
     single { AccountRepository(get(), get(), get(), get()) }
+    single { AiAssistantRepository(get()) }
     single { DashboardRepository(get(), get(), get()) }
 
     // Interface-bound repositories

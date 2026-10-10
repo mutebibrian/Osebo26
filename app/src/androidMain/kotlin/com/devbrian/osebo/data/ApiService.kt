@@ -29,6 +29,7 @@ import com.devbrian.osebo.models.FinancialStatement
 import com.devbrian.osebo.models.Product
 import com.devbrian.osebo.data.models.Shop
 import com.devbrian.osebo.models.TimeSeriesApiResponse
+import com.google.gson.JsonElement
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.Response
@@ -542,6 +543,38 @@ interface ApiService {
     suspend fun findSubscriptionByPaymentId(
         @Path("paymentId") paymentId: String
     ): Response<ApiResponse<PaymentCheckResponse>>
+
+    // ==================== AI ASSISTANT ENDPOINTS ====================
+
+    @GET("api/v1/ai-assistant/readiness")
+    suspend fun getAiAssistantReadiness(): Response<JsonElement>
+
+    @GET("api/v1/ai-assistant/metadata")
+    suspend fun getAiAssistantMetadata(): Response<JsonElement>
+
+    @GET("api/v1/ai-assistant/conversations")
+    suspend fun getAiConversations(): Response<JsonElement>
+
+    @POST("api/v1/ai-assistant/conversations")
+    suspend fun createAiConversation(
+        @Body request: Map<String, String>,
+    ): Response<JsonElement>
+
+    @GET("api/v1/ai-assistant/conversations/{conversationId}")
+    suspend fun getAiConversation(
+        @Path("conversationId") conversationId: String,
+    ): Response<JsonElement>
+
+    @DELETE("api/v1/ai-assistant/conversations/{conversationId}")
+    suspend fun archiveAiConversation(
+        @Path("conversationId") conversationId: String,
+    ): Response<JsonElement>
+
+    @POST("api/v1/ai-assistant/conversations/{conversationId}/messages")
+    suspend fun sendAiMessage(
+        @Path("conversationId") conversationId: String,
+        @Body request: Map<String, String>,
+    ): Response<JsonElement>
 
     // ==================== NOTIFICATION ENDPOINTS ====================
 

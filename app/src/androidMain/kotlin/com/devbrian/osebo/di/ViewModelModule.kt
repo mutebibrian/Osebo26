@@ -2,6 +2,7 @@ package com.devbrian.osebo.di
 
 import com.devbrian.osebo.ui.AccountViewModel
 import com.devbrian.osebo.ui.viewmodels.AddExpenseViewModel
+import com.devbrian.osebo.ui.viewmodels.AiAssistantViewModel
 import com.devbrian.osebo.ui.viewmodels.CustomerViewModel
 import com.devbrian.osebo.ui.viewmodels.DashboardViewModel
 import com.devbrian.osebo.ui.viewmodels.ExpenseCategoriesViewModel
@@ -24,6 +25,7 @@ import org.koin.dsl.module
 val viewModelModule = module {
     viewModel { AccountViewModel(get()) }
     viewModel { AddExpenseViewModel(get()) }
+    viewModel { AiAssistantViewModel(get()) }
     viewModel { CustomerViewModel(get()) }
     viewModel { DashboardViewModel(get()) }
     viewModel { ExpenseCategoriesViewModel(get()) }

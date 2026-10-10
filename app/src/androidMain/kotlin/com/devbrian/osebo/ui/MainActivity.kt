@@ -195,7 +195,7 @@ class MainActivity : AppCompatActivity() {
                         onOseboAiClick = {
                             dismissMoreMenu()
                             if (navController.currentDestination?.id != R.id.oseboAiFragment) {
-                                navController.navigate(R.id.oseboAiFragment)
+                                navigateWithVerifiedSubscription(R.id.oseboAiFragment)
                             }
                         },
                     )
