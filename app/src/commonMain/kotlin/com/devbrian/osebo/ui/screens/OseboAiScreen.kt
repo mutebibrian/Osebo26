@@ -4,14 +4,17 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -41,6 +44,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -80,6 +87,10 @@ fun OseboAiScreen(
     onSubmit: (String) -> Unit,
 ) {
     val font = oseboFontFamily()
+    val density = LocalDensity.current
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val isKeyboardVisible = WindowInsets.ime.getBottom(density) > 0
     var prompt by remember { mutableStateOf("") }
     val suggestions = remember {
         listOf(
@@ -95,7 +106,11 @@ fun OseboAiScreen(
 
     fun submitPrompt() {
         val message = prompt.trim()
-        if (message.isNotEmpty()) onSubmit(message)
+        if (message.isNotEmpty()) {
+            onSubmit(message)
+            focusManager.clearFocus()
+            keyboardController?.hide()
+        }
     }
 
     Scaffold(containerColor = Color.White) { scaffoldPadding ->
@@ -103,7 +118,12 @@ fun OseboAiScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(scaffoldPadding)
-                .imePadding(),
+                .pointerInput(Unit) {
+                    detectTapGestures {
+                        focusManager.clearFocus()
+                        keyboardController?.hide()
+                    }
+                },
         ) {
             Row(
                 modifier = Modifier
@@ -153,7 +173,7 @@ fun OseboAiScreen(
                 }
             }
 
-            Spacer(Modifier.height(150.dp))
+            Spacer(Modifier.height(if (isKeyboardVisible) 24.dp else 150.dp))
             Surface(
                 modifier = Modifier.align(Alignment.CenterHorizontally),
                 shape = RoundedCornerShape(50),
@@ -186,13 +206,18 @@ fun OseboAiScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .aiGlowBackground(),
+                    .aiGlowBackground()
+                    .imePadding(),
                 contentAlignment = Alignment.BottomCenter,
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(start = 8.dp, end = 8.dp, bottom = 68.dp),
+                        .padding(
+                            start = 8.dp,
+                            end = 8.dp,
+                            bottom = if (isKeyboardVisible) 12.dp else 68.dp,
+                        ),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     SuggestionRow(
