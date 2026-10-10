@@ -48,6 +48,7 @@ import com.devbrian.osebo.resources.iconsax_export
 import com.devbrian.osebo.resources.iconsax_print
 import com.devbrian.osebo.resources.iconsax_today_expenses
 import com.devbrian.osebo.resources.iconsax_today_sales
+import com.devbrian.osebo.ui.components.ShopPickerButton
 import com.devbrian.osebo.ui.theme.oseboFontFamily
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
@@ -99,6 +100,8 @@ private val StatementSurface = Color(0xFFFAFBFB)
 fun FinancialStatementScreen(
     state: FinancialStatementUiState,
     periods: List<String>,
+    shopIcon: DrawableResource? = null,
+    onShopPickerClick: () -> Unit = {},
     onBackClick: () -> Unit,
     onPeriodSelected: (String) -> Unit,
     onMetricClick: (StatementMetric) -> Unit,
@@ -147,6 +150,8 @@ fun FinancialStatementScreen(
                 StatementHeader(
                     shopName = state.shopName,
                     isLoading = state.isLoading,
+                    shopIcon = shopIcon,
+                    onShopPickerClick = onShopPickerClick,
                     onBackClick = onBackClick,
                     onPrintClick = onPrintClick,
                 )
@@ -216,6 +221,8 @@ fun FinancialStatementScreen(
 private fun StatementHeader(
     shopName: String,
     isLoading: Boolean,
+    shopIcon: DrawableResource?,
+    onShopPickerClick: () -> Unit,
     onBackClick: () -> Unit,
     onPrintClick: () -> Unit,
 ) {
@@ -274,6 +281,7 @@ private fun StatementHeader(
                 )
             }
         }
+        shopIcon?.let { ShopPickerButton(icon = it, onClick = onShopPickerClick) }
     }
 }
 

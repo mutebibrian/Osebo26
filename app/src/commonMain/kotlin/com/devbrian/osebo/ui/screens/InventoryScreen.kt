@@ -38,11 +38,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.devbrian.osebo.resources.Res
 import com.devbrian.osebo.resources.iconsax_search
+import com.devbrian.osebo.resources.iconsax_shop_bold
 import com.devbrian.osebo.resources.inventory_add_stock
 import com.devbrian.osebo.resources.inventory_products
 import com.devbrian.osebo.resources.inventory_remove_stock
 import com.devbrian.osebo.resources.inventory_stock_transfer
 import com.devbrian.osebo.ui.components.SkeletonBlock
+import com.devbrian.osebo.ui.components.ShopPickerButton
 import com.devbrian.osebo.ui.theme.oseboFontFamily
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
@@ -72,6 +74,8 @@ private data class InventoryQuickAction(
 @Composable
 fun InventoryScreen(
     state: InventoryUiState,
+    shopIcon: DrawableResource = Res.drawable.iconsax_shop_bold,
+    onShopPickerClick: () -> Unit = {},
     onQueryChange: (String) -> Unit,
     onAddProductClick: () -> Unit,
     onStockTransfersClick: () -> Unit,
@@ -96,6 +100,8 @@ fun InventoryScreen(
             InventoryHeader(
                 productCount = state.products.size,
                 lowStockCount = lowStockCount,
+                shopIcon = shopIcon,
+                onShopPickerClick = onShopPickerClick,
             )
 
             Spacer(Modifier.height(20.dp))
@@ -180,9 +186,14 @@ fun InventoryScreen(
 }
 
 @Composable
-private fun InventoryHeader(productCount: Int, lowStockCount: Int) {
+private fun InventoryHeader(
+    productCount: Int,
+    lowStockCount: Int,
+    shopIcon: DrawableResource,
+    onShopPickerClick: () -> Unit,
+) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 78.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
@@ -205,6 +216,7 @@ private fun InventoryHeader(productCount: Int, lowStockCount: Int) {
                 fontSize = 10.sp,
             )
         }
+        ShopPickerButton(icon = shopIcon, onClick = onShopPickerClick)
     }
 }
 

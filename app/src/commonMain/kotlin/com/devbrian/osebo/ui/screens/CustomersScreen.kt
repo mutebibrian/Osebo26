@@ -64,7 +64,9 @@ import com.devbrian.osebo.resources.iconsax_filter
 import com.devbrian.osebo.resources.iconsax_more
 import com.devbrian.osebo.resources.iconsax_refresh
 import com.devbrian.osebo.resources.iconsax_search
+import com.devbrian.osebo.ui.components.ShopPickerButton
 import com.devbrian.osebo.ui.theme.oseboFontFamily
+import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 
 data class CustomerUi(
@@ -142,6 +144,8 @@ private fun avatarColorFor(name: String): Color {
 @Composable
 fun CustomersScreen(
     state: CustomersUiState,
+    shopIcon: DrawableResource? = null,
+    onShopPickerClick: () -> Unit = {},
     onRefreshClick: () -> Unit = {},
     onSearchQueryChange: (String) -> Unit = {},
     onAddClick: () -> Unit = {},
@@ -189,6 +193,8 @@ fun CustomersScreen(
             item {
                 CustomersHeader(
                     isLoading = state.isLoading,
+                    shopIcon = shopIcon,
+                    onShopPickerClick = onShopPickerClick,
                     onRefreshClick = onRefreshClick,
                     onAddClick = onAddClick,
                 )
@@ -292,6 +298,8 @@ fun CustomersScreen(
 @Composable
 private fun CustomersHeader(
     isLoading: Boolean,
+    shopIcon: DrawableResource?,
+    onShopPickerClick: () -> Unit,
     onRefreshClick: () -> Unit,
     onAddClick: () -> Unit,
 ) {
@@ -357,6 +365,7 @@ private fun CustomersHeader(
                 )
             }
         }
+        shopIcon?.let { ShopPickerButton(icon = it, onClick = onShopPickerClick) }
     }
 }
 

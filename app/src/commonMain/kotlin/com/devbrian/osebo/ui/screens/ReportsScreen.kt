@@ -44,6 +44,7 @@ import com.devbrian.osebo.resources.iconsax_document
 import com.devbrian.osebo.resources.iconsax_reports
 import com.devbrian.osebo.resources.iconsax_today_expenses
 import com.devbrian.osebo.resources.iconsax_today_sales
+import com.devbrian.osebo.ui.components.ShopPickerButton
 import com.devbrian.osebo.ui.theme.oseboFontFamily
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
@@ -86,6 +87,8 @@ private val ReportsRed = Color(0xFFD26067)
 fun ReportsScreen(
     state: ReportsUiState,
     periods: List<String>,
+    shopIcon: DrawableResource? = null,
+    onShopPickerClick: () -> Unit = {},
     onBackClick: () -> Unit,
     onPeriodSelected: (String) -> Unit,
 ) {
@@ -109,7 +112,7 @@ fun ReportsScreen(
             contentPadding = PaddingValues(start = 20.dp, top = 44.dp, end = 20.dp, bottom = 136.dp),
         ) {
             item {
-                ReportsHeader(state, onBackClick)
+                ReportsHeader(state, shopIcon, onShopPickerClick, onBackClick)
                 Spacer(Modifier.height(24.dp))
                 ReportsPeriodSelector(
                     periods = periods,
@@ -147,7 +150,12 @@ fun ReportsScreen(
 }
 
 @Composable
-private fun ReportsHeader(state: ReportsUiState, onBackClick: () -> Unit) {
+private fun ReportsHeader(
+    state: ReportsUiState,
+    shopIcon: DrawableResource?,
+    onShopPickerClick: () -> Unit,
+    onBackClick: () -> Unit,
+) {
     val poppins = oseboFontFamily()
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -199,6 +207,7 @@ private fun ReportsHeader(state: ReportsUiState, onBackClick: () -> Unit) {
                 )
             }
         }
+        shopIcon?.let { ShopPickerButton(icon = it, onClick = onShopPickerClick) }
     }
 }
 

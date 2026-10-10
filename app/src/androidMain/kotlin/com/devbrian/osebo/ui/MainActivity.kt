@@ -40,6 +40,7 @@ import com.devbrian.osebo.ui.components.MoreMenuSection
 import com.devbrian.osebo.ui.components.MoreMenuSheet
 import com.devbrian.osebo.ui.components.ShopPickerOverlay
 import com.devbrian.osebo.ui.components.ShopPickerUiState
+import com.devbrian.osebo.ui.components.shopCategoryIcon
 import com.devbrian.osebo.ui.components.UserBottomNavigation
 import com.devbrian.osebo.ui.components.UserNavigationItem
 import com.devbrian.osebo.ui.theme.OseboTheme
@@ -49,6 +50,7 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 import org.koin.android.ext.android.inject
+import org.jetbrains.compose.resources.DrawableResource
 
 private enum class SubscriptionVerification {
     Active,
@@ -113,6 +115,19 @@ class MainActivity : AppCompatActivity() {
         R.id.productDetailsFragment,
         R.id.restockFragment,
         R.id.removeStockFragment,
+        R.id.salesFragment,
+        R.id.financeFragment,
+        R.id.financialStatementFragment,
+        R.id.transactionsFragment,
+        R.id.reportsFragment,
+        R.id.customersFragment,
+        R.id.employeesFragment,
+        R.id.suppliersFragment,
+    )
+
+    private val embeddedShopPickerDestinations = setOf(
+        R.id.mainDashboardFragment,
+        R.id.inventoryFragment,
         R.id.salesFragment,
         R.id.financeFragment,
         R.id.financialStatementFragment,
@@ -258,6 +273,7 @@ class MainActivity : AppCompatActivity() {
         shopPickerState.value = shopPickerState.value.copy(
             isHome = destinationId == R.id.mainDashboardFragment,
             isOpen = false,
+            showTrigger = destinationId !in embeddedShopPickerDestinations,
         )
         if (::shopPickerView.isInitialized) {
             (shopPickerView.layoutParams as? FrameLayout.LayoutParams)?.let { params ->
@@ -268,7 +284,7 @@ class MainActivity : AppCompatActivity() {
             }
             shopPickerView.visibility =
                 if (destinationId in shopPickerDestinations &&
-                    destinationId != R.id.mainDashboardFragment
+                    destinationId !in embeddedShopPickerDestinations
                 ) View.VISIBLE else View.GONE
         }
     }
@@ -279,6 +295,9 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch { reloadShopPickerShops() }
     }
 
+    fun currentShopPickerIcon(): DrawableResource =
+        shopCategoryIcon(currentShop?.shopType ?: preferenceManager.getBusinessType())
+
     private fun dismissShopPicker() {
         shopPickerState.value = shopPickerState.value.copy(isOpen = false)
         hideHomeShopPickerHost()
@@ -286,7 +305,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun hideHomeShopPickerHost() {
         if (::shopPickerView.isInitialized &&
-            navController.currentDestination?.id == R.id.mainDashboardFragment
+            navController.currentDestination?.id in embeddedShopPickerDestinations
         ) {
             shopPickerView.visibility = View.GONE
         }

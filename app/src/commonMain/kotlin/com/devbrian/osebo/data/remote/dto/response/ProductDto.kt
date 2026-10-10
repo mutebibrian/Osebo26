@@ -16,7 +16,7 @@ data class ProductDto(
     @SerialName("barcode") val barcode: String?,
     @SerialName("photos") val photos: List<String>?,
     @SerialName("quantity") val quantity: Double,  // Changed from Int to Double
-    @SerialName("stock_category") val stockCategory: StockCategoryDto,
+    @SerialName("stock_category") val stockCategory: StockCategoryDto?,
     @SerialName("shop") val shop: ShopDto,
     @SerialName("allowsFloatQuantity") val allowsFloatQuantity: Boolean,
     @SerialName("createdAt") val createdAt: String?,

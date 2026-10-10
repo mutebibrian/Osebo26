@@ -24,6 +24,7 @@ import com.devbrian.osebo.ui.screens.SupplierFormDialog
 import com.devbrian.osebo.ui.screens.SupplierFormUiState
 import com.devbrian.osebo.ui.screens.SuppliersScreen
 import com.devbrian.osebo.ui.screens.SuppliersUiState
+import com.devbrian.osebo.ui.MainActivity
 import com.devbrian.osebo.ui.theme.OseboTheme
 import com.devbrian.osebo.utils.PermissionManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -71,6 +72,8 @@ class SuppliersFragment : Fragment(), ShopSelectionAware {
             OseboTheme {
                 SuppliersScreen(
                     state = uiState,
+                    shopIcon = (requireActivity() as MainActivity).currentShopPickerIcon(),
+                    onShopPickerClick = (requireActivity() as MainActivity)::openShopPicker,
                     onRefreshClick = ::checkAccessAndLoadSuppliers,
                     onAddSupplierClick = {
                         withPermission(PermissionType.MANAGE_SUPPLIERS) { showSupplierEditor() }

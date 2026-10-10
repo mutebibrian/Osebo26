@@ -17,6 +17,7 @@ import com.devbrian.osebo.data.remote.dto.response.SalesComparisonDto
 import com.devbrian.osebo.data.remote.dto.response.ShopSummaryDto
 import com.devbrian.osebo.ui.screens.ReportsScreen
 import com.devbrian.osebo.ui.screens.ReportsUiState
+import com.devbrian.osebo.ui.MainActivity
 import com.devbrian.osebo.ui.theme.OseboTheme
 import com.devbrian.osebo.ui.viewmodels.ReportsViewModel
 import org.koin.androidx.viewmodel.ext.android.viewModel
@@ -61,6 +62,8 @@ class ReportsFragment : Fragment(), ShopSelectionAware {
                     ReportsScreen(
                         state = uiState,
                         periods = periods,
+                        shopIcon = (requireActivity() as MainActivity).currentShopPickerIcon(),
+                        onShopPickerClick = (requireActivity() as MainActivity)::openShopPicker,
                         onBackClick = { findNavController().navigateUp() },
                         onPeriodSelected = ::selectPeriod,
                     )

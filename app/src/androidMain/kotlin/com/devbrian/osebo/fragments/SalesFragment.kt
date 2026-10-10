@@ -17,6 +17,7 @@ import com.devbrian.osebo.ui.screens.SaleItemUi
 import com.devbrian.osebo.ui.screens.SalesScreen
 import com.devbrian.osebo.ui.screens.SalesUiState
 import com.devbrian.osebo.ui.screens.TopSellingProductUi
+import com.devbrian.osebo.ui.MainActivity
 import com.devbrian.osebo.ui.theme.OseboTheme
 import com.devbrian.osebo.ui.viewmodels.SalesViewModel
 import com.devbrian.osebo.utils.CurrencyFormatter
@@ -45,6 +46,8 @@ class SalesFragment : Fragment(), ShopSelectionAware {
                 OseboTheme {
                     SalesScreen(
                         state = uiState,
+                        shopIcon = (requireActivity() as MainActivity).currentShopPickerIcon(),
+                        onShopPickerClick = (requireActivity() as MainActivity)::openShopPicker,
                         onNewSaleClick = ::navigateToNewSale,
                         onReportsClick = ::showReportsMessage,
                         onRefreshClick = viewModel::refreshSales,

@@ -14,6 +14,7 @@ import androidx.navigation.fragment.findNavController
 import com.devbrian.osebo.ui.screens.InventoryProductUi
 import com.devbrian.osebo.ui.screens.InventoryScreen
 import com.devbrian.osebo.ui.screens.InventoryUiState
+import com.devbrian.osebo.ui.MainActivity
 import com.devbrian.osebo.ui.theme.OseboTheme
 import com.devbrian.osebo.ui.viewmodels.InventoryViewModel
 import org.koin.androidx.viewmodel.ext.android.viewModel
@@ -37,6 +38,8 @@ class InventoryFragment : Fragment(), ShopSelectionAware {
                 OseboTheme {
                     InventoryScreen(
                         state = uiState,
+                        shopIcon = (requireActivity() as MainActivity).currentShopPickerIcon(),
+                        onShopPickerClick = (requireActivity() as MainActivity)::openShopPicker,
                         onQueryChange = { query -> uiState = uiState.copy(query = query) },
                         onAddProductClick = ::navigateToAddProduct,
                         onStockTransfersClick = {

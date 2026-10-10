@@ -77,6 +77,7 @@ import com.devbrian.osebo.resources.iconsax_today_expenses
 import com.devbrian.osebo.resources.iconsax_today_sales
 import com.devbrian.osebo.resources.iconsax_total_expenses
 import com.devbrian.osebo.resources.iconsax_total_sales
+import com.devbrian.osebo.ui.components.ShopPickerButton
 import com.devbrian.osebo.ui.theme.oseboFontFamily
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
@@ -281,24 +282,20 @@ fun DashboardScreen(
                     text = "Quick actions",
                     color = Color(0xFF171B1F),
                     fontFamily = poppins,
-                    fontSize = 28.sp,
-                    lineHeight = 34.sp,
-                    fontWeight = FontWeight.Medium,
+                    fontSize = 22.sp,
+                    lineHeight = 28.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = (-0.3).sp,
                 )
 
                 Spacer(Modifier.height(16.dp))
 
-                quickActions.chunked(2).forEachIndexed { index, rowItems ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        rowItems.forEach { action ->
-                            QuickActionButton(action = action, modifier = Modifier.weight(1f))
-                        }
-                    }
-                    if (index != quickActions.chunked(2).lastIndex) {
-                        Spacer(Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    quickActions.forEach { action ->
+                        QuickActionButton(action = action, modifier = Modifier.weight(1f))
                     }
                 }
 
@@ -447,12 +444,7 @@ private fun ProfileGreetingHeader(
             )
         }
 
-        HeaderCircleButton(
-            onClick = onShopPickerClick,
-            icon = shopIcon,
-            contentDescription = "Switch shop",
-            tint = Color(0xFF087FC4),
-        )
+        ShopPickerButton(icon = shopIcon, onClick = onShopPickerClick)
 
         Spacer(Modifier.width(8.dp))
 
@@ -518,28 +510,44 @@ private fun QuickActionButton(
     val poppins = oseboFontFamily()
     Button(
         onClick = action.onClick,
-        modifier = modifier.height(54.dp),
-        shape = RoundedCornerShape(27.dp),
+        modifier = modifier.height(86.dp),
+        shape = RoundedCornerShape(25.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = Color(0xFF087FC4),
+            containerColor = Color(0xFF181B1E),
             contentColor = Color.White,
         ),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 14.dp),
+        elevation = ButtonDefaults.buttonElevation(
+            defaultElevation = 7.dp,
+            pressedElevation = 3.dp,
+            focusedElevation = 9.dp,
+            hoveredElevation = 9.dp,
+            disabledElevation = 0.dp,
+        ),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 5.dp, vertical = 9.dp),
     ) {
-        Icon(
-            painter = painterResource(action.icon),
-            contentDescription = null,
-            tint = Color.White,
-            modifier = Modifier.size(20.dp),
-        )
-        Spacer(Modifier.size(8.dp))
-        Text(
-            text = action.label,
-            fontFamily = poppins,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 1,
-        )
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Icon(
+                painter = painterResource(action.icon),
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(22.dp),
+            )
+            Spacer(Modifier.height(7.dp))
+            Text(
+                text = action.label,
+                color = Color.White,
+                fontFamily = poppins,
+                fontSize = 8.sp,
+                lineHeight = 10.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
+            )
+        }
     }
 }
 

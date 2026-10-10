@@ -52,7 +52,9 @@ import com.devbrian.osebo.resources.iconsax_refresh
 import com.devbrian.osebo.resources.iconsax_search
 import com.devbrian.osebo.resources.iconsax_today_expenses
 import com.devbrian.osebo.resources.iconsax_today_sales
+import com.devbrian.osebo.ui.components.ShopPickerButton
 import com.devbrian.osebo.ui.theme.oseboFontFamily
+import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 
 data class TransactionListItemUi(
@@ -87,6 +89,8 @@ enum class TransactionListAction {
 @Composable
 fun TransactionsScreen(
     state: TransactionsUiState,
+    shopIcon: DrawableResource? = null,
+    onShopPickerClick: () -> Unit = {},
     onBackClick: () -> Unit,
     onRefreshClick: () -> Unit,
     onExportClick: () -> Unit,
@@ -168,6 +172,7 @@ fun TransactionsScreen(
                     subtitle = "Every movement in one place",
                     onBackClick = onBackClick,
                     trailing = {
+                        shopIcon?.let { ShopPickerButton(icon = it, onClick = onShopPickerClick) }
                         IconButton(onClick = onRefreshClick, enabled = !state.isLoading) {
                             if (state.isLoading) {
                                 CircularProgressIndicator(

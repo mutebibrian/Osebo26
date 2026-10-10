@@ -108,8 +108,8 @@ data class ProductEntity(
                 name = dto.name,
                 sku = dto.sku,
                 description = dto.description,
-                category = dto.stockCategory.name,
-                categoryId = dto.stockCategory.id,
+                category = dto.stockCategory?.name,
+                categoryId = dto.stockCategory?.id,
                 price = dto.sellingPrice,
                 cost = null,
                 stock = dto.quantity,  // Now Double, matches the DTO
