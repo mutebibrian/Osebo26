@@ -9,6 +9,7 @@ import com.devbrian.osebo.data.SessionAuthenticator
 import com.devbrian.osebo.data.TokenRefreshApi
 import com.devbrian.osebo.data.TokenRefreshService
 import com.devbrian.osebo.data.remote.dto.request.RefreshTokenRequest
+import com.devbrian.osebo.data.remote.dto.request.SaleRequest
 import com.devbrian.osebo.data.remote.dto.response.AuthData
 import com.devbrian.osebo.data.remote.dto.response.SaleApiData
 import com.devbrian.osebo.data.remote.dto.response.SaleApiDataSerializer
@@ -21,6 +22,8 @@ import com.devbrian.osebo.data.remote.api.SupplierDtoSerializer
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonDeserializer
+import com.google.gson.JsonParser
+import com.google.gson.JsonSerializer
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
 import okhttp3.Interceptor
@@ -50,12 +53,22 @@ private val bridgeJson = Json { ignoreUnknownKeys = true }
 private fun <T> kotlinxBridge(serializer: KSerializer<T>): JsonDeserializer<T> =
     JsonDeserializer { json, _, _ -> bridgeJson.decodeFromString(serializer, json.toString()) }
 
+// Write-side counterpart of kotlinxBridge above: request DTOs like SaleRequest live in
+// commonMain and only carry kotlinx.serialization's @SerialName (Gson's @SerializedName
+// isn't available there). Left unregistered, Gson serializes outgoing bodies using the
+// literal Kotlin property names (customerId, paidAmount, saleType, stockItems) instead of
+// the backend's expected snake_case (customer_id, paid_amount, sale_type, stock_items),
+// so every createSale request was rejected with a 400 Validation Error.
+private fun <T> kotlinxSerializerBridge(serializer: KSerializer<T>): JsonSerializer<T> =
+    JsonSerializer { src, _, _ -> JsonParser.parseString(bridgeJson.encodeToString(serializer, src)) }
+
 private val authAwareGson: Gson = GsonBuilder()
     .registerTypeAdapter(AuthData::class.java, kotlinxBridge(AuthData.serializer()))
     .registerTypeAdapter(ShopDto::class.java, kotlinxBridge(ShopDtoSerializer))
     .registerTypeAdapter(ProductDto::class.java, kotlinxBridge(ProductDto.serializer()))
     .registerTypeAdapter(SupplierDto::class.java, kotlinxBridge(SupplierDtoSerializer))
     .registerTypeAdapter(SaleApiData::class.java, kotlinxBridge(SaleApiDataSerializer))
+    .registerTypeAdapter(SaleRequest::class.java, kotlinxSerializerBridge(SaleRequest.serializer()))
     .create()
 
 val networkModule = module {
