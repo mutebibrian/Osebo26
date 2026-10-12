@@ -71,6 +71,7 @@ class RestockFragment : Fragment(), ShopSelectionAware {
                         id = product.id,
                         name = product.name,
                         sku = product.sku,
+                        stockAmount = product.stock,
                         currentStock = "${product.displayStock} ${product.unitDisplay}",
                         unit = product.unitDisplay,
                         allowsDecimalQuantity = product.allowsDecimalQuantity,

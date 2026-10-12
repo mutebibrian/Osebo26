@@ -14,6 +14,7 @@ import com.devbrian.osebo.data.remote.dto.response.SaleApiData
 import com.devbrian.osebo.data.remote.dto.response.SaleApiDataSerializer
 import com.devbrian.osebo.data.remote.dto.response.ShopDto
 import com.devbrian.osebo.data.remote.dto.response.ShopDtoSerializer
+import com.devbrian.osebo.data.remote.dto.response.ProductDto
 import com.devbrian.osebo.data.remote.api.OseboApiService
 import com.devbrian.osebo.data.remote.api.SupplierDto
 import com.devbrian.osebo.data.remote.api.SupplierDtoSerializer
@@ -52,6 +53,7 @@ private fun <T> kotlinxBridge(serializer: KSerializer<T>): JsonDeserializer<T> =
 private val authAwareGson: Gson = GsonBuilder()
     .registerTypeAdapter(AuthData::class.java, kotlinxBridge(AuthData.serializer()))
     .registerTypeAdapter(ShopDto::class.java, kotlinxBridge(ShopDtoSerializer))
+    .registerTypeAdapter(ProductDto::class.java, kotlinxBridge(ProductDto.serializer()))
     .registerTypeAdapter(SupplierDto::class.java, kotlinxBridge(SupplierDtoSerializer))
     .registerTypeAdapter(SaleApiData::class.java, kotlinxBridge(SaleApiDataSerializer))
     .create()

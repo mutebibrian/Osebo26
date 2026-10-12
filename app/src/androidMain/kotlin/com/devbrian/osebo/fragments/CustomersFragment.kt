@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import androidx.compose.ui.platform.ComposeView
 import androidx.fragment.app.Fragment
 import com.devbrian.osebo.ui.screens.CustomersScreen
+import com.devbrian.osebo.ui.MainActivity
 import com.devbrian.osebo.ui.theme.OseboTheme
 import com.devbrian.osebo.ui.viewmodels.CustomerViewModel
 import org.koin.androidx.viewmodel.ext.android.viewModel
@@ -27,6 +28,8 @@ class CustomersFragment : Fragment(), ShopSelectionAware {
                 OseboTheme {
                     CustomersScreen(
                         state = viewModel.uiState.value,
+                        shopIcon = (requireActivity() as MainActivity).currentShopPickerIcon(),
+                        onShopPickerClick = (requireActivity() as MainActivity)::openShopPicker,
                         onRefreshClick = viewModel::refreshCustomers,
                         onSearchQueryChange = viewModel::onSearchQueryChange,
                         onAddClick = viewModel::onAddClick,

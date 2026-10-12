@@ -1,17 +1,23 @@
 package com.devbrian.osebo.fragments
 
+import android.content.Intent
 import android.os.Bundle
-import android.text.Editable
-import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.devbrian.osebo.R
-import com.devbrian.osebo.databinding.FragmentPaymentDialogBinding
+import com.devbrian.osebo.ui.screens.SubscriptionPaymentScreen
+import com.devbrian.osebo.ui.screens.SubscriptionPaymentUiState
+import com.devbrian.osebo.ui.theme.OseboTheme
 import com.devbrian.osebo.ui.viewmodels.SubscriptionViewModel
 import com.devbrian.osebo.utils.Resource
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
@@ -20,329 +26,145 @@ import kotlinx.coroutines.launch
 import org.koin.androidx.viewmodel.ext.android.activityViewModel
 
 class PaymentDialogFragment : BottomSheetDialogFragment() {
-
-    private var _binding: FragmentPaymentDialogBinding? = null
-    private val binding get() = _binding!!
-
     private val viewModel: SubscriptionViewModel by activityViewModel()
-
-    private var shopId: String? = null
-    private var packageId: String? = null // may be a comma-joined list of ids
-    private var packageName: String? = null
-    private var amount: Double = 0.0
-    private var selectedMonths: Int = 1
-    private var isProcessing: Boolean = false
-    private var hasNavigated = false
-
+    private var shopId: String = ""
+    private var packageId: String = ""
     private var paymentListener: ((String, String, Int, Double) -> Unit)? = null
-
-    companion object {
-        const val TAG = "PaymentDialogFragment"
-
-        fun newInstance(
-            shopId: String,
-            packageId: String,
-            packageName: String,
-            amount: Double
-        ): PaymentDialogFragment {
-            return PaymentDialogFragment().apply {
-                arguments = Bundle().apply {
-                    putString("shopId", shopId)
-                    putString("packageId", packageId)
-                    putString("packageName", packageName)
-                    putDouble("amount", amount)
-                }
-            }
-        }
-    }
+    private var hasNavigated = false
+    private var uiState by mutableStateOf(SubscriptionPaymentUiState())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setStyle(STYLE_NORMAL, R.style.Theme_Osebo2_BottomSheetDialog)
-
-        arguments?.let {
-            shopId = it.getString("shopId")
-            packageId = it.getString("packageId")
-            packageName = it.getString("packageName")
-            amount = it.getDouble("amount")
+        arguments?.let { args ->
+            shopId = args.getString(ARG_SHOP_ID).orEmpty()
+            packageId = args.getString(ARG_PACKAGE_ID).orEmpty()
+            uiState = uiState.copy(
+                packageName = args.getString(ARG_PACKAGE_NAME).orEmpty().ifBlank { "Subscription plan" },
+                monthlyAmount = args.getDouble(ARG_AMOUNT),
+            )
         }
     }
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        _binding = FragmentPaymentDialogBinding.inflate(inflater, container, false)
-        return binding.root
+        savedInstanceState: Bundle?,
+    ): View = ComposeView(requireContext()).apply {
+        setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+        setContent {
+            OseboTheme {
+                SubscriptionPaymentScreen(
+                    state = uiState,
+                    isSheet = true,
+                    onStateChange = { uiState = it },
+                    onDismiss = ::dismiss,
+                    onSubmit = ::processPayment,
+                )
+            }
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-        setupUI()
-        setupListeners()
-        setupObservers()
+        observePayment()
     }
 
     fun setPaymentListener(listener: (String, String, Int, Double) -> Unit) {
-        this.paymentListener = listener
+        paymentListener = listener
     }
 
-    private fun setupUI() {
-        binding.tvDialogTitle.text = "Complete Subscription"
-
-        binding.tvPackageName.text = packageName ?: "Subscription Plan"
-        binding.tvPackagePrice.text = if (amount > 0) {
-            "UGX ${String.format("%,.0f", amount)}/month"
-        } else {
-            "Custom Pricing"
+    private fun observePayment() {
+        viewModel.isLoading.observe(viewLifecycleOwner) { loading ->
+            uiState = uiState.copy(isLoading = loading)
         }
-
-        if (amount > 0) {
-            binding.priceSection.visibility = View.VISIBLE
-            binding.customPricingSection.visibility = View.GONE
-        } else {
-            binding.priceSection.visibility = View.GONE
-            binding.customPricingSection.visibility = View.VISIBLE
-        }
-
-        setupMonthsSpinner()
-
-        binding.tilPhoneNumber.hint = "Mobile Money Number"
-        binding.tilPhoneNumber.placeholderText = "e.g., 0772123456 or 256772123456"
-    }
-
-    private fun setupMonthsSpinner() {
-        val months = arrayOf("1 month", "3 months", "6 months", "12 months")
-        val prices = arrayOf(
-            amount,
-            amount * 3,
-            amount * 6,
-            amount * 12
-        )
-
-        val adapter = android.widget.ArrayAdapter(
-            requireContext(),
-            android.R.layout.simple_spinner_dropdown_item,
-            months
-        )
-        binding.spinnerMonths.setAdapter(adapter)
-
-        binding.spinnerMonths.setOnItemClickListener { _, _, position, _ ->
-            val totalAmount = prices[position]
-            binding.tvTotalAmount.text = "UGX ${String.format("%,.0f", totalAmount)}"
-            binding.tvSavingsBadge.visibility = if (position > 0) View.VISIBLE else View.GONE
-
-            when (position) {
-                1 -> binding.tvSavingsBadge.text = "Save 5%"
-                2 -> binding.tvSavingsBadge.text = "Save 10%"
-                3 -> binding.tvSavingsBadge.text = "Save 15%"
-                else -> binding.tvSavingsBadge.text = ""
-            }
-
-            selectedMonths = when (position) {
-                0 -> 1
-                1 -> 3
-                2 -> 6
-                3 -> 12
-                else -> 1
-            }
-        }
-
-        binding.spinnerMonths.setText(months[0], false)
-        binding.tvTotalAmount.text = "UGX ${String.format("%,.0f", amount)}"
-        binding.tvSavingsBadge.visibility = View.GONE
-        selectedMonths = 1
-    }
-
-    private fun setupListeners() {
-        binding.btnPayNow.setOnClickListener {
-            if (!isProcessing) {
-                processPayment()
-            }
-        }
-
-        binding.btnCancel.setOnClickListener {
-            dismiss()
-        }
-
-        binding.ivClose.setOnClickListener {
-            dismiss()
-        }
-
-        binding.etPhoneNumber.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun afterTextChanged(s: Editable?) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                binding.tilPhoneNumber.error = null
-                binding.tvErrorMessage.visibility = View.GONE
-            }
-        })
-    }
-
-    private fun setupObservers() {
-        viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
-            isProcessing = isLoading
-            if (isLoading) {
-                binding.btnPayNow.isEnabled = false
-                binding.btnPayNow.text = "Processing..."
-                binding.progressBar.visibility = View.VISIBLE
-            } else {
-                binding.btnPayNow.isEnabled = true
-                binding.btnPayNow.text = "Pay Now"
-                binding.progressBar.visibility = View.GONE
-            }
-        }
-
         viewModel.errorMessage.observe(viewLifecycleOwner) { message ->
-            message?.let {
-                showError(it)
-            }
+            message?.let(::showError)
         }
-
         viewModel.subscriptionResult.observe(viewLifecycleOwner) { resource ->
-            println("🔔 PaymentDialog: subscriptionResult = $resource")
-
-            if (hasNavigated) {
-                println("🔔 PaymentDialog: Already navigated, ignoring")
-                return@observe
-            }
-
+            if (hasNavigated) return@observe
             when (resource) {
-                is Resource.Loading -> {
-                    println("🔔 PaymentDialog: Loading...")
-                }
+                is Resource.Loading -> uiState = uiState.copy(isLoading = true)
+                is Resource.Error -> showError(resource.message ?: "Failed to create subscription")
                 is Resource.Success -> {
+                    uiState = uiState.copy(isLoading = false)
                     val response = resource.data
                     val paymentId = response?.paymentId
-                    println("🔔 PaymentDialog: paymentId = $paymentId")
-
                     if (!paymentId.isNullOrBlank()) {
-                        println("🔔 PaymentDialog: Found paymentId, navigating to PaymentStatusFragment")
                         hasNavigated = true
-
-                        try {
-                            dismissAllowingStateLoss()
-                        } catch (e: Exception) {
-                            println("Error dismissing: ${e.message}")
-                        }
-
+                        val phone = uiState.phone
+                        val months = uiState.months
+                        dismissAllowingStateLoss()
                         viewLifecycleOwner.lifecycleScope.launch {
-                            delay(300)
+                            delay(250)
                             try {
-                                val action = PaymentDialogFragmentDirections
-                                    .actionPaymentDialogFragmentToPaymentStatusFragment(
-                                        transactionId = paymentId,
-                                        shopId = shopId!!,
-                                        amount = (amount * selectedMonths).toFloat(),
-                                        currency = "UGX",
-                                        phoneNumber = binding.etPhoneNumber.text.toString()
-                                    )
+                                val action = PaymentDialogFragmentDirections.actionPaymentDialogFragmentToPaymentStatusFragment(
+                                    transactionId = paymentId,
+                                    shopId = shopId,
+                                    amount = (uiState.monthlyAmount * months).toFloat(),
+                                    currency = "UGX",
+                                    phoneNumber = phone,
+                                )
                                 findNavController().navigate(action)
-                                println("✅ PaymentDialog: Navigation successful!")
-                            } catch (e: Exception) {
-                                println("❌ PaymentDialog: Navigation error - ${e.message}")
-                                e.printStackTrace()
-                                Toast.makeText(requireContext(),
-                                    "Payment initiated. Please check your phone.",
-                                    Toast.LENGTH_LONG).show()
+                            } catch (_: Exception) {
+                                Toast.makeText(requireContext(), "Payment initiated. Check your phone.", Toast.LENGTH_LONG).show()
                             }
                         }
                     } else {
-                        println("🔔 PaymentDialog: No paymentId received")
                         hasNavigated = true
-                        try {
-                            dismissAllowingStateLoss()
-                        } catch (e: Exception) {}
-                        Toast.makeText(requireContext(),
-                            response?.message ?: "Subscription created successfully!",
-                            Toast.LENGTH_SHORT).show()
+                        dismissAllowingStateLoss()
+                        Toast.makeText(requireContext(), response?.message ?: "Subscription created successfully", Toast.LENGTH_SHORT).show()
                     }
-                }
-                is Resource.Error -> {
-                    println("🔔 PaymentDialog: Error - ${resource.message}")
-                    showError(resource.message ?: "Failed to create subscription")
                 }
             }
         }
     }
 
     private fun processPayment() {
-        val phoneNumber = binding.etPhoneNumber.text.toString().trim()
-
-        val validationError = validatePhoneNumber(phoneNumber)
+        val validationError = validatePhoneNumber(uiState.phone)
         if (validationError != null) {
-            binding.tilPhoneNumber.error = validationError
-            binding.tvErrorMessage.text = validationError
-            binding.tvErrorMessage.visibility = View.VISIBLE
+            uiState = uiState.copy(phoneError = validationError, submitError = validationError)
             return
         }
-
-        val formattedPhone = formatPhoneNumberWithCountryCode(phoneNumber)
-
-        if (packageId.isNullOrEmpty()) {
+        if (packageId.isBlank()) {
             showError("Invalid package selected")
             return
         }
-
-        if (shopId.isNullOrEmpty()) {
+        if (shopId.isBlank()) {
             showError("No shop selected")
             return
         }
-
-        if (amount <= 0) {
+        if (uiState.monthlyAmount <= 0) {
             showCustomPlanConfirmation()
             return
         }
-
-        showPaymentConfirmationDialog(formattedPhone, selectedMonths)
+        showPaymentConfirmation(formatPhoneNumber(uiState.phone))
     }
 
-    private fun showPaymentConfirmationDialog(phoneNumber: String, months: Int) {
-        val totalAmount = amount * months
-
-        println("🔔 PaymentDialog: Showing confirmation dialog for amount: $totalAmount")
-
+    private fun showPaymentConfirmation(phone: String) {
+        val total = uiState.monthlyAmount * uiState.months
         androidx.appcompat.app.AlertDialog.Builder(requireContext())
-            .setTitle("Confirm Payment")
-            .setMessage(buildString {
-                appendLine("Package: $packageName")
-                appendLine("Amount: UGX ${String.format("%,.0f", totalAmount)}")
-                appendLine("Duration: $months month${if (months > 1) "s" else ""}")
-                appendLine("Phone: $phoneNumber")
-                appendLine("\nYou will receive a payment prompt on your phone.")
-            })
+            .setTitle("Confirm payment")
+            .setMessage(
+                "Package: ${uiState.packageName}\n" +
+                    "Amount: UGX ${String.format("%,.0f", total)}\n" +
+                    "Duration: ${uiState.months} month${if (uiState.months == 1) "" else "s"}\n" +
+                    "Phone: $phone\n\nA payment prompt will be sent to your phone.",
+            )
             .setPositiveButton("Confirm") { _, _ ->
-                println("✅ User confirmed payment - calling createSubscription")
-
-                // packageId may be a comma-joined string of multiple ids (from
-                // SubscriptionPackagesFragment's multi-bundle selection) — split it back
-                // into a list for the ViewModel's plural signature.
-                val packageIdList = packageId
-                    ?.split(",")
-                    ?.map { it.trim() }
-                    ?.filter { it.isNotEmpty() }
-                    ?: emptyList()
-
-                if (paymentListener != null) {
-                    paymentListener?.invoke(phoneNumber, packageId!!, months, totalAmount)
-                } else {
-                    viewModel.createSubscription(shopId!!, packageIdList, phoneNumber, months)
-                }
+                val ids = packageId.split(",").map(String::trim).filter(String::isNotEmpty)
+                paymentListener?.invoke(phone, packageId, uiState.months, total)
+                    ?: viewModel.createSubscription(shopId, ids, phone, uiState.months)
             }
-            .setNegativeButton("Cancel") { _, _ ->
-                println("❌ User cancelled payment")
-            }
-            .setCancelable(true)
+            .setNegativeButton("Cancel", null)
             .show()
     }
 
     private fun showCustomPlanConfirmation() {
         androidx.appcompat.app.AlertDialog.Builder(requireContext())
-            .setTitle("Custom Plan Request")
-            .setMessage("You're about to request a custom plan. Our sales team will contact you within 24 hours.")
-            .setPositiveButton("Request Callback") { _, _ ->
+            .setTitle("Custom plan request")
+            .setMessage("Our sales team will contact you about a plan tailored to your business.")
+            .setPositiveButton("Request callback") { _, _ ->
                 openContactSales()
                 dismiss()
             }
@@ -351,26 +173,12 @@ class PaymentDialogFragment : BottomSheetDialogFragment() {
     }
 
     private fun openContactSales() {
-        val phoneNumber = binding.etPhoneNumber.text.toString().trim()
-        val formattedPhone = if (phoneNumber.isNotEmpty()) {
-            formatPhoneNumberWithCountryCode(phoneNumber)
-        } else {
-            "Not provided"
-        }
-
-        val intent = android.content.Intent(android.content.Intent.ACTION_SENDTO).apply {
+        val phone = uiState.phone.takeIf(String::isNotBlank)?.let(::formatPhoneNumber) ?: "Not provided"
+        val intent = Intent(Intent.ACTION_SENDTO).apply {
             data = "mailto:sales@osebo.ai".toUri()
-            putExtra(android.content.Intent.EXTRA_SUBJECT, "Custom Plan Request - ${packageName ?: "Enterprise"}")
-            putExtra(android.content.Intent.EXTRA_TEXT, buildString {
-                appendLine("Hello,")
-                appendLine("\nI'm interested in a custom subscription plan.")
-                appendLine("\nShop ID: ${shopId ?: "N/A"}")
-                appendLine("Package: ${packageName ?: "Enterprise"}")
-                appendLine("Phone: $formattedPhone")
-                appendLine("\nPlease contact me with more information.")
-            })
+            putExtra(Intent.EXTRA_SUBJECT, "Custom Plan Request - ${uiState.packageName}")
+            putExtra(Intent.EXTRA_TEXT, "Shop ID: $shopId\nPackage: ${uiState.packageName}\nPhone: $phone")
         }
-
         try {
             startActivity(intent)
         } catch (_: Exception) {
@@ -378,9 +186,18 @@ class PaymentDialogFragment : BottomSheetDialogFragment() {
         }
     }
 
-    private fun formatPhoneNumberWithCountryCode(phone: String): String {
-        val cleaned = phone.replace("\\s".toRegex(), "").replace("-", "")
+    private fun validatePhoneNumber(phone: String): String? {
+        val digits = phone.filter(Char::isDigit)
+        return when {
+            digits.isEmpty() -> "Phone number is required"
+            digits.length < 9 -> "Use at least 9 digits"
+            digits.length > 12 -> "Phone number is too long"
+            else -> null
+        }
+    }
 
+    private fun formatPhoneNumber(phone: String): String {
+        val cleaned = phone.replace("\\s".toRegex(), "").replace("-", "")
         return when {
             cleaned.startsWith("+256") -> cleaned
             cleaned.startsWith("256") -> "+$cleaned"
@@ -390,29 +207,26 @@ class PaymentDialogFragment : BottomSheetDialogFragment() {
         }
     }
 
-    private fun validatePhoneNumber(phone: String): String? {
-        if (phone.isEmpty()) {
-            return "Phone number is required"
-        }
-
-        val cleaned = phone.replace("\\s".toRegex(), "").replace("-", "")
-        val digits = cleaned.filter { it.isDigit() }
-
-        return when {
-            digits.length < 9 -> "Phone number must have at least 9 digits"
-            digits.length > 12 -> "Phone number too long"
-            else -> null
-        }
-    }
-
     private fun showError(message: String) {
-        binding.tvErrorMessage.text = message
-        binding.tvErrorMessage.visibility = View.VISIBLE
-        Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+        uiState = uiState.copy(isLoading = false, submitError = message)
+        if (isAdded) Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
     }
 
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
+    companion object {
+        const val TAG = "PaymentDialogFragment"
+        private const val ARG_SHOP_ID = "shopId"
+        private const val ARG_PACKAGE_ID = "packageId"
+        private const val ARG_PACKAGE_NAME = "packageName"
+        private const val ARG_AMOUNT = "amount"
+
+        fun newInstance(shopId: String, packageId: String, packageName: String, amount: Double) =
+            PaymentDialogFragment().apply {
+                arguments = Bundle().apply {
+                    putString(ARG_SHOP_ID, shopId)
+                    putString(ARG_PACKAGE_ID, packageId)
+                    putString(ARG_PACKAGE_NAME, packageName)
+                    putDouble(ARG_AMOUNT, amount)
+                }
+            }
     }
 }

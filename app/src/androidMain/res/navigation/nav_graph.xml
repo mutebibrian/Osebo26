@@ -5,6 +5,11 @@
     android:id="@+id/nav_graph"
     app:startDestination="@id/mainDashboardFragment">
 
+    <fragment
+        android:id="@+id/oseboAiFragment"
+        android:name="com.devbrian.osebo.fragments.OseboAiFragment"
+        android:label="Osebo AI" />
+
     <!-- MAIN DASHBOARD - Overview of ALL shops -->
     <fragment
         android:id="@+id/mainDashboardFragment"
@@ -260,8 +265,7 @@
     <fragment
         android:id="@+id/newSaleFragment"
         android:name="com.devbrian.osebo.fragments.NewSaleFragment"
-        android:label="New Sale"
-        tools:layout="@layout/fragment_new_sale">
+        android:label="New Sale">
 
         <action
             android:id="@+id/action_newSaleFragment_to_paymentFragment"
@@ -272,14 +276,18 @@
     <fragment
         android:id="@+id/paymentFragment"
         android:name="com.devbrian.osebo.fragments.PaymentFragment"
-        android:label="Payment"
-        tools:layout="@layout/fragment_payment">
+        android:label="Payment">
 
         <argument
             android:name="customerId"
             app:argType="string"
             android:defaultValue="@null"
             app:nullable="true" />
+
+        <argument
+            android:name="customerName"
+            app:argType="string"
+            android:defaultValue="Walk-in Customer" />
 
         <argument
             android:name="cartItems"
@@ -474,6 +482,10 @@
             app:destination="@id/restockFragment" />
 
         <action
+            android:id="@+id/action_inventory_to_removeStock"
+            app:destination="@id/removeStockFragment" />
+
+        <action
             android:id="@+id/action_inventory_to_productDetails"
             app:destination="@id/productDetailsFragment">
             <argument
@@ -495,6 +507,11 @@
         android:name="com.devbrian.osebo.fragments.RestockFragment"
         android:label="Add Stock" />
 
+    <fragment
+        android:id="@+id/removeStockFragment"
+        android:name="com.devbrian.osebo.fragments.RemoveStockFragment"
+        android:label="Remove Stock" />
+
     <!-- Add Expense Fragment -->
     <fragment
         android:id="@+id/addExpenseFragment"
@@ -505,8 +522,7 @@
     <fragment
         android:id="@+id/addProductFragment"
         android:name="com.devbrian.osebo.fragments.AddProductFragment"
-        android:label="Add Product"
-        tools:layout="@layout/fragment_add_product">
+        android:label="Add Product">
 
         <argument
             android:name="productId"
@@ -644,8 +660,7 @@
     <dialog
         android:id="@+id/paymentDialogFragment"
         android:name="com.devbrian.osebo.fragments.PaymentDialogFragment"
-        android:label="Payment"
-        tools:layout="@layout/fragment_payment_dialog">
+        android:label="Payment">
 
         <argument
             android:name="shopId"
@@ -758,8 +773,7 @@
     <fragment
         android:id="@+id/subscriptionPaymentFragment"
         android:name="com.devbrian.osebo.fragments.SubscriptionPaymentFragment"
-        android:label="Complete Payment"
-        tools:layout="@layout/fragment_subscription_payment">
+        android:label="Complete Payment">
 
         <argument
             android:name="shop"
@@ -842,8 +856,7 @@
     <fragment
         android:id="@+id/editShopFragment"
         android:name="com.devbrian.osebo.fragments.EditShopFragment"
-        android:label="Edit Shop"
-        tools:layout="@layout/fragment_edit_shop">
+        android:label="Edit Shop">
 
         <argument
             android:name="shop"

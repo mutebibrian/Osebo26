@@ -40,6 +40,7 @@ import com.devbrian.osebo.ui.components.MoreMenuSection
 import com.devbrian.osebo.ui.components.MoreMenuSheet
 import com.devbrian.osebo.ui.components.ShopPickerOverlay
 import com.devbrian.osebo.ui.components.ShopPickerUiState
+import com.devbrian.osebo.ui.components.shopCategoryIcon
 import com.devbrian.osebo.ui.components.UserBottomNavigation
 import com.devbrian.osebo.ui.components.UserNavigationItem
 import com.devbrian.osebo.ui.theme.OseboTheme
@@ -49,6 +50,7 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 import org.koin.android.ext.android.inject
+import org.jetbrains.compose.resources.DrawableResource
 
 private enum class SubscriptionVerification {
     Active,
@@ -79,6 +81,7 @@ class MainActivity : AppCompatActivity() {
         R.id.suppliersFragment,
         R.id.paymentFragment,
         R.id.receiptFragment,
+        R.id.removeStockFragment,
     )
 
     private val managementRequiredDestinations = setOf(
@@ -95,6 +98,7 @@ class MainActivity : AppCompatActivity() {
         R.id.addProductFragment,
         R.id.productDetailsFragment,
         R.id.restockFragment,
+        R.id.removeStockFragment,
     )
 
     private val salesBottomNavigationDestinations = setOf(
@@ -110,6 +114,20 @@ class MainActivity : AppCompatActivity() {
         R.id.inventoryFragment,
         R.id.productDetailsFragment,
         R.id.restockFragment,
+        R.id.removeStockFragment,
+        R.id.salesFragment,
+        R.id.financeFragment,
+        R.id.financialStatementFragment,
+        R.id.transactionsFragment,
+        R.id.reportsFragment,
+        R.id.customersFragment,
+        R.id.employeesFragment,
+        R.id.suppliersFragment,
+    )
+
+    private val embeddedShopPickerDestinations = setOf(
+        R.id.mainDashboardFragment,
+        R.id.inventoryFragment,
         R.id.salesFragment,
         R.id.financeFragment,
         R.id.financialStatementFragment,
@@ -131,6 +149,7 @@ class MainActivity : AppCompatActivity() {
     private val moreMenuSections: MutableState<List<MoreMenuSection>> = mutableStateOf(emptyList())
     private val shopPickerState: MutableState<ShopPickerUiState> = mutableStateOf(ShopPickerUiState())
     private lateinit var shopPickerView: ComposeView
+    private lateinit var bottomNavigationView: ComposeView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -166,7 +185,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupUserBottomNavigation() {
-        val bottomNavigation = ComposeView(this).apply {
+        bottomNavigationView = ComposeView(this).apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
                 OseboTheme {
@@ -174,11 +193,10 @@ class MainActivity : AppCompatActivity() {
                         selectedItem = selectedBottomNavigationItem.value,
                         onItemSelected = ::handleBottomNavigationSelection,
                         onOseboAiClick = {
-                            Toast.makeText(
-                                this@MainActivity,
-                                "Osebo AI is coming next",
-                                Toast.LENGTH_SHORT,
-                            ).show()
+                            dismissMoreMenu()
+                            if (navController.currentDestination?.id != R.id.oseboAiFragment) {
+                                navigateWithVerifiedSubscription(R.id.oseboAiFragment)
+                            }
                         },
                     )
 
@@ -194,7 +212,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.contentOverlay.addView(
-            bottomNavigation,
+            bottomNavigationView,
             FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -205,6 +223,20 @@ class MainActivity : AppCompatActivity() {
         binding.mainFab.visibility = View.GONE
         binding.fabSale.visibility = View.GONE
         binding.fabProduct.visibility = View.GONE
+        updateBottomNavigationVisibility(navController.currentDestination?.id)
+    }
+
+    private fun updateBottomNavigationVisibility(destinationId: Int?) {
+        if (::bottomNavigationView.isInitialized) {
+            bottomNavigationView.visibility =
+                if (destinationId == R.id.newSaleFragment ||
+                    destinationId == R.id.addProductFragment ||
+                    destinationId == R.id.restockFragment ||
+                    destinationId == R.id.removeStockFragment ||
+                    destinationId == R.id.paymentFragment ||
+                    destinationId == R.id.oseboAiFragment
+                ) View.GONE else View.VISIBLE
+        }
     }
 
     private fun setupShopPicker() {
@@ -241,6 +273,7 @@ class MainActivity : AppCompatActivity() {
         shopPickerState.value = shopPickerState.value.copy(
             isHome = destinationId == R.id.mainDashboardFragment,
             isOpen = false,
+            showTrigger = destinationId !in embeddedShopPickerDestinations,
         )
         if (::shopPickerView.isInitialized) {
             (shopPickerView.layoutParams as? FrameLayout.LayoutParams)?.let { params ->
@@ -251,7 +284,7 @@ class MainActivity : AppCompatActivity() {
             }
             shopPickerView.visibility =
                 if (destinationId in shopPickerDestinations &&
-                    destinationId != R.id.mainDashboardFragment
+                    destinationId !in embeddedShopPickerDestinations
                 ) View.VISIBLE else View.GONE
         }
     }
@@ -262,6 +295,9 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch { reloadShopPickerShops() }
     }
 
+    fun currentShopPickerIcon(): DrawableResource =
+        shopCategoryIcon(currentShop?.shopType ?: preferenceManager.getBusinessType())
+
     private fun dismissShopPicker() {
         shopPickerState.value = shopPickerState.value.copy(isOpen = false)
         hideHomeShopPickerHost()
@@ -269,7 +305,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun hideHomeShopPickerHost() {
         if (::shopPickerView.isInitialized &&
-            navController.currentDestination?.id == R.id.mainDashboardFragment
+            navController.currentDestination?.id in embeddedShopPickerDestinations
         ) {
             shopPickerView.visibility = View.GONE
         }
@@ -546,6 +582,7 @@ class MainActivity : AppCompatActivity() {
         navController.addOnDestinationChangedListener { _, destination, arguments ->
             Log.d("NavDrawer_DEBUG", "📍 Destination changed to: ${destination.label} (ID: ${destination.id})")
             syncBottomNavigation(destination.id)
+            updateBottomNavigationVisibility(destination.id)
             updateShopPickerVisibility(destination.id)
 
             if (destination.id == R.id.mainDashboardFragment) {

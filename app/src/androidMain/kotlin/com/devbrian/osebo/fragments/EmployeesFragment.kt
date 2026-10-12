@@ -24,6 +24,7 @@ import com.devbrian.osebo.models.PermissionType
 import com.devbrian.osebo.ui.screens.EmployeeItemUi
 import com.devbrian.osebo.ui.screens.EmployeesScreen
 import com.devbrian.osebo.ui.screens.EmployeesUiState
+import com.devbrian.osebo.ui.MainActivity
 import com.devbrian.osebo.ui.theme.OseboTheme
 import com.devbrian.osebo.utils.PermissionManager
 import java.net.ConnectException
@@ -70,6 +71,8 @@ class EmployeesFragment : Fragment(), ShopSelectionAware {
             OseboTheme {
                 EmployeesScreen(
                     state = uiState,
+                    shopIcon = (requireActivity() as MainActivity).currentShopPickerIcon(),
+                    onShopPickerClick = (requireActivity() as MainActivity)::openShopPicker,
                     onRefreshClick = ::checkAccessAndLoadData,
                     onAddEmployeeClick = { withPermission(PermissionType.MANAGE_EMPLOYEES, ::openAddEmployee) },
                     onAttendanceClick = { withPermission(PermissionType.VIEW_EMPLOYEES) { showMessage("Attendance coming soon") } },

@@ -20,7 +20,10 @@ import com.devbrian.osebo.data.repository.DashboardRepository
 import com.devbrian.osebo.data.repository.FinanceRepository
 import com.devbrian.osebo.data.repository.ProductRepository
 import com.devbrian.osebo.data.repository.SalesRepository
+import com.devbrian.osebo.data.repository.ShopFinancialData
 import com.devbrian.osebo.data.repository.ShopRepositoryImpl
+import com.devbrian.osebo.data.repository.ShopSummaryData
+import com.devbrian.osebo.data.repository.ShopTimeSeriesData
 import com.devbrian.osebo.models.ShopPerformance
 import com.devbrian.osebo.ui.MainActivity
 import com.devbrian.osebo.ui.screens.DashboardScreen
@@ -33,6 +36,9 @@ import com.devbrian.osebo.utils.Resource
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import java.text.NumberFormat
 import java.util.*
 import org.koin.android.ext.android.inject
@@ -44,6 +50,13 @@ private data class DashboardTotals(
     val totalExpenses: Double = 0.0,
     val todaySales: Double = 0.0,
     val todayExpenses: Double = 0.0,
+)
+
+private data class LoadedShopDashboard(
+    val shop: Shop,
+    val summary: ShopSummaryData?,
+    val financial: ShopFinancialData?,
+    val timeSeries: ShopTimeSeriesData?,
 )
 
 class MainDashboardFragment : Fragment(), ShopSelectionAware {
@@ -255,8 +268,6 @@ class MainDashboardFragment : Fragment(), ShopSelectionAware {
 
                                 updateTotals(totals, displayedShops.size)
                                 submitShops(shops, selectedShop?.id)
-                                dashboardRepository.refreshDashboardData()
-                                updateTrendData()
                             } else {
                                 submitShops(emptyList(), null)
                                 Toast.makeText(requireContext(), "No shops found.", Toast.LENGTH_LONG).show()
@@ -279,7 +290,6 @@ class MainDashboardFragment : Fragment(), ShopSelectionAware {
                             val totals = loadActualSalesData(displayedShops)
                             updateTotals(totals, displayedShops.size)
                             submitShops(shops, selectedShop?.id)
-                            updateTrendData()
                             Toast.makeText(requireContext(), "Using cached shop data", Toast.LENGTH_SHORT).show()
                         } else {
                             Toast.makeText(requireContext(), refreshResult.message ?: "Failed to load shops", Toast.LENGTH_LONG).show()
@@ -319,11 +329,27 @@ class MainDashboardFragment : Fragment(), ShopSelectionAware {
         var grandTodayExpenses = 0.0
         val shopSalesMap = mutableMapOf<String, Double>()
         val shopExpensesMap = mutableMapOf<String, Double>()
+        val salesByPeriod = linkedMapOf<String, Double>()
+        val expensesByPeriod = linkedMapOf<String, Double>()
 
-        for (shop in shops) {
-            val shopUuid = shop.uuid ?: shop.id
-            val summary = dashboardRepository.fetchShopSummary(shopUuid)
-            val financial = dashboardRepository.fetchShopFinancialStatement(shopUuid)
+        val loadedShops = coroutineScope {
+            shops.map { shop ->
+                async {
+                    val shopUuid = shop.uuid ?: shop.id
+                    val summaryTask = async { dashboardRepository.fetchShopSummary(shopUuid) }
+                    val financialTask = async { dashboardRepository.fetchShopFinancialStatement(shopUuid) }
+                    val timeSeriesTask = async { dashboardRepository.fetchShopTimeSeries(shopUuid) }
+                    LoadedShopDashboard(
+                        shop = shop,
+                        summary = summaryTask.await(),
+                        financial = financialTask.await(),
+                        timeSeries = timeSeriesTask.await(),
+                    )
+                }
+            }.awaitAll()
+        }
+
+        for ((shop, summary, financial, timeSeries) in loadedShops) {
             val sales = summary?.totalSales ?: financial?.totalSales ?: shop.totalRevenue
             val expenses = financial?.totalExpenses ?: shop.totalExpenses
             val todaySales = summary?.todaySales ?: 0.0
@@ -335,6 +361,13 @@ class MainDashboardFragment : Fragment(), ShopSelectionAware {
             grandTotalExpenses += expenses
             grandTodaySales += todaySales
             grandTodayExpenses += todayExpenses
+
+            timeSeries?.labels?.forEachIndexed { index, label ->
+                salesByPeriod[label] = (salesByPeriod[label] ?: 0.0) +
+                    (timeSeries.sales.getOrNull(index) ?: 0.0)
+                expensesByPeriod[label] = (expensesByPeriod[label] ?: 0.0) +
+                    (timeSeries.expenses.getOrNull(index) ?: 0.0)
+            }
         }
 
         val maxSales = shopSalesMap.values.maxOrNull() ?: 0.0
@@ -355,6 +388,7 @@ class MainDashboardFragment : Fragment(), ShopSelectionAware {
         }
 
         val sortedPerformances = performances.sortedByDescending { it.totalSales }
+        val recentLabels = (salesByPeriod.keys + expensesByPeriod.keys).distinct().takeLast(7)
         uiState = uiState.copy(
             shopPerformances = sortedPerformances.map {
                 DashboardShopPerformanceUi(
@@ -363,7 +397,10 @@ class MainDashboardFragment : Fragment(), ShopSelectionAware {
                     location = it.location,
                     salesPercentage = it.salesPercentage,
                 )
-            }
+            },
+            performanceLabels = recentLabels,
+            salesTrend = recentLabels.map { (salesByPeriod[it] ?: 0.0).toFloat() },
+            expensesTrend = recentLabels.map { (expensesByPeriod[it] ?: 0.0).toFloat() },
         )
 
         if (shops.size == 1) {
@@ -397,14 +434,6 @@ class MainDashboardFragment : Fragment(), ShopSelectionAware {
             todaySales = formatCompactCurrency(totals.todaySales),
             todayExpenses = formatCompactCurrency(totals.todayExpenses),
             todayBalance = formatCompactCurrency(todayBalance),
-        )
-    }
-
-    private suspend fun updateTrendData() {
-        val timeSeries = dashboardRepository.getTimeSeriesSync()
-        uiState = uiState.copy(
-            salesTrend = timeSeries?.getSalesList()?.map(Double::toFloat).orEmpty(),
-            expensesTrend = timeSeries?.getExpensesList()?.map(Double::toFloat).orEmpty(),
         )
     }
 

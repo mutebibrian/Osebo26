@@ -20,6 +20,7 @@ import com.devbrian.osebo.ui.screens.FinanceScreen
 import com.devbrian.osebo.ui.screens.FinanceTransactionAction
 import com.devbrian.osebo.ui.screens.FinanceTransactionUi
 import com.devbrian.osebo.ui.screens.FinanceUiState
+import com.devbrian.osebo.ui.MainActivity
 import com.devbrian.osebo.ui.theme.OseboTheme
 import com.devbrian.osebo.ui.viewmodels.FinanceViewModel
 import org.koin.androidx.viewmodel.ext.android.viewModel
@@ -63,6 +64,8 @@ class FinanceFragment : Fragment(), ShopSelectionAware {
                 FinanceScreen(
                     state = uiState,
                     periods = periods,
+                    shopIcon = (requireActivity() as MainActivity).currentShopPickerIcon(),
+                    onShopPickerClick = (requireActivity() as MainActivity)::openShopPicker,
                     onPeriodSelected = ::selectPeriod,
                     onRefreshClick = ::refreshData,
                     onAddExpenseClick = { navigateTo(R.id.addExpenseFragment) },

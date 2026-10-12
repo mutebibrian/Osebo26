@@ -1,6 +1,7 @@
 package com.devbrian.osebo.fragments
 
 import android.os.Bundle
+import android.util.Patterns
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -12,7 +13,6 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
-import com.devbrian.osebo.R
 import com.devbrian.osebo.data.ApiService
 import com.devbrian.osebo.data.PreferenceManager
 import com.devbrian.osebo.data.remote.api.SupplierDto
@@ -20,12 +20,14 @@ import com.devbrian.osebo.data.remote.dto.request.AddSupplierRequest
 import com.devbrian.osebo.data.remote.dto.request.UpdateSupplierRequest
 import com.devbrian.osebo.models.PermissionType
 import com.devbrian.osebo.ui.screens.SupplierItemUi
+import com.devbrian.osebo.ui.screens.SupplierFormDialog
+import com.devbrian.osebo.ui.screens.SupplierFormUiState
 import com.devbrian.osebo.ui.screens.SuppliersScreen
 import com.devbrian.osebo.ui.screens.SuppliersUiState
+import com.devbrian.osebo.ui.MainActivity
 import com.devbrian.osebo.ui.theme.OseboTheme
 import com.devbrian.osebo.utils.PermissionManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.android.material.textfield.TextInputEditText
 import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.util.Locale
@@ -41,6 +43,7 @@ class SuppliersFragment : Fragment(), ShopSelectionAware {
     private val apiService: ApiService by inject()
     private lateinit var permissionManager: PermissionManager
     private var uiState by mutableStateOf(SuppliersUiState())
+    private var supplierEditor by mutableStateOf<SupplierEditorState?>(null)
     private var sourceSuppliers: List<Supplier> = emptyList()
     private var supplierLoadJob: Job? = null
 
@@ -69,6 +72,8 @@ class SuppliersFragment : Fragment(), ShopSelectionAware {
             OseboTheme {
                 SuppliersScreen(
                     state = uiState,
+                    shopIcon = (requireActivity() as MainActivity).currentShopPickerIcon(),
+                    onShopPickerClick = (requireActivity() as MainActivity)::openShopPicker,
                     onRefreshClick = ::checkAccessAndLoadSuppliers,
                     onAddSupplierClick = {
                         withPermission(PermissionType.MANAGE_SUPPLIERS) { showSupplierEditor() }
@@ -80,6 +85,15 @@ class SuppliersFragment : Fragment(), ShopSelectionAware {
                         sourceSuppliers.firstOrNull { it.id == id }?.let(::showSupplierOptions)
                     },
                 )
+                supplierEditor?.let { editor ->
+                    SupplierFormDialog(
+                        state = editor.form,
+                        isEditMode = editor.existing != null,
+                        onStateChange = { updated -> supplierEditor = editor.copy(form = updated) },
+                        onDismiss = { if (!editor.form.isLoading) supplierEditor = null },
+                        onSubmit = ::validateAndSaveSupplier,
+                    )
+                }
             }
         }
     }
@@ -180,43 +194,49 @@ class SuppliersFragment : Fragment(), ShopSelectionAware {
     )
 
     private fun showSupplierEditor(supplier: Supplier? = null) {
-        val dialogView = layoutInflater.inflate(R.layout.dialog_add_supplier, null)
-        val nameField = dialogView.findViewById<TextInputEditText>(R.id.et_supplier_name)
-        val contactField = dialogView.findViewById<TextInputEditText>(R.id.et_contact_person)
-        val phoneField = dialogView.findViewById<TextInputEditText>(R.id.et_phone)
-        val emailField = dialogView.findViewById<TextInputEditText>(R.id.et_email)
-        val addressField = dialogView.findViewById<TextInputEditText>(R.id.et_address)
+        supplierEditor = SupplierEditorState(
+            existing = supplier,
+            form = SupplierFormUiState(
+                name = supplier?.name.orEmpty(),
+                contactPerson = supplier?.contactPerson.orEmpty(),
+                phone = supplier?.phone.orEmpty(),
+                email = supplier?.email.orEmpty(),
+                address = supplier?.address.orEmpty(),
+            ),
+        )
+    }
 
-        supplier?.let {
-            nameField.setText(it.name)
-            contactField.setText(it.contactPerson)
-            phoneField.setText(it.phone)
-            emailField.setText(it.email)
-            addressField.setText(it.address)
+    private fun validateAndSaveSupplier() {
+        val editor = supplierEditor ?: return
+        val form = editor.form
+        val nameError = "Supplier name is required".takeIf { form.name.trim().isEmpty() }
+        val phoneError = "Phone number is required".takeIf { form.phone.trim().isEmpty() }
+        val emailError = if (form.email.isNotBlank() && !Patterns.EMAIL_ADDRESS.matcher(form.email.trim()).matches()) {
+            "Enter a valid email address"
+        } else {
+            null
+        }
+        val hasError = listOf(nameError, phoneError, emailError).any { it != null }
+        if (hasError) {
+            supplierEditor = editor.copy(
+                form = form.copy(
+                    nameError = nameError,
+                    phoneError = phoneError,
+                    emailError = emailError,
+                    submitError = "Check the highlighted supplier details.",
+                ),
+            )
+            return
         }
 
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(if (supplier == null) "Add supplier" else "Edit supplier")
-            .setView(dialogView)
-            .setPositiveButton(if (supplier == null) "Save" else "Update") { _, _ ->
-                val name = nameField.text?.toString()?.trim().orEmpty()
-                val phone = phoneField.text?.toString()?.trim().orEmpty()
-                if (name.isBlank() || phone.isBlank()) {
-                    showMessage("Supplier name and phone are required")
-                    return@setPositiveButton
-                }
-
-                saveSupplier(
-                    existing = supplier,
-                    name = name,
-                    contactPerson = contactField.text?.toString()?.trim().orEmpty(),
-                    phone = phone,
-                    email = emailField.text?.toString()?.trim().orEmpty(),
-                    address = addressField.text?.toString()?.trim().orEmpty(),
-                )
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
+        saveSupplier(
+            existing = editor.existing,
+            name = form.name.trim(),
+            contactPerson = form.contactPerson.trim(),
+            phone = form.phone.trim(),
+            email = form.email.trim(),
+            address = form.address.trim(),
+        )
     }
 
     private fun showSupplierOptions(supplier: Supplier) {
@@ -271,11 +291,11 @@ class SuppliersFragment : Fragment(), ShopSelectionAware {
         address: String,
     ) {
         viewLifecycleOwner.lifecycleScope.launch {
-            uiState = uiState.copy(isLoading = true)
+            supplierEditor = supplierEditor?.let { it.copy(form = it.form.copy(isLoading = true, submitError = null)) }
             try {
                 val shopUuid = preferenceManager.getCurrentShopUuid()
                 if (shopUuid.isBlank()) {
-                    showMessage("No shop selected")
+                    showSupplierFormError("No shop selected")
                     return@launch
                 }
 
@@ -320,19 +340,25 @@ class SuppliersFragment : Fragment(), ShopSelectionAware {
                         publishSuppliers()
                     } ?: loadSuppliers()
                     showMessage(if (existing == null) "Supplier added" else "Supplier updated")
+                    supplierEditor = null
                 } else {
-                    showMessage(body?.message ?: "Failed to save supplier")
+                    showSupplierFormError(body?.message ?: "Failed to save supplier")
                 }
             } catch (_: ConnectException) {
-                showMessage("Network error. Please check your connection.")
+                showSupplierFormError("Network error. Please check your connection.")
             } catch (_: SocketTimeoutException) {
-                showMessage("Connection timeout. Please try again.")
+                showSupplierFormError("Connection timeout. Please try again.")
             } catch (error: Exception) {
-                showMessage(error.message ?: "Failed to save supplier")
+                showSupplierFormError(error.message ?: "Failed to save supplier")
             } finally {
-                uiState = uiState.copy(isLoading = false)
+                supplierEditor = supplierEditor?.let { it.copy(form = it.form.copy(isLoading = false)) }
             }
         }
+    }
+
+    private fun showSupplierFormError(message: String) {
+        supplierEditor = supplierEditor?.let { it.copy(form = it.form.copy(submitError = message)) }
+        showMessage(message)
     }
 
     private fun deleteSupplier(supplier: Supplier) {
@@ -399,5 +425,10 @@ class SuppliersFragment : Fragment(), ShopSelectionAware {
         val address: String,
         val products: Int,
         val totalPurchases: Double,
+    )
+
+    private data class SupplierEditorState(
+        val existing: Supplier?,
+        val form: SupplierFormUiState,
     )
 }

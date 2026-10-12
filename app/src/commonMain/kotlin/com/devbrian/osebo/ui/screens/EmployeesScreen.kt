@@ -64,6 +64,7 @@ import com.devbrian.osebo.resources.iconsax_more
 import com.devbrian.osebo.resources.iconsax_refresh
 import com.devbrian.osebo.resources.iconsax_reports
 import com.devbrian.osebo.resources.iconsax_search
+import com.devbrian.osebo.ui.components.ShopPickerButton
 import com.devbrian.osebo.ui.theme.oseboFontFamily
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
@@ -118,6 +119,8 @@ private val EmployeePinkGradient = listOf(Color(0xFFF8DDE4), Color(0xFFFFF3F6))
 @Composable
 fun EmployeesScreen(
     state: EmployeesUiState,
+    shopIcon: DrawableResource? = null,
+    onShopPickerClick: () -> Unit = {},
     onRefreshClick: () -> Unit,
     onAddEmployeeClick: () -> Unit,
     onAttendanceClick: () -> Unit,
@@ -159,6 +162,8 @@ fun EmployeesScreen(
                 EmployeesHeader(
                     shopName = state.shopName,
                     isLoading = state.isLoading,
+                    shopIcon = shopIcon,
+                    onShopPickerClick = onShopPickerClick,
                     canManageRoles = state.canManageRoles,
                     onRefreshClick = onRefreshClick,
                     onAddClick = onAddEmployeeClick,
@@ -281,6 +286,8 @@ fun EmployeesScreen(
 private fun EmployeesHeader(
     shopName: String,
     isLoading: Boolean,
+    shopIcon: DrawableResource?,
+    onShopPickerClick: () -> Unit,
     canManageRoles: Boolean,
     onRefreshClick: () -> Unit,
     onAddClick: () -> Unit,
@@ -384,6 +391,7 @@ private fun EmployeesHeader(
                 }
             }
         }
+        shopIcon?.let { ShopPickerButton(icon = it, onClick = onShopPickerClick) }
     }
 }
 

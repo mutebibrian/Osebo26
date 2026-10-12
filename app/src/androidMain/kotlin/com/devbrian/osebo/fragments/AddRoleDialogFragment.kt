@@ -1,199 +1,128 @@
 package com.devbrian.osebo.fragments
 
-import android.app.Dialog
+import android.content.Context
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.CheckBox
-import android.widget.Toast
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.DialogFragment
 import androidx.lifecycle.lifecycleScope
 import com.devbrian.osebo.data.ApiClient
-import com.devbrian.osebo.databinding.DialogAddRoleBinding
-import com.devbrian.osebo.models.CreateRoleRequest
 import com.devbrian.osebo.data.models.UserRole
+import com.devbrian.osebo.models.CreateRoleRequest
+import com.devbrian.osebo.ui.screens.RoleFormScreen
+import com.devbrian.osebo.ui.screens.RoleFormUiState
+import com.devbrian.osebo.ui.screens.RolePermissionOption
+import com.devbrian.osebo.ui.theme.OseboTheme
 import kotlinx.coroutines.launch
 import java.io.IOException
 
 class AddRoleDialogFragment : DialogFragment() {
-
-    private var _binding: DialogAddRoleBinding? = null
-    private val binding get() = _binding!!
-
     private var onRoleAddedListener: ((UserRole) -> Unit)? = null
-    private val selectedPermissions = mutableListOf<String>()
+    private var uiState by mutableStateOf(RoleFormUiState())
 
-    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-        return super.onCreateDialog(savedInstanceState).apply {
-            setCancelable(true)
-            setCanceledOnTouchOutside(true)
-        }
+    private val permissionOptions = listOf(
+        RolePermissionOption("inventory", "Inventory"),
+        RolePermissionOption("reports", "Reports"),
+        RolePermissionOption("sales", "Sales"),
+        RolePermissionOption("finance", "Finance"),
+        RolePermissionOption("employees", "Employees"),
+        RolePermissionOption("customers", "Customers"),
+        RolePermissionOption("suppliers", "Suppliers"),
+        RolePermissionOption("settings", "Settings"),
+    )
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setStyle(STYLE_NO_TITLE, 0)
     }
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        _binding = DialogAddRoleBinding.inflate(inflater, container, false)
-        return binding.root
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        setupClickListeners()
-    }
-
-    private fun setupClickListeners() {
-        binding.saveButton.setOnClickListener { createNewRole() }
-        binding.cancelButton.setOnClickListener { dismiss() }
-
-        val checkboxes = listOf(
-            binding.checkInventory, binding.checkReports, binding.checkSales,
-            binding.checkFinance, binding.checkEmployees, binding.checkCustomers,
-            binding.checkSuppliers, binding.checkSettings
-        )
-
-        checkboxes.forEach { checkbox ->
-            checkbox.setOnCheckedChangeListener { _, isChecked ->
-                updateSelectedPermissions(checkbox, isChecked)
+        savedInstanceState: Bundle?,
+    ): View = ComposeView(requireContext()).apply {
+        setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+        setContent {
+            OseboTheme {
+                RoleFormScreen(
+                    state = uiState,
+                    permissions = permissionOptions,
+                    onStateChange = { uiState = it },
+                    onDismiss = ::dismiss,
+                    onSave = ::createNewRole,
+                )
             }
         }
     }
 
-    private fun updateSelectedPermissions(checkbox: CheckBox, isChecked: Boolean) {
-        val permission = when (checkbox.id) {
-            binding.checkInventory.id -> "inventory"
-            binding.checkReports.id -> "reports"
-            binding.checkSales.id -> "sales"
-            binding.checkFinance.id -> "finance"
-            binding.checkEmployees.id -> "employees"
-            binding.checkCustomers.id -> "customers"
-            binding.checkSuppliers.id -> "suppliers"
-            binding.checkSettings.id -> "settings"
-            else -> return
+    override fun onStart() {
+        super.onStart()
+        dialog?.window?.apply {
+            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            val width = (resources.displayMetrics.widthPixels * 0.94f).toInt()
+            setLayout(width, ViewGroup.LayoutParams.WRAP_CONTENT)
         }
-
-        if (isChecked) selectedPermissions.add(permission)
-        else selectedPermissions.remove(permission)
     }
 
     private fun createNewRole() {
-        val roleName = binding.roleNameEditText.text.toString().trim()
-        val roleDescription = binding.roleDescriptionEditText.text.toString().trim()
-
-        if (roleName.isEmpty()) {
-            binding.roleNameLayout.error = "Role name is required"
-            return
-        } else {
-            binding.roleNameLayout.error = null
-        }
-
-        if (roleDescription.isEmpty()) {
-            binding.roleDescriptionLayout.error = "Role description is required"
-            return
-        } else {
-            binding.roleDescriptionLayout.error = null
-        }
-
-        if (selectedPermissions.isEmpty()) {
-            Toast.makeText(requireContext(), "Please select at least one permission", Toast.LENGTH_SHORT).show()
+        val name = uiState.name.trim()
+        val description = uiState.description.trim()
+        val nameError = if (name.isEmpty()) "Role name is required" else null
+        val descriptionError = if (description.isEmpty()) "Description is required" else null
+        val permissionError = if (uiState.permissions.isEmpty()) "Select at least one permission" else null
+        if (nameError != null || descriptionError != null || permissionError != null) {
+            uiState = uiState.copy(nameError = nameError, descriptionError = descriptionError, permissionError = permissionError)
             return
         }
 
-        val prefs = requireContext().getSharedPreferences("OseboPrefs", android.content.Context.MODE_PRIVATE)
-        val token = prefs.getString("auth_token", "") ?: ""
-        val shopId = prefs.getString("current_shop_id", "") ?: ""
-
-        if (token.isEmpty()) {
-            Toast.makeText(requireContext(), "Please login first", Toast.LENGTH_SHORT).show()
+        val prefs = requireContext().getSharedPreferences("OseboPrefs", Context.MODE_PRIVATE)
+        val token = prefs.getString("auth_token", "").orEmpty()
+        val shopId = prefs.getString("current_shop_id", "").orEmpty()
+        if (token.isEmpty() || shopId.isEmpty()) {
+            uiState = uiState.copy(submitError = if (token.isEmpty()) "Please sign in again" else "Select a shop first")
             return
         }
 
-        if (shopId.isEmpty()) {
-            Toast.makeText(requireContext(), "No shop selected", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        val request = CreateRoleRequest(
-            name = roleName,
-            description = roleDescription,
-            permissions = selectedPermissions,
-            shopId = shopId
-        )
-
-        
-        binding.progressBar.visibility = View.VISIBLE
-        binding.saveButton.isEnabled = false
-        binding.cancelButton.isEnabled = false
-
-        val apiService = ApiClient.create()
-
-        
+        uiState = uiState.copy(isLoading = true, submitError = null)
         lifecycleScope.launch {
             try {
-                val response = apiService.createRole("Bearer $token", request)
-
-                if (response.isSuccessful) {
-                    val apiResponse = response.body()
-                    if (apiResponse != null && apiResponse.success) {
-                        apiResponse.data?.let { userRole ->
-                            requireActivity().runOnUiThread {
-                                onRoleAddedListener?.invoke(userRole)
-                                dismiss()
-                            }
-                        } ?: run {
-                            requireActivity().runOnUiThread {
-                                Toast.makeText(requireContext(), apiResponse.message ?: "No data received", Toast.LENGTH_LONG).show()
-                            }
-                        }
-                    } else {
-                        requireActivity().runOnUiThread {
-                            val errorMessage = apiResponse?.message ?: "Failed to create role"
-                            Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_LONG).show()
-                        }
-                    }
+                val response = ApiClient.create().createRole(
+                    "Bearer $token",
+                    CreateRoleRequest(name, description, uiState.permissions.toList(), shopId),
+                )
+                val body = response.body()
+                if (response.isSuccessful && body?.success == true && body.data != null) {
+                    onRoleAddedListener?.invoke(body.data)
+                    dismiss()
                 } else {
-                    requireActivity().runOnUiThread {
-                        val errorMessage = when (response.code()) {
-                            400 -> "Invalid request data"
-                            401 -> "Session expired. Please login again"
-                            403 -> "You don't have permission to create roles"
-                            409 -> "A role with this name already exists"
-                            422 -> "Invalid role data provided"
-                            500 -> "Server error. Please try again later"
-                            else -> "Failed to create role (Error: ${response.code()})"
-                        }
-                        Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_LONG).show()
+                    val fallback = when (response.code()) {
+                        400 -> "Invalid role details"
+                        401 -> "Your session has expired"
+                        403 -> "You do not have permission to create roles"
+                        409 -> "A role with this name already exists"
+                        422 -> "Check the role details and try again"
+                        500 -> "The server could not create this role"
+                        else -> "Could not create role"
                     }
+                    uiState = uiState.copy(isLoading = false, submitError = body?.message ?: fallback)
                 }
-            } catch (e: IOException) {
-                requireActivity().runOnUiThread {
-                    Toast.makeText(requireContext(), "Network error: Check your internet connection", Toast.LENGTH_LONG).show()
-                }
-            } catch (e: Exception) {
-                requireActivity().runOnUiThread {
-                    Toast.makeText(requireContext(), "Error: ${e.message ?: "Unknown error"}", Toast.LENGTH_LONG).show()
-                }
-            } finally {
-                requireActivity().runOnUiThread {
-                    binding.progressBar.visibility = View.GONE
-                    binding.saveButton.isEnabled = true
-                    binding.cancelButton.isEnabled = true
-                }
+            } catch (_: IOException) {
+                uiState = uiState.copy(isLoading = false, submitError = "Check your internet connection")
+            } catch (error: Exception) {
+                uiState = uiState.copy(isLoading = false, submitError = error.message ?: "Could not create role")
             }
         }
     }
 
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
-    }
-
     fun setOnRoleAddedListener(listener: (UserRole) -> Unit) {
-        this.onRoleAddedListener = listener
+        onRoleAddedListener = listener
     }
 }
-
-

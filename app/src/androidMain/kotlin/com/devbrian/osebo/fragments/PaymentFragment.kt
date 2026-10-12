@@ -1,386 +1,212 @@
 package com.devbrian.osebo.fragments
 
-import android.app.AlertDialog
 import android.os.Bundle
-import android.text.Editable
-import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.Fragment
-import org.koin.androidx.viewmodel.ext.android.viewModel
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import com.devbrian.osebo.R
 import com.devbrian.osebo.data.PreferenceManager
-import com.devbrian.osebo.databinding.FragmentPaymentBinding
-import com.devbrian.osebo.ui.viewmodels.SalesViewModel
-import com.devbrian.osebo.utils.Resource
-import com.devbrian.osebo.models.SaleData
 import com.devbrian.osebo.models.CartItem
+import com.devbrian.osebo.models.SaleData
+import com.devbrian.osebo.ui.screens.PaymentScreen
+import com.devbrian.osebo.ui.screens.PaymentUiState
+import com.devbrian.osebo.ui.theme.OseboTheme
+import com.devbrian.osebo.ui.viewmodels.SalesViewModel
 import com.devbrian.osebo.utils.CurrencyFormatter
-import java.text.NumberFormat
-import java.util.*
+import com.devbrian.osebo.utils.Resource
 import org.koin.android.ext.android.inject
+import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class PaymentFragment : Fragment() {
-
-    private var _binding: FragmentPaymentBinding? = null
-    private val binding get() = _binding!!
-
     private val viewModel: SalesViewModel by viewModel()
-
-    private val args: PaymentFragmentArgs by navArgs()
-
-    private val currencyFormat = NumberFormat.getCurrencyInstance(Locale.US).apply {
-        currency = Currency.getInstance("UGX")
-    }
-
-    private var selectedPaymentMethod = "cash"
-
     private val preferenceManager: PreferenceManager by inject()
-
-    
-    private var saleResponseData: SaleData? = null
+    private val args: PaymentFragmentArgs by navArgs()
+    private var uiState by mutableStateOf(PaymentUiState())
 
     private val customerId: String by lazy {
-        args.customerId ?: run {
-            println("❌ PaymentFragment - customerId is null, using default Walk-in Customer")
-            "797231da-d7c2-4f8c-bf13-1e3fc08b2e8e"
-        }
+        args.customerId ?: WALK_IN_CUSTOMER_ID
     }
 
     private val cartItems: Array<CartItem> by lazy {
-        args.cartItems ?: run {
-            println("❌ PaymentFragment - cartItems is null, using empty array")
-            emptyArray()
-        }
+        args.cartItems ?: emptyArray()
     }
 
-    private val totalAmount: Float by lazy {
-        args.totalAmount
-    }
+    private val totalAmount: Float by lazy { args.totalAmount }
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        _binding = FragmentPaymentBinding.inflate(inflater, container, false)
-        return binding.root
+        savedInstanceState: Bundle?,
+    ): View = ComposeView(requireContext()).apply {
+        setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+        setContent {
+            OseboTheme {
+                PaymentScreen(
+                    state = uiState,
+                    onBackClick = { findNavController().navigateUp() },
+                    onAmountChange = ::updateAmountTendered,
+                    onMethodSelected = { method ->
+                        uiState = uiState.copy(selectedMethod = method)
+                    },
+                    onPhoneChange = { uiState = uiState.copy(phoneNumber = it) },
+                    onReferenceChange = { uiState = uiState.copy(reference = it) },
+                    onNotesChange = { uiState = uiState.copy(notes = it) },
+                    onCompleteClick = ::processPayment,
+                    onConfirmOverpayment = {
+                        uiState = uiState.copy(showOverpaymentConfirmation = false)
+                        proceedWithPayment()
+                    },
+                    onDismissOverpayment = {
+                        uiState = uiState.copy(showOverpaymentConfirmation = false)
+                    },
+                )
+            }
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        println("📱 PaymentFragment - Arguments received:")
-        println("   - Customer ID: $customerId")
-        println("   - Cart items count: ${cartItems.size}")
-        println("   - Total amount: $totalAmount")
-
         if (cartItems.isEmpty()) {
-            Toast.makeText(requireContext(), "Error: Cart is empty", Toast.LENGTH_LONG).show()
+            showMessage("Error: Cart is empty", Toast.LENGTH_LONG)
             findNavController().navigateUp()
             return
         }
 
-        setupToolbar()
-        setupUI()
-        setupListeners()
-        setupObservers()
-        displayCustomerInfo()
-        displayCartSummary()
+        val isWalkIn = customerId == WALK_IN_CUSTOMER_ID
+        uiState = uiState.copy(
+            shopName = preferenceManager.getCurrentShopName().ifBlank { "Selected shop" },
+            customerLabel = args.customerName.ifBlank {
+                if (isWalkIn) "Walk-in Customer" else "Selected customer"
+            },
+            customerDetail = if (isWalkIn) "Default customer" else customerId,
+            uniqueItemCount = cartItems.size,
+            totalQuantity = cartItems.sumOf(CartItem::quantity),
+            total = CurrencyFormatter.formatFull(totalAmount.toDouble()),
+        )
 
+        observeViewModel()
         viewModel.setCartItems(cartItems.toList())
     }
 
-    private fun setupToolbar() {
-        binding.toolbar.setNavigationOnClickListener {
-            findNavController().navigateUp()
-        }
-    }
-
-    private fun setupUI() {
-        binding.tvTotalAmount.text = currencyFormat.format(totalAmount)
-
-        binding.chipCash.setOnClickListener {
-            binding.chipCash.isChecked = true
-            binding.chipCard.isChecked = false
-            binding.chipMobileMoney.isChecked = false
-            binding.chipBankTransfer.isChecked = false
-            selectedPaymentMethod = "cash"
-            updatePaymentFields()
-        }
-
-        binding.chipCard.setOnClickListener {
-            binding.chipCash.isChecked = false
-            binding.chipCard.isChecked = true
-            binding.chipMobileMoney.isChecked = false
-            binding.chipBankTransfer.isChecked = false
-            selectedPaymentMethod = "card"
-            updatePaymentFields()
-        }
-
-        binding.chipMobileMoney.setOnClickListener {
-            binding.chipCash.isChecked = false
-            binding.chipCard.isChecked = false
-            binding.chipMobileMoney.isChecked = true
-            binding.chipBankTransfer.isChecked = false
-            selectedPaymentMethod = "mobile_money"
-            updatePaymentFields()
-        }
-
-        binding.chipBankTransfer.setOnClickListener {
-            binding.chipCash.isChecked = false
-            binding.chipCard.isChecked = false
-            binding.chipMobileMoney.isChecked = false
-            binding.chipBankTransfer.isChecked = true
-            selectedPaymentMethod = "bank_transfer"
-            updatePaymentFields()
-        }
-
-        binding.chipCash.isChecked = true
-    }
-
-    private fun displayCustomerInfo() {
-        binding.tvCustomerInfo.visibility = View.VISIBLE
-        binding.tvCustomerInfo.text = "Customer ID: $customerId"
-    }
-
-    private fun displayCartSummary() {
-        val itemCount = cartItems.size
-        binding.tvItemCount.text = "$itemCount items"
-
-        val totalQuantity = cartItems.sumOf { it.quantity }
-
-        println("📱 PaymentFragment - Cart has $itemCount unique items, $totalQuantity total items")
-        cartItems.forEachIndexed { index, item ->
-            println("   Item $index: ${item.product.name} x${item.quantity} = ${currencyFormat.format(item.subtotal)}")
-        }
-    }
-
-    private fun setupListeners() {
-        binding.etAmountTendered.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-
-            override fun afterTextChanged(s: Editable?) {
-                calculateChange()
-            }
-        })
-
-        binding.btnProcessPayment.setOnClickListener {
-            processPayment()
-        }
-
-        binding.btnAddCustomer.setOnClickListener {
-            addCustomer()
-        }
-    }
-
-    private fun getCurrentEmployeeName(): String {
-        // Get from your auth/session manager
-        return preferenceManager.getCurrentEmployeeName() ?: ""
-    }
-
-    private fun setupObservers() {
+    private fun observeViewModel() {
         viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
-            binding.btnProcessPayment.isEnabled = !isLoading
-            binding.btnProcessPayment.text = if (isLoading) "Processing..." else "Complete Payment"
-            binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
+            uiState = uiState.copy(isLoading = isLoading)
         }
 
         viewModel.saleResult.observe(viewLifecycleOwner) { resource ->
             when (resource) {
-                is Resource.Success -> {
-                    resource.data?.let { saleData ->
-                        binding.progressBar.visibility = View.GONE
-                        Toast.makeText(requireContext(), "Payment successful!", Toast.LENGTH_SHORT).show()
-
-                        
-                        saleResponseData = saleData
-
-                        
-                        println("📱 PaymentFragment - Shop data from response:")
-                        println("   - Shop Name: ${saleData.shop?.name ?: "Not available"}")
-                        println("   - Shop Address: ${saleData.shop?.address ?: "Not available"}")
-                        println("   - Shop Phone: ${saleData.shop?.phone ?: "Not available"}")
-                        println("   - Shop Description: ${saleData.shop?.description ?: "Not available"}")
-
-                        navigateToReceipt(saleData)
-                    }
+                is Resource.Success -> resource.data?.let { saleData ->
+                    uiState = uiState.copy(isLoading = false)
+                    showMessage("Payment successful!")
+                    navigateToReceipt(saleData)
                 }
+
                 is Resource.Error -> {
-                    binding.progressBar.visibility = View.GONE
-                    Toast.makeText(requireContext(), resource.message ?: "Failed to process payment", Toast.LENGTH_LONG).show()
-                    println("❌ PaymentFragment - Error: ${resource.message}")
+                    uiState = uiState.copy(isLoading = false)
+                    showMessage(resource.message ?: "Failed to process payment", Toast.LENGTH_LONG)
                 }
-                is Resource.Loading -> {
-                    binding.progressBar.visibility = View.VISIBLE
-                }
+
+                is Resource.Loading -> uiState = uiState.copy(isLoading = true)
             }
         }
 
         viewModel.errorMessage.observe(viewLifecycleOwner) { message ->
             message?.let {
-                Toast.makeText(requireContext(), it, Toast.LENGTH_LONG).show()
+                showMessage(it, Toast.LENGTH_LONG)
                 viewModel.clearMessages()
             }
         }
     }
 
+    private fun updateAmountTendered(input: String) {
+        val normalized = input.filterIndexed { index, character ->
+            character.isDigit() || (character == '.' && input.indexOf('.') == index)
+        }
+        val tendered = normalized.toDoubleOrNull() ?: 0.0
+        val change = viewModel.calculateChange(tendered, totalAmount).coerceAtLeast(0.0)
+        uiState = uiState.copy(
+            amountTendered = normalized,
+            amountError = null,
+            change = CurrencyFormatter.formatFull(change),
+        )
+    }
+
+    private fun processPayment() {
+        val tendered = uiState.amountTendered.toDoubleOrNull()
+        when {
+            uiState.amountTendered.isBlank() || tendered == null -> {
+                uiState = uiState.copy(amountError = "Enter the amount received")
+            }
+
+            tendered < totalAmount -> {
+                uiState = uiState.copy(amountError = "Amount is less than the sale total")
+            }
+
+            tendered > totalAmount -> {
+                uiState = uiState.copy(
+                    amountError = null,
+                    showOverpaymentConfirmation = true,
+                )
+            }
+
+            else -> proceedWithPayment()
+        }
+    }
+
+    private fun proceedWithPayment() {
+        viewModel.completeSale(
+            customerId = customerId,
+            paidAmount = totalAmount.toDouble(),
+            paymentMethod = uiState.selectedMethod.apiValue,
+            reference = uiState.reference.trim().ifEmpty { null },
+            phoneNumber = uiState.phoneNumber.trim().ifEmpty { null },
+            userNotes = uiState.notes.trim().ifEmpty { null },
+            totalAmount = totalAmount,
+            saleType = "sale",
+        )
+    }
+
     private fun navigateToReceipt(saleData: SaleData) {
-        try {
-            
-            val shopName = saleData.shop?.name
-            val shopAddress = saleData.shop?.address
-            val shopPhone = saleData.shop?.phone
-            val shopDescription = saleData.shop?.description
-            val saleDate = saleData.createdAt
-
-            println("📱 PaymentFragment - Navigating to receipt with shop data:")
-            println("   - Shop Name: $shopName")
-            println("   - Shop Address: $shopAddress")
-            println("   - Shop Phone: $shopPhone")
-
-            
-            val customerPhone = binding.etPhoneNumber.text.toString().ifEmpty { "N/A" }
-
-            val action = PaymentFragmentDirections.actionPaymentFragmentToReceiptFragment(
+        runCatching {
+            PaymentFragmentDirections.actionPaymentFragmentToReceiptFragment(
                 invoiceNumber = saleData.invoiceNumber ?: "INV-${System.currentTimeMillis()}",
-                customerName = "Walk-in Customer",
-                customerPhone = customerPhone,
+                customerName = uiState.customerLabel,
+                customerPhone = uiState.phoneNumber.ifBlank { "N/A" },
                 cartItems = cartItems,
                 totalAmount = saleData.totalAmount.toFloat(),
                 paidAmount = saleData.paidAmount.toFloat(),
                 change = saleData.change.toFloat(),
-                paymentMethod = selectedPaymentMethod,
-                
-                shopName = shopName ?: "",
-                shopAddress = shopAddress ?: "",
-                shopPhone = shopPhone ?: "",
-                shopDescription = shopDescription ?: "",
-                receiptDate = saleDate ?: "",
-                saleId = saleData.id ,
-                        servedBy = getCurrentEmployeeName()
-
+                paymentMethod = uiState.selectedMethod.apiValue,
+                shopName = saleData.shop?.name.orEmpty(),
+                shopAddress = saleData.shop?.address.orEmpty(),
+                shopPhone = saleData.shop?.phone.orEmpty(),
+                shopDescription = saleData.shop?.description.orEmpty(),
+                receiptDate = saleData.createdAt.orEmpty(),
+                saleId = saleData.id,
+                servedBy = preferenceManager.getCurrentEmployeeName().orEmpty(),
             )
-            findNavController().navigate(action)
-        } catch (e: Exception) {
-            println("❌ Navigation to receipt error: ${e.message}")
-            e.printStackTrace()
-            Toast.makeText(requireContext(), "Payment successful but failed to show receipt", Toast.LENGTH_SHORT).show()
-            findNavController().popBackStack(R.id.salesFragment, false)
-        }
-    }
-
-    private fun updatePaymentFields() {
-        when (selectedPaymentMethod) {
-            "mobile_money" -> {
-                binding.etPhoneNumber.visibility = View.VISIBLE
-                binding.tilPhoneNumber.visibility = View.VISIBLE
-                binding.etReference.visibility = View.VISIBLE
-                binding.tilReference.visibility = View.VISIBLE
-                binding.tilReference.hint = "Transaction ID"
+        }.onSuccess(findNavController()::navigate)
+            .onFailure {
+                showMessage("Payment successful but failed to show receipt")
+                findNavController().popBackStack(R.id.salesFragment, false)
             }
-            "card" -> {
-                binding.etPhoneNumber.visibility = View.GONE
-                binding.tilPhoneNumber.visibility = View.GONE
-                binding.etReference.visibility = View.VISIBLE
-                binding.tilReference.visibility = View.VISIBLE
-                binding.tilReference.hint = "Card Reference"
-            }
-            "bank_transfer" -> {
-                binding.etPhoneNumber.visibility = View.GONE
-                binding.tilPhoneNumber.visibility = View.GONE
-                binding.etReference.visibility = View.VISIBLE
-                binding.tilReference.visibility = View.VISIBLE
-                binding.tilReference.hint = "Transfer Reference"
-            }
-            else -> {
-                binding.etPhoneNumber.visibility = View.GONE
-                binding.tilPhoneNumber.visibility = View.GONE
-                binding.etReference.visibility = View.GONE
-                binding.tilReference.visibility = View.GONE
-            }
-        }
     }
 
-    private fun calculateChange() {
-        val tenderedStr = binding.etAmountTendered.text.toString()
-        val tendered = tenderedStr.toDoubleOrNull() ?: 0.0
-        val change = viewModel.calculateChange(tendered, totalAmount)
-        binding.tvChange.text = currencyFormat.format(change)
-        println("📱 PaymentFragment - Change calculated: $change")
+    private fun showMessage(message: String, duration: Int = Toast.LENGTH_SHORT) {
+        if (isAdded) Toast.makeText(requireContext(), message, duration).show()
     }
 
-    private fun processPayment() {
-        val tenderedStr = binding.etAmountTendered.text.toString()
-        if (tenderedStr.isEmpty()) {
-            binding.etAmountTendered.error = "Amount is required"
-            binding.etAmountTendered.requestFocus()
-            return
-        }
-
-        val tendered = tenderedStr.toDoubleOrNull() ?: 0.0
-
-        if (tendered < totalAmount) {
-            Toast.makeText(requireContext(), "Insufficient amount", Toast.LENGTH_SHORT).show()
-            binding.etAmountTendered.error = "Amount is less than total"
-            binding.etAmountTendered.requestFocus()
-            return
-        }
-
-        if (tendered > totalAmount) {
-            val change = tendered - totalAmount
-            AlertDialog.Builder(requireContext())
-                .setTitle("Overpayment")
-                .setMessage("You are paying ${CurrencyFormatter.formatFull(tendered)} for a total of ${CurrencyFormatter.formatFull(totalAmount.toDouble())}.\n\nChange to give back: ${CurrencyFormatter.formatFull(change)}\n\nNote: The API only accepts exact amounts. The sale will be recorded with the exact total.")
-                .setPositiveButton("Proceed") { _, _ ->
-                    proceedWithPayment(totalAmount.toDouble(), "sale", change)
-                }
-                .setNegativeButton("Cancel", null)
-                .show()
-            return
-        }
-
-        proceedWithPayment(totalAmount.toDouble(), "sale", 0.0)
-    }
-
-    private fun proceedWithPayment(paidAmount: Double, saleType: String, change: Double) {
-        val reference = binding.etReference.text.toString()
-        val phoneNumber = binding.etPhoneNumber.text.toString()
-
-        println("📱 PaymentFragment - Processing payment:")
-        println("   - Customer ID: $customerId")
-        println("   - Amount Paid to API: $paidAmount")
-        println("   - Total Amount: $totalAmount")
-        println("   - Change to give: $change")
-        println("   - Sale Type: $saleType")
-        println("   - Items Count: ${cartItems.size}")
-        println("   - Payment Method: $selectedPaymentMethod")
-        println("   - Reference: $reference")
-        println("   - Phone: $phoneNumber")
-
-        viewModel.completeSale(
-            customerId = customerId,
-            paidAmount = paidAmount,
-            paymentMethod = selectedPaymentMethod,
-            reference = reference.ifEmpty { null },
-            phoneNumber = phoneNumber.ifEmpty { null },
-            totalAmount = totalAmount,
-            saleType = saleType
-        )
-    }
-
-    private fun addCustomer() {
-        Toast.makeText(requireContext(), "Customer already selected", Toast.LENGTH_SHORT).show()
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
+    companion object {
+        private const val WALK_IN_CUSTOMER_ID = "797231da-d7c2-4f8c-bf13-1e3fc08b2e8e"
     }
 }

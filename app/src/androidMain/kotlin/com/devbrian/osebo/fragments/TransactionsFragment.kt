@@ -19,6 +19,7 @@ import com.devbrian.osebo.ui.screens.TransactionListAction
 import com.devbrian.osebo.ui.screens.TransactionListItemUi
 import com.devbrian.osebo.ui.screens.TransactionsScreen
 import com.devbrian.osebo.ui.screens.TransactionsUiState
+import com.devbrian.osebo.ui.MainActivity
 import com.devbrian.osebo.ui.theme.OseboTheme
 import com.devbrian.osebo.ui.viewmodels.TransactionViewModel
 import org.koin.androidx.viewmodel.ext.android.viewModel
@@ -46,6 +47,8 @@ class TransactionsFragment : Fragment(), ShopSelectionAware {
             OseboTheme {
                 TransactionsScreen(
                     state = uiState,
+                    shopIcon = (requireActivity() as MainActivity).currentShopPickerIcon(),
+                    onShopPickerClick = (requireActivity() as MainActivity)::openShopPicker,
                     onBackClick = { findNavController().navigateUp() },
                     onRefreshClick = viewModel::refreshTransactions,
                     onExportClick = ::exportTransactions,

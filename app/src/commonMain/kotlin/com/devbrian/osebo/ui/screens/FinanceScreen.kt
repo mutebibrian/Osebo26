@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -38,7 +39,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -55,6 +60,7 @@ import com.devbrian.osebo.resources.iconsax_reports
 import com.devbrian.osebo.resources.iconsax_settings
 import com.devbrian.osebo.resources.iconsax_today_expenses
 import com.devbrian.osebo.resources.iconsax_today_sales
+import com.devbrian.osebo.ui.components.ShopPickerButton
 import com.devbrian.osebo.ui.theme.oseboFontFamily
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
@@ -109,6 +115,8 @@ private val FinanceSurface = Color(0xFFFAFBFB)
 fun FinanceScreen(
     state: FinanceUiState,
     periods: List<String>,
+    shopIcon: DrawableResource? = null,
+    onShopPickerClick: () -> Unit = {},
     onPeriodSelected: (String) -> Unit,
     onRefreshClick: () -> Unit,
     onAddExpenseClick: () -> Unit,
@@ -142,6 +150,8 @@ fun FinanceScreen(
                 FinanceHeader(
                     shopName = state.shopName,
                     isLoading = state.isLoading,
+                    shopIcon = shopIcon,
+                    onShopPickerClick = onShopPickerClick,
                     onRefreshClick = onRefreshClick,
                     onSettingsClick = onSettingsClick,
                 )
@@ -203,6 +213,8 @@ fun FinanceScreen(
 private fun FinanceHeader(
     shopName: String,
     isLoading: Boolean,
+    shopIcon: DrawableResource?,
+    onShopPickerClick: () -> Unit,
     onRefreshClick: () -> Unit,
     onSettingsClick: () -> Unit,
 ) {
@@ -230,7 +242,16 @@ private fun FinanceHeader(
             )
         }
 
-        IconButton(onClick = onRefreshClick, enabled = !isLoading) {
+        shopIcon?.let {
+            ShopPickerButton(icon = it, onClick = onShopPickerClick)
+            Spacer(Modifier.width(8.dp))
+        }
+
+        FinanceHeaderButton(
+            contentDescription = "Refresh finances",
+            onClick = onRefreshClick,
+            enabled = !isLoading,
+        ) {
             if (isLoading) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(18.dp),
@@ -246,13 +267,41 @@ private fun FinanceHeader(
                 )
             }
         }
-        IconButton(onClick = onSettingsClick) {
+        Spacer(Modifier.width(8.dp))
+        FinanceHeaderButton(
+            contentDescription = "Finance settings",
+            onClick = onSettingsClick,
+        ) {
             Icon(
                 painter = painterResource(Res.drawable.iconsax_settings),
-                contentDescription = "Finance settings",
+                contentDescription = null,
                 tint = FinanceInk,
                 modifier = Modifier.size(23.dp),
             )
+        }
+    }
+}
+
+@Composable
+private fun FinanceHeaderButton(
+    contentDescription: String,
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+    content: @Composable () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .clip(CircleShape)
+            .background(Color(0xFFF5F6F7))
+            .clickable(enabled = enabled, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier.semantics { this.contentDescription = contentDescription },
+            contentAlignment = Alignment.Center,
+        ) {
+            content()
         }
     }
 }
@@ -298,31 +347,92 @@ private fun PeriodSelector(
 
 @Composable
 private fun SummaryCards(state: FinanceUiState) {
-    ProfitCard(state)
-    Spacer(Modifier.height(12.dp))
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    val poppins = oseboFontFamily()
+    val shape = RoundedCornerShape(28.dp)
+    val marginColor = if (state.isProfitPositive) FinanceGreen else FinanceRed
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(Color(0xFFD6E8FF), Color(0xFFF3F7FF)),
+                    start = Offset.Zero,
+                    end = Offset.Infinite,
+                ),
+            )
+            .border(1.dp, Color.White.copy(alpha = 0.9f), shape)
+            .padding(18.dp),
     ) {
-        SummaryCard(
-            label = "Income",
-            value = state.totalIncome,
-            icon = Res.drawable.iconsax_today_sales,
-            accent = FinanceGreen,
-            modifier = Modifier.weight(1f),
-        )
-        SummaryCard(
-            label = "Expenses",
-            value = state.totalExpenses,
-            icon = Res.drawable.iconsax_today_expenses,
-            accent = FinanceRed,
-            modifier = Modifier.weight(1f),
-        )
+        Row(verticalAlignment = Alignment.Top) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "NET PROFIT",
+                    color = FinanceBlue,
+                    fontFamily = poppins,
+                    fontSize = 8.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.9.sp,
+                )
+                Text(
+                    text = state.netProfit,
+                    color = Color(0xFF14243A),
+                    fontFamily = poppins,
+                    fontSize = 28.sp,
+                    lineHeight = 34.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = "${state.profitMargin} · ${state.selectedPeriod}",
+                    color = marginColor,
+                    fontFamily = poppins,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .size(42.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.8f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    painter = painterResource(Res.drawable.iconsax_balance),
+                    contentDescription = null,
+                    tint = FinanceBlue,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+        }
+
+        Spacer(Modifier.height(18.dp))
+
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            FinanceDetailCard(
+                label = "Income",
+                value = state.totalIncome,
+                icon = Res.drawable.iconsax_today_sales,
+                accent = FinanceGreen,
+                modifier = Modifier.weight(1f),
+            )
+            FinanceDetailCard(
+                label = "Expenses",
+                value = state.totalExpenses,
+                icon = Res.drawable.iconsax_today_expenses,
+                accent = FinanceRed,
+                modifier = Modifier.weight(1f),
+            )
+        }
     }
 }
 
 @Composable
-private fun SummaryCard(
+private fun FinanceDetailCard(
     label: String,
     value: String,
     icon: DrawableResource,
@@ -330,102 +440,38 @@ private fun SummaryCard(
     modifier: Modifier = Modifier,
 ) {
     val poppins = oseboFontFamily()
-    val shape = RoundedCornerShape(26.dp)
     Column(
         modifier = modifier
-            .height(140.dp)
-            .clip(shape)
-            .background(FinanceSurface)
-            .border(1.dp, Color(0xFFDDE4E7), shape)
-            .padding(17.dp),
-        verticalArrangement = Arrangement.SpaceBetween,
+            .clip(RoundedCornerShape(17.dp))
+            .background(Color.White.copy(alpha = 0.74f))
+            .padding(horizontal = 13.dp, vertical = 12.dp),
     ) {
-        Icon(
-            painter = painterResource(icon),
-            contentDescription = null,
-            tint = accent,
-            modifier = Modifier.size(27.dp),
-        )
-        Column {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                painter = painterResource(icon),
+                contentDescription = null,
+                tint = accent,
+                modifier = Modifier.size(20.dp),
+            )
+            Spacer(Modifier.width(7.dp))
             Text(
                 text = label,
                 color = FinanceMuted,
                 fontFamily = poppins,
-                fontSize = 11.sp,
-            )
-            Text(
-                text = value,
-                color = FinanceInk,
-                fontFamily = poppins,
-                fontSize = 16.sp,
-                lineHeight = 21.sp,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Medium,
             )
         }
-    }
-}
-
-@Composable
-private fun ProfitCard(state: FinanceUiState) {
-    val poppins = oseboFontFamily()
-    val shape = RoundedCornerShape(30.dp)
-    val accent = if (state.isProfitPositive) Color(0xFF8EE0C4) else Color(0xFFFFA3AA)
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .background(FinanceInk)
-            .padding(22.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                painter = painterResource(Res.drawable.iconsax_balance),
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(27.dp),
-            )
-            Spacer(Modifier.width(12.dp))
-            Text(
-                text = "Net profit",
-                color = Color.White.copy(alpha = 0.66f),
-                fontFamily = poppins,
-                fontSize = 11.sp,
-                modifier = Modifier.weight(1f),
-            )
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(50))
-                    .background(Color.White.copy(alpha = 0.1f))
-                    .padding(horizontal = 11.dp, vertical = 7.dp),
-            ) {
-                Text(
-                    text = state.profitMargin,
-                    color = accent,
-                    fontFamily = poppins,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
-        }
-        Spacer(Modifier.height(23.dp))
+        Spacer(Modifier.height(8.dp))
         Text(
-            text = state.netProfit,
-            color = Color.White,
+            text = value,
+            color = FinanceInk,
             fontFamily = poppins,
-            fontSize = 29.sp,
-            lineHeight = 36.sp,
-            fontWeight = FontWeight.Medium,
+            fontSize = 17.sp,
+            lineHeight = 22.sp,
+            fontWeight = FontWeight.SemiBold,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-        )
-        Spacer(Modifier.height(19.dp))
-        Text(
-            text = state.selectedPeriod,
-            color = Color.White.copy(alpha = 0.5f),
-            fontFamily = poppins,
-            fontSize = 10.sp,
         )
     }
 }
@@ -439,7 +485,7 @@ private fun FinanceActionButton(action: FinanceAction, modifier: Modifier = Modi
         modifier = modifier.height(54.dp),
         shape = RoundedCornerShape(27.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = if (action.isPrimary) FinanceInk else FinanceSurface,
+            containerColor = if (action.isPrimary) FinanceBlue else Color.White,
             contentColor = contentColor,
         ),
         border = if (action.isPrimary) null else BorderStroke(1.dp, Color(0xFFD7E0E3)),

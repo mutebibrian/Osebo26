@@ -19,6 +19,7 @@ import com.devbrian.osebo.ui.screens.FinancialStatementScreen
 import com.devbrian.osebo.ui.screens.FinancialStatementUiState
 import com.devbrian.osebo.ui.screens.StatementMetric
 import com.devbrian.osebo.ui.screens.StatementTrendUi
+import com.devbrian.osebo.ui.MainActivity
 import com.devbrian.osebo.ui.theme.OseboTheme
 import com.devbrian.osebo.ui.viewmodels.FinancialStatementViewModel
 import org.koin.androidx.viewmodel.ext.android.viewModel
@@ -67,6 +68,8 @@ class FinancialStatementFragment : Fragment(), ShopSelectionAware {
                     FinancialStatementScreen(
                         state = uiState,
                         periods = periods,
+                        shopIcon = (requireActivity() as MainActivity).currentShopPickerIcon(),
+                        onShopPickerClick = (requireActivity() as MainActivity)::openShopPicker,
                         onBackClick = { findNavController().navigateUp() },
                         onPeriodSelected = ::selectPeriod,
                         onMetricClick = ::showMetricDetails,

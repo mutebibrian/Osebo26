@@ -40,8 +40,7 @@
     <fragment
         android:id="@+id/subscriptionPaymentFragment"
         android:name="com.devbrian.osebo.fragments.SubscriptionPaymentFragment"
-        android:label="Complete Payment"
-        tools:layout="@layout/fragment_subscription_payment">
+        android:label="Complete Payment">
 
         <argument
             android:name="shop"

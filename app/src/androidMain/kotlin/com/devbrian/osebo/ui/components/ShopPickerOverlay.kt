@@ -61,6 +61,7 @@ data class ShopPickerUiState(
     val isLoading: Boolean = true,
     val isOpen: Boolean = false,
     val isHome: Boolean = false,
+    val showTrigger: Boolean = true,
 )
 
 @Composable
@@ -84,7 +85,7 @@ fun ShopPickerOverlay(
     }
 
     Box(contentAlignment = Alignment.TopEnd) {
-        if (!state.isHome) {
+        if (!state.isHome && state.showTrigger) {
             Box(
                 modifier = Modifier
                     .size(48.dp)
@@ -238,7 +239,7 @@ private fun ShopPickerSkeletonRow() {
     }
 }
 
-private fun shopCategoryIcon(shopType: String?): DrawableResource = when (shopType?.trim()?.lowercase()) {
+fun shopCategoryIcon(shopType: String?): DrawableResource = when (shopType?.trim()?.lowercase()) {
     "restaurant", "food", "cafe" -> Res.drawable.iconsax_coffee_bold
     "salon", "spa", "beauty" -> Res.drawable.iconsax_scissor_bold
     "pharmacy", "medical", "health" -> Res.drawable.iconsax_health_bold

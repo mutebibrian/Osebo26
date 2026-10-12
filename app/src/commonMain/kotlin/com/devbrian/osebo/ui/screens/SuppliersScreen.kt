@@ -55,7 +55,9 @@ import com.devbrian.osebo.resources.iconsax_more
 import com.devbrian.osebo.resources.iconsax_refresh
 import com.devbrian.osebo.resources.iconsax_search
 import com.devbrian.osebo.resources.iconsax_suppliers
+import com.devbrian.osebo.ui.components.ShopPickerButton
 import com.devbrian.osebo.ui.theme.oseboFontFamily
+import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 
 data class SupplierItemUi(
@@ -98,6 +100,8 @@ private val SupplierOrangeGradient = listOf(Color(0xFFFFE6CF), Color(0xFFFFF7EF)
 @Composable
 fun SuppliersScreen(
     state: SuppliersUiState,
+    shopIcon: DrawableResource? = null,
+    onShopPickerClick: () -> Unit = {},
     onRefreshClick: () -> Unit,
     onAddSupplierClick: () -> Unit,
     onSupplierClick: (String) -> Unit,
@@ -132,6 +136,8 @@ fun SuppliersScreen(
                 SuppliersHeader(
                     shopName = state.shopName,
                     isLoading = state.isLoading,
+                    shopIcon = shopIcon,
+                    onShopPickerClick = onShopPickerClick,
                     onRefreshClick = onRefreshClick,
                     onAddClick = onAddSupplierClick,
                 )
@@ -211,6 +217,8 @@ fun SuppliersScreen(
 private fun SuppliersHeader(
     shopName: String,
     isLoading: Boolean,
+    shopIcon: DrawableResource?,
+    onShopPickerClick: () -> Unit,
     onRefreshClick: () -> Unit,
     onAddClick: () -> Unit,
 ) {
@@ -278,6 +286,7 @@ private fun SuppliersHeader(
                 )
             }
         }
+        shopIcon?.let { ShopPickerButton(icon = it, onClick = onShopPickerClick) }
     }
 }
 

@@ -5,7 +5,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
-import androidx.activity.OnBackPressedCallback
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -15,6 +14,7 @@ import androidx.navigation.fragment.findNavController
 import com.devbrian.osebo.ui.screens.InventoryProductUi
 import com.devbrian.osebo.ui.screens.InventoryScreen
 import com.devbrian.osebo.ui.screens.InventoryUiState
+import com.devbrian.osebo.ui.MainActivity
 import com.devbrian.osebo.ui.theme.OseboTheme
 import com.devbrian.osebo.ui.viewmodels.InventoryViewModel
 import org.koin.androidx.viewmodel.ext.android.viewModel
@@ -28,12 +28,6 @@ class InventoryFragment : Fragment(), ShopSelectionAware {
         viewModel.onShopSelectionChanged()
     }
 
-    private val productsBackCallback = object : OnBackPressedCallback(false) {
-        override fun handleOnBackPressed() {
-            showInventoryActions()
-        }
-    }
-
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -44,15 +38,15 @@ class InventoryFragment : Fragment(), ShopSelectionAware {
                 OseboTheme {
                     InventoryScreen(
                         state = uiState,
-                        onProductsClick = ::showProducts,
+                        shopIcon = (requireActivity() as MainActivity).currentShopPickerIcon(),
+                        onShopPickerClick = (requireActivity() as MainActivity)::openShopPicker,
+                        onQueryChange = { query -> uiState = uiState.copy(query = query) },
+                        onAddProductClick = ::navigateToAddProduct,
                         onStockTransfersClick = {
                             showUpcomingMessage("Stock transfers")
                         },
                         onAddStockClick = ::navigateToRestock,
-                        onRemoveStockClick = {
-                            showUpcomingMessage("Remove stock")
-                        },
-                        onBackToInventory = ::showInventoryActions,
+                        onRemoveStockClick = ::navigateToRemoveStock,
                         onProductClick = ::navigateToProductDetails,
                     )
                 }
@@ -62,7 +56,6 @@ class InventoryFragment : Fragment(), ShopSelectionAware {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, productsBackCallback)
         setupObservers()
         viewModel.refreshProducts()
         viewModel.loadStats()
@@ -103,16 +96,6 @@ class InventoryFragment : Fragment(), ShopSelectionAware {
         }
     }
 
-    private fun showProducts() {
-        uiState = uiState.copy(showProducts = true)
-        productsBackCallback.isEnabled = true
-    }
-
-    private fun showInventoryActions() {
-        uiState = uiState.copy(showProducts = false)
-        productsBackCallback.isEnabled = false
-    }
-
     private fun navigateToProductDetails(productId: String) {
         val action = InventoryFragmentDirections.actionInventoryToProductDetails(productId)
         findNavController().navigate(action)
@@ -120,6 +103,16 @@ class InventoryFragment : Fragment(), ShopSelectionAware {
 
     private fun navigateToRestock() {
         val action = InventoryFragmentDirections.actionInventoryToRestock()
+        findNavController().navigate(action)
+    }
+
+    private fun navigateToRemoveStock() {
+        val action = InventoryFragmentDirections.actionInventoryToRemoveStock()
+        findNavController().navigate(action)
+    }
+
+    private fun navigateToAddProduct() {
+        val action = InventoryFragmentDirections.actionInventoryToAddProduct()
         findNavController().navigate(action)
     }
 

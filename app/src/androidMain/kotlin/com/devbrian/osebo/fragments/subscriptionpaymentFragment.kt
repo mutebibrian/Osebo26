@@ -5,176 +5,127 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.Fragment
-import org.koin.androidx.viewmodel.ext.android.viewModel
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
-import com.devbrian.osebo.databinding.FragmentSubscriptionPaymentBinding
 import com.devbrian.osebo.data.models.Shop
+import com.devbrian.osebo.ui.screens.SubscriptionPaymentScreen
+import com.devbrian.osebo.ui.screens.SubscriptionPaymentUiState
+import com.devbrian.osebo.ui.theme.OseboTheme
 import com.devbrian.osebo.ui.viewmodels.SubscriptionViewModel
 import com.devbrian.osebo.utils.Resource
+import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class SubscriptionPaymentFragment : Fragment() {
-
-    private var _binding: FragmentSubscriptionPaymentBinding? = null
-    private val binding get() = _binding!!
-
     private val viewModel: SubscriptionViewModel by viewModel()
     private val args: SubscriptionPaymentFragmentArgs by navArgs()
-
     private var shop: Shop? = null
     private var packageId: String = ""
-    private var packageName: String = ""
-    private var packagePrice: Float = 0f
+    private var uiState by mutableStateOf(SubscriptionPaymentUiState())
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        shop = args.shop
+        packageId = args.packageId
+        uiState = SubscriptionPaymentUiState(
+            shopName = shop?.name ?: "Your shop",
+            packageName = args.packageName,
+            monthlyAmount = args.packagePrice.toDouble(),
+        )
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        _binding = FragmentSubscriptionPaymentBinding.inflate(inflater, container, false)
-        return binding.root
+        savedInstanceState: Bundle?,
+    ): View = ComposeView(requireContext()).apply {
+        setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+        setContent {
+            OseboTheme {
+                SubscriptionPaymentScreen(
+                    state = uiState,
+                    isSheet = false,
+                    onStateChange = { uiState = it },
+                    onDismiss = { findNavController().navigateUp() },
+                    onSubmit = ::processPayment,
+                )
+            }
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-        setupArguments()
-        setupUI()
-        setupClickListeners()
-        observeViewModel()
+        observePayment()
     }
 
-    private fun setupArguments() {
-        shop = args.shop
-        packageId = args.packageId
-        packageName = args.packageName
-        packagePrice = args.packagePrice
-    }
-
-    private fun setupUI() {
-        binding.toolbar.title = "Complete Payment"
-        binding.toolbar.setNavigationOnClickListener {
-            findNavController().navigateUp()
-        }
-
-        binding.tvPackageName.text = packageName
-        binding.tvAmount.text = "UGX ${String.format("%,.0f", packagePrice)}"
-        binding.tvShopName.text = shop?.name ?: "Your Shop"
-    }
-
-    private fun setupClickListeners() {
-        binding.btnPayNow.setOnClickListener {
-            processPayment()
-        }
-
-        binding.btnCancel.setOnClickListener {
-            findNavController().navigateUp()
-        }
-    }
-
-    private fun observeViewModel() {
-        // Observe subscription result
+    private fun observePayment() {
         viewModel.subscriptionResult.observe(viewLifecycleOwner) { resource ->
             when (resource) {
-                is Resource.Loading -> {
-                    showLoading(true)
-                }
+                is Resource.Loading -> uiState = uiState.copy(isLoading = true)
+                is Resource.Error -> showError(resource.message ?: "Failed to create subscription")
                 is Resource.Success -> {
-                    showLoading(false)
-                    val response = resource.data
-                    // Check if we have a paymentId (payment initiated successfully)
-                    if (response?.paymentId != null) {
-                        Toast.makeText(
-                            requireContext(),
-                            "Payment initiated! Check your phone for the prompt.",
-                            Toast.LENGTH_LONG
-                        ).show()
-
-                        // Navigate to payment status fragment
-                        val action = SubscriptionPaymentFragmentDirections
-                            .actionSubscriptionPaymentFragmentToPaymentStatusFragment(
-                                transactionId = response.paymentId,
-                                shopId = shop?.id ?: "",
-                                amount = packagePrice,
-                                currency = "UGX",
-                                phoneNumber = binding.etPhoneNumber.text.toString()
-                            )
+                    uiState = uiState.copy(isLoading = false)
+                    val paymentId = resource.data?.paymentId
+                    if (!paymentId.isNullOrBlank()) {
+                        val action = SubscriptionPaymentFragmentDirections.actionSubscriptionPaymentFragmentToPaymentStatusFragment(
+                            transactionId = paymentId,
+                            shopId = shop?.id.orEmpty(),
+                            amount = (uiState.monthlyAmount * uiState.months).toFloat(),
+                            currency = "UGX",
+                            phoneNumber = uiState.phone,
+                        )
                         findNavController().navigate(action)
                     } else {
-                        Toast.makeText(
-                            requireContext(),
-                            response?.message ?: "Subscription created successfully!",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        Toast.makeText(requireContext(), resource.data?.message ?: "Subscription created successfully", Toast.LENGTH_SHORT).show()
                         findNavController().popBackStack()
                     }
                 }
-                is Resource.Error -> {
-                    showLoading(false)
-                    Toast.makeText(
-                        requireContext(),
-                        resource.message ?: "Failed to create subscription",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
             }
         }
-
-        // Observe loading state
-        viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
-            if (isLoading) {
-                showLoading(true)
-            }
-        }
-
-        // Observe error messages
-        viewModel.errorMessage.observe(viewLifecycleOwner) { message ->
-            message?.let {
-                Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
-            }
-        }
+        viewModel.isLoading.observe(viewLifecycleOwner) { uiState = uiState.copy(isLoading = it) }
+        viewModel.errorMessage.observe(viewLifecycleOwner) { it?.let(::showError) }
     }
 
     private fun processPayment() {
-        val phoneNumber = binding.etPhoneNumber.text.toString().trim()
-
-        if (phoneNumber.isEmpty()) {
-            binding.tilPhoneNumber.error = "Phone number is required"
+        val digits = uiState.phone.filter(Char::isDigit)
+        val error = when {
+            digits.isEmpty() -> "Phone number is required"
+            digits.length < 9 -> "Use at least 9 digits"
+            digits.length > 12 -> "Phone number is too long"
+            else -> null
+        }
+        if (error != null) {
+            uiState = uiState.copy(phoneError = error, submitError = error)
             return
         }
-
-        val formattedPhone = formatPhoneNumber(phoneNumber)
-
         if (shop == null) {
-            Toast.makeText(requireContext(), "No shop selected", Toast.LENGTH_SHORT).show()
+            showError("No shop selected")
             return
         }
-
-        if (packageId.isEmpty()) {
-            Toast.makeText(requireContext(), "Invalid package", Toast.LENGTH_SHORT).show()
+        if (packageId.isBlank()) {
+            showError("Invalid package")
             return
         }
-
-        // Show confirmation dialog
-        showPaymentConfirmation(formattedPhone)
-    }
-
-    private fun showPaymentConfirmation(phoneNumber: String) {
+        val phone = formatPhoneNumber(uiState.phone)
         androidx.appcompat.app.AlertDialog.Builder(requireContext())
-            .setTitle("Confirm Payment")
-            .setMessage(buildString {
-                appendLine("Package: $packageName")
-                appendLine("Amount: UGX ${String.format("%,.0f", packagePrice)}")
-                appendLine("Phone: $phoneNumber")
-                appendLine("\nYou will receive a payment prompt on your phone.")
-            })
+            .setTitle("Confirm payment")
+            .setMessage(
+                "Package: ${uiState.packageName}\n" +
+                    "Amount: UGX ${String.format("%,.0f", uiState.monthlyAmount * uiState.months)}\n" +
+                    "Duration: ${uiState.months} month${if (uiState.months == 1) "" else "s"}\n" +
+                    "Phone: $phone\n\nA payment prompt will be sent to your phone.",
+            )
             .setPositiveButton("Confirm") { _, _ ->
                 viewModel.createSubscription(
-                    shopId = shop?.id ?: "",
+                    shopId = shop?.id.orEmpty(),
                     packageIds = listOf(packageId),
-                    phoneNumber = phoneNumber,
-                    months = 1
+                    phoneNumber = phone,
+                    months = uiState.months,
                 )
             }
             .setNegativeButton("Cancel", null)
@@ -192,14 +143,8 @@ class SubscriptionPaymentFragment : Fragment() {
         }
     }
 
-    private fun showLoading(show: Boolean) {
-        binding.progressBar.visibility = if (show) View.VISIBLE else View.GONE
-        binding.btnPayNow.isEnabled = !show
-        binding.btnPayNow.text = if (show) "Processing..." else "Pay Now"
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
+    private fun showError(message: String) {
+        uiState = uiState.copy(isLoading = false, submitError = message)
+        if (isAdded) Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
     }
 }

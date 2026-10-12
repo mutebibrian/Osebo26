@@ -55,9 +55,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.devbrian.osebo.resources.Res
 import com.devbrian.osebo.resources.iconsax_total_sales
+import com.devbrian.osebo.resources.iconsax_shop_bold
 import com.devbrian.osebo.resources.inventory_products
+import com.devbrian.osebo.resources.sales_pie_chart
 import com.devbrian.osebo.ui.components.SkeletonBlock
+import com.devbrian.osebo.ui.components.ShopPickerButton
 import com.devbrian.osebo.ui.theme.oseboFontFamily
+import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 
 data class SaleItemUi(
@@ -100,6 +104,8 @@ private enum class SalesFilter(val label: String) {
 @Composable
 fun SalesScreen(
     state: SalesUiState,
+    shopIcon: DrawableResource = Res.drawable.iconsax_shop_bold,
+    onShopPickerClick: () -> Unit = {},
     onNewSaleClick: () -> Unit,
     onReportsClick: () -> Unit,
     onRefreshClick: () -> Unit,
@@ -147,6 +153,11 @@ fun SalesScreen(
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.weight(1f),
                     )
+                    ShopPickerButton(
+                        icon = shopIcon,
+                        onClick = onShopPickerClick,
+                    )
+                    Spacer(Modifier.width(8.dp))
                     Box(
                         modifier = Modifier
                             .size(46.dp)
@@ -468,21 +479,11 @@ private fun SaleCard(sale: SaleItemUi, onClick: () -> Unit) {
             .padding(15.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            modifier = Modifier
-                .size(48.dp)
-                .clip(CircleShape)
-                .background(statusBackground(sale.status)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = sale.customerName.firstOrNull()?.uppercase() ?: "S",
-                color = statusColor(sale.status),
-                fontFamily = poppins,
-                fontSize = 17.sp,
-                fontWeight = FontWeight.SemiBold,
-            )
-        }
+        Image(
+            painter = painterResource(Res.drawable.sales_pie_chart),
+            contentDescription = null,
+            modifier = Modifier.size(48.dp),
+        )
 
         Column(
             modifier = Modifier
