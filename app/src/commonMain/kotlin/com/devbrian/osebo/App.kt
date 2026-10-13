@@ -29,6 +29,7 @@ import com.devbrian.osebo.data.repository.SharedCustomerRepository
 import com.devbrian.osebo.data.repository.SharedDashboardRepository
 import com.devbrian.osebo.data.repository.SharedFinanceRepository
 import com.devbrian.osebo.data.repository.SharedInventoryRepository
+import com.devbrian.osebo.data.repository.SharedReportsRepository
 import com.devbrian.osebo.data.repository.SharedSalesRepository
 import com.devbrian.osebo.data.repository.dateRangeForPeriod
 import com.devbrian.osebo.data.repository.toFinanceTransactionUi
@@ -143,6 +144,7 @@ fun App() {
         val salesRepository = remember { SharedSalesRepository(api) }
         val inventoryRepository = remember { SharedInventoryRepository(api) }
         val financeRepository = remember { SharedFinanceRepository(api) }
+        val reportsRepository = remember { SharedReportsRepository(api) }
         val scope = rememberCoroutineScope()
 
         var authState by remember { mutableStateOf<AuthState>(AuthState.Splash) }
@@ -156,6 +158,7 @@ fun App() {
         var salesState by remember { mutableStateOf(SalesUiState()) }
         var inventoryState by remember { mutableStateOf(InventoryUiState()) }
         var financeState by remember { mutableStateOf(FinanceUiState()) }
+        var reportsState by remember { mutableStateOf(ReportsUiState()) }
         var shops by remember { mutableStateOf<List<ShopDto>>(emptyList()) }
         var selectedShopId by remember { mutableStateOf<String?>(null) }
         var isShopPickerOpen by remember { mutableStateOf(false) }
@@ -171,6 +174,7 @@ fun App() {
                 salesState = SalesUiState()
                 inventoryState = InventoryUiState()
                 financeState = FinanceUiState()
+                reportsState = ReportsUiState()
                 shops = emptyList()
                 selectedShopId = null
             }
@@ -334,6 +338,34 @@ fun App() {
                 is ApiResult.Error -> financeState = financeState.copy(isLoading = false)
                 is ApiResult.NetworkError -> financeState = financeState.copy(isLoading = false)
             }
+        }
+
+        LaunchedEffect(authState, selectedShopId, reportsState.selectedPeriod) {
+            if (authState !is AuthState.LoggedIn) return@LaunchedEffect
+
+            val shopsResult = api.getShops()
+            val shopId = selectedShopId ?: when (shopsResult) {
+                is ApiResult.Success -> shopsResult.data.data?.firstOrNull()?.id
+                else -> null
+            }
+            if (shopId == null) return@LaunchedEffect
+
+            reportsState = reportsState.copy(isLoading = true)
+
+            val period = reportsState.selectedPeriod.lowercase()
+            val afterComparison = when (
+                val result = reportsRepository.loadSalesComparison(shopId, period, reportsState)
+            ) {
+                is ApiResult.Success -> result.data
+                else -> reportsState
+            }
+            val afterSummary = when (
+                val result = reportsRepository.loadShopSummary(shopId, afterComparison)
+            ) {
+                is ApiResult.Success -> result.data
+                else -> afterComparison
+            }
+            reportsState = afterSummary.copy(isLoading = false)
         }
 
         fun attemptSignIn() {
@@ -521,10 +553,10 @@ fun App() {
                     }
 
                     Destination.Reports -> ReportsScreen(
-                        state = ReportsUiState(),
-                        periods = listOf("Weekly", "Monthly", "Yearly"),
+                        state = reportsState,
+                        periods = listOf("Daily", "Weekly", "Monthly", "Quarterly", "Yearly"),
                         onBackClick = { destination = Destination.MainTabs },
-                        onPeriodSelected = {},
+                        onPeriodSelected = { reportsState = reportsState.copy(selectedPeriod = it) },
                     )
 
                     Destination.AddStock -> AddStockScreen(
