@@ -74,6 +74,9 @@ import com.devbrian.osebo.ui.components.ShopPickerMenu
 import com.devbrian.osebo.ui.screens.AddExpenseScreen
 import com.devbrian.osebo.ui.screens.AddExpenseUiState
 import com.devbrian.osebo.ui.screens.AddStockProductUi
+import com.devbrian.osebo.data.remote.dto.response.StockCategoryDto
+import com.devbrian.osebo.ui.screens.AddProductScreen
+import com.devbrian.osebo.ui.screens.AddProductUiState
 import com.devbrian.osebo.ui.screens.AddStockScreen
 import com.devbrian.osebo.ui.screens.AddStockUiState
 import com.devbrian.osebo.ui.screens.StockAdjustmentMode
@@ -160,6 +163,7 @@ private sealed class Destination {
     data object Suppliers : Destination()
     data object Shops : Destination()
     data object ShopDashboard : Destination()
+    data object AddProduct : Destination()
     data object AddExpense : Destination()
     data object ExpenseCategories : Destination()
     data object FinancialStatement : Destination()
@@ -233,6 +237,8 @@ fun App() {
         var transactionsState by remember { mutableStateOf(TransactionsUiState()) }
         var addStockState by remember { mutableStateOf(AddStockUiState()) }
         var addStockSourceProducts by remember { mutableStateOf<List<ProductDto>>(emptyList()) }
+        var addProductState by remember { mutableStateOf(AddProductUiState()) }
+        var productCategories by remember { mutableStateOf<List<StockCategoryDto>>(emptyList()) }
         var employeesState by remember { mutableStateOf(EmployeesUiState()) }
         var employeesSource by remember { mutableStateOf<List<Employee>>(emptyList()) }
         var employeeFormState by remember { mutableStateOf(EmployeeFormUiState()) }
@@ -286,6 +292,8 @@ fun App() {
                 shopsListState = ShopsUiState()
                 shopDashboardState = ShopDashboardUiState()
                 isMoreMenuOpen = false
+                addProductState = AddProductUiState()
+                productCategories = emptyList()
                 newSaleState = NewSaleUiState()
                 newSaleCart = emptyList()
                 newSaleSourceProducts = emptyList()
@@ -615,6 +623,24 @@ fun App() {
                 }
                 is ApiResult.Error -> addStockState = addStockState.copy(isLoading = false)
                 is ApiResult.NetworkError -> addStockState = addStockState.copy(isLoading = false)
+            }
+        }
+
+        LaunchedEffect(authState, selectedShopId, destination) {
+            if (authState !is AuthState.LoggedIn) return@LaunchedEffect
+            if (destination != Destination.AddProduct) return@LaunchedEffect
+            if (productCategories.isNotEmpty()) return@LaunchedEffect
+
+            val shopsResult = api.getShops()
+            val shopId = selectedShopId ?: when (shopsResult) {
+                is ApiResult.Success -> shopsResult.data.data?.firstOrNull()?.id
+                else -> null
+            }
+            if (shopId == null) return@LaunchedEffect
+
+            when (val result = inventoryRepository.getCategories(shopId)) {
+                is ApiResult.Success -> productCategories = result.data
+                is ApiResult.Error, is ApiResult.NetworkError -> Unit
             }
         }
 
@@ -1022,6 +1048,113 @@ fun App() {
             }
         }
 
+        fun saveAddProductForm() {
+            val state = addProductState
+            val nameError = "Product name is required".takeIf { state.name.isBlank() }
+            val skuError = "SKU is required".takeIf { state.sku.isBlank() }
+            val categoryError = "Category is required".takeIf { state.category.isBlank() }
+            val price = state.price.toDoubleOrNull()
+            val priceError = when {
+                state.price.isBlank() -> "Selling price is required"
+                price == null -> "Enter a valid price"
+                price < 0 -> "Price cannot be negative"
+                else -> null
+            }
+            val cost = state.cost.toDoubleOrNull()
+            val costError = when {
+                state.cost.isBlank() -> null
+                cost == null -> "Enter a valid cost"
+                cost < 0 -> "Cost cannot be negative"
+                else -> null
+            }
+            val stock = state.stock.toDoubleOrNull()
+            val stockError = when {
+                state.stock.isBlank() -> "Current stock is required"
+                stock == null -> "Enter a valid quantity"
+                stock < 0 -> "Stock cannot be negative"
+                else -> null
+            }
+            val threshold = state.lowStockThreshold.toIntOrNull()
+            val thresholdError = when {
+                state.lowStockThreshold.isBlank() -> "Low-stock alert is required"
+                threshold == null -> "Enter a whole number"
+                threshold < 0 -> "Alert cannot be negative"
+                else -> null
+            }
+            val tax = state.taxRate.toDoubleOrNull()
+            val taxError = when {
+                state.taxRate.isBlank() -> null
+                tax == null -> "Enter a valid rate"
+                tax !in 0.0..100.0 -> "Use a rate from 0 to 100"
+                else -> null
+            }
+            val weight = state.weight.toDoubleOrNull()
+            val weightError = when {
+                state.weight.isBlank() -> null
+                weight == null -> "Enter a valid weight"
+                weight < 0 -> "Weight cannot be negative"
+                else -> null
+            }
+
+            val detailsInvalid = nameError != null || skuError != null || categoryError != null
+            val stockInvalid = priceError != null || costError != null || stockError != null ||
+                thresholdError != null || taxError != null || weightError != null
+            addProductState = state.copy(
+                currentStep = if (detailsInvalid) 0 else 1,
+                nameError = nameError,
+                skuError = skuError,
+                categoryError = categoryError,
+                priceError = priceError,
+                costError = costError,
+                stockError = stockError,
+                thresholdError = thresholdError,
+                taxError = taxError,
+                weightError = weightError,
+            )
+            if (detailsInvalid || stockInvalid) return
+
+            val category = productCategories.firstOrNull { it.name == state.category }
+            if (category == null) {
+                addProductState = addProductState.copy(currentStep = 0, categoryError = "Choose a valid category")
+                return
+            }
+
+            val shopId = selectedShopId ?: shops.firstOrNull()?.id
+            if (shopId == null) {
+                addProductState = addProductState.copy(isLoading = false)
+                return
+            }
+
+            addProductState = addProductState.copy(isLoading = true)
+            scope.launch {
+                val result = inventoryRepository.createProduct(
+                    shopId = shopId,
+                    name = state.name.trim(),
+                    sku = state.sku.trim(),
+                    description = state.description.trim().ifBlank { null },
+                    lowQuantityMark = threshold.toString(),
+                    purchasePrice = (cost ?: 0.0).toString(),
+                    sellingPrice = price.toString(),
+                    quantity = stock.toString(),
+                    unitMeasure = state.unit.ifBlank { "Piece" },
+                    stockCategoryId = category.id,
+                )
+                when (result) {
+                    is ApiResult.Success -> {
+                        addProductState = AddProductUiState()
+                        destination = Destination.MainTabs
+                        selectedTab = AppTab.Inventory
+                        when (val refreshed = inventoryRepository.getProducts(shopId)) {
+                            is ApiResult.Success -> inventoryState = inventoryState.copy(products = refreshed.data)
+                            else -> Unit
+                        }
+                    }
+                    is ApiResult.Error -> addProductState = addProductState.copy(isLoading = false)
+                    is ApiResult.NetworkError -> addProductState = addProductState.copy(isLoading = false)
+                }
+            }
+        }
+
         fun refreshNewSaleUiState() {
             val quantities = newSaleCart.associate { it.product.id to it.quantity }
             val filteredProducts = if (newSaleQuery.isBlank()) {
@@ -1424,7 +1557,7 @@ fun App() {
                                 state = dashboardState,
                                 onShopPickerClick = { isShopPickerOpen = true },
                                 onReportsClick = { destination = Destination.Reports },
-                                onAddProductClick = { destination = Destination.AddStock },
+                                onAddProductClick = { destination = Destination.AddProduct },
                                 onAddEmployeeClick = { destination = Destination.AddEmployee },
                             )
                             AppTab.Sales -> SalesScreen(
@@ -1437,7 +1570,7 @@ fun App() {
                             AppTab.Inventory -> InventoryScreen(
                                 state = inventoryState,
                                 onQueryChange = { inventoryState = inventoryState.copy(query = it) },
-                                onAddProductClick = {},
+                                onAddProductClick = { destination = Destination.AddProduct },
                                 onStockTransfersClick = {},
                                 onAddStockClick = { destination = Destination.AddStock },
                                 onRemoveStockClick = { destination = Destination.RemoveStock },
@@ -1536,6 +1669,16 @@ fun App() {
                         onDecreaseQuantity = { adjustStockQuantity(StockAdjustmentMode.Remove, it, increase = false) },
                         onIncreaseQuantity = { adjustStockQuantity(StockAdjustmentMode.Remove, it, increase = true) },
                         onAddStockClick = { performStockAdjustment(StockAdjustmentMode.Remove) },
+                    )
+
+                    Destination.AddProduct -> AddProductScreen(
+                        state = addProductState,
+                        categories = productCategories.map { it.name },
+                        units = listOf("Piece", "kg", "g", "Litre", "ml", "Meter", "Box", "Pack"),
+                        onStateChange = { addProductState = it },
+                        onBackClick = { destination = Destination.MainTabs },
+                        onUploadImageClick = {},
+                        onSaveClick = ::saveAddProductForm,
                     )
 
                     Destination.NewSale -> NewSaleScreen(
@@ -1641,7 +1784,7 @@ fun App() {
                         onCustomersClick = { destination = Destination.MainTabs; selectedTab = AppTab.Customers },
                         onSalesClick = { destination = Destination.MainTabs; selectedTab = AppTab.Sales },
                         onNewSaleClick = { destination = Destination.NewSale },
-                        onAddProductClick = { destination = Destination.AddStock },
+                        onAddProductClick = { destination = Destination.AddProduct },
                         onAddExpenseClick = { destination = Destination.AddExpense },
                         onInventoryClick = { destination = Destination.MainTabs; selectedTab = AppTab.Inventory },
                         onProductClick = {},
