@@ -111,6 +111,7 @@ data class NewSaleUiState(
     val total: String = "UGX 0",
     val isLoading: Boolean = false,
     val isOffline: Boolean = false,
+    val errorMessage: String? = null,
 )
 
 private enum class SaleStep { Products, Cart }
@@ -170,6 +171,10 @@ fun NewSaleScreen(
                 isOffline = state.isOffline,
                 onBackClick = onBackClick,
             )
+            state.errorMessage?.let { message ->
+                Spacer(Modifier.height(10.dp))
+                NewSaleErrorBanner(message)
+            }
             Spacer(Modifier.height(14.dp))
             SaleStepControl(
                 selected = step,
@@ -241,6 +246,23 @@ fun NewSaleScreen(
                 onDiscountApplied(item.productId, discount)
                 discountItem = null
             },
+        )
+    }
+}
+
+@Composable
+private fun NewSaleErrorBanner(message: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFFFFEEF0), RoundedCornerShape(16.dp))
+            .padding(horizontal = 14.dp, vertical = 11.dp),
+    ) {
+        Text(
+            text = message,
+            color = Color(0xFFC62842),
+            fontFamily = oseboFontFamily(),
+            fontSize = 11.sp,
         )
     }
 }
@@ -715,7 +737,11 @@ private fun NewSaleActions(
     onSecondary: () -> Unit,
     onPrimary: () -> Unit,
 ) {
-    Surface(color = Color.White, shadowElevation = 12.dp) {
+    // Same fix as PaymentScreen's bottom bar: contentWindowInsets(0) + this
+    // Surface sitting outside the content Column's own imePadding() means
+    // the keyboard (search field, discount dialog) would otherwise cover
+    // this bar with no way to reach it.
+    Surface(color = Color.White, shadowElevation = 12.dp, modifier = Modifier.imePadding()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()

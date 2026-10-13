@@ -3,6 +3,8 @@ package com.devbrian.osebo.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -42,6 +44,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -102,6 +108,8 @@ fun PaymentScreen(
     onConfirmOverpayment: () -> Unit,
     onDismissOverpayment: () -> Unit,
 ) {
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
     Scaffold(
         containerColor = Color.White,
         contentWindowInsets = WindowInsets(0),
@@ -117,6 +125,15 @@ fun PaymentScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .pointerInput(Unit) {
+                    awaitEachGesture {
+                        val down = awaitFirstDown(pass = PointerEventPass.Final)
+                        if (!down.isConsumed) {
+                            focusManager.clearFocus()
+                            keyboardController?.hide()
+                        }
+                    }
+                }
                 .safeDrawingPadding()
                 .imePadding(),
             contentPadding = PaddingValues(horizontal = 18.dp, vertical = 8.dp),
@@ -581,7 +598,12 @@ private fun PaymentTextField(
 
 @Composable
 private fun PaymentBottomAction(total: String, isLoading: Boolean, onClick: () -> Unit) {
-    Surface(color = Color.White, shadowElevation = 12.dp) {
+    // Scaffold's contentWindowInsets is disabled above (WindowInsets(0)), and
+    // bottomBar sits outside the content LazyColumn's own imePadding(), so
+    // without this the keyboard covers this button entirely with no way to
+    // reach it short of dismissing the keyboard first (which nothing here
+    // triggers either) — imePadding() here lifts the whole bar above it.
+    Surface(color = Color.White, shadowElevation = 12.dp, modifier = Modifier.imePadding()) {
         Button(
             onClick = onClick,
             enabled = !isLoading,

@@ -832,7 +832,15 @@ fun App() {
                 is ApiResult.Success -> shopsResult.data.data?.firstOrNull()?.id
                 else -> null
             }
-            if (shopId == null) return@LaunchedEffect
+            if (shopId == null) {
+                val message = when (shopsResult) {
+                    is ApiResult.Error -> shopsResult.message
+                    is ApiResult.NetworkError -> shopsResult.message
+                    else -> "No shop found for this account"
+                }
+                newSaleState = NewSaleUiState(errorMessage = message)
+                return@LaunchedEffect
+            }
 
             newSaleCart = emptyList()
             newSaleQuery = ""
@@ -849,8 +857,14 @@ fun App() {
                         products = result.data.map { it.toNewSaleProductUi(cartQuantity = 0) },
                     )
                 }
-                is ApiResult.Error -> newSaleState = newSaleState.copy(isLoading = false)
-                is ApiResult.NetworkError -> newSaleState = newSaleState.copy(isLoading = false)
+                is ApiResult.Error -> newSaleState = newSaleState.copy(
+                    isLoading = false,
+                    errorMessage = result.message,
+                )
+                is ApiResult.NetworkError -> newSaleState = newSaleState.copy(
+                    isLoading = false,
+                    errorMessage = result.message,
+                )
             }
 
             when (val result = customerRepository.getRawCustomers(shopId)) {
