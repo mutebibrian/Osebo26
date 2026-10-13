@@ -72,6 +72,7 @@ import com.devbrian.osebo.models.ExpenseCategory
 import com.devbrian.osebo.models.Permission
 import com.devbrian.osebo.models.RenewSubscriptionRequest
 import com.devbrian.osebo.models.TimeSeriesApiResponse
+import kotlinx.serialization.json.JsonElement
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.delete
@@ -755,4 +756,29 @@ class KtorOseboApiService(
 
     suspend fun getFaqs(): ApiResult<ApiResponse<List<FaqDto>>> =
         execute { client.get("support/faqs") }
+
+    // ==================== AI ASSISTANT ====================
+    // Response shape is intentionally untyped (JsonElement, not a fixed DTO):
+    // androidMain's AiAssistantRepository parses these defensively against
+    // several possible key names, which is a strong signal the backend's
+    // shape here isn't stable/fully documented. SharedAiAssistantRepository
+    // mirrors that same lenient parsing rather than assuming a fixed schema.
+
+    suspend fun getAiAssistantReadiness(): ApiResult<JsonElement> =
+        execute { client.get("api/v1/ai-assistant/readiness") }
+
+    suspend fun getAiConversations(): ApiResult<JsonElement> =
+        execute { client.get("api/v1/ai-assistant/conversations") }
+
+    suspend fun createAiConversation(body: JsonElement): ApiResult<JsonElement> =
+        execute { client.post("api/v1/ai-assistant/conversations") { setBody(body) } }
+
+    suspend fun getAiConversation(conversationId: String): ApiResult<JsonElement> =
+        execute { client.get("api/v1/ai-assistant/conversations/$conversationId") }
+
+    suspend fun archiveAiConversation(conversationId: String): ApiResult<JsonElement> =
+        execute { client.delete("api/v1/ai-assistant/conversations/$conversationId") }
+
+    suspend fun sendAiMessage(conversationId: String, body: JsonElement): ApiResult<JsonElement> =
+        execute { client.post("api/v1/ai-assistant/conversations/$conversationId/messages") { setBody(body) } }
 }

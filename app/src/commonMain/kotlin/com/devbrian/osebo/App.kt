@@ -1,8 +1,13 @@
 package com.devbrian.osebo
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.Dashboard
@@ -19,7 +24,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.devbrian.osebo.resources.Res
+import com.devbrian.osebo.resources.oseboicon
+import org.jetbrains.compose.resources.painterResource
 import com.devbrian.osebo.data.remote.ApiResult
 import com.devbrian.osebo.data.remote.KtorOseboApiService
 import com.devbrian.osebo.data.remote.createOseboHttpClient
@@ -40,6 +49,7 @@ import com.devbrian.osebo.data.repository.cartSummary
 import com.devbrian.osebo.data.remote.api.SupplierDto
 import com.devbrian.osebo.data.remote.dto.request.AddSupplierRequest
 import com.devbrian.osebo.data.remote.dto.request.UpdateSupplierRequest
+import com.devbrian.osebo.data.repository.SharedAiAssistantRepository
 import com.devbrian.osebo.data.repository.SharedEmployeeRepository
 import com.devbrian.osebo.data.repository.SharedShopDashboardRepository
 import com.devbrian.osebo.data.repository.SharedShopsRepository
@@ -56,6 +66,9 @@ import com.devbrian.osebo.data.repository.toNewSaleCustomerUi
 import com.devbrian.osebo.data.repository.toNewSaleProductUi
 import com.devbrian.osebo.data.repository.toTransactionListItemUi
 import com.devbrian.osebo.data.remote.dto.request.EmployeeRequest
+import com.devbrian.osebo.models.AiAssistantUiState
+import com.devbrian.osebo.models.AiChatMessage
+import com.devbrian.osebo.models.AiConversation
 import com.devbrian.osebo.models.Customer
 import com.devbrian.osebo.models.Employee
 import com.devbrian.osebo.models.Role
@@ -101,6 +114,7 @@ import com.devbrian.osebo.ui.screens.ExpenseCategoryOption
 import com.devbrian.osebo.ui.screens.ExpenseCategoryUi
 import com.devbrian.osebo.ui.screens.NewSaleScreen
 import com.devbrian.osebo.ui.screens.NewSaleUiState
+import com.devbrian.osebo.ui.screens.OseboAiScreen
 import com.devbrian.osebo.ui.screens.PaymentScreen
 import com.devbrian.osebo.ui.screens.PaymentUiState
 import com.devbrian.osebo.ui.screens.SalePaymentMethod
@@ -164,6 +178,7 @@ private sealed class Destination {
     data object Shops : Destination()
     data object ShopDashboard : Destination()
     data object AddProduct : Destination()
+    data object AiAssistant : Destination()
     data object AddExpense : Destination()
     data object ExpenseCategories : Destination()
     data object FinancialStatement : Destination()
@@ -214,6 +229,7 @@ fun App() {
         val supplierRepository = remember { SharedSupplierRepository(api) }
         val shopsRepository = remember { SharedShopsRepository(api) }
         val shopDashboardRepository = remember { SharedShopDashboardRepository(api) }
+        val aiAssistantRepository = remember { SharedAiAssistantRepository(api) }
         val scope = rememberCoroutineScope()
 
         var authState by remember { mutableStateOf<AuthState>(AuthState.Splash) }
@@ -250,6 +266,7 @@ fun App() {
         var shopsListState by remember { mutableStateOf(ShopsUiState()) }
         var shopDashboardState by remember { mutableStateOf(ShopDashboardUiState()) }
         var isMoreMenuOpen by remember { mutableStateOf(false) }
+        var aiAssistantState by remember { mutableStateOf(AiAssistantUiState()) }
         var newSaleState by remember { mutableStateOf(NewSaleUiState()) }
         var newSaleCart by remember { mutableStateOf<List<SaleCartItem>>(emptyList()) }
         var newSaleSourceProducts by remember { mutableStateOf<List<ProductDto>>(emptyList()) }
@@ -292,6 +309,7 @@ fun App() {
                 shopsListState = ShopsUiState()
                 shopDashboardState = ShopDashboardUiState()
                 isMoreMenuOpen = false
+                aiAssistantState = AiAssistantUiState()
                 addProductState = AddProductUiState()
                 productCategories = emptyList()
                 newSaleState = NewSaleUiState()
@@ -1495,6 +1513,163 @@ fun App() {
             }
         }
 
+        suspend fun refreshAiAssistant() {
+            aiAssistantState = aiAssistantState.copy(isLoading = true, errorMessage = null)
+            val readiness = aiAssistantRepository.getReadiness().getOrNull()
+            if (readiness?.isReady == false) {
+                aiAssistantState = aiAssistantState.copy(
+                    isLoading = false,
+                    errorMessage = readiness.message.ifBlank {
+                        "Osebo AI is getting ready. Please try again shortly."
+                    },
+                )
+                return
+            }
+
+            // Mirrors AiAssistantViewModel.refresh(): a readiness failure must not block
+            // conversations, since readiness may be gated behind operational-role checks
+            // that don't apply to an otherwise-authorized user.
+            aiAssistantRepository.getConversations()
+                .onSuccess { conversations ->
+                    aiAssistantState = aiAssistantState.copy(
+                        conversations = conversations.sortedByDescending(AiConversation::updatedAt),
+                        isLoading = false,
+                    )
+                }
+                .onFailure { error ->
+                    aiAssistantState = aiAssistantState.copy(isLoading = false, errorMessage = error.aiUserMessage())
+                }
+        }
+
+        LaunchedEffect(authState, destination) {
+            if (authState !is AuthState.LoggedIn) return@LaunchedEffect
+            if (destination != Destination.AiAssistant) return@LaunchedEffect
+            refreshAiAssistant()
+        }
+
+        fun startAiConversation() {
+            aiAssistantState = aiAssistantState.copy(
+                activeConversationId = null,
+                messages = emptyList(),
+                errorMessage = null,
+            )
+        }
+
+        fun openAiConversation(conversationId: String) {
+            if (aiAssistantState.isLoading) return
+            scope.launch {
+                aiAssistantState = aiAssistantState.copy(isLoading = true, errorMessage = null)
+                aiAssistantRepository.getConversation(conversationId)
+                    .onSuccess { conversation ->
+                        aiAssistantState = aiAssistantState.copy(
+                            activeConversationId = conversation.id,
+                            messages = conversation.messages,
+                            isLoading = false,
+                        )
+                    }
+                    .onFailure { error ->
+                        aiAssistantState = aiAssistantState.copy(isLoading = false, errorMessage = error.aiUserMessage())
+                    }
+            }
+        }
+
+        fun archiveAiConversation(conversationId: String) {
+            scope.launch {
+                aiAssistantRepository.archiveConversation(conversationId)
+                    .onSuccess {
+                        aiAssistantState = aiAssistantState.copy(
+                            conversations = aiAssistantState.conversations.filterNot { it.id == conversationId },
+                            activeConversationId = aiAssistantState.activeConversationId
+                                .takeUnless { it == conversationId },
+                            messages = if (aiAssistantState.activeConversationId == conversationId) {
+                                emptyList()
+                            } else {
+                                aiAssistantState.messages
+                            },
+                        )
+                    }
+                    .onFailure { error ->
+                        aiAssistantState = aiAssistantState.copy(errorMessage = error.aiUserMessage())
+                    }
+            }
+        }
+
+        fun retryAiAssistant() {
+            scope.launch { refreshAiAssistant() }
+        }
+
+        fun sendAiMessage(rawMessage: String) {
+            val message = rawMessage.trim()
+            if (message.isBlank() || aiAssistantState.isSending) return
+
+            scope.launch {
+                val optimisticMessage = AiChatMessage(
+                    id = "local-${Clock.System.now().toEpochMilliseconds()}",
+                    isFromUser = true,
+                    text = message,
+                )
+                aiAssistantState = aiAssistantState.copy(
+                    messages = aiAssistantState.messages + optimisticMessage,
+                    isSending = true,
+                    errorMessage = null,
+                )
+
+                val conversationId = aiAssistantState.activeConversationId ?: run {
+                    val title = message.replace("\n", " ").take(48)
+                    aiAssistantRepository.createConversation(title)
+                        .onSuccess { conversation ->
+                            aiAssistantState = aiAssistantState.copy(
+                                activeConversationId = conversation.id,
+                                conversations = listOf(conversation) + aiAssistantState.conversations,
+                            )
+                        }
+                        .map { it.id }
+                        .getOrElse { error ->
+                            aiAssistantState = aiAssistantState.copy(
+                                messages = aiAssistantState.messages.filterNot { it.id == optimisticMessage.id },
+                                isSending = false,
+                                errorMessage = error.aiUserMessage(),
+                            )
+                            return@launch
+                        }
+                }
+
+                val sendResult = aiAssistantRepository.sendMessage(conversationId, message)
+                val sendError = sendResult.exceptionOrNull()
+                if (sendError != null) {
+                    aiAssistantState = aiAssistantState.copy(
+                        messages = aiAssistantState.messages.filterNot { it.id == optimisticMessage.id },
+                        isSending = false,
+                        errorMessage = sendError.aiUserMessage(),
+                    )
+                    return@launch
+                }
+
+                val canonicalConversation = aiAssistantRepository.getConversation(conversationId).getOrNull()
+                val responseMessages = canonicalConversation?.messages
+                    ?.takeIf(List<AiChatMessage>::isNotEmpty)
+                    ?: run {
+                        val received = sendResult.getOrDefault(emptyList())
+                        if (received.isEmpty()) {
+                            aiAssistantState.messages
+                        } else {
+                            (aiAssistantState.messages + received).distinctBy { chatMessage ->
+                                chatMessage.id.takeUnless { it.startsWith("local-") }
+                                    ?: "${chatMessage.isFromUser}:${chatMessage.text}"
+                            }
+                        }
+                    }
+                aiAssistantState = aiAssistantState.copy(
+                    messages = responseMessages,
+                    isSending = false,
+                    conversations = canonicalConversation?.let { updated ->
+                        (aiAssistantState.conversations.filterNot { it.id == updated.id } + updated)
+                            .sortedByDescending(AiConversation::updatedAt)
+                    } ?: aiAssistantState.conversations,
+                )
+            }
+        }
+
         Box(modifier = Modifier.fillMaxSize()) {
             // Bound once here because authState is a `by remember` delegate —
             // Kotlin can't smart-cast a delegated var's payload directly off
@@ -1640,6 +1815,26 @@ fun App() {
                                 ),
                             )
                         }
+
+                        // Android exposes Osebo AI as its own dedicated circular button
+                        // next to UserBottomNavigation, not through the More menu — see
+                        // UserBottomNavigation.kt's onOseboAiClick. Floating it above the
+                        // bar here keeps BottomNavBar's own fillMaxWidth layout untouched.
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(end = 28.dp, bottom = 92.dp)
+                                .size(52.dp)
+                                .background(Color(0xFF0783CF), CircleShape)
+                                .clickable { destination = Destination.AiAssistant },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Image(
+                                painter = painterResource(Res.drawable.oseboicon),
+                                contentDescription = "Open Osebo AI",
+                                modifier = Modifier.size(30.dp),
+                            )
+                        }
                     }
 
                     Destination.Reports -> ReportsScreen(
@@ -1679,6 +1874,17 @@ fun App() {
                         onBackClick = { destination = Destination.MainTabs },
                         onUploadImageClick = {},
                         onSaveClick = ::saveAddProductForm,
+                    )
+
+                    Destination.AiAssistant -> OseboAiScreen(
+                        firstName = sessionProvider.userFirstName() ?: "there",
+                        uiState = aiAssistantState,
+                        onBackClick = { destination = Destination.MainTabs },
+                        onOpenConversation = ::openAiConversation,
+                        onArchiveConversation = ::archiveAiConversation,
+                        onStartNewConversation = ::startAiConversation,
+                        onRetry = ::retryAiAssistant,
+                        onSubmit = ::sendAiMessage,
                     )
 
                     Destination.NewSale -> NewSaleScreen(
@@ -1868,3 +2074,6 @@ fun App() {
         }
     }
 }
+
+private fun Throwable?.aiUserMessage(): String =
+    this?.message?.takeIf(String::isNotBlank) ?: "Osebo AI is unavailable. Please try again."
