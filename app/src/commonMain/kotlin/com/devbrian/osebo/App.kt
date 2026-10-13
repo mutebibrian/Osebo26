@@ -43,6 +43,7 @@ import com.devbrian.osebo.data.repository.SharedFinanceRepository
 import com.devbrian.osebo.data.repository.SharedInventoryRepository
 import com.devbrian.osebo.data.repository.SharedReportsRepository
 import com.devbrian.osebo.data.repository.SharedSalesRepository
+import com.devbrian.osebo.data.repository.buildReceiptState
 import com.devbrian.osebo.data.repository.dateRangeForPeriod
 import com.devbrian.osebo.data.repository.SaleCartItem
 import com.devbrian.osebo.data.repository.cartSummary
@@ -127,6 +128,8 @@ import com.devbrian.osebo.ui.screens.InventoryScreen
 import com.devbrian.osebo.ui.screens.InventoryUiState
 import com.devbrian.osebo.ui.screens.LoginScreen
 import com.devbrian.osebo.ui.screens.LoginUiState
+import com.devbrian.osebo.ui.screens.ReceiptScreen
+import com.devbrian.osebo.ui.screens.ReceiptUiState
 import com.devbrian.osebo.ui.screens.ReportsScreen
 import com.devbrian.osebo.ui.screens.ReportsUiState
 import com.devbrian.osebo.ui.screens.SalesScreen
@@ -172,6 +175,7 @@ private sealed class Destination {
     data object RemoveStock : Destination()
     data object NewSale : Destination()
     data object Payment : Destination()
+    data object Receipt : Destination()
     data object AddEmployee : Destination()
     data object Employees : Destination()
     data object Suppliers : Destination()
@@ -274,6 +278,7 @@ fun App() {
         var newSaleCustomers by remember { mutableStateOf<List<Customer>>(emptyList()) }
         var selectedSaleCustomer by remember { mutableStateOf<Customer?>(null) }
         var paymentState by remember { mutableStateOf(PaymentUiState()) }
+        var receiptState by remember { mutableStateOf(ReceiptUiState()) }
         var shops by remember { mutableStateOf<List<ShopDto>>(emptyList()) }
         var selectedShopId by remember { mutableStateOf<String?>(null) }
         var isShopPickerOpen by remember { mutableStateOf(false) }
@@ -319,6 +324,7 @@ fun App() {
                 newSaleCustomers = emptyList()
                 selectedSaleCustomer = null
                 paymentState = PaymentUiState()
+                receiptState = ReceiptUiState()
                 shops = emptyList()
                 selectedShopId = null
             }
@@ -1285,10 +1291,27 @@ fun App() {
                     )
                 ) {
                     is ApiResult.Success -> {
+                        val sale = result.data.data
+                        val cartSnapshot = newSaleCart
+                        val paymentMethod = paymentState.selectedMethod.apiValue
+                        if (sale != null) {
+                            receiptState = buildReceiptState(
+                                sale = sale,
+                                cartItems = cartSnapshot,
+                                customerName = customer?.name.orEmpty(),
+                                customerPhone = customer?.phone.orEmpty(),
+                                servedBy = sessionProvider.userFirstName().orEmpty(),
+                                paidAmount = totalAmount,
+                                paymentMethod = paymentMethod,
+                            )
+                        }
                         paymentState = PaymentUiState()
                         newSaleCart = emptyList()
                         newSaleQuery = ""
-                        destination = Destination.MainTabs
+                        // Falls back to MainTabs/Sales on the rare case the server's own
+                        // create-sale response omits `data` — the sale itself still
+                        // succeeded, there's just nothing to build a receipt from.
+                        destination = if (sale != null) Destination.Receipt else Destination.MainTabs
                         selectedTab = AppTab.Sales
                         when (val salesResult = salesRepository.getSales(shopId)) {
                             is ApiResult.Success -> salesState = salesState.copy(
@@ -1918,6 +1941,14 @@ fun App() {
                         onDismissOverpayment = {
                             paymentState = paymentState.copy(showOverpaymentConfirmation = false)
                         },
+                    )
+
+                    Destination.Receipt -> ReceiptScreen(
+                        state = receiptState,
+                        onBackClick = { destination = Destination.MainTabs; selectedTab = AppTab.Sales },
+                        onPrintClick = {},
+                        onShareClick = {},
+                        onNewSaleClick = { destination = Destination.NewSale },
                     )
 
                     Destination.AddEmployee -> EmployeeFormScreen(

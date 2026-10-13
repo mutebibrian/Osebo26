@@ -11,6 +11,8 @@ import com.devbrian.osebo.models.Customer
 import com.devbrian.osebo.ui.screens.NewSaleCartItemUi
 import com.devbrian.osebo.ui.screens.NewSaleCustomerUi
 import com.devbrian.osebo.ui.screens.NewSaleProductUi
+import com.devbrian.osebo.ui.screens.ReceiptItemUi
+import com.devbrian.osebo.ui.screens.ReceiptUiState
 import com.devbrian.osebo.ui.screens.SaleItemUi
 import kotlin.math.round
 import kotlinx.datetime.Instant
@@ -159,6 +161,58 @@ private fun SaleApiData.toSaleItemUi(): SaleItemUi {
 private val MonthAbbreviations = listOf(
     "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 )
+
+/** Mirrors ReceiptFragment.displayReceiptData()'s field-by-field fallbacks. */
+fun buildReceiptState(
+    sale: SaleApiData,
+    cartItems: List<SaleCartItem>,
+    customerName: String,
+    customerPhone: String,
+    servedBy: String,
+    paidAmount: Double,
+    paymentMethod: String,
+): ReceiptUiState {
+    val summary = cartItems.cartSummary()
+    val total = sale.totalPrice ?: summary.total
+    val change = (paidAmount - total).coerceAtLeast(0.0)
+    return ReceiptUiState(
+        invoiceNumber = sale.invoiceNumber ?: "INV-${sale.id.take(8).ifBlank { "0" }}",
+        receiptDate = formatReceiptDate(sale.createdAt),
+        customerName = customerName.ifBlank { "Walk-in Customer" },
+        customerPhone = customerPhone.ifBlank { "N/A" },
+        servedBy = servedBy,
+        shopName = sale.shop?.name?.ifBlank { null }?.uppercase() ?: "Your shop",
+        shopAddress = sale.shop?.address.orEmpty(),
+        shopContact = sale.shop?.phone.orEmpty(),
+        businessType = sale.shop?.description.orEmpty(),
+        items = cartItems.map {
+            ReceiptItemUi(
+                name = it.product.name,
+                quantity = it.quantity.toString(),
+                unitPrice = "UGX ${formatSalesGrouped(it.unitPrice)}",
+                lineTotal = "UGX ${formatSalesGrouped(it.subtotal)}",
+                discountLabel = if (it.discount > 0) "-${it.discount.toInt()}% off" else null,
+            )
+        },
+        subtotal = "UGX ${formatSalesGrouped(summary.subtotal)}",
+        discount = if (summary.totalDiscount > 0) "-UGX ${formatSalesGrouped(summary.totalDiscount)}" else "UGX 0",
+        tax = "UGX ${summary.tax.toInt()}",
+        total = "UGX ${formatSalesGrouped(total)}",
+        paid = "UGX ${formatSalesGrouped(paidAmount)}",
+        change = "UGX ${formatSalesGrouped(change)}",
+        paymentMethod = paymentMethod.replaceFirstChar { it.uppercase() },
+    )
+}
+
+private fun formatReceiptDate(raw: String?): String {
+    if (raw.isNullOrBlank()) return ""
+    val dateTime = runCatching {
+        Instant.parse(raw).toLocalDateTime(TimeZone.currentSystemDefault())
+    }.getOrNull() ?: return ""
+    val hour = dateTime.hour.toString().padStart(2, '0')
+    val minute = dateTime.minute.toString().padStart(2, '0')
+    return "${dateTime.dayOfMonth} ${MonthAbbreviations[dateTime.month.ordinal]} ${dateTime.year} $hour:$minute"
+}
 
 private fun formatCompactCurrency(amount: Double): String = when {
     amount >= 1_000_000 -> "UGX ${formatOneDecimal(amount / 1_000_000)}M"
