@@ -36,14 +36,21 @@ import com.devbrian.osebo.data.repository.SharedSalesRepository
 import com.devbrian.osebo.data.repository.dateRangeForPeriod
 import com.devbrian.osebo.data.repository.SaleCartItem
 import com.devbrian.osebo.data.repository.cartSummary
+import com.devbrian.osebo.data.repository.SharedEmployeeRepository
+import com.devbrian.osebo.data.repository.countryDialCode
+import com.devbrian.osebo.data.repository.defaultEmployeeRoles
 import com.devbrian.osebo.data.repository.toAddStockProductUi
+import com.devbrian.osebo.data.repository.toEmployeeItemUi
 import com.devbrian.osebo.data.repository.toExpenseCategoryUi
 import com.devbrian.osebo.data.repository.toFinanceTransactionUi
 import com.devbrian.osebo.data.repository.toNewSaleCartItemUi
 import com.devbrian.osebo.data.repository.toNewSaleCustomerUi
 import com.devbrian.osebo.data.repository.toNewSaleProductUi
 import com.devbrian.osebo.data.repository.toTransactionListItemUi
+import com.devbrian.osebo.data.remote.dto.request.EmployeeRequest
 import com.devbrian.osebo.models.Customer
+import com.devbrian.osebo.models.Employee
+import com.devbrian.osebo.models.Role
 import com.devbrian.osebo.models.ExpenseCategory
 import com.devbrian.osebo.models.Transaction
 import com.devbrian.osebo.data.repository.currentDateLabel
@@ -64,6 +71,10 @@ import com.devbrian.osebo.ui.screens.CustomersScreen
 import com.devbrian.osebo.ui.screens.CustomersUiState
 import com.devbrian.osebo.ui.screens.DashboardScreen
 import com.devbrian.osebo.ui.screens.DashboardUiState
+import com.devbrian.osebo.ui.screens.EmployeeFormScreen
+import com.devbrian.osebo.ui.screens.EmployeeFormUiState
+import com.devbrian.osebo.ui.screens.EmployeesScreen
+import com.devbrian.osebo.ui.screens.EmployeesUiState
 import com.devbrian.osebo.ui.screens.ExpenseCategoriesScreen
 import com.devbrian.osebo.ui.screens.ExpenseCategoryOption
 import com.devbrian.osebo.ui.screens.ExpenseCategoryUi
@@ -126,6 +137,8 @@ private sealed class Destination {
     data object RemoveStock : Destination()
     data object NewSale : Destination()
     data object Payment : Destination()
+    data object AddEmployee : Destination()
+    data object Employees : Destination()
     data object AddExpense : Destination()
     data object ExpenseCategories : Destination()
     data object FinancialStatement : Destination()
@@ -172,6 +185,7 @@ fun App() {
         val inventoryRepository = remember { SharedInventoryRepository(api) }
         val financeRepository = remember { SharedFinanceRepository(api) }
         val reportsRepository = remember { SharedReportsRepository(api) }
+        val employeeRepository = remember { SharedEmployeeRepository(api) }
         val scope = rememberCoroutineScope()
 
         var authState by remember { mutableStateOf<AuthState>(AuthState.Splash) }
@@ -195,6 +209,10 @@ fun App() {
         var transactionsState by remember { mutableStateOf(TransactionsUiState()) }
         var addStockState by remember { mutableStateOf(AddStockUiState()) }
         var addStockSourceProducts by remember { mutableStateOf<List<ProductDto>>(emptyList()) }
+        var employeesState by remember { mutableStateOf(EmployeesUiState()) }
+        var employeesSource by remember { mutableStateOf<List<Employee>>(emptyList()) }
+        var employeeFormState by remember { mutableStateOf(EmployeeFormUiState()) }
+        var employeeRoles by remember { mutableStateOf<List<Role>>(emptyList()) }
         var newSaleState by remember { mutableStateOf(NewSaleUiState()) }
         var newSaleCart by remember { mutableStateOf<List<SaleCartItem>>(emptyList()) }
         var newSaleSourceProducts by remember { mutableStateOf<List<ProductDto>>(emptyList()) }
@@ -226,6 +244,10 @@ fun App() {
                 transactionsState = TransactionsUiState()
                 addStockState = AddStockUiState()
                 addStockSourceProducts = emptyList()
+                employeesState = EmployeesUiState()
+                employeesSource = emptyList()
+                employeeFormState = EmployeeFormUiState()
+                employeeRoles = emptyList()
                 newSaleState = NewSaleUiState()
                 newSaleCart = emptyList()
                 newSaleSourceProducts = emptyList()
@@ -555,6 +577,39 @@ fun App() {
                 }
                 is ApiResult.Error -> addStockState = addStockState.copy(isLoading = false)
                 is ApiResult.NetworkError -> addStockState = addStockState.copy(isLoading = false)
+            }
+        }
+
+        LaunchedEffect(authState, selectedShopId, destination) {
+            if (authState !is AuthState.LoggedIn) return@LaunchedEffect
+
+            if (destination == Destination.AddEmployee && employeeRoles.isEmpty()) {
+                val shopId = selectedShopId ?: shops.firstOrNull()?.id ?: ""
+                val roles = defaultEmployeeRoles(shopId, isMultiShopOwner = shops.size > 1)
+                employeeRoles = roles
+                employeeFormState = employeeFormState.copy(role = roles.firstOrNull()?.name.orEmpty())
+            }
+
+            if (destination != Destination.Employees) return@LaunchedEffect
+
+            val shopsResult = api.getShops()
+            val shopId = selectedShopId ?: when (shopsResult) {
+                is ApiResult.Success -> shopsResult.data.data?.firstOrNull()?.id
+                else -> null
+            }
+            if (shopId == null) return@LaunchedEffect
+
+            employeesState = employeesState.copy(isLoading = true)
+            when (val result = employeeRepository.getEmployees(shopId)) {
+                is ApiResult.Success -> {
+                    employeesSource = result.data
+                    employeesState = employeesState.copy(
+                        isLoading = false,
+                        employees = result.data.map { it.toEmployeeItemUi() },
+                    )
+                }
+                is ApiResult.Error -> employeesState = employeesState.copy(isLoading = false)
+                is ApiResult.NetworkError -> employeesState = employeesState.copy(isLoading = false)
             }
         }
 
@@ -1011,6 +1066,100 @@ fun App() {
             )
         }
 
+        fun continueEmployeeForm() {
+            val state = employeeFormState
+            val firstNameError = "First name is required".takeIf { state.firstName.trim().isEmpty() }
+            val lastNameError = "Last name is required".takeIf { state.lastName.trim().isEmpty() }
+            val roleError = "Choose a role".takeIf { employeeRoles.none { it.name == state.role } }
+            val phoneError = when {
+                state.phone.isBlank() -> "Phone number is required"
+                state.phone.length < 9 -> "Use at least 9 digits"
+                else -> null
+            }
+            val passwordError = when {
+                state.password.isEmpty() -> "Password is required"
+                state.password.length < 6 -> "Use at least 6 characters"
+                else -> null
+            }
+            val confirmPasswordError = when {
+                state.confirmPassword.isEmpty() -> "Confirm the password"
+                state.confirmPassword != state.password -> "Passwords do not match"
+                else -> null
+            }
+            val hasError = listOf(
+                firstNameError, lastNameError, roleError, phoneError, passwordError, confirmPasswordError,
+            ).any { it != null }
+            employeeFormState = state.copy(
+                firstNameError = firstNameError,
+                lastNameError = lastNameError,
+                roleError = roleError,
+                phoneError = phoneError,
+                passwordError = passwordError,
+                confirmPasswordError = confirmPasswordError,
+                submitError = if (hasError) "Check the highlighted account details." else null,
+                currentStep = if (hasError) 0 else 1,
+            )
+        }
+
+        fun submitEmployeeForm() {
+            continueEmployeeForm()
+            if (employeeFormState.currentStep == 0) return
+
+            val email = employeeFormState.email.trim()
+            val emailLooksValid = email.isBlank() || (email.contains("@") && email.contains("."))
+            if (!emailLooksValid) {
+                employeeFormState = employeeFormState.copy(
+                    emailError = "Enter a valid email address",
+                    submitError = "Check the highlighted contact detail.",
+                )
+                return
+            }
+
+            val selectedRole = employeeRoles.firstOrNull { it.name == employeeFormState.role }
+            if (selectedRole == null) {
+                employeeFormState = employeeFormState.copy(currentStep = 0, roleError = "Choose a valid role")
+                return
+            }
+
+            val shopId = selectedShopId ?: shops.firstOrNull()?.id
+            if (shopId == null) {
+                employeeFormState = employeeFormState.copy(submitError = "No shop selected. Please select a shop first.")
+                return
+            }
+
+            employeeFormState = employeeFormState.copy(isLoading = true)
+            scope.launch {
+                val request = EmployeeRequest(
+                    firstName = employeeFormState.firstName.trim(),
+                    lastName = employeeFormState.lastName.trim(),
+                    password = employeeFormState.password,
+                    phone = countryDialCode(employeeFormState.countryCode) + employeeFormState.phone,
+                    title = employeeFormState.title,
+                    role = selectedRole.id,
+                    shopId = shopId,
+                    kinName = employeeFormState.kinName.trim().ifEmpty { null },
+                    kinPhone = employeeFormState.kinPhone.trim().ifEmpty { null },
+                    residence = employeeFormState.residence.trim().ifEmpty { null },
+                    email = email.ifEmpty { null },
+                )
+                when (val result = employeeRepository.createEmployee(request)) {
+                    is ApiResult.Success -> {
+                        employeeFormState = EmployeeFormUiState()
+                        employeeRoles = emptyList()
+                        destination = Destination.Employees
+                    }
+                    is ApiResult.Error -> employeeFormState = employeeFormState.copy(
+                        isLoading = false,
+                        submitError = result.message,
+                    )
+                    is ApiResult.NetworkError -> employeeFormState = employeeFormState.copy(
+                        isLoading = false,
+                        submitError = result.message,
+                    )
+                }
+            }
+        }
+
         Box(modifier = Modifier.fillMaxSize()) {
             // Bound once here because authState is a `by remember` delegate —
             // Kotlin can't smart-cast a delegated var's payload directly off
@@ -1074,6 +1223,7 @@ fun App() {
                                 onShopPickerClick = { isShopPickerOpen = true },
                                 onReportsClick = { destination = Destination.Reports },
                                 onAddProductClick = { destination = Destination.AddStock },
+                                onAddEmployeeClick = { destination = Destination.AddEmployee },
                             )
                             AppTab.Sales -> SalesScreen(
                                 state = salesState,
@@ -1189,6 +1339,32 @@ fun App() {
                         onDismissOverpayment = {
                             paymentState = paymentState.copy(showOverpaymentConfirmation = false)
                         },
+                    )
+
+                    Destination.AddEmployee -> EmployeeFormScreen(
+                        state = employeeFormState,
+                        titles = listOf("Mr", "Mrs", "Ms", "Dr", "Prof", "Rev"),
+                        roles = employeeRoles.map { it.name },
+                        countryCodes = listOf("UG (+256)", "KE (+254)", "TZ (+255)", "RW (+250)", "SS (+211)"),
+                        onStateChange = { employeeFormState = it },
+                        onContinue = ::continueEmployeeForm,
+                        onSubmit = ::submitEmployeeForm,
+                        onDismiss = { destination = Destination.MainTabs },
+                    )
+
+                    Destination.Employees -> EmployeesScreen(
+                        state = employeesState,
+                        onRefreshClick = {},
+                        onAddEmployeeClick = { destination = Destination.AddEmployee },
+                        onAttendanceClick = {},
+                        onScheduleClick = {},
+                        onPayrollClick = {},
+                        onPerformanceClick = {},
+                        onViewAllClick = {},
+                        onEmployeeClick = {},
+                        onImportClick = {},
+                        onExportClick = {},
+                        onRolesClick = {},
                     )
 
                     Destination.AddExpense -> AddExpenseScreen(
