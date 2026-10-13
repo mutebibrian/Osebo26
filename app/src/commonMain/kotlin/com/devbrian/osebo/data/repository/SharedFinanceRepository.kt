@@ -10,6 +10,7 @@ import com.devbrian.osebo.models.ExpenseCategory
 import com.devbrian.osebo.models.Transaction
 import com.devbrian.osebo.ui.screens.ExpenseCategoryUi
 import com.devbrian.osebo.ui.screens.FinanceTransactionUi
+import com.devbrian.osebo.ui.screens.TransactionListItemUi
 import androidx.compose.ui.graphics.Color
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
@@ -31,6 +32,14 @@ import kotlinx.datetime.todayIn
  * Named "Shared" (not just FinanceRepository) because androidMain already
  * has its own, unrelated FinanceRepository in this same package.
  */
+data class FinancialStatementTotals(
+    val sales: Double,
+    val purchases: Double,
+    val expenses: Double,
+    val netProfit: Double,
+    val grossMargin: Double,
+)
+
 class SharedFinanceRepository(private val api: KtorOseboApiService) {
     suspend fun getTransactions(
         shopId: String,
@@ -136,6 +145,41 @@ class SharedFinanceRepository(private val api: KtorOseboApiService) {
             is ApiResult.NetworkError -> result
         }
 
+    /**
+     * Mirrors FinancialStatement's computed sales/purchases/expenses/
+     * netProfit/grossMargin properties on Android — all derived straight
+     * from the ledger's transaction_type, not merged with the expense
+     * list (that merge is only for the Finance tab's transaction feed).
+     */
+    suspend fun loadStatement(
+        shopId: String,
+        startDate: String? = null,
+        endDate: String? = null,
+    ): ApiResult<FinancialStatementTotals> {
+        return when (val result = api.getGeneralLedger(shopId, startDate, endDate)) {
+            is ApiResult.Success -> {
+                val entries = result.data.data?.data.orEmpty()
+                val sales = entries.filter { it.transactionType == "sale" }.sumOf { it.payment?.amount ?: 0.0 }
+                val purchases = entries.filter { it.transactionType == "procurement" }
+                    .sumOf { it.payment?.amount ?: 0.0 }
+                val expenses = entries.filter { it.transactionType == "procurement" || it.transactionType == "expense" }
+                    .sumOf { it.payment?.amount ?: 0.0 }
+                ApiResult.Success(
+                    FinancialStatementTotals(
+                        sales = sales,
+                        purchases = purchases,
+                        expenses = expenses,
+                        netProfit = sales - expenses,
+                        grossMargin = sales - purchases,
+                    ),
+                    result.httpCode,
+                )
+            }
+            is ApiResult.Error -> result
+            is ApiResult.NetworkError -> result
+        }
+    }
+
     suspend fun createExpense(shopId: String, request: CreateExpenseRequest): ApiResult<Expense> =
         when (val result = api.createExpense(shopId, request)) {
             is ApiResult.Success -> result.data.data?.let { ApiResult.Success(it, result.httpCode) }
@@ -161,6 +205,21 @@ private fun parseHexColor(hex: String?): Color {
     } catch (_: NumberFormatException) {
         Color(0xFF176BFF)
     }
+}
+
+fun Transaction.toTransactionListItemUi(): TransactionListItemUi {
+    val isIncome = Transaction.isPositive(type)
+    return TransactionListItemUi(
+        id = id,
+        description = description.ifBlank { Transaction.getTypeDisplayName(type) },
+        category = Transaction.getCategoryDisplayName(category),
+        date = date.take(10),
+        amount = "${if (isIncome) "+" else "−"} ${formatFinanceCurrency(amount)}",
+        rawType = type,
+        typeLabel = Transaction.getTypeDisplayName(type),
+        status = Transaction.getStatusDisplayName(status),
+        isIncome = isIncome,
+    )
 }
 
 fun Transaction.toFinanceTransactionUi(): FinanceTransactionUi {

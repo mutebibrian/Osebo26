@@ -35,6 +35,7 @@ import com.devbrian.osebo.data.repository.SharedSalesRepository
 import com.devbrian.osebo.data.repository.dateRangeForPeriod
 import com.devbrian.osebo.data.repository.toExpenseCategoryUi
 import com.devbrian.osebo.data.repository.toFinanceTransactionUi
+import com.devbrian.osebo.data.repository.toTransactionListItemUi
 import com.devbrian.osebo.models.ExpenseCategory
 import com.devbrian.osebo.models.Transaction
 import com.devbrian.osebo.data.repository.currentDateLabel
@@ -172,6 +173,8 @@ fun App() {
         var expenseCategoriesSource by remember { mutableStateOf<List<ExpenseCategory>>(emptyList()) }
         var expenseCategoriesUi by remember { mutableStateOf<List<ExpenseCategoryUi>>(emptyList()) }
         var isExpenseCategoriesLoading by remember { mutableStateOf(false) }
+        var financialStatementState by remember { mutableStateOf(FinancialStatementUiState()) }
+        var transactionsState by remember { mutableStateOf(TransactionsUiState()) }
         var shops by remember { mutableStateOf<List<ShopDto>>(emptyList()) }
         var selectedShopId by remember { mutableStateOf<String?>(null) }
         var isShopPickerOpen by remember { mutableStateOf(false) }
@@ -192,6 +195,8 @@ fun App() {
                 addExpenseDate = ""
                 expenseCategoriesSource = emptyList()
                 expenseCategoriesUi = emptyList()
+                financialStatementState = FinancialStatementUiState()
+                transactionsState = TransactionsUiState()
                 shops = emptyList()
                 selectedShopId = null
             }
@@ -421,6 +426,73 @@ fun App() {
                 is ApiResult.Error, is ApiResult.NetworkError -> Unit
             }
             isExpenseCategoriesLoading = false
+        }
+
+        LaunchedEffect(authState, selectedShopId, destination, financialStatementState.selectedPeriod) {
+            if (authState !is AuthState.LoggedIn) return@LaunchedEffect
+            if (destination != Destination.FinancialStatement) return@LaunchedEffect
+
+            val shopsResult = api.getShops()
+            val shopId = selectedShopId ?: when (shopsResult) {
+                is ApiResult.Success -> shopsResult.data.data?.firstOrNull()?.id
+                else -> null
+            }
+            if (shopId == null) return@LaunchedEffect
+
+            val (startDate, endDate) = dateRangeForPeriod(financialStatementState.selectedPeriod)
+            financialStatementState = financialStatementState.copy(isLoading = true)
+
+            when (val result = financeRepository.loadStatement(shopId, startDate, endDate)) {
+                is ApiResult.Success -> {
+                    val totals = result.data
+                    val margin = if (totals.sales > 0) totals.netProfit / totals.sales * 100 else 0.0
+                    financialStatementState = financialStatementState.copy(
+                        isLoading = false,
+                        sales = "UGX ${totals.sales.toInt()}",
+                        purchases = "UGX ${totals.purchases.toInt()}",
+                        expenses = "UGX ${totals.expenses.toInt()}",
+                        inventory = "UGX 0",
+                        grossMargin = "UGX ${totals.grossMargin.toInt()}",
+                        netProfit = "UGX ${totals.netProfit.toInt()}",
+                        profitMargin = "${(margin * 10).toInt() / 10.0}%",
+                        isProfitPositive = totals.netProfit >= 0,
+                    )
+                }
+                is ApiResult.Error -> financialStatementState = financialStatementState.copy(isLoading = false)
+                is ApiResult.NetworkError -> financialStatementState = financialStatementState.copy(isLoading = false)
+            }
+        }
+
+        LaunchedEffect(authState, selectedShopId, destination) {
+            if (authState !is AuthState.LoggedIn) return@LaunchedEffect
+            if (destination != Destination.AllTransactions) return@LaunchedEffect
+
+            val shopsResult = api.getShops()
+            val shopId = selectedShopId ?: when (shopsResult) {
+                is ApiResult.Success -> shopsResult.data.data?.firstOrNull()?.id
+                else -> null
+            }
+            if (shopId == null) return@LaunchedEffect
+
+            transactionsState = transactionsState.copy(isLoading = true)
+
+            when (val result = financeRepository.getTransactions(shopId)) {
+                is ApiResult.Success -> {
+                    val income = result.data.filter { Transaction.isPositive(it.type) }.sumOf { it.amount }
+                    val expenses = result.data.filter { Transaction.isNegative(it.type) }.sumOf { it.amount }
+                    val profit = income - expenses
+                    transactionsState = transactionsState.copy(
+                        isLoading = false,
+                        transactions = result.data.map { it.toTransactionListItemUi() },
+                        totalIncome = "UGX ${income.toInt()}",
+                        totalExpenses = "UGX ${expenses.toInt()}",
+                        netProfit = "UGX ${profit.toInt()}",
+                        isProfitPositive = profit >= 0,
+                    )
+                }
+                is ApiResult.Error -> transactionsState = transactionsState.copy(isLoading = false)
+                is ApiResult.NetworkError -> transactionsState = transactionsState.copy(isLoading = false)
+            }
         }
 
         fun attemptSignIn() {
@@ -735,10 +807,12 @@ fun App() {
                     )
 
                     Destination.FinancialStatement -> FinancialStatementScreen(
-                        state = FinancialStatementUiState(),
-                        periods = listOf("This Week", "This Month", "This Year"),
+                        state = financialStatementState,
+                        periods = listOf("This Week", "This Month", "Last Month", "This Quarter", "This Year"),
                         onBackClick = { destination = Destination.MainTabs },
-                        onPeriodSelected = {},
+                        onPeriodSelected = {
+                            financialStatementState = financialStatementState.copy(selectedPeriod = it)
+                        },
                         onMetricClick = {},
                         onExportClick = {},
                         onPrintClick = {},
@@ -750,12 +824,12 @@ fun App() {
                     )
 
                     Destination.AllTransactions -> TransactionsScreen(
-                        state = TransactionsUiState(),
+                        state = transactionsState,
                         onBackClick = { destination = Destination.MainTabs },
                         onRefreshClick = {},
                         onExportClick = {},
                         onAddIncomeClick = {},
-                        onAddExpenseClick = {},
+                        onAddExpenseClick = { destination = Destination.AddExpense },
                         onAddTransferClick = {},
                         onTransactionClick = {},
                         onTransactionAction = { _, _ -> },
