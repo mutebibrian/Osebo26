@@ -7,6 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.runtime.Composable
@@ -40,6 +41,8 @@ import com.devbrian.osebo.data.remote.api.SupplierDto
 import com.devbrian.osebo.data.remote.dto.request.AddSupplierRequest
 import com.devbrian.osebo.data.remote.dto.request.UpdateSupplierRequest
 import com.devbrian.osebo.data.repository.SharedEmployeeRepository
+import com.devbrian.osebo.data.repository.SharedShopDashboardRepository
+import com.devbrian.osebo.data.repository.SharedShopsRepository
 import com.devbrian.osebo.data.repository.SharedSupplierRepository
 import com.devbrian.osebo.data.repository.toSupplierItemUi
 import com.devbrian.osebo.data.repository.countryDialCode
@@ -63,6 +66,8 @@ import com.devbrian.osebo.data.repository.currentGreeting
 import com.devbrian.osebo.data.settings.SettingsStoreSessionProvider
 import com.devbrian.osebo.data.settings.createSettingsStore
 import com.devbrian.osebo.ui.components.BottomNavBar
+import com.devbrian.osebo.ui.components.MoreMenu
+import com.devbrian.osebo.ui.components.MoreMenuEntry
 import com.devbrian.osebo.ui.components.NavItem
 import com.devbrian.osebo.ui.components.ShopPickerItem
 import com.devbrian.osebo.ui.components.ShopPickerMenu
@@ -81,6 +86,10 @@ import com.devbrian.osebo.ui.screens.EmployeeFormUiState
 import com.devbrian.osebo.ui.screens.EmployeesScreen
 import com.devbrian.osebo.ui.screens.EmployeesUiState
 import com.devbrian.osebo.ui.screens.ExpenseCategoriesScreen
+import com.devbrian.osebo.ui.screens.ShopDashboardScreen
+import com.devbrian.osebo.ui.screens.ShopDashboardUiState
+import com.devbrian.osebo.ui.screens.ShopsScreen
+import com.devbrian.osebo.ui.screens.ShopsUiState
 import com.devbrian.osebo.ui.screens.SuppliersScreen
 import com.devbrian.osebo.ui.screens.SuppliersUiState
 import com.devbrian.osebo.ui.screens.SupplierFormDialog
@@ -149,6 +158,8 @@ private sealed class Destination {
     data object AddEmployee : Destination()
     data object Employees : Destination()
     data object Suppliers : Destination()
+    data object Shops : Destination()
+    data object ShopDashboard : Destination()
     data object AddExpense : Destination()
     data object ExpenseCategories : Destination()
     data object FinancialStatement : Destination()
@@ -197,6 +208,8 @@ fun App() {
         val reportsRepository = remember { SharedReportsRepository(api) }
         val employeeRepository = remember { SharedEmployeeRepository(api) }
         val supplierRepository = remember { SharedSupplierRepository(api) }
+        val shopsRepository = remember { SharedShopsRepository(api) }
+        val shopDashboardRepository = remember { SharedShopDashboardRepository(api) }
         val scope = rememberCoroutineScope()
 
         var authState by remember { mutableStateOf<AuthState>(AuthState.Splash) }
@@ -228,6 +241,9 @@ fun App() {
         var suppliersSource by remember { mutableStateOf<List<SupplierDto>>(emptyList()) }
         var supplierEditorForm by remember { mutableStateOf<SupplierFormUiState?>(null) }
         var editingSupplier by remember { mutableStateOf<SupplierDto?>(null) }
+        var shopsListState by remember { mutableStateOf(ShopsUiState()) }
+        var shopDashboardState by remember { mutableStateOf(ShopDashboardUiState()) }
+        var isMoreMenuOpen by remember { mutableStateOf(false) }
         var newSaleState by remember { mutableStateOf(NewSaleUiState()) }
         var newSaleCart by remember { mutableStateOf<List<SaleCartItem>>(emptyList()) }
         var newSaleSourceProducts by remember { mutableStateOf<List<ProductDto>>(emptyList()) }
@@ -267,6 +283,9 @@ fun App() {
                 suppliersSource = emptyList()
                 supplierEditorForm = null
                 editingSupplier = null
+                shopsListState = ShopsUiState()
+                shopDashboardState = ShopDashboardUiState()
+                isMoreMenuOpen = false
                 newSaleState = NewSaleUiState()
                 newSaleCart = emptyList()
                 newSaleSourceProducts = emptyList()
@@ -654,6 +673,64 @@ fun App() {
                 }
                 is ApiResult.Error -> suppliersState = suppliersState.copy(isLoading = false)
                 is ApiResult.NetworkError -> suppliersState = suppliersState.copy(isLoading = false)
+            }
+        }
+
+        LaunchedEffect(authState, destination) {
+            if (authState !is AuthState.LoggedIn) return@LaunchedEffect
+            if (destination != Destination.Shops) return@LaunchedEffect
+
+            shopsListState = shopsListState.copy(isLoading = true)
+            when (val result = shopsRepository.getShops(selectedShopId)) {
+                is ApiResult.Success -> shopsListState = shopsListState.copy(isLoading = false, shops = result.data)
+                is ApiResult.Error -> shopsListState = shopsListState.copy(
+                    isLoading = false,
+                    errorMessage = result.message,
+                )
+                is ApiResult.NetworkError -> shopsListState = shopsListState.copy(
+                    isLoading = false,
+                    errorMessage = result.message,
+                )
+            }
+        }
+
+        LaunchedEffect(authState, selectedShopId, destination) {
+            if (authState !is AuthState.LoggedIn) return@LaunchedEffect
+            if (destination != Destination.ShopDashboard) return@LaunchedEffect
+            val shopId = selectedShopId ?: return@LaunchedEffect
+
+            shopDashboardState = shopDashboardState.copy(
+                shopName = shops.firstOrNull { it.id == shopId }?.name ?: "Your shop",
+                isLoading = true,
+            )
+            when (val result = shopDashboardRepository.loadDashboard(shopId)) {
+                is ApiResult.Success -> {
+                    val data = result.data
+                    shopDashboardState = shopDashboardState.copy(
+                        hasData = true,
+                        isLoading = false,
+                        errorMessage = null,
+                        employeesCount = data.employeesCount,
+                        suppliersCount = data.suppliersCount,
+                        customersCount = data.customersCount,
+                        totalSales = data.totalSales,
+                        estimatedProfit = data.estimatedProfit,
+                        periodSales = data.periodSales,
+                        periodExpenses = data.periodExpenses,
+                        periodProfit = data.periodProfit,
+                        salesTrend = data.salesTrend,
+                        trendLabels = data.trendLabels,
+                        topProducts = data.topProducts,
+                    )
+                }
+                is ApiResult.Error -> shopDashboardState = shopDashboardState.copy(
+                    isLoading = false,
+                    errorMessage = result.message,
+                )
+                is ApiResult.NetworkError -> shopDashboardState = shopDashboardState.copy(
+                    isLoading = false,
+                    errorMessage = result.message,
+                )
             }
         }
 
@@ -1388,20 +1465,48 @@ fun App() {
                             AppTab.Customers -> CustomersScreen(state = customersState)
                         }
 
-                        BottomNavBar(
-                            items = listOf(
-                                NavItem(Icons.Default.Dashboard, AppTab.Dashboard.label),
-                                NavItem(Icons.Default.ShoppingCart, AppTab.Sales.label),
-                                NavItem(Icons.Default.Inventory2, AppTab.Inventory.label),
-                                NavItem(Icons.Default.AttachMoney, AppTab.Finance.label),
-                                NavItem(Icons.Default.People, AppTab.Customers.label),
-                            ),
-                            selectedIndex = selectedTab.ordinal,
-                            onItemSelected = { index -> selectedTab = AppTab.entries[index] },
+                        Box(
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
                                 .padding(horizontal = 20.dp, vertical = 16.dp),
-                        )
+                        ) {
+                            BottomNavBar(
+                                items = listOf(
+                                    NavItem(Icons.Default.Dashboard, AppTab.Dashboard.label),
+                                    NavItem(Icons.Default.ShoppingCart, AppTab.Sales.label),
+                                    NavItem(Icons.Default.Inventory2, AppTab.Inventory.label),
+                                    NavItem(Icons.Default.AttachMoney, AppTab.Finance.label),
+                                    NavItem(Icons.Default.People, AppTab.Customers.label),
+                                    NavItem(Icons.Default.MoreHoriz, "More"),
+                                ),
+                                selectedIndex = selectedTab.ordinal,
+                                onItemSelected = { index ->
+                                    if (index == AppTab.entries.size) {
+                                        isMoreMenuOpen = true
+                                    } else {
+                                        selectedTab = AppTab.entries[index]
+                                    }
+                                },
+                            )
+                            MoreMenu(
+                                expanded = isMoreMenuOpen,
+                                onDismiss = { isMoreMenuOpen = false },
+                                entries = listOf(
+                                    MoreMenuEntry("Shops") {
+                                        isMoreMenuOpen = false
+                                        destination = Destination.Shops
+                                    },
+                                    MoreMenuEntry("Employees") {
+                                        isMoreMenuOpen = false
+                                        destination = Destination.Employees
+                                    },
+                                    MoreMenuEntry("Suppliers") {
+                                        isMoreMenuOpen = false
+                                        destination = Destination.Suppliers
+                                    },
+                                ),
+                            )
+                        }
                     }
 
                     Destination.Reports -> ReportsScreen(
@@ -1514,6 +1619,33 @@ fun App() {
                             )
                         }
                     }
+
+                    Destination.Shops -> ShopsScreen(
+                        state = shopsListState,
+                        onAddShopClick = {},
+                        onRefreshClick = {},
+                        onShopClick = { id ->
+                            selectedShopId = id
+                            sessionProvider.saveCurrentShopId(id)
+                            destination = Destination.ShopDashboard
+                        },
+                        onSubscribeClick = {},
+                    )
+
+                    Destination.ShopDashboard -> ShopDashboardScreen(
+                        state = shopDashboardState,
+                        onBackClick = { destination = Destination.Shops },
+                        onRefreshClick = {},
+                        onEmployeesClick = { destination = Destination.Employees },
+                        onSuppliersClick = { destination = Destination.Suppliers },
+                        onCustomersClick = { destination = Destination.MainTabs; selectedTab = AppTab.Customers },
+                        onSalesClick = { destination = Destination.MainTabs; selectedTab = AppTab.Sales },
+                        onNewSaleClick = { destination = Destination.NewSale },
+                        onAddProductClick = { destination = Destination.AddStock },
+                        onAddExpenseClick = { destination = Destination.AddExpense },
+                        onInventoryClick = { destination = Destination.MainTabs; selectedTab = AppTab.Inventory },
+                        onProductClick = {},
+                    )
 
                     Destination.AddExpense -> AddExpenseScreen(
                         state = addExpenseState,
