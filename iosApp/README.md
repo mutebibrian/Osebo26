@@ -33,14 +33,19 @@ against — that's what fixes the "No such module 'OseboShared'" error.
 Code signing can't be scripted — Xcode needs your own credentials once:
 
 1. Xcode → Settings → Accounts → add your Apple ID (any free Apple ID works)
-2. Open the project, select the `OseboApp` target → **Signing & Capabilities**
-3. Check "Automatically manage signing" and pick your personal team from the dropdown
+2. Find your personal Team ID there too (click your Apple ID → it's shown under your name, a 10-character code like `94WKJLAJ5D`)
+3. Put that Team ID in two places so it survives `xcodegen generate` regenerating
+   the project from scratch (which otherwise wipes out anything you set by hand
+   in Signing & Capabilities — this bit us once already):
+   - `project.yml` → `targets.OseboApp.settings.base.DEVELOPMENT_TEAM`
+   - `ExportOptions.plist` → the `teamID` key
 
-After that, ⌘B (build) or ⌘R (run on Simulator) should work normally.
+Both are already filled in with the team ID this project was set up with. If
+you ever sign in with a *different* Apple ID, update both files to that
+account's team ID, or Signing & Capabilities will blank itself out again the
+next time someone runs `xcodegen generate`.
 
 ## Producing an .ipa for Sideloadly, entirely from Terminal
-
-Once signing is set up once in the GUI (step above), the rest can be scripted:
 
 ```bash
 cd iosApp
@@ -58,10 +63,6 @@ xcodebuild -exportArchive \
 ```
 
 The `.ipa` lands in `iosApp/build/export/OseboApp.ipa` — drag that into
-Sideloadly.
-
-If the archive step fails with a signing/provisioning error even after
-setting up your team in the GUI, add your Team ID to `ExportOptions.plist`
-(find it in Xcode → Settings → Accounts → your Apple ID → your team) and to
-`project.yml` under `settings.base.DEVELOPMENT_TEAM`, then rerun
-`xcodegen generate` before retrying the commands above.
+Sideloadly. If the archive step still fails with a signing error, the Team ID
+in `project.yml`/`ExportOptions.plist` doesn't match the Apple ID currently
+signed into Xcode — fix that first (see above) before re-running.

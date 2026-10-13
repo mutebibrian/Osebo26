@@ -19,6 +19,7 @@ targets:
         FRAMEWORK_SEARCH_PATHS: "$(SRCROOT)/../app/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)"
         OTHER_LDFLAGS: "-framework OseboShared"
         CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: 94WKJLAJ5D
         ENABLE_BITCODE: false
     preBuildScripts:
       - name: "Build Kotlin shared framework (Gradle)"
