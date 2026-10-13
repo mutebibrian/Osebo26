@@ -25,6 +25,7 @@ import com.devbrian.osebo.data.remote.createOseboHttpClient
 import com.devbrian.osebo.data.remote.dto.request.CreateExpenseRequest
 import com.devbrian.osebo.data.remote.dto.request.LoginRequest
 import com.devbrian.osebo.data.remote.dto.request.SelectAccountRequest
+import com.devbrian.osebo.data.remote.dto.response.ProductDto
 import com.devbrian.osebo.data.remote.dto.response.ShopDto
 import com.devbrian.osebo.data.repository.SharedCustomerRepository
 import com.devbrian.osebo.data.repository.SharedDashboardRepository
@@ -33,6 +34,7 @@ import com.devbrian.osebo.data.repository.SharedInventoryRepository
 import com.devbrian.osebo.data.repository.SharedReportsRepository
 import com.devbrian.osebo.data.repository.SharedSalesRepository
 import com.devbrian.osebo.data.repository.dateRangeForPeriod
+import com.devbrian.osebo.data.repository.toAddStockProductUi
 import com.devbrian.osebo.data.repository.toExpenseCategoryUi
 import com.devbrian.osebo.data.repository.toFinanceTransactionUi
 import com.devbrian.osebo.data.repository.toTransactionListItemUi
@@ -48,8 +50,10 @@ import com.devbrian.osebo.ui.components.ShopPickerItem
 import com.devbrian.osebo.ui.components.ShopPickerMenu
 import com.devbrian.osebo.ui.screens.AddExpenseScreen
 import com.devbrian.osebo.ui.screens.AddExpenseUiState
+import com.devbrian.osebo.ui.screens.AddStockProductUi
 import com.devbrian.osebo.ui.screens.AddStockScreen
 import com.devbrian.osebo.ui.screens.AddStockUiState
+import com.devbrian.osebo.ui.screens.StockAdjustmentMode
 import com.devbrian.osebo.ui.screens.CustomersScreen
 import com.devbrian.osebo.ui.screens.CustomersUiState
 import com.devbrian.osebo.ui.screens.DashboardScreen
@@ -108,6 +112,7 @@ private sealed class Destination {
     data object MainTabs : Destination()
     data object Reports : Destination()
     data object AddStock : Destination()
+    data object RemoveStock : Destination()
     data object AddExpense : Destination()
     data object ExpenseCategories : Destination()
     data object FinancialStatement : Destination()
@@ -175,6 +180,8 @@ fun App() {
         var isExpenseCategoriesLoading by remember { mutableStateOf(false) }
         var financialStatementState by remember { mutableStateOf(FinancialStatementUiState()) }
         var transactionsState by remember { mutableStateOf(TransactionsUiState()) }
+        var addStockState by remember { mutableStateOf(AddStockUiState()) }
+        var addStockSourceProducts by remember { mutableStateOf<List<ProductDto>>(emptyList()) }
         var shops by remember { mutableStateOf<List<ShopDto>>(emptyList()) }
         var selectedShopId by remember { mutableStateOf<String?>(null) }
         var isShopPickerOpen by remember { mutableStateOf(false) }
@@ -197,6 +204,8 @@ fun App() {
                 expenseCategoriesUi = emptyList()
                 financialStatementState = FinancialStatementUiState()
                 transactionsState = TransactionsUiState()
+                addStockState = AddStockUiState()
+                addStockSourceProducts = emptyList()
                 shops = emptyList()
                 selectedShopId = null
             }
@@ -495,6 +504,33 @@ fun App() {
             }
         }
 
+        LaunchedEffect(authState, selectedShopId, destination) {
+            if (authState !is AuthState.LoggedIn) return@LaunchedEffect
+            if (destination != Destination.AddStock && destination != Destination.RemoveStock) {
+                return@LaunchedEffect
+            }
+
+            val shopsResult = api.getShops()
+            val shopId = selectedShopId ?: when (shopsResult) {
+                is ApiResult.Success -> shopsResult.data.data?.firstOrNull()?.id
+                else -> null
+            }
+            if (shopId == null) return@LaunchedEffect
+
+            addStockState = AddStockUiState(isLoading = true)
+            when (val result = inventoryRepository.getRawProducts(shopId)) {
+                is ApiResult.Success -> {
+                    addStockSourceProducts = result.data
+                    addStockState = addStockState.copy(
+                        isLoading = false,
+                        products = result.data.map { it.toAddStockProductUi() },
+                    )
+                }
+                is ApiResult.Error -> addStockState = addStockState.copy(isLoading = false)
+                is ApiResult.NetworkError -> addStockState = addStockState.copy(isLoading = false)
+            }
+        }
+
         fun attemptSignIn() {
             loginState = loginState.copy(isLoading = true, errorMessage = null)
             scope.launch {
@@ -653,6 +689,90 @@ fun App() {
             }
         }
 
+        fun sanitizeStockQuantity(raw: String, allowsDecimal: Boolean): String {
+            if (!allowsDecimal) return raw.filter(Char::isDigit)
+            var decimalSeen = false
+            return buildString {
+                raw.forEach { character ->
+                    when {
+                        character.isDigit() -> append(character)
+                        character == '.' && !decimalSeen -> {
+                            append(character)
+                            decimalSeen = true
+                        }
+                    }
+                }
+            }
+        }
+
+        fun formatStockQuantity(product: ProductDto, quantity: Double): String = if (product.allowsFloatQuantity) {
+            (kotlin.math.round(quantity * 10) / 10).toString()
+        } else {
+            quantity.toInt().toString()
+        }
+
+        fun updateStockQuantity(mode: StockAdjustmentMode, productId: String, rawQuantity: String) {
+            val product = addStockSourceProducts.firstOrNull { it.id == productId } ?: return
+            val sanitized = sanitizeStockQuantity(rawQuantity, product.allowsFloatQuantity).take(9)
+            val requested = sanitized.toDoubleOrNull()
+            val bounded = when {
+                sanitized.isBlank() -> ""
+                mode == StockAdjustmentMode.Remove && requested != null && requested > product.quantity ->
+                    formatStockQuantity(product, product.quantity)
+                else -> sanitized
+            }
+            addStockState = addStockState.copy(
+                quantities = addStockState.quantities.toMutableMap().apply {
+                    if (bounded.isBlank()) remove(productId) else put(productId, bounded)
+                },
+            )
+        }
+
+        fun adjustStockQuantity(mode: StockAdjustmentMode, productId: String, increase: Boolean) {
+            val product = addStockSourceProducts.firstOrNull { it.id == productId } ?: return
+            val current = addStockState.quantities[productId]?.toDoubleOrNull() ?: 0.0
+            val step = if (product.allowsFloatQuantity) 0.1 else 1.0
+            val updated = if (increase) {
+                if (mode == StockAdjustmentMode.Remove) {
+                    (current + step).coerceAtMost(product.quantity)
+                } else {
+                    current + step
+                }
+            } else {
+                (current - step).coerceAtLeast(0.0)
+            }
+            updateStockQuantity(mode, productId, if (updated == 0.0) "" else formatStockQuantity(product, updated))
+        }
+
+        fun performStockAdjustment(mode: StockAdjustmentMode) {
+            if (addStockState.isProcessing) return
+            val selected = addStockState.quantities.mapNotNull { (productId, rawQuantity) ->
+                val product = addStockSourceProducts.firstOrNull { it.id == productId }
+                val quantity = rawQuantity.toDoubleOrNull() ?: 0.0
+                if (product != null && quantity > 0.0) product to quantity else null
+            }
+            if (selected.isEmpty()) return
+
+            val shopId = selectedShopId ?: shops.firstOrNull()?.id ?: return
+            addStockState = addStockState.copy(isProcessing = true)
+            scope.launch {
+                selected.forEach { (product, quantity) ->
+                    val newQuantity = if (mode == StockAdjustmentMode.Remove) {
+                        (product.quantity - quantity).coerceAtLeast(0.0)
+                    } else {
+                        product.quantity + quantity
+                    }
+                    inventoryRepository.updateProductQuantity(shopId, product.id, newQuantity)
+                }
+                addStockState = AddStockUiState()
+                destination = Destination.MainTabs
+                when (val result = inventoryRepository.getProducts(shopId)) {
+                    is ApiResult.Success -> inventoryState = inventoryState.copy(products = result.data)
+                    else -> Unit
+                }
+            }
+        }
+
         Box(modifier = Modifier.fillMaxSize()) {
             // Bound once here because authState is a `by remember` delegate —
             // Kotlin can't smart-cast a delegated var's payload directly off
@@ -730,7 +850,7 @@ fun App() {
                                 onAddProductClick = {},
                                 onStockTransfersClick = {},
                                 onAddStockClick = { destination = Destination.AddStock },
-                                onRemoveStockClick = {},
+                                onRemoveStockClick = { destination = Destination.RemoveStock },
                                 onProductClick = {},
                             )
                             AppTab.Finance -> FinanceScreen(
@@ -779,13 +899,25 @@ fun App() {
                     )
 
                     Destination.AddStock -> AddStockScreen(
-                        state = AddStockUiState(),
+                        state = addStockState,
+                        mode = StockAdjustmentMode.Add,
                         onBackClick = { destination = Destination.MainTabs },
-                        onQueryChange = {},
-                        onQuantityChange = { _, _ -> },
-                        onDecreaseQuantity = {},
-                        onIncreaseQuantity = {},
-                        onAddStockClick = {},
+                        onQueryChange = { addStockState = addStockState.copy(query = it) },
+                        onQuantityChange = { id, raw -> updateStockQuantity(StockAdjustmentMode.Add, id, raw) },
+                        onDecreaseQuantity = { adjustStockQuantity(StockAdjustmentMode.Add, it, increase = false) },
+                        onIncreaseQuantity = { adjustStockQuantity(StockAdjustmentMode.Add, it, increase = true) },
+                        onAddStockClick = { performStockAdjustment(StockAdjustmentMode.Add) },
+                    )
+
+                    Destination.RemoveStock -> AddStockScreen(
+                        state = addStockState,
+                        mode = StockAdjustmentMode.Remove,
+                        onBackClick = { destination = Destination.MainTabs },
+                        onQueryChange = { addStockState = addStockState.copy(query = it) },
+                        onQuantityChange = { id, raw -> updateStockQuantity(StockAdjustmentMode.Remove, id, raw) },
+                        onDecreaseQuantity = { adjustStockQuantity(StockAdjustmentMode.Remove, it, increase = false) },
+                        onIncreaseQuantity = { adjustStockQuantity(StockAdjustmentMode.Remove, it, increase = true) },
+                        onAddStockClick = { performStockAdjustment(StockAdjustmentMode.Remove) },
                     )
 
                     Destination.AddExpense -> AddExpenseScreen(

@@ -2,7 +2,9 @@ package com.devbrian.osebo.data.repository
 
 import com.devbrian.osebo.data.remote.ApiResult
 import com.devbrian.osebo.data.remote.KtorOseboApiService
+import com.devbrian.osebo.data.remote.dto.request.UpdateProductRequest
 import com.devbrian.osebo.data.remote.dto.response.ProductDto
+import com.devbrian.osebo.ui.screens.AddStockProductUi
 import com.devbrian.osebo.ui.screens.InventoryProductUi
 
 /**
@@ -26,7 +28,34 @@ class SharedInventoryRepository(private val api: KtorOseboApiService) {
             is ApiResult.NetworkError -> result
         }
     }
+
+    /** Raw DTOs, needed by the Add/Remove Stock flow for allowsFloatQuantity and the current quantity. */
+    suspend fun getRawProducts(shopId: String): ApiResult<List<ProductDto>> =
+        when (val result = api.getProducts(shopId)) {
+            is ApiResult.Success -> ApiResult.Success(result.data.data.orEmpty(), result.httpCode)
+            is ApiResult.Error -> result
+            is ApiResult.NetworkError -> result
+        }
+
+    /** Mirrors RestockFragment/RemoveStockFragment on Android: PUT the product's new absolute quantity. */
+    suspend fun updateProductQuantity(shopId: String, productId: String, newQuantity: Double): ApiResult<Unit> =
+        when (val result = api.updateProduct(shopId, productId, UpdateProductRequest(quantity = newQuantity))) {
+            is ApiResult.Success -> ApiResult.Success(Unit, result.httpCode)
+            is ApiResult.Error -> result
+            is ApiResult.NetworkError -> result
+        }
 }
+
+fun ProductDto.toAddStockProductUi(): AddStockProductUi = AddStockProductUi(
+    id = id,
+    name = name,
+    sku = sku,
+    stockAmount = quantity,
+    currentStock = "${formatStockNumber(quantity)} $unitMeasure",
+    unit = unitMeasure,
+    allowsDecimalQuantity = allowsFloatQuantity,
+    isLowStock = quantity <= lowQuantityMark,
+)
 
 private fun ProductDto.toInventoryProductUi(): InventoryProductUi = InventoryProductUi(
     id = id,
