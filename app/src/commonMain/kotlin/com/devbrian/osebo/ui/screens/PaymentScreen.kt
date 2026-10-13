@@ -111,6 +111,13 @@ fun PaymentScreen(
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
     Scaffold(
+        // Applied to the Scaffold itself, not a slot inside it: that's what
+        // actually shrinks Scaffold's own bounds around the keyboard, so
+        // content AND bottomBar both re-lay-out above it together. Putting
+        // imePadding() only on the LazyColumn (the first attempt at this
+        // fix) left bottomBar's position untouched by Scaffold's own
+        // layout pass, so the button stayed pinned under the keyboard.
+        modifier = Modifier.imePadding(),
         containerColor = Color.White,
         contentWindowInsets = WindowInsets(0),
         bottomBar = {
@@ -134,8 +141,7 @@ fun PaymentScreen(
                         }
                     }
                 }
-                .safeDrawingPadding()
-                .imePadding(),
+                .safeDrawingPadding(),
             contentPadding = PaddingValues(horizontal = 18.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
@@ -598,12 +604,7 @@ private fun PaymentTextField(
 
 @Composable
 private fun PaymentBottomAction(total: String, isLoading: Boolean, onClick: () -> Unit) {
-    // Scaffold's contentWindowInsets is disabled above (WindowInsets(0)), and
-    // bottomBar sits outside the content LazyColumn's own imePadding(), so
-    // without this the keyboard covers this button entirely with no way to
-    // reach it short of dismissing the keyboard first (which nothing here
-    // triggers either) — imePadding() here lifts the whole bar above it.
-    Surface(color = Color.White, shadowElevation = 12.dp, modifier = Modifier.imePadding()) {
+    Surface(color = Color.White, shadowElevation = 12.dp) {
         Button(
             onClick = onClick,
             enabled = !isLoading,

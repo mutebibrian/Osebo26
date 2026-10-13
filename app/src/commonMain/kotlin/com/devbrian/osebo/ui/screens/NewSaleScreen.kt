@@ -5,6 +5,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -52,6 +54,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -136,6 +142,8 @@ fun NewSaleScreen(
     var category by remember { mutableStateOf("All") }
     var showCustomers by remember { mutableStateOf(false) }
     var discountItem by remember { mutableStateOf<NewSaleCartItemUi?>(null) }
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
     val categories = remember(state.products) {
         listOf("All") + state.products.map { it.category }.filter { it.isNotBlank() }.distinct()
     }
@@ -143,6 +151,11 @@ fun NewSaleScreen(
     val cartCount = state.cartItems.sumOf { it.quantity }
 
     Scaffold(
+        // Applied here, not inside a slot, so Scaffold's own bounds shrink
+        // around the keyboard and content + bottomBar both re-lay-out above
+        // it together (see PaymentScreen's identical fix for why the
+        // nested-only version didn't work).
+        modifier = Modifier.imePadding(),
         containerColor = Color.White,
         contentWindowInsets = WindowInsets(0),
         bottomBar = {
@@ -163,7 +176,15 @@ fun NewSaleScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .safeDrawingPadding()
-                .imePadding()
+                .pointerInput(Unit) {
+                    awaitEachGesture {
+                        val down = awaitFirstDown(pass = PointerEventPass.Final)
+                        if (!down.isConsumed) {
+                            focusManager.clearFocus()
+                            keyboardController?.hide()
+                        }
+                    }
+                }
                 .padding(horizontal = 18.dp),
         ) {
             SaleHeader(
@@ -737,11 +758,7 @@ private fun NewSaleActions(
     onSecondary: () -> Unit,
     onPrimary: () -> Unit,
 ) {
-    // Same fix as PaymentScreen's bottom bar: contentWindowInsets(0) + this
-    // Surface sitting outside the content Column's own imePadding() means
-    // the keyboard (search field, discount dialog) would otherwise cover
-    // this bar with no way to reach it.
-    Surface(color = Color.White, shadowElevation = 12.dp, modifier = Modifier.imePadding()) {
+    Surface(color = Color.White, shadowElevation = 12.dp) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()

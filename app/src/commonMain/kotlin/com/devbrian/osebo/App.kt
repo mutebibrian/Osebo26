@@ -2024,6 +2024,7 @@ fun App() {
                                 onShopPickerClick = { isShopPickerOpen = true },
                                 onReportsClick = { destination = Destination.Reports },
                                 onAddProductClick = { destination = Destination.AddProduct },
+                                onNewSaleClick = { destination = Destination.NewSale },
                                 onAddEmployeeClick = { destination = Destination.AddEmployee },
                             )
                             AppTab.Sales -> SalesScreen(
