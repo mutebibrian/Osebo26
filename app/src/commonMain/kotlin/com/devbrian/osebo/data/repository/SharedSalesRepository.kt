@@ -2,7 +2,15 @@ package com.devbrian.osebo.data.repository
 
 import com.devbrian.osebo.data.remote.ApiResult
 import com.devbrian.osebo.data.remote.KtorOseboApiService
+import com.devbrian.osebo.data.remote.dto.request.SaleItemRequest
+import com.devbrian.osebo.data.remote.dto.request.SaleRequest
+import com.devbrian.osebo.data.remote.dto.response.ProductDto
 import com.devbrian.osebo.data.remote.dto.response.SaleApiData
+import com.devbrian.osebo.data.remote.dto.response.SaleApiResponse
+import com.devbrian.osebo.models.Customer
+import com.devbrian.osebo.ui.screens.NewSaleCartItemUi
+import com.devbrian.osebo.ui.screens.NewSaleCustomerUi
+import com.devbrian.osebo.ui.screens.NewSaleProductUi
 import com.devbrian.osebo.ui.screens.SaleItemUi
 import kotlin.math.round
 import kotlinx.datetime.Instant
@@ -42,7 +50,91 @@ class SharedSalesRepository(private val api: KtorOseboApiService) {
             is ApiResult.NetworkError -> result
         }
     }
+
+    /** Mirrors SalesRepository.createSale() on Android, minus its local Room cache/offline-sync queue. */
+    suspend fun createSale(
+        shopId: String,
+        customerId: String?,
+        cartItems: List<SaleCartItem>,
+        paidAmount: Double,
+        saleType: String = "sale",
+        notes: String? = null,
+    ): ApiResult<SaleApiResponse> {
+        val request = SaleRequest(
+            customerId = customerId,
+            paidAmount = paidAmount.toString(),
+            saleType = saleType,
+            stockItems = cartItems.map {
+                SaleItemRequest(
+                    stockItemId = it.product.id,
+                    quantity = it.quantity,
+                    price = it.unitPrice,
+                    discount = it.discount,
+                )
+            },
+            notes = notes,
+        )
+        return api.createSale(shopId, request)
+    }
 }
+
+/**
+ * In-memory cart line (no local Room cache the way androidMain's CartItem
+ * has — a sale is a single online round trip in this first pass).
+ */
+data class SaleCartItem(val product: ProductDto, val quantity: Int, val discount: Double = 0.0) {
+    val unitPrice: Double get() = product.sellingPrice
+    val totalBeforeDiscount: Double get() = unitPrice * quantity
+    val totalDiscountAmount: Double get() = totalBeforeDiscount * discount / 100
+    val subtotal: Double get() = totalBeforeDiscount - totalDiscountAmount
+}
+
+data class SaleCartSummary(
+    val subtotal: Double,
+    val totalDiscount: Double,
+    val tax: Double,
+    val total: Double,
+)
+
+/** ProductDto has no tax-rate field, so tax is always 0 here — Android's own calculateTotalTax() has no iOS equivalent yet. */
+fun List<SaleCartItem>.cartSummary(): SaleCartSummary {
+    val subtotal = sumOf { it.totalBeforeDiscount }
+    val totalDiscount = sumOf { it.totalDiscountAmount }
+    return SaleCartSummary(subtotal = subtotal, totalDiscount = totalDiscount, tax = 0.0, total = sumOf { it.subtotal })
+}
+
+fun SaleCartItem.toNewSaleCartItemUi(): NewSaleCartItemUi = NewSaleCartItemUi(
+    productId = product.id,
+    name = product.name,
+    sku = product.sku.ifBlank { "No SKU" },
+    quantity = quantity,
+    unitPrice = "UGX ${formatSalesGrouped(unitPrice)}",
+    subtotal = "UGX ${formatSalesGrouped(subtotal)}",
+    discount = discount,
+)
+
+fun ProductDto.toNewSaleProductUi(cartQuantity: Int): NewSaleProductUi = NewSaleProductUi(
+    id = id,
+    name = name,
+    sku = sku.ifBlank { "No SKU" },
+    category = stockCategory?.name?.ifBlank { "Other" } ?: "Other",
+    price = "UGX ${formatSalesGrouped(sellingPrice)}",
+    stock = if (quantity <= 0) "Out of stock" else "${formatSalesStockNumber(quantity)} $unitMeasure available",
+    cartQuantity = cartQuantity,
+    isOutOfStock = quantity <= 0,
+)
+
+fun Customer.toNewSaleCustomerUi(): NewSaleCustomerUi = NewSaleCustomerUi(
+    id = id,
+    name = name,
+    detail = phone.ifBlank { if (isDefault) "Default customer" else "No phone number" },
+)
+
+private fun formatSalesGrouped(amount: Double): String =
+    amount.toLong().toString().reversed().chunked(3).joinToString(",").reversed()
+
+private fun formatSalesStockNumber(stock: Double): String =
+    if (stock == stock.toInt().toDouble()) stock.toInt().toString() else formatSalesGrouped(stock)
 
 private fun SaleApiData.toSaleItemUi(): SaleItemUi {
     val dateTime = createdAt?.let { raw ->

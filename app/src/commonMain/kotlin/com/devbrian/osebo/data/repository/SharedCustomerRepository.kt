@@ -3,6 +3,7 @@ package com.devbrian.osebo.data.repository
 import com.devbrian.osebo.data.remote.ApiResult
 import com.devbrian.osebo.data.remote.KtorOseboApiService
 import com.devbrian.osebo.data.remote.dto.response.CustomerDto
+import com.devbrian.osebo.models.Customer
 import com.devbrian.osebo.ui.screens.CustomerUi
 
 /**
@@ -26,6 +27,14 @@ class SharedCustomerRepository(private val api: KtorOseboApiService) {
             is ApiResult.NetworkError -> result
         }
     }
+
+    /** Raw Customer models, needed by New Sale's customer picker (isDefault/phone, not just display labels). */
+    suspend fun getRawCustomers(shopId: String): ApiResult<List<Customer>> =
+        when (val result = api.getCustomers(shopId)) {
+            is ApiResult.Success -> ApiResult.Success(result.data.data.orEmpty().map { it.toCustomer() }, result.httpCode)
+            is ApiResult.Error -> result
+            is ApiResult.NetworkError -> result
+        }
 }
 
 private fun CustomerDto.toCustomerUi(): CustomerUi {

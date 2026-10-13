@@ -34,10 +34,16 @@ import com.devbrian.osebo.data.repository.SharedInventoryRepository
 import com.devbrian.osebo.data.repository.SharedReportsRepository
 import com.devbrian.osebo.data.repository.SharedSalesRepository
 import com.devbrian.osebo.data.repository.dateRangeForPeriod
+import com.devbrian.osebo.data.repository.SaleCartItem
+import com.devbrian.osebo.data.repository.cartSummary
 import com.devbrian.osebo.data.repository.toAddStockProductUi
 import com.devbrian.osebo.data.repository.toExpenseCategoryUi
 import com.devbrian.osebo.data.repository.toFinanceTransactionUi
+import com.devbrian.osebo.data.repository.toNewSaleCartItemUi
+import com.devbrian.osebo.data.repository.toNewSaleCustomerUi
+import com.devbrian.osebo.data.repository.toNewSaleProductUi
 import com.devbrian.osebo.data.repository.toTransactionListItemUi
+import com.devbrian.osebo.models.Customer
 import com.devbrian.osebo.models.ExpenseCategory
 import com.devbrian.osebo.models.Transaction
 import com.devbrian.osebo.data.repository.currentDateLabel
@@ -61,6 +67,11 @@ import com.devbrian.osebo.ui.screens.DashboardUiState
 import com.devbrian.osebo.ui.screens.ExpenseCategoriesScreen
 import com.devbrian.osebo.ui.screens.ExpenseCategoryOption
 import com.devbrian.osebo.ui.screens.ExpenseCategoryUi
+import com.devbrian.osebo.ui.screens.NewSaleScreen
+import com.devbrian.osebo.ui.screens.NewSaleUiState
+import com.devbrian.osebo.ui.screens.PaymentScreen
+import com.devbrian.osebo.ui.screens.PaymentUiState
+import com.devbrian.osebo.ui.screens.SalePaymentMethod
 import com.devbrian.osebo.ui.screens.FinanceScreen
 import com.devbrian.osebo.ui.screens.FinanceSettingsScreen
 import com.devbrian.osebo.ui.screens.FinanceUiState
@@ -113,6 +124,8 @@ private sealed class Destination {
     data object Reports : Destination()
     data object AddStock : Destination()
     data object RemoveStock : Destination()
+    data object NewSale : Destination()
+    data object Payment : Destination()
     data object AddExpense : Destination()
     data object ExpenseCategories : Destination()
     data object FinancialStatement : Destination()
@@ -182,6 +195,13 @@ fun App() {
         var transactionsState by remember { mutableStateOf(TransactionsUiState()) }
         var addStockState by remember { mutableStateOf(AddStockUiState()) }
         var addStockSourceProducts by remember { mutableStateOf<List<ProductDto>>(emptyList()) }
+        var newSaleState by remember { mutableStateOf(NewSaleUiState()) }
+        var newSaleCart by remember { mutableStateOf<List<SaleCartItem>>(emptyList()) }
+        var newSaleSourceProducts by remember { mutableStateOf<List<ProductDto>>(emptyList()) }
+        var newSaleQuery by remember { mutableStateOf("") }
+        var newSaleCustomers by remember { mutableStateOf<List<Customer>>(emptyList()) }
+        var selectedSaleCustomer by remember { mutableStateOf<Customer?>(null) }
+        var paymentState by remember { mutableStateOf(PaymentUiState()) }
         var shops by remember { mutableStateOf<List<ShopDto>>(emptyList()) }
         var selectedShopId by remember { mutableStateOf<String?>(null) }
         var isShopPickerOpen by remember { mutableStateOf(false) }
@@ -206,6 +226,13 @@ fun App() {
                 transactionsState = TransactionsUiState()
                 addStockState = AddStockUiState()
                 addStockSourceProducts = emptyList()
+                newSaleState = NewSaleUiState()
+                newSaleCart = emptyList()
+                newSaleSourceProducts = emptyList()
+                newSaleQuery = ""
+                newSaleCustomers = emptyList()
+                selectedSaleCustomer = null
+                paymentState = PaymentUiState()
                 shops = emptyList()
                 selectedShopId = null
             }
@@ -531,6 +558,52 @@ fun App() {
             }
         }
 
+        LaunchedEffect(authState, selectedShopId, destination) {
+            if (authState !is AuthState.LoggedIn) return@LaunchedEffect
+            if (destination != Destination.NewSale) return@LaunchedEffect
+
+            val shopsResult = api.getShops()
+            val shopId = selectedShopId ?: when (shopsResult) {
+                is ApiResult.Success -> shopsResult.data.data?.firstOrNull()?.id
+                else -> null
+            }
+            if (shopId == null) return@LaunchedEffect
+
+            newSaleCart = emptyList()
+            newSaleQuery = ""
+            newSaleState = NewSaleUiState(
+                shopName = shops.firstOrNull { it.id == shopId }?.name ?: "Selected shop",
+                isLoading = true,
+            )
+
+            when (val result = inventoryRepository.getRawProducts(shopId)) {
+                is ApiResult.Success -> {
+                    newSaleSourceProducts = result.data
+                    newSaleState = newSaleState.copy(
+                        isLoading = false,
+                        products = result.data.map { it.toNewSaleProductUi(cartQuantity = 0) },
+                    )
+                }
+                is ApiResult.Error -> newSaleState = newSaleState.copy(isLoading = false)
+                is ApiResult.NetworkError -> newSaleState = newSaleState.copy(isLoading = false)
+            }
+
+            when (val result = customerRepository.getRawCustomers(shopId)) {
+                is ApiResult.Success -> {
+                    newSaleCustomers = result.data
+                    newSaleState = newSaleState.copy(customers = result.data.map { it.toNewSaleCustomerUi() })
+                    val defaultCustomer = selectedSaleCustomer ?: result.data.firstOrNull(Customer::isDefault)
+                    selectedSaleCustomer = defaultCustomer
+                    newSaleState = newSaleState.copy(
+                        selectedCustomerId = defaultCustomer?.id.orEmpty(),
+                        selectedCustomerName = defaultCustomer?.name?.ifBlank { "Walk-in Customer" }
+                            ?: "Walk-in Customer",
+                    )
+                }
+                is ApiResult.Error, is ApiResult.NetworkError -> Unit
+            }
+        }
+
         fun attemptSignIn() {
             loginState = loginState.copy(isLoading = true, errorMessage = null)
             scope.launch {
@@ -773,6 +846,171 @@ fun App() {
             }
         }
 
+        fun refreshNewSaleUiState() {
+            val quantities = newSaleCart.associate { it.product.id to it.quantity }
+            val filteredProducts = if (newSaleQuery.isBlank()) {
+                newSaleSourceProducts
+            } else {
+                newSaleSourceProducts.filter {
+                    it.name.contains(newSaleQuery, ignoreCase = true) || it.sku.contains(newSaleQuery, ignoreCase = true)
+                }
+            }
+            val summary = newSaleCart.cartSummary()
+            newSaleState = newSaleState.copy(
+                products = filteredProducts.map { it.toNewSaleProductUi(cartQuantity = quantities[it.id] ?: 0) },
+                cartItems = newSaleCart.map { it.toNewSaleCartItemUi() },
+                subtotal = "UGX ${summary.subtotal.toInt()}",
+                discount = "UGX ${summary.totalDiscount.toInt()}",
+                tax = "UGX ${summary.tax.toInt()}",
+                total = "UGX ${summary.total.toInt()}",
+            )
+        }
+
+        fun searchNewSaleProducts(query: String) {
+            newSaleQuery = query
+            refreshNewSaleUiState()
+        }
+
+        fun addProductToNewSale(productId: String) {
+            val product = newSaleSourceProducts.firstOrNull { it.id == productId } ?: return
+            val existing = newSaleCart.firstOrNull { it.product.id == productId }
+            newSaleCart = if (existing != null) {
+                newSaleCart.map { if (it.product.id == productId) it.copy(quantity = it.quantity + 1) else it }
+            } else {
+                newSaleCart + SaleCartItem(product = product, quantity = 1)
+            }
+            refreshNewSaleUiState()
+        }
+
+        fun changeNewSaleQuantity(productId: String, quantity: Int) {
+            newSaleCart = if (quantity <= 0) {
+                newSaleCart.filterNot { it.product.id == productId }
+            } else {
+                newSaleCart.map { if (it.product.id == productId) it.copy(quantity = quantity) else it }
+            }
+            refreshNewSaleUiState()
+        }
+
+        fun removeNewSaleItem(productId: String) {
+            newSaleCart = newSaleCart.filterNot { it.product.id == productId }
+            refreshNewSaleUiState()
+        }
+
+        fun applyNewSaleDiscount(productId: String, discount: Double) {
+            newSaleCart = newSaleCart.map { if (it.product.id == productId) it.copy(discount = discount) else it }
+            refreshNewSaleUiState()
+        }
+
+        fun selectNewSaleCustomer(customerId: String) {
+            val customer = newSaleCustomers.firstOrNull { it.id == customerId } ?: return
+            selectedSaleCustomer = customer
+            newSaleState = newSaleState.copy(
+                selectedCustomerId = customer.id,
+                selectedCustomerName = customer.name.ifBlank { "Walk-in Customer" },
+            )
+        }
+
+        fun clearNewSaleCart() {
+            newSaleCart = emptyList()
+            refreshNewSaleUiState()
+        }
+
+        fun proceedToPaymentScreen() {
+            val customer = selectedSaleCustomer ?: return
+            if (newSaleCart.isEmpty()) return
+            val summary = newSaleCart.cartSummary()
+            paymentState = PaymentUiState(
+                shopName = newSaleState.shopName,
+                customerLabel = customer.name.ifBlank { "Walk-in Customer" },
+                customerDetail = customer.id,
+                uniqueItemCount = newSaleCart.size,
+                totalQuantity = newSaleCart.sumOf { it.quantity },
+                total = "UGX ${summary.total.toInt()}",
+            )
+            destination = Destination.Payment
+        }
+
+        fun proceedWithPaymentSubmit() {
+            val shopId = selectedShopId ?: shops.firstOrNull()?.id ?: return
+            val customer = selectedSaleCustomer
+            val totalAmount = newSaleCart.cartSummary().total
+            paymentState = paymentState.copy(isLoading = true)
+            scope.launch {
+                val notes = buildString {
+                    paymentState.notes.trim().takeIf { it.isNotEmpty() }?.let { append(it) }
+                    paymentState.reference.trim().takeIf { it.isNotEmpty() }?.let {
+                        if (isNotEmpty()) append(", ")
+                        append("Ref: $it")
+                    }
+                    paymentState.phoneNumber.trim().takeIf { it.isNotEmpty() }?.let {
+                        if (isNotEmpty()) append(", ")
+                        append("Phone: $it")
+                    }
+                }.ifEmpty { null }
+
+                when (
+                    val result = salesRepository.createSale(
+                        shopId = shopId,
+                        customerId = customer?.id,
+                        cartItems = newSaleCart,
+                        paidAmount = totalAmount,
+                        notes = notes,
+                    )
+                ) {
+                    is ApiResult.Success -> {
+                        paymentState = PaymentUiState()
+                        newSaleCart = emptyList()
+                        newSaleQuery = ""
+                        destination = Destination.MainTabs
+                        selectedTab = AppTab.Sales
+                        when (val salesResult = salesRepository.getSales(shopId)) {
+                            is ApiResult.Success -> salesState = salesState.copy(
+                                recentSales = salesResult.data.recentSales,
+                                totalSales = salesResult.data.totalSales,
+                            )
+                            else -> Unit
+                        }
+                    }
+                    is ApiResult.Error -> paymentState = paymentState.copy(isLoading = false, amountError = result.message)
+                    is ApiResult.NetworkError -> paymentState = paymentState.copy(
+                        isLoading = false,
+                        amountError = result.message,
+                    )
+                }
+            }
+        }
+
+        fun processPaymentSubmit() {
+            val totalAmount = newSaleCart.cartSummary().total
+            val tendered = paymentState.amountTendered.toDoubleOrNull()
+            when {
+                paymentState.amountTendered.isBlank() || tendered == null -> {
+                    paymentState = paymentState.copy(amountError = "Enter the amount received")
+                }
+                tendered < totalAmount -> {
+                    paymentState = paymentState.copy(amountError = "Amount is less than the sale total")
+                }
+                tendered > totalAmount -> {
+                    paymentState = paymentState.copy(amountError = null, showOverpaymentConfirmation = true)
+                }
+                else -> proceedWithPaymentSubmit()
+            }
+        }
+
+        fun updatePaymentAmount(raw: String) {
+            val normalized = raw.filterIndexed { index, character ->
+                character.isDigit() || (character == '.' && raw.indexOf('.') == index)
+            }
+            val totalAmount = newSaleCart.cartSummary().total
+            val tendered = normalized.toDoubleOrNull() ?: 0.0
+            val change = (tendered - totalAmount).coerceAtLeast(0.0)
+            paymentState = paymentState.copy(
+                amountTendered = normalized,
+                amountError = null,
+                change = "UGX ${change.toInt()}",
+            )
+        }
+
         Box(modifier = Modifier.fillMaxSize()) {
             // Bound once here because authState is a `by remember` delegate —
             // Kotlin can't smart-cast a delegated var's payload directly off
@@ -839,7 +1077,7 @@ fun App() {
                             )
                             AppTab.Sales -> SalesScreen(
                                 state = salesState,
-                                onNewSaleClick = {},
+                                onNewSaleClick = { destination = Destination.NewSale },
                                 onReportsClick = { destination = Destination.Reports },
                                 onRefreshClick = {},
                                 onSaleClick = {},
@@ -862,7 +1100,7 @@ fun App() {
                                 onPeriodSelected = { financeState = financeState.copy(selectedPeriod = it) },
                                 onRefreshClick = {},
                                 onAddExpenseClick = { destination = Destination.AddExpense },
-                                onNewSaleClick = {},
+                                onNewSaleClick = { destination = Destination.NewSale },
                                 onReportsClick = { destination = Destination.Reports },
                                 onCategoriesClick = { destination = Destination.ExpenseCategories },
                                 onStatementClick = { destination = Destination.FinancialStatement },
@@ -918,6 +1156,39 @@ fun App() {
                         onDecreaseQuantity = { adjustStockQuantity(StockAdjustmentMode.Remove, it, increase = false) },
                         onIncreaseQuantity = { adjustStockQuantity(StockAdjustmentMode.Remove, it, increase = true) },
                         onAddStockClick = { performStockAdjustment(StockAdjustmentMode.Remove) },
+                    )
+
+                    Destination.NewSale -> NewSaleScreen(
+                        state = newSaleState,
+                        onBackClick = { destination = Destination.MainTabs },
+                        onSearchChange = ::searchNewSaleProducts,
+                        onScanClick = {},
+                        onCustomerSelected = ::selectNewSaleCustomer,
+                        onAddProduct = ::addProductToNewSale,
+                        onQuantityChanged = ::changeNewSaleQuantity,
+                        onRemoveItem = ::removeNewSaleItem,
+                        onDiscountApplied = ::applyNewSaleDiscount,
+                        onClearCart = ::clearNewSaleCart,
+                        onHoldSale = {},
+                        onCheckout = ::proceedToPaymentScreen,
+                    )
+
+                    Destination.Payment -> PaymentScreen(
+                        state = paymentState,
+                        onBackClick = { destination = Destination.NewSale },
+                        onAmountChange = ::updatePaymentAmount,
+                        onMethodSelected = { paymentState = paymentState.copy(selectedMethod = it) },
+                        onPhoneChange = { paymentState = paymentState.copy(phoneNumber = it) },
+                        onReferenceChange = { paymentState = paymentState.copy(reference = it) },
+                        onNotesChange = { paymentState = paymentState.copy(notes = it) },
+                        onCompleteClick = ::processPaymentSubmit,
+                        onConfirmOverpayment = {
+                            paymentState = paymentState.copy(showOverpaymentConfirmation = false)
+                            proceedWithPaymentSubmit()
+                        },
+                        onDismissOverpayment = {
+                            paymentState = paymentState.copy(showOverpaymentConfirmation = false)
+                        },
                     )
 
                     Destination.AddExpense -> AddExpenseScreen(
