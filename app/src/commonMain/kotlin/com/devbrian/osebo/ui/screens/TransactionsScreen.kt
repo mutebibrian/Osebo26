@@ -99,6 +99,7 @@ fun TransactionsScreen(
     onAddTransferClick: () -> Unit,
     onTransactionClick: (String) -> Unit,
     onTransactionAction: (String, TransactionListAction) -> Unit,
+    onAdvancedFilterClick: () -> Unit = {},
 ) {
     var query by remember { mutableStateOf("") }
     var selectedType by remember { mutableStateOf("All") }
@@ -202,7 +203,13 @@ fun TransactionsScreen(
             }
             item { Spacer(Modifier.height(4.dp)) }
             item { TransactionSummary(state) }
-            item { TransactionSearch(query = query, onQueryChange = { query = it }) }
+            item {
+                TransactionSearch(
+                    query = query,
+                    onQueryChange = { query = it },
+                    onFilterClick = onAdvancedFilterClick,
+                )
+            }
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
@@ -312,7 +319,7 @@ private fun TransactionMetric(label: String, amount: String, isIncome: Boolean, 
 }
 
 @Composable
-private fun TransactionSearch(query: String, onQueryChange: (String) -> Unit) {
+private fun TransactionSearch(query: String, onQueryChange: (String) -> Unit, onFilterClick: () -> Unit) {
     OutlinedTextField(
         value = query,
         onValueChange = onQueryChange,
@@ -324,7 +331,9 @@ private fun TransactionSearch(query: String, onQueryChange: (String) -> Unit) {
             Icon(painterResource(Res.drawable.iconsax_search), null, tint = PremiumMuted, modifier = Modifier.size(21.dp))
         },
         trailingIcon = {
-            Icon(painterResource(Res.drawable.iconsax_filter), null, tint = PremiumBlue, modifier = Modifier.size(20.dp))
+            IconButton(onClick = onFilterClick) {
+                Icon(painterResource(Res.drawable.iconsax_filter), "Advanced filters", tint = PremiumBlue, modifier = Modifier.size(20.dp))
+            }
         },
         singleLine = true,
         shape = RoundedCornerShape(50),

@@ -11,6 +11,7 @@ import com.devbrian.osebo.models.Transaction
 import com.devbrian.osebo.ui.screens.ExpenseCategoryUi
 import com.devbrian.osebo.ui.screens.FinanceTransactionUi
 import com.devbrian.osebo.ui.screens.TransactionListItemUi
+import com.devbrian.osebo.ui.screens.TransactionsUiState
 import androidx.compose.ui.graphics.Color
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
@@ -219,6 +220,20 @@ fun Transaction.toTransactionListItemUi(): TransactionListItemUi {
         typeLabel = Transaction.getTypeDisplayName(type),
         status = Transaction.getStatusDisplayName(status),
         isIncome = isIncome,
+    )
+}
+
+/** Shared by the initial AllTransactions load and TransactionFilterScreen's client-side re-filter. */
+fun List<Transaction>.toTransactionsUiState(): TransactionsUiState {
+    val income = filter { Transaction.isPositive(it.type) }.sumOf { it.amount }
+    val expenses = filter { Transaction.isNegative(it.type) }.sumOf { it.amount }
+    val profit = income - expenses
+    return TransactionsUiState(
+        transactions = map { it.toTransactionListItemUi() },
+        totalIncome = "UGX ${income.toInt()}",
+        totalExpenses = "UGX ${expenses.toInt()}",
+        netProfit = "UGX ${profit.toInt()}",
+        isProfitPositive = profit >= 0,
     )
 }
 

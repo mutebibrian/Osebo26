@@ -12,8 +12,8 @@ data class MoreMenuEntry(val label: String, val onClick: () -> Unit)
  * item (UserNavigationItem.More) — a bottom sheet there with several
  * sections (Shop, Business, People, Account & Support). This starts with
  * just the entries that already have a real commonMain screen behind them;
- * the rest of Android's menu (Transfers, Subscription, User Roles, Account,
- * Contact Us, Logout) has no screen here yet.
+ * the rest of Android's menu (Transfers, User Roles, Account, Contact Us,
+ * Logout) has no screen here yet.
  */
 @Composable
 fun MoreMenu(

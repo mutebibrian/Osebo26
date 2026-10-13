@@ -26,6 +26,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.devbrian.osebo.resources.Res
 import com.devbrian.osebo.resources.oseboicon
 import org.jetbrains.compose.resources.painterResource
@@ -35,6 +37,7 @@ import com.devbrian.osebo.data.remote.createOseboHttpClient
 import com.devbrian.osebo.data.remote.dto.request.CreateExpenseRequest
 import com.devbrian.osebo.data.remote.dto.request.LoginRequest
 import com.devbrian.osebo.data.remote.dto.request.SelectAccountRequest
+import com.devbrian.osebo.data.remote.dto.response.PackageDto
 import com.devbrian.osebo.data.remote.dto.response.ProductDto
 import com.devbrian.osebo.data.remote.dto.response.ShopDto
 import com.devbrian.osebo.data.repository.SharedCustomerRepository
@@ -54,6 +57,11 @@ import com.devbrian.osebo.data.repository.SharedAiAssistantRepository
 import com.devbrian.osebo.data.repository.SharedEmployeeRepository
 import com.devbrian.osebo.data.repository.SharedShopDashboardRepository
 import com.devbrian.osebo.data.repository.SharedShopsRepository
+import com.devbrian.osebo.data.repository.SharedSubscriptionRepository
+import com.devbrian.osebo.data.repository.formatSubscriptionAmount
+import com.devbrian.osebo.data.repository.formatSubscriptionPhone
+import com.devbrian.osebo.data.repository.toBundleUi
+import com.devbrian.osebo.data.repository.validateSubscriptionPhone
 import com.devbrian.osebo.data.repository.SharedSupplierRepository
 import com.devbrian.osebo.data.repository.toSupplierItemUi
 import com.devbrian.osebo.data.repository.countryDialCode
@@ -66,6 +74,7 @@ import com.devbrian.osebo.data.repository.toNewSaleCartItemUi
 import com.devbrian.osebo.data.repository.toNewSaleCustomerUi
 import com.devbrian.osebo.data.repository.toNewSaleProductUi
 import com.devbrian.osebo.data.repository.toTransactionListItemUi
+import com.devbrian.osebo.data.repository.toTransactionsUiState
 import com.devbrian.osebo.data.remote.dto.request.EmployeeRequest
 import com.devbrian.osebo.models.AiAssistantUiState
 import com.devbrian.osebo.models.AiChatMessage
@@ -107,6 +116,10 @@ import com.devbrian.osebo.ui.screens.ShopDashboardScreen
 import com.devbrian.osebo.ui.screens.ShopDashboardUiState
 import com.devbrian.osebo.ui.screens.ShopsScreen
 import com.devbrian.osebo.ui.screens.ShopsUiState
+import com.devbrian.osebo.ui.screens.SubscriptionPackagesScreen
+import com.devbrian.osebo.ui.screens.SubscriptionPackagesUiState
+import com.devbrian.osebo.ui.screens.SubscriptionPaymentScreen
+import com.devbrian.osebo.ui.screens.SubscriptionPaymentUiState
 import com.devbrian.osebo.ui.screens.SuppliersScreen
 import com.devbrian.osebo.ui.screens.SuppliersUiState
 import com.devbrian.osebo.ui.screens.SupplierFormDialog
@@ -137,10 +150,13 @@ import com.devbrian.osebo.ui.screens.SalesUiState
 import com.devbrian.osebo.ui.screens.SelectAccountScreen
 import com.devbrian.osebo.ui.screens.SelectAccountUiState
 import com.devbrian.osebo.ui.screens.SplashScreen
+import com.devbrian.osebo.ui.screens.TransactionFilterScreen
+import com.devbrian.osebo.ui.screens.TransactionFilterUiState
 import com.devbrian.osebo.ui.screens.TransactionsScreen
 import com.devbrian.osebo.ui.screens.TransactionsUiState
 import com.devbrian.osebo.ui.screens.WelcomeScreen
 import com.devbrian.osebo.ui.theme.OseboTheme
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
@@ -183,6 +199,8 @@ private sealed class Destination {
     data object ShopDashboard : Destination()
     data object AddProduct : Destination()
     data object AiAssistant : Destination()
+    data object SubscriptionPackages : Destination()
+    data object SubscriptionPayment : Destination()
     data object AddExpense : Destination()
     data object ExpenseCategories : Destination()
     data object FinancialStatement : Destination()
@@ -234,6 +252,7 @@ fun App() {
         val shopsRepository = remember { SharedShopsRepository(api) }
         val shopDashboardRepository = remember { SharedShopDashboardRepository(api) }
         val aiAssistantRepository = remember { SharedAiAssistantRepository(api) }
+        val subscriptionRepository = remember { SharedSubscriptionRepository(api) }
         val scope = rememberCoroutineScope()
 
         var authState by remember { mutableStateOf<AuthState>(AuthState.Splash) }
@@ -255,6 +274,9 @@ fun App() {
         var isExpenseCategoriesLoading by remember { mutableStateOf(false) }
         var financialStatementState by remember { mutableStateOf(FinancialStatementUiState()) }
         var transactionsState by remember { mutableStateOf(TransactionsUiState()) }
+        var transactionsSource by remember { mutableStateOf<List<Transaction>>(emptyList()) }
+        var transactionFilterState by remember { mutableStateOf(TransactionFilterUiState()) }
+        var isTransactionFilterOpen by remember { mutableStateOf(false) }
         var addStockState by remember { mutableStateOf(AddStockUiState()) }
         var addStockSourceProducts by remember { mutableStateOf<List<ProductDto>>(emptyList()) }
         var addProductState by remember { mutableStateOf(AddProductUiState()) }
@@ -271,6 +293,11 @@ fun App() {
         var shopDashboardState by remember { mutableStateOf(ShopDashboardUiState()) }
         var isMoreMenuOpen by remember { mutableStateOf(false) }
         var aiAssistantState by remember { mutableStateOf(AiAssistantUiState()) }
+        var subscriptionPackagesState by remember { mutableStateOf(SubscriptionPackagesUiState()) }
+        var subscriptionPackagesSource by remember { mutableStateOf<List<PackageDto>>(emptyList()) }
+        var subscriptionPaymentState by remember { mutableStateOf(SubscriptionPaymentUiState()) }
+        var subscriptionCheckoutPackageIds by remember { mutableStateOf<List<String>>(emptyList()) }
+        var subscriptionCheckoutIsTrial by remember { mutableStateOf(false) }
         var newSaleState by remember { mutableStateOf(NewSaleUiState()) }
         var newSaleCart by remember { mutableStateOf<List<SaleCartItem>>(emptyList()) }
         var newSaleSourceProducts by remember { mutableStateOf<List<ProductDto>>(emptyList()) }
@@ -301,6 +328,9 @@ fun App() {
                 expenseCategoriesUi = emptyList()
                 financialStatementState = FinancialStatementUiState()
                 transactionsState = TransactionsUiState()
+                transactionsSource = emptyList()
+                transactionFilterState = TransactionFilterUiState()
+                isTransactionFilterOpen = false
                 addStockState = AddStockUiState()
                 addStockSourceProducts = emptyList()
                 employeesState = EmployeesUiState()
@@ -315,6 +345,11 @@ fun App() {
                 shopDashboardState = ShopDashboardUiState()
                 isMoreMenuOpen = false
                 aiAssistantState = AiAssistantUiState()
+                subscriptionPackagesState = SubscriptionPackagesUiState()
+                subscriptionPackagesSource = emptyList()
+                subscriptionPaymentState = SubscriptionPaymentUiState()
+                subscriptionCheckoutPackageIds = emptyList()
+                subscriptionCheckoutIsTrial = false
                 addProductState = AddProductUiState()
                 productCategories = emptyList()
                 newSaleState = NewSaleUiState()
@@ -606,17 +641,9 @@ fun App() {
 
             when (val result = financeRepository.getTransactions(shopId)) {
                 is ApiResult.Success -> {
-                    val income = result.data.filter { Transaction.isPositive(it.type) }.sumOf { it.amount }
-                    val expenses = result.data.filter { Transaction.isNegative(it.type) }.sumOf { it.amount }
-                    val profit = income - expenses
-                    transactionsState = transactionsState.copy(
-                        isLoading = false,
-                        transactions = result.data.map { it.toTransactionListItemUi() },
-                        totalIncome = "UGX ${income.toInt()}",
-                        totalExpenses = "UGX ${expenses.toInt()}",
-                        netProfit = "UGX ${profit.toInt()}",
-                        isProfitPositive = profit >= 0,
-                    )
+                    transactionsSource = result.data
+                    transactionFilterState = TransactionFilterUiState()
+                    transactionsState = result.data.toTransactionsUiState()
                 }
                 is ApiResult.Error -> transactionsState = transactionsState.copy(isLoading = false)
                 is ApiResult.NetworkError -> transactionsState = transactionsState.copy(isLoading = false)
@@ -1570,6 +1597,215 @@ fun App() {
             refreshAiAssistant()
         }
 
+        LaunchedEffect(authState, selectedShopId, destination) {
+            if (authState !is AuthState.LoggedIn) return@LaunchedEffect
+            if (destination != Destination.SubscriptionPackages) return@LaunchedEffect
+
+            val currentShop = shops.find { it.id == (selectedShopId ?: shops.firstOrNull()?.id) }
+            subscriptionPackagesState = subscriptionPackagesState.copy(
+                isLoading = true,
+                errorMessage = null,
+                shopName = currentShop?.name ?: "Your shop",
+                currentPlan = currentShop?.takeIf { it.hasActiveSubscription }?.subscriptionTypeString,
+            )
+            when (val result = subscriptionRepository.getPackages()) {
+                is ApiResult.Success -> {
+                    subscriptionPackagesSource = result.data
+                    subscriptionPackagesState = subscriptionPackagesState.copy(
+                        isLoading = false,
+                        bundles = result.data.map { it.toBundleUi() },
+                    )
+                }
+                is ApiResult.Error -> subscriptionPackagesState = subscriptionPackagesState.copy(
+                    isLoading = false,
+                    errorMessage = result.message,
+                )
+                is ApiResult.NetworkError -> subscriptionPackagesState = subscriptionPackagesState.copy(
+                    isLoading = false,
+                    errorMessage = result.message,
+                )
+            }
+        }
+
+        fun updateSubscriptionSelection(ids: Set<String>) {
+            val selectedBundles = subscriptionPackagesState.bundles.filter { it.id in ids }
+            val currentShop = shops.find { it.id == (selectedShopId ?: shops.firstOrNull()?.id) }
+            val hasActiveSub = currentShop?.hasActiveSubscription == true
+            val isTrialEligible = ids.isNotEmpty() && !hasActiveSub && selectedBundles.any { it.hasFreeTrial }
+            val totalLabel = when {
+                ids.isEmpty() -> "UGX 0"
+                selectedBundles.any { it.isCustomPricing } -> "Contact sales"
+                isTrialEligible -> "UGX 0"
+                else -> formatSubscriptionAmount(subscriptionPackagesSource.filter { it.id in ids }.sumOf { it.monthlyAmount })
+            }
+            subscriptionPackagesState = subscriptionPackagesState.copy(
+                selectedIds = ids,
+                totalLabel = totalLabel,
+                isTrialEligible = isTrialEligible,
+            )
+        }
+
+        fun refreshSubscriptionPackages() {
+            scope.launch {
+                subscriptionPackagesState = subscriptionPackagesState.copy(isLoading = true, errorMessage = null)
+                when (val result = subscriptionRepository.getPackages()) {
+                    is ApiResult.Success -> {
+                        subscriptionPackagesSource = result.data
+                        subscriptionPackagesState = subscriptionPackagesState.copy(
+                            isLoading = false,
+                            bundles = result.data.map { it.toBundleUi() },
+                        )
+                    }
+                    is ApiResult.Error -> subscriptionPackagesState = subscriptionPackagesState.copy(
+                        isLoading = false,
+                        errorMessage = result.message,
+                    )
+                    is ApiResult.NetworkError -> subscriptionPackagesState = subscriptionPackagesState.copy(
+                        isLoading = false,
+                        errorMessage = result.message,
+                    )
+                }
+            }
+        }
+
+        fun openSubscriptionCheckout() {
+            val selected = subscriptionPackagesState.selectedIds
+            if (selected.isEmpty()) return
+            val selectedBundles = subscriptionPackagesState.bundles.filter { it.id in selected }
+            val shopId = selectedShopId ?: shops.firstOrNull()?.id
+            val shopName = shops.find { it.id == shopId }?.name ?: "Your shop"
+            val totalMonthly = subscriptionPackagesSource.filter { it.id in selected }.sumOf { it.monthlyAmount }
+            subscriptionCheckoutPackageIds = selected.toList()
+            subscriptionCheckoutIsTrial = subscriptionPackagesState.isTrialEligible
+            subscriptionPaymentState = SubscriptionPaymentUiState(
+                shopName = shopName,
+                packageName = selectedBundles.joinToString(" + ") { it.name },
+                monthlyAmount = totalMonthly,
+                months = 1,
+            )
+            destination = Destination.SubscriptionPayment
+        }
+
+        suspend fun finishSubscriptionCheckout() {
+            when (val shopsResult = api.getShops()) {
+                is ApiResult.Success -> shops = shopsResult.data.data.orEmpty()
+                else -> Unit
+            }
+            subscriptionPaymentState = SubscriptionPaymentUiState()
+            destination = Destination.SubscriptionPackages
+        }
+
+        suspend fun pollSubscriptionPayment(paymentId: String) {
+            repeat(60) {
+                when (val result = subscriptionRepository.pollPaymentStatus(paymentId)) {
+                    is ApiResult.Success -> {
+                        val status = result.data
+                        when {
+                            status.isActive -> {
+                                finishSubscriptionCheckout()
+                                return
+                            }
+                            status.isFailed -> {
+                                subscriptionPaymentState = subscriptionPaymentState.copy(
+                                    isLoading = false,
+                                    submitError = "Payment failed. Please try again.",
+                                )
+                                return
+                            }
+                            status.isCancelled -> {
+                                subscriptionPaymentState = subscriptionPaymentState.copy(
+                                    isLoading = false,
+                                    submitError = "Payment was cancelled.",
+                                )
+                                return
+                            }
+                            else -> Unit
+                        }
+                    }
+                    is ApiResult.Error, is ApiResult.NetworkError -> Unit
+                }
+                delay(5000)
+            }
+            subscriptionPaymentState = subscriptionPaymentState.copy(
+                isLoading = false,
+                submitError = "Still waiting for payment confirmation. Check your phone and try again if needed.",
+            )
+        }
+
+        fun submitSubscriptionPayment() {
+            val formState = subscriptionPaymentState
+            if (formState.monthlyAmount <= 0) {
+                subscriptionPaymentState = formState.copy(
+                    submitError = "This plan needs a custom quote — contact sales@osebo.ai.",
+                )
+                return
+            }
+            val digits = formState.phone.filter { it.isDigit() }
+            val phoneError = validateSubscriptionPhone(digits)
+            if (phoneError != null) {
+                subscriptionPaymentState = formState.copy(phoneError = phoneError)
+                return
+            }
+            val shopId = selectedShopId ?: shops.firstOrNull()?.id
+            if (shopId == null) {
+                subscriptionPaymentState = formState.copy(submitError = "No shop selected")
+                return
+            }
+            val formattedPhone = formatSubscriptionPhone(digits)
+            subscriptionPaymentState = formState.copy(isLoading = true, submitError = null, phoneError = null)
+            scope.launch {
+                when (
+                    val result = subscriptionRepository.createSubscription(
+                        shopId = shopId,
+                        packageIds = subscriptionCheckoutPackageIds,
+                        phoneNumber = formattedPhone,
+                        months = formState.months,
+                        isTrial = subscriptionCheckoutIsTrial,
+                    )
+                ) {
+                    is ApiResult.Success -> {
+                        val paymentId = result.data.paymentId
+                        if (subscriptionCheckoutIsTrial || paymentId.isNullOrBlank()) {
+                            finishSubscriptionCheckout()
+                        } else {
+                            pollSubscriptionPayment(paymentId)
+                        }
+                    }
+                    is ApiResult.Error -> subscriptionPaymentState = subscriptionPaymentState.copy(
+                        isLoading = false,
+                        submitError = result.message,
+                    )
+                    is ApiResult.NetworkError -> subscriptionPaymentState = subscriptionPaymentState.copy(
+                        isLoading = false,
+                        submitError = result.message,
+                    )
+                }
+            }
+        }
+
+        fun transactionCategories(): List<String> =
+            listOf("All") + transactionsSource.map { Transaction.getCategoryDisplayName(it.category) }.distinct()
+
+        fun applyTransactionFilters() {
+            val minAmount = transactionFilterState.minAmount.toDoubleOrNull()
+            val maxAmount = transactionFilterState.maxAmount.toDoubleOrNull()
+            val category = transactionFilterState.category
+            val filtered = transactionsSource.filter { transaction ->
+                val matchesCategory = category == "All" ||
+                    Transaction.getCategoryDisplayName(transaction.category) == category
+                val matchesMin = minAmount == null || transaction.amount >= minAmount
+                val matchesMax = maxAmount == null || transaction.amount <= maxAmount
+                matchesCategory && matchesMin && matchesMax
+            }
+            transactionsState = filtered.toTransactionsUiState()
+            isTransactionFilterOpen = false
+        }
+
+        fun clearTransactionFilters() {
+            transactionFilterState = TransactionFilterUiState()
+            transactionsState = transactionsSource.toTransactionsUiState()
+        }
+
         fun startAiConversation() {
             aiAssistantState = aiAssistantState.copy(
                 activeConversationId = null,
@@ -1835,6 +2071,10 @@ fun App() {
                                         isMoreMenuOpen = false
                                         destination = Destination.Suppliers
                                     },
+                                    MoreMenuEntry("Subscription") {
+                                        isMoreMenuOpen = false
+                                        destination = Destination.SubscriptionPackages
+                                    },
                                 ),
                             )
                         }
@@ -1908,6 +2148,23 @@ fun App() {
                         onStartNewConversation = ::startAiConversation,
                         onRetry = ::retryAiAssistant,
                         onSubmit = ::sendAiMessage,
+                    )
+
+                    Destination.SubscriptionPackages -> SubscriptionPackagesScreen(
+                        state = subscriptionPackagesState,
+                        onBackClick = { destination = Destination.Shops },
+                        onRefreshClick = ::refreshSubscriptionPackages,
+                        onSelectionChange = ::updateSubscriptionSelection,
+                        onCancelClick = { updateSubscriptionSelection(emptySet()) },
+                        onCheckoutClick = ::openSubscriptionCheckout,
+                    )
+
+                    Destination.SubscriptionPayment -> SubscriptionPaymentScreen(
+                        state = subscriptionPaymentState,
+                        isSheet = false,
+                        onStateChange = { subscriptionPaymentState = it },
+                        onDismiss = { destination = Destination.SubscriptionPackages },
+                        onSubmit = ::submitSubscriptionPayment,
                     )
 
                     Destination.NewSale -> NewSaleScreen(
@@ -2009,7 +2266,11 @@ fun App() {
                             sessionProvider.saveCurrentShopId(id)
                             destination = Destination.ShopDashboard
                         },
-                        onSubscribeClick = {},
+                        onSubscribeClick = { id ->
+                            selectedShopId = id
+                            sessionProvider.saveCurrentShopId(id)
+                            destination = Destination.SubscriptionPackages
+                        },
                     )
 
                     Destination.ShopDashboard -> ShopDashboardScreen(
@@ -2062,17 +2323,37 @@ fun App() {
                         onSaveClick = {},
                     )
 
-                    Destination.AllTransactions -> TransactionsScreen(
-                        state = transactionsState,
-                        onBackClick = { destination = Destination.MainTabs },
-                        onRefreshClick = {},
-                        onExportClick = {},
-                        onAddIncomeClick = {},
-                        onAddExpenseClick = { destination = Destination.AddExpense },
-                        onAddTransferClick = {},
-                        onTransactionClick = {},
-                        onTransactionAction = { _, _ -> },
-                    )
+                    Destination.AllTransactions -> {
+                        TransactionsScreen(
+                            state = transactionsState,
+                            onBackClick = { destination = Destination.MainTabs },
+                            onRefreshClick = {},
+                            onExportClick = {},
+                            onAddIncomeClick = {},
+                            onAddExpenseClick = { destination = Destination.AddExpense },
+                            onAddTransferClick = {},
+                            onTransactionClick = {},
+                            onTransactionAction = { _, _ -> },
+                            onAdvancedFilterClick = { isTransactionFilterOpen = true },
+                        )
+                        if (isTransactionFilterOpen) {
+                            Dialog(
+                                onDismissRequest = { isTransactionFilterOpen = false },
+                                properties = DialogProperties(usePlatformDefaultWidth = false),
+                            ) {
+                                TransactionFilterScreen(
+                                    state = transactionFilterState,
+                                    categories = transactionCategories(),
+                                    onStateChange = { transactionFilterState = it },
+                                    onStartDateClick = {},
+                                    onEndDateClick = {},
+                                    onClear = ::clearTransactionFilters,
+                                    onApply = ::applyTransactionFilters,
+                                    onDismiss = { isTransactionFilterOpen = false },
+                                )
+                            }
+                        }
+                    }
                 }
             }
 
