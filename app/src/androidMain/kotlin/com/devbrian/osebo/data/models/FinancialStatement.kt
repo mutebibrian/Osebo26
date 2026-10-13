@@ -166,18 +166,3 @@ data class SupplierInfo(
 )
 
 
-
- {
-    companion object {
-        const val TYPE_INCOME = "income"
-        const val TYPE_EXPENSE = "expense"
-        const val CATEGORY_SALES = "Sales"
-        const val CATEGORY_OTHER = "Other"
-    }
-}
-
-
-
-
-
-
