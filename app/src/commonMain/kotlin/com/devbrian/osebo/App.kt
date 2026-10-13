@@ -1634,7 +1634,15 @@ fun App() {
                 shopName = currentShop?.name ?: "Your shop",
                 currentPlan = currentShop?.takeIf { it.hasActiveSubscription }?.subscriptionTypeString,
             )
-            when (val result = subscriptionRepository.getPackages()) {
+            val shopId = currentShop?.id
+            if (shopId == null) {
+                subscriptionPackagesState = subscriptionPackagesState.copy(
+                    isLoading = false,
+                    errorMessage = "No shop selected",
+                )
+                return@LaunchedEffect
+            }
+            when (val result = subscriptionRepository.getPackages(shopId)) {
                 is ApiResult.Success -> {
                     subscriptionPackagesSource = result.data
                     subscriptionPackagesState = subscriptionPackagesState.copy(
@@ -1672,9 +1680,14 @@ fun App() {
         }
 
         fun refreshSubscriptionPackages() {
+            val shopId = selectedShopId ?: shops.firstOrNull()?.id
+            if (shopId == null) {
+                subscriptionPackagesState = subscriptionPackagesState.copy(errorMessage = "No shop selected")
+                return
+            }
             scope.launch {
                 subscriptionPackagesState = subscriptionPackagesState.copy(isLoading = true, errorMessage = null)
-                when (val result = subscriptionRepository.getPackages()) {
+                when (val result = subscriptionRepository.getPackages(shopId)) {
                     is ApiResult.Success -> {
                         subscriptionPackagesSource = result.data
                         subscriptionPackagesState = subscriptionPackagesState.copy(

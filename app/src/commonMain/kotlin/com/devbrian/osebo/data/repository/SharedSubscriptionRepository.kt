@@ -21,8 +21,8 @@ import com.devbrian.osebo.ui.screens.SubscriptionBundleUi
  * reused as-is.
  */
 class SharedSubscriptionRepository(private val api: KtorOseboApiService) {
-    suspend fun getPackages(): ApiResult<List<PackageDto>> =
-        when (val result = api.getSubscriptionPackages()) {
+    suspend fun getPackages(shopId: String): ApiResult<List<PackageDto>> =
+        when (val result = api.getSubscriptionPackages(shopId)) {
             is ApiResult.Success -> ApiResult.Success(result.data.data.orEmpty(), result.httpCode)
             is ApiResult.Error -> result
             is ApiResult.NetworkError -> result

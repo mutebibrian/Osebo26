@@ -675,8 +675,15 @@ class KtorOseboApiService(
 
     // ==================== SUBSCRIPTION & PAYMENT ====================
 
-    suspend fun getSubscriptionPackages(): ApiResult<ApiResponse<List<PackageDto>>> =
-        execute { client.get("api/v1/package") }
+    // shopId isn't in Android's Retrofit signature for this endpoint either,
+    // but Android's real DI-provided client (NetworkModule.kt) runs every
+    // request through one shared interceptor that unconditionally attaches
+    // X-Shop from whatever shop is currently selected, regardless of what
+    // the method declares. This client has no such ambient fallback (see
+    // the X-Shop comment on createOseboHttpClient), and the backend does
+    // require it here — confirmed live: "X-Shop header is required".
+    suspend fun getSubscriptionPackages(shopId: String): ApiResult<ApiResponse<List<PackageDto>>> =
+        execute { client.get("api/v1/package") { header("X-Shop", shopId) } }
 
     suspend fun createSubscription(
         shopId: String,
