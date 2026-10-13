@@ -9,6 +9,7 @@ targets:
     sources:
       - path: Sources
     info:
+      path: Info.plist
       properties:
         UILaunchScreen: {}
         CADisableMinimumFrameDurationOnPhone: true
