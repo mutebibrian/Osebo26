@@ -39,6 +39,7 @@ import com.devbrian.osebo.data.remote.dto.response.BaseResponse
 import com.devbrian.osebo.data.remote.dto.response.CustomerDto
 import com.devbrian.osebo.data.remote.dto.response.FinanceSettingsDto
 import com.devbrian.osebo.data.remote.dto.response.FinancialStatementDto
+import com.devbrian.osebo.data.remote.dto.response.LedgerStatementDto
 import com.devbrian.osebo.data.remote.dto.response.PreAuthData
 import com.devbrian.osebo.data.remote.dto.response.PackageDto
 import com.devbrian.osebo.data.remote.dto.response.PaymentCheckResponse
@@ -577,6 +578,23 @@ class KtorOseboApiService(
 
     suspend fun deleteExpenseCategory(shopId: String, categoryId: String): ApiResult<ApiResponse<Unit>> =
         execute { client.delete("api/v1/expense-category/$categoryId") { header("X-Shop", shopId) } }
+
+    // ==================== LEDGER ====================
+
+    suspend fun getGeneralLedger(
+        shopId: String,
+        startDate: String? = null,
+        endDate: String? = null,
+        period: String? = null,
+    ): ApiResult<ApiResponse<LedgerStatementDto>> =
+        execute {
+            client.get("api/v1/general-ledger") {
+                header("X-Shop", shopId)
+                startDate?.let { parameter("startDate", it) }
+                endDate?.let { parameter("endDate", it) }
+                period?.let { parameter("period", it) }
+            }
+        }
 
     // ==================== ANALYTICS & REPORTS ====================
 

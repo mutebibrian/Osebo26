@@ -27,8 +27,12 @@ import com.devbrian.osebo.data.remote.dto.request.SelectAccountRequest
 import com.devbrian.osebo.data.remote.dto.response.ShopDto
 import com.devbrian.osebo.data.repository.SharedCustomerRepository
 import com.devbrian.osebo.data.repository.SharedDashboardRepository
+import com.devbrian.osebo.data.repository.SharedFinanceRepository
 import com.devbrian.osebo.data.repository.SharedInventoryRepository
 import com.devbrian.osebo.data.repository.SharedSalesRepository
+import com.devbrian.osebo.data.repository.dateRangeForPeriod
+import com.devbrian.osebo.data.repository.toFinanceTransactionUi
+import com.devbrian.osebo.models.Transaction
 import com.devbrian.osebo.data.repository.currentDateLabel
 import com.devbrian.osebo.data.repository.currentGreeting
 import com.devbrian.osebo.data.settings.SettingsStoreSessionProvider
@@ -138,6 +142,7 @@ fun App() {
         val dashboardRepository = remember { SharedDashboardRepository(api) }
         val salesRepository = remember { SharedSalesRepository(api) }
         val inventoryRepository = remember { SharedInventoryRepository(api) }
+        val financeRepository = remember { SharedFinanceRepository(api) }
         val scope = rememberCoroutineScope()
 
         var authState by remember { mutableStateOf<AuthState>(AuthState.Splash) }
@@ -150,6 +155,7 @@ fun App() {
         var dashboardState by remember { mutableStateOf(DashboardUiState()) }
         var salesState by remember { mutableStateOf(SalesUiState()) }
         var inventoryState by remember { mutableStateOf(InventoryUiState()) }
+        var financeState by remember { mutableStateOf(FinanceUiState()) }
         var shops by remember { mutableStateOf<List<ShopDto>>(emptyList()) }
         var selectedShopId by remember { mutableStateOf<String?>(null) }
         var isShopPickerOpen by remember { mutableStateOf(false) }
@@ -164,6 +170,7 @@ fun App() {
                 dashboardState = DashboardUiState()
                 salesState = SalesUiState()
                 inventoryState = InventoryUiState()
+                financeState = FinanceUiState()
                 shops = emptyList()
                 selectedShopId = null
             }
@@ -292,6 +299,40 @@ fun App() {
                 }
                 is ApiResult.Error -> inventoryState = inventoryState.copy(isLoading = false)
                 is ApiResult.NetworkError -> inventoryState = inventoryState.copy(isLoading = false)
+            }
+        }
+
+        LaunchedEffect(authState, selectedShopId, financeState.selectedPeriod) {
+            if (authState !is AuthState.LoggedIn) return@LaunchedEffect
+
+            val shopsResult = api.getShops()
+            val shopId = selectedShopId ?: when (shopsResult) {
+                is ApiResult.Success -> shopsResult.data.data?.firstOrNull()?.id
+                else -> null
+            }
+            if (shopId == null) return@LaunchedEffect
+
+            val (startDate, endDate) = dateRangeForPeriod(financeState.selectedPeriod)
+            financeState = financeState.copy(isLoading = true)
+
+            when (val result = financeRepository.getTransactions(shopId, startDate, endDate)) {
+                is ApiResult.Success -> {
+                    val income = result.data.filter { Transaction.isPositive(it.type) }.sumOf { it.amount }
+                    val expenses = result.data.filter { Transaction.isNegative(it.type) }.sumOf { it.amount }
+                    val profit = income - expenses
+                    val margin = if (income > 0) profit / income * 100 else 0.0
+                    financeState = financeState.copy(
+                        isLoading = false,
+                        transactions = result.data.map { it.toFinanceTransactionUi() },
+                        totalIncome = "UGX ${income.toInt()}",
+                        totalExpenses = "UGX ${expenses.toInt()}",
+                        netProfit = "UGX ${profit.toInt()}",
+                        profitMargin = "${(margin * 10).toInt() / 10.0}% profit margin",
+                        isProfitPositive = profit >= 0,
+                    )
+                }
+                is ApiResult.Error -> financeState = financeState.copy(isLoading = false)
+                is ApiResult.NetworkError -> financeState = financeState.copy(isLoading = false)
             }
         }
 
@@ -442,9 +483,12 @@ fun App() {
                                 onProductClick = {},
                             )
                             AppTab.Finance -> FinanceScreen(
-                                state = FinanceUiState(),
-                                periods = listOf("This Week", "This Month", "This Year"),
-                                onPeriodSelected = {},
+                                state = financeState,
+                                periods = listOf(
+                                    "Today", "This Week", "This Month",
+                                    "Last Month", "This Quarter", "This Year",
+                                ),
+                                onPeriodSelected = { financeState = financeState.copy(selectedPeriod = it) },
                                 onRefreshClick = {},
                                 onAddExpenseClick = { destination = Destination.AddExpense },
                                 onNewSaleClick = {},
