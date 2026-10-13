@@ -24,6 +24,7 @@ import com.devbrian.osebo.data.remote.KtorOseboApiService
 import com.devbrian.osebo.data.remote.createOseboHttpClient
 import com.devbrian.osebo.data.remote.dto.request.LoginRequest
 import com.devbrian.osebo.data.remote.dto.request.SelectAccountRequest
+import com.devbrian.osebo.data.remote.dto.response.ShopDto
 import com.devbrian.osebo.data.repository.SharedCustomerRepository
 import com.devbrian.osebo.data.repository.SharedDashboardRepository
 import com.devbrian.osebo.data.repository.currentDateLabel
@@ -32,6 +33,8 @@ import com.devbrian.osebo.data.settings.SettingsStoreSessionProvider
 import com.devbrian.osebo.data.settings.createSettingsStore
 import com.devbrian.osebo.ui.components.BottomNavBar
 import com.devbrian.osebo.ui.components.NavItem
+import com.devbrian.osebo.ui.components.ShopPickerItem
+import com.devbrian.osebo.ui.components.ShopPickerMenu
 import com.devbrian.osebo.ui.screens.AddExpenseScreen
 import com.devbrian.osebo.ui.screens.AddExpenseUiState
 import com.devbrian.osebo.ui.screens.AddStockScreen
@@ -141,7 +144,9 @@ fun App() {
         var customersState by remember { mutableStateOf(CustomersUiState()) }
         var hasLoadedCustomers by remember { mutableStateOf(false) }
         var dashboardState by remember { mutableStateOf(DashboardUiState()) }
-        var hasLoadedDashboard by remember { mutableStateOf(false) }
+        var shops by remember { mutableStateOf<List<ShopDto>>(emptyList()) }
+        var selectedShopId by remember { mutableStateOf<String?>(null) }
+        var isShopPickerOpen by remember { mutableStateOf(false) }
 
         remember(sessionProvider) {
             sessionProvider.onSessionExpiredListener = {
@@ -151,7 +156,8 @@ fun App() {
                 customersState = CustomersUiState()
                 hasLoadedCustomers = false
                 dashboardState = DashboardUiState()
-                hasLoadedDashboard = false
+                shops = emptyList()
+                selectedShopId = null
             }
         }
 
@@ -163,7 +169,7 @@ fun App() {
             customersState = customersState.copy(isLoading = true, errorMessage = null)
 
             val shopsResult = api.getShops()
-            val shopId = when (shopsResult) {
+            val shopId = selectedShopId ?: when (shopsResult) {
                 is ApiResult.Success -> shopsResult.data.data?.firstOrNull()?.id
                 else -> null
             }
@@ -198,10 +204,8 @@ fun App() {
             }
         }
 
-        LaunchedEffect(authState) {
+        LaunchedEffect(authState, selectedShopId) {
             if (authState !is AuthState.LoggedIn) return@LaunchedEffect
-            if (hasLoadedDashboard) return@LaunchedEffect
-            hasLoadedDashboard = true
 
             dashboardState = dashboardState.copy(
                 greeting = currentGreeting(),
@@ -210,11 +214,16 @@ fun App() {
                 isLoading = true,
             )
 
-            when (val result = dashboardRepository.loadShopsAndTotals()) {
+            when (val result = dashboardRepository.loadShopsAndTotals(selectedShopId)) {
                 is ApiResult.Success -> {
                     val data = result.data
+                    shops = data.allShops
+                    val selectedShop = selectedShopId?.let { id -> data.allShops.find { it.id == id } }
                     dashboardState = dashboardState.copy(
                         isLoading = false,
+                        isShopSelected = selectedShop != null,
+                        selectedShopName = selectedShop?.name.orEmpty(),
+                        selectedShopType = selectedShop?.shopType.orEmpty(),
                         totalSales = data.totalSales,
                         totalExpenses = data.totalExpenses,
                         totalShopsLabel = data.totalShopsLabel,
@@ -358,6 +367,7 @@ fun App() {
                         when (selectedTab) {
                             AppTab.Dashboard -> DashboardScreen(
                                 state = dashboardState,
+                                onShopPickerClick = { isShopPickerOpen = true },
                                 onReportsClick = { destination = Destination.Reports },
                                 onAddProductClick = { destination = Destination.AddStock },
                             )
@@ -472,6 +482,33 @@ fun App() {
                         onAddTransferClick = {},
                         onTransactionClick = {},
                         onTransactionAction = { _, _ -> },
+                    )
+                }
+            }
+
+            // Anchored separately from DashboardScreen's own header button
+            // (which only exposes onShopPickerClick, no slot for the menu
+            // itself) — padding here approximates that button's position,
+            // same tradeoff ShopPickerOverlay makes on Android.
+            if (authState is AuthState.LoggedIn &&
+                destination == Destination.MainTabs &&
+                selectedTab == AppTab.Dashboard
+            ) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 56.dp, end = 28.dp),
+                ) {
+                    ShopPickerMenu(
+                        shops = shops.map { ShopPickerItem(id = it.id, name = it.name) },
+                        selectedShopId = selectedShopId,
+                        expanded = isShopPickerOpen,
+                        onDismiss = { isShopPickerOpen = false },
+                        onSelect = { id ->
+                            selectedShopId = id
+                            isShopPickerOpen = false
+                            id?.let { sessionProvider.saveCurrentShopId(it) }
+                        },
                     )
                 }
             }

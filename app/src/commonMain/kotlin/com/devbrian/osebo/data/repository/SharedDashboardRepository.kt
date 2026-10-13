@@ -12,6 +12,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
 data class DashboardLoadResult(
+    val allShops: List<ShopDto>,
     val shops: List<DashboardShopUi>,
     val shopPerformances: List<DashboardShopPerformanceUi>,
     val totalSales: String,
@@ -36,17 +37,24 @@ data class DashboardLoadResult(
  * package — reusing that name here collided and broke the Android build.
  */
 class SharedDashboardRepository(private val api: KtorOseboApiService) {
-    suspend fun loadShopsAndTotals(): ApiResult<DashboardLoadResult> {
+    /**
+     * [selectedShopId] narrows every total/trend/performance figure below to
+     * that one shop instead of aggregating all of them — the "All
+     * businesses" vs. single-shop view split from MainDashboardFragment on
+     * Android. Pass null for the aggregated view.
+     */
+    suspend fun loadShopsAndTotals(selectedShopId: String? = null): ApiResult<DashboardLoadResult> {
         val shopsResult = api.getShops()
-        val shops = when (shopsResult) {
+        val allShops = when (shopsResult) {
             is ApiResult.Success -> shopsResult.data.data.orEmpty()
             is ApiResult.Error -> return shopsResult
             is ApiResult.NetworkError -> return shopsResult
         }
 
-        if (shops.isEmpty()) {
+        if (allShops.isEmpty()) {
             return ApiResult.Success(
                 DashboardLoadResult(
+                    allShops = emptyList(),
                     shops = emptyList(),
                     shopPerformances = emptyList(),
                     totalSales = "UGX 0",
@@ -62,13 +70,18 @@ class SharedDashboardRepository(private val api: KtorOseboApiService) {
             )
         }
 
+        val scopedShops = selectedShopId
+            ?.let { id -> allShops.filter { it.id == id } }
+            ?.takeIf { it.isNotEmpty() }
+            ?: allShops
+
         var totalSales = 0.0
         var totalExpenses = 0.0
         var todaySales = 0.0
         var todayExpenses = 0.0
         val shopSales = mutableMapOf<String, Double>()
 
-        for (shop in shops) {
+        for (shop in scopedShops) {
             val summaryResult = api.getShopSummary(shop.id)
             val summary = when (summaryResult) {
                 is ApiResult.Success -> summaryResult.data.data
@@ -90,7 +103,7 @@ class SharedDashboardRepository(private val api: KtorOseboApiService) {
         }
 
         val maxSales = shopSales.values.maxOrNull() ?: 0.0
-        val performances = shops.map { shop ->
+        val performances = scopedShops.map { shop ->
             val sales = shopSales[shop.id] ?: 0.0
             val percentage = if (maxSales > 0) ((sales / maxSales) * 100).toInt() else 0
             DashboardShopPerformanceUi(
@@ -101,8 +114,8 @@ class SharedDashboardRepository(private val api: KtorOseboApiService) {
             )
         }.sortedByDescending { shopSales[it.shopId] ?: 0.0 }
 
-        val selectedShop = shops.find { it.hasActiveSubscription } ?: shops.first()
-        val timeSeriesResult = api.getTimeSeries(selectedShop.id)
+        val timeSeriesShop = scopedShops.find { it.hasActiveSubscription } ?: scopedShops.first()
+        val timeSeriesResult = api.getTimeSeries(timeSeriesShop.id)
         val timeSeries = when (timeSeriesResult) {
             is ApiResult.Success -> timeSeriesResult.data.data
             else -> null
@@ -110,11 +123,12 @@ class SharedDashboardRepository(private val api: KtorOseboApiService) {
 
         return ApiResult.Success(
             DashboardLoadResult(
-                shops = shops.map { it.toDashboardShopUi() },
+                allShops = allShops,
+                shops = allShops.map { it.toDashboardShopUi() },
                 shopPerformances = performances,
                 totalSales = formatCompactCurrency(totalSales),
                 totalExpenses = formatCompactCurrency(totalExpenses),
-                totalShopsLabel = "${shops.size} Shops",
+                totalShopsLabel = "${allShops.size} Shops",
                 todaySales = formatCompactCurrency(todaySales),
                 todayExpenses = formatCompactCurrency(todayExpenses),
                 todayBalance = formatCompactCurrency(todaySales - todayExpenses),
