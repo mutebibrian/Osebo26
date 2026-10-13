@@ -2,8 +2,15 @@ package com.devbrian.osebo.data.repository
 
 import com.devbrian.osebo.data.remote.ApiResult
 import com.devbrian.osebo.data.remote.KtorOseboApiService
+import com.devbrian.osebo.data.remote.dto.request.CreateExpenseCategoryRequest
+import com.devbrian.osebo.data.remote.dto.request.CreateExpenseRequest
+import com.devbrian.osebo.data.remote.dto.request.UpdateExpenseCategoryRequest
+import com.devbrian.osebo.models.Expense
+import com.devbrian.osebo.models.ExpenseCategory
 import com.devbrian.osebo.models.Transaction
+import com.devbrian.osebo.ui.screens.ExpenseCategoryUi
 import com.devbrian.osebo.ui.screens.FinanceTransactionUi
+import androidx.compose.ui.graphics.Color
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
@@ -86,6 +93,73 @@ class SharedFinanceRepository(private val api: KtorOseboApiService) {
             unique
         }
         return ApiResult.Success(data = filtered.sortedByDescending { it.date }, httpCode = 200)
+    }
+
+    suspend fun getExpenseCategories(shopId: String): ApiResult<List<ExpenseCategory>> =
+        when (val result = api.getExpenseCategories(shopId)) {
+            is ApiResult.Success -> ApiResult.Success(result.data.data.orEmpty(), result.httpCode)
+            is ApiResult.Error -> result
+            is ApiResult.NetworkError -> result
+        }
+
+    suspend fun createExpenseCategory(shopId: String, name: String, description: String?): ApiResult<ExpenseCategory> =
+        when (val result = api.createExpenseCategory(shopId, CreateExpenseCategoryRequest(name, description))) {
+            is ApiResult.Success -> result.data.data?.let { ApiResult.Success(it, result.httpCode) }
+                ?: ApiResult.Error(result.httpCode, "No category returned")
+            is ApiResult.Error -> result
+            is ApiResult.NetworkError -> result
+        }
+
+    suspend fun updateExpenseCategory(
+        shopId: String,
+        categoryId: String,
+        name: String,
+        description: String?,
+    ): ApiResult<ExpenseCategory> =
+        when (
+            val result = api.updateExpenseCategory(
+                shopId,
+                categoryId,
+                UpdateExpenseCategoryRequest(name = name, description = description),
+            )
+        ) {
+            is ApiResult.Success -> result.data.data?.let { ApiResult.Success(it, result.httpCode) }
+                ?: ApiResult.Error(result.httpCode, "No category returned")
+            is ApiResult.Error -> result
+            is ApiResult.NetworkError -> result
+        }
+
+    suspend fun deleteExpenseCategory(shopId: String, categoryId: String): ApiResult<Unit> =
+        when (val result = api.deleteExpenseCategory(shopId, categoryId)) {
+            is ApiResult.Success -> ApiResult.Success(Unit, result.httpCode)
+            is ApiResult.Error -> result
+            is ApiResult.NetworkError -> result
+        }
+
+    suspend fun createExpense(shopId: String, request: CreateExpenseRequest): ApiResult<Expense> =
+        when (val result = api.createExpense(shopId, request)) {
+            is ApiResult.Success -> result.data.data?.let { ApiResult.Success(it, result.httpCode) }
+                ?: ApiResult.Error(result.httpCode, "No expense returned")
+            is ApiResult.Error -> result
+            is ApiResult.NetworkError -> result
+        }
+}
+
+fun ExpenseCategory.toExpenseCategoryUi(): ExpenseCategoryUi = ExpenseCategoryUi(
+    id = id,
+    name = name,
+    description = description.orEmpty(),
+    color = parseHexColor(color),
+    isDefault = isDefault,
+)
+
+private fun parseHexColor(hex: String?): Color {
+    val cleaned = hex?.removePrefix("#")?.takeIf { it.length == 6 || it.length == 8 } ?: return Color(0xFF176BFF)
+    return try {
+        val argb = if (cleaned.length == 6) "FF$cleaned" else cleaned
+        Color(argb.toLong(16).toInt())
+    } catch (_: NumberFormatException) {
+        Color(0xFF176BFF)
     }
 }
 

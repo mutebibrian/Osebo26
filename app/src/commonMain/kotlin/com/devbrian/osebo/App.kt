@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import com.devbrian.osebo.data.remote.ApiResult
 import com.devbrian.osebo.data.remote.KtorOseboApiService
 import com.devbrian.osebo.data.remote.createOseboHttpClient
+import com.devbrian.osebo.data.remote.dto.request.CreateExpenseRequest
 import com.devbrian.osebo.data.remote.dto.request.LoginRequest
 import com.devbrian.osebo.data.remote.dto.request.SelectAccountRequest
 import com.devbrian.osebo.data.remote.dto.response.ShopDto
@@ -32,7 +33,9 @@ import com.devbrian.osebo.data.repository.SharedInventoryRepository
 import com.devbrian.osebo.data.repository.SharedReportsRepository
 import com.devbrian.osebo.data.repository.SharedSalesRepository
 import com.devbrian.osebo.data.repository.dateRangeForPeriod
+import com.devbrian.osebo.data.repository.toExpenseCategoryUi
 import com.devbrian.osebo.data.repository.toFinanceTransactionUi
+import com.devbrian.osebo.models.ExpenseCategory
 import com.devbrian.osebo.models.Transaction
 import com.devbrian.osebo.data.repository.currentDateLabel
 import com.devbrian.osebo.data.repository.currentGreeting
@@ -51,6 +54,8 @@ import com.devbrian.osebo.ui.screens.CustomersUiState
 import com.devbrian.osebo.ui.screens.DashboardScreen
 import com.devbrian.osebo.ui.screens.DashboardUiState
 import com.devbrian.osebo.ui.screens.ExpenseCategoriesScreen
+import com.devbrian.osebo.ui.screens.ExpenseCategoryOption
+import com.devbrian.osebo.ui.screens.ExpenseCategoryUi
 import com.devbrian.osebo.ui.screens.FinanceScreen
 import com.devbrian.osebo.ui.screens.FinanceSettingsScreen
 import com.devbrian.osebo.ui.screens.FinanceUiState
@@ -72,6 +77,9 @@ import com.devbrian.osebo.ui.screens.TransactionsUiState
 import com.devbrian.osebo.ui.screens.WelcomeScreen
 import com.devbrian.osebo.ui.theme.OseboTheme
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.todayIn
 
 private enum class AppTab(val label: String) {
     Dashboard("Dashboard"),
@@ -159,6 +167,11 @@ fun App() {
         var inventoryState by remember { mutableStateOf(InventoryUiState()) }
         var financeState by remember { mutableStateOf(FinanceUiState()) }
         var reportsState by remember { mutableStateOf(ReportsUiState()) }
+        var addExpenseState by remember { mutableStateOf(AddExpenseUiState()) }
+        var addExpenseDate by remember { mutableStateOf("") }
+        var expenseCategoriesSource by remember { mutableStateOf<List<ExpenseCategory>>(emptyList()) }
+        var expenseCategoriesUi by remember { mutableStateOf<List<ExpenseCategoryUi>>(emptyList()) }
+        var isExpenseCategoriesLoading by remember { mutableStateOf(false) }
         var shops by remember { mutableStateOf<List<ShopDto>>(emptyList()) }
         var selectedShopId by remember { mutableStateOf<String?>(null) }
         var isShopPickerOpen by remember { mutableStateOf(false) }
@@ -175,6 +188,10 @@ fun App() {
                 inventoryState = InventoryUiState()
                 financeState = FinanceUiState()
                 reportsState = ReportsUiState()
+                addExpenseState = AddExpenseUiState()
+                addExpenseDate = ""
+                expenseCategoriesSource = emptyList()
+                expenseCategoriesUi = emptyList()
                 shops = emptyList()
                 selectedShopId = null
             }
@@ -368,6 +385,44 @@ fun App() {
             reportsState = afterSummary.copy(isLoading = false)
         }
 
+        LaunchedEffect(authState, selectedShopId, destination) {
+            if (authState !is AuthState.LoggedIn) return@LaunchedEffect
+            if (destination != Destination.AddExpense && destination != Destination.ExpenseCategories) {
+                return@LaunchedEffect
+            }
+
+            if (destination == Destination.AddExpense && addExpenseDate.isEmpty()) {
+                val monthAbbreviations = listOf(
+                    "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+                )
+                val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
+                addExpenseDate = today.toString()
+                addExpenseState = addExpenseState.copy(
+                    dateLabel = "${today.dayOfMonth} ${monthAbbreviations[today.month.ordinal]} ${today.year}",
+                )
+            }
+
+            val shopsResult = api.getShops()
+            val shopId = selectedShopId ?: when (shopsResult) {
+                is ApiResult.Success -> shopsResult.data.data?.firstOrNull()?.id
+                else -> null
+            }
+            if (shopId == null) return@LaunchedEffect
+
+            isExpenseCategoriesLoading = true
+            when (val result = financeRepository.getExpenseCategories(shopId)) {
+                is ApiResult.Success -> {
+                    expenseCategoriesSource = result.data
+                    expenseCategoriesUi = result.data.map { it.toExpenseCategoryUi() }
+                    addExpenseState = addExpenseState.copy(
+                        categories = result.data.map { ExpenseCategoryOption(id = it.id, name = it.name) },
+                    )
+                }
+                is ApiResult.Error, is ApiResult.NetworkError -> Unit
+            }
+            isExpenseCategoriesLoading = false
+        }
+
         fun attemptSignIn() {
             loginState = loginState.copy(isLoading = true, errorMessage = null)
             scope.launch {
@@ -431,6 +486,98 @@ fun App() {
                         errorMessage = result.message,
                     )
                 }
+            }
+        }
+
+        fun saveExpense() {
+            val amount = addExpenseState.amount.toDoubleOrNull()
+            val categoryError = if (addExpenseState.selectedCategoryId == null) "Select a category" else null
+            val amountError = when {
+                addExpenseState.amount.isBlank() -> "Enter an amount"
+                amount == null -> "Enter a valid amount"
+                amount <= 0 -> "Amount must be greater than 0"
+                else -> null
+            }
+            val descriptionError = if (addExpenseState.description.isBlank()) "Enter a description" else null
+            val paymentError = if (addExpenseState.paymentMethod.isBlank()) "Select a payment method" else null
+
+            addExpenseState = addExpenseState.copy(
+                categoryError = categoryError,
+                amountError = amountError,
+                descriptionError = descriptionError,
+                paymentError = paymentError,
+            )
+            if (categoryError != null || amountError != null || descriptionError != null || paymentError != null) {
+                return
+            }
+
+            val shopId = selectedShopId ?: shops.firstOrNull()?.id ?: return
+            val categoryId = addExpenseState.selectedCategoryId ?: return
+            addExpenseState = addExpenseState.copy(isLoading = true)
+            scope.launch {
+                val request = CreateExpenseRequest(
+                    name = addExpenseState.description.take(100),
+                    description = addExpenseState.description.trim(),
+                    amount = amount!!,
+                    expenseCategoryId = categoryId,
+                    date = addExpenseDate,
+                    paymentMethod = addExpenseState.paymentMethod,
+                    reference = addExpenseState.reference.trim().ifEmpty { null },
+                )
+                when (financeRepository.createExpense(shopId, request)) {
+                    is ApiResult.Success -> {
+                        addExpenseState = AddExpenseUiState(categories = addExpenseState.categories)
+                        addExpenseDate = ""
+                        destination = Destination.MainTabs
+                    }
+                    is ApiResult.Error -> addExpenseState = addExpenseState.copy(isLoading = false)
+                    is ApiResult.NetworkError -> addExpenseState = addExpenseState.copy(isLoading = false)
+                }
+            }
+        }
+
+        fun createExpenseCategory(name: String, description: String?) {
+            val shopId = selectedShopId ?: shops.firstOrNull()?.id ?: return
+            isExpenseCategoriesLoading = true
+            scope.launch {
+                when (val result = financeRepository.createExpenseCategory(shopId, name, description)) {
+                    is ApiResult.Success -> {
+                        expenseCategoriesSource = expenseCategoriesSource + result.data
+                        expenseCategoriesUi = expenseCategoriesUi + result.data.toExpenseCategoryUi()
+                    }
+                    is ApiResult.Error, is ApiResult.NetworkError -> Unit
+                }
+                isExpenseCategoriesLoading = false
+            }
+        }
+
+        fun updateExpenseCategory(category: ExpenseCategoryUi, name: String, description: String?) {
+            val shopId = selectedShopId ?: shops.firstOrNull()?.id ?: return
+            isExpenseCategoriesLoading = true
+            scope.launch {
+                when (val result = financeRepository.updateExpenseCategory(shopId, category.id, name, description)) {
+                    is ApiResult.Success -> {
+                        expenseCategoriesSource = expenseCategoriesSource.map { if (it.id == category.id) result.data else it }
+                        expenseCategoriesUi = expenseCategoriesSource.map { it.toExpenseCategoryUi() }
+                    }
+                    is ApiResult.Error, is ApiResult.NetworkError -> Unit
+                }
+                isExpenseCategoriesLoading = false
+            }
+        }
+
+        fun deleteExpenseCategory(category: ExpenseCategoryUi) {
+            val shopId = selectedShopId ?: shops.firstOrNull()?.id ?: return
+            isExpenseCategoriesLoading = true
+            scope.launch {
+                when (financeRepository.deleteExpenseCategory(shopId, category.id)) {
+                    is ApiResult.Success -> {
+                        expenseCategoriesSource = expenseCategoriesSource.filterNot { it.id == category.id }
+                        expenseCategoriesUi = expenseCategoriesUi.filterNot { it.id == category.id }
+                    }
+                    is ApiResult.Error, is ApiResult.NetworkError -> Unit
+                }
+                isExpenseCategoriesLoading = false
             }
         }
 
@@ -570,21 +717,21 @@ fun App() {
                     )
 
                     Destination.AddExpense -> AddExpenseScreen(
-                        state = AddExpenseUiState(),
-                        onStateChange = {},
+                        state = addExpenseState,
+                        onStateChange = { addExpenseState = it },
                         onBackClick = { destination = Destination.MainTabs },
                         onDateClick = {},
                         onAttachReceiptClick = {},
-                        onSaveClick = {},
+                        onSaveClick = ::saveExpense,
                     )
 
                     Destination.ExpenseCategories -> ExpenseCategoriesScreen(
-                        categories = emptyList(),
-                        isLoading = false,
+                        categories = expenseCategoriesUi,
+                        isLoading = isExpenseCategoriesLoading,
                         onBackClick = { destination = Destination.MainTabs },
-                        onCreateCategory = { _, _ -> },
-                        onUpdateCategory = { _, _, _ -> },
-                        onDeleteCategory = {},
+                        onCreateCategory = ::createExpenseCategory,
+                        onUpdateCategory = ::updateExpenseCategory,
+                        onDeleteCategory = ::deleteExpenseCategory,
                     )
 
                     Destination.FinancialStatement -> FinancialStatementScreen(
