@@ -289,6 +289,7 @@ class SalesViewModel(
 
     fun loadCustomers() {
         viewModelScope.launch {
+            customerRepository.refreshCustomers()
             customerRepository.getAllCustomers().collect { customers ->
                 _customers.value = customers
             }

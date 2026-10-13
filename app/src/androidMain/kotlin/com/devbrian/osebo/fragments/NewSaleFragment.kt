@@ -33,14 +33,6 @@ class NewSaleFragment : Fragment() {
     private lateinit var preferenceManager: PreferenceManager
     private var uiState by mutableStateOf(NewSaleUiState())
 
-    private val walkInCustomer = Customer(
-        id = "797231da-d7c2-4f8c-bf13-1e3fc08b2e8e",
-        name = "Walk-in Customer",
-        phone = "",
-        email = "",
-        address = "",
-    )
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         preferenceManager = PreferenceManager.getInstance(requireContext())
@@ -84,9 +76,6 @@ class NewSaleFragment : Fragment() {
         }
 
         observeViewModel()
-        if (viewModel.selectedCustomer.value == null) {
-            viewModel.selectCustomer(walkInCustomer)
-        }
         viewModel.loadProducts()
         viewModel.loadCustomers()
     }
@@ -98,16 +87,15 @@ class NewSaleFragment : Fragment() {
             updateProducts(viewModel.products.value.orEmpty())
         }
         viewModel.customers.observe(viewLifecycleOwner) { customers ->
-            val options = (listOf(walkInCustomer) + customers)
-                .distinctBy(Customer::id)
-                .map { it.toUi() }
-            uiState = uiState.copy(customers = options)
+            uiState = uiState.copy(customers = customers.map { it.toUi() })
+            if (viewModel.selectedCustomer.value == null) {
+                customers.firstOrNull(Customer::isDefault)?.let(viewModel::selectCustomer)
+            }
         }
         viewModel.selectedCustomer.observe(viewLifecycleOwner) { customer ->
-            val selected = customer ?: walkInCustomer
             uiState = uiState.copy(
-                selectedCustomerId = selected.id,
-                selectedCustomerName = selected.name,
+                selectedCustomerId = customer?.id.orEmpty(),
+                selectedCustomerName = customer?.name.orEmpty(),
             )
         }
         viewModel.isLoading.observe(viewLifecycleOwner) { loading ->
@@ -203,12 +191,8 @@ class NewSaleFragment : Fragment() {
     }
 
     private fun selectCustomer(customerId: String) {
-        val customer = if (customerId == walkInCustomer.id) {
-            walkInCustomer
-        } else {
-            viewModel.customers.value.orEmpty().firstOrNull { it.id == customerId }
-        }
-        customer?.let(viewModel::selectCustomer)
+        viewModel.customers.value.orEmpty().firstOrNull { it.id == customerId }
+            ?.let(viewModel::selectCustomer)
     }
 
     private fun showBarcodeScanner() {
@@ -243,7 +227,11 @@ class NewSaleFragment : Fragment() {
     }
 
     private fun proceedToPayment() {
-        val customer = viewModel.selectedCustomer.value ?: walkInCustomer
+        val customer = viewModel.selectedCustomer.value
+        if (customer == null) {
+            showMessage("Select a customer before completing this sale")
+            return
+        }
         val cartItems = viewModel.cartItems.value.orEmpty()
         val totalAmount = viewModel.getCartSummary().total.toFloat()
 
@@ -305,6 +293,6 @@ class NewSaleFragment : Fragment() {
     private fun Customer.toUi() = NewSaleCustomerUi(
         id = id,
         name = name,
-        detail = phone.ifBlank { if (isDefault || id == walkInCustomer.id) "Default customer" else "No phone number" },
+        detail = phone.ifBlank { if (isDefault) "Default customer" else "No phone number" },
     )
 }

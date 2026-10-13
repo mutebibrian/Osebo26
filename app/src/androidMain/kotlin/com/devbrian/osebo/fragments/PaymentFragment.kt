@@ -32,9 +32,7 @@ class PaymentFragment : Fragment() {
     private val args: PaymentFragmentArgs by navArgs()
     private var uiState by mutableStateOf(PaymentUiState())
 
-    private val customerId: String by lazy {
-        args.customerId ?: WALK_IN_CUSTOMER_ID
-    }
+    private val customerId: String? by lazy { args.customerId }
 
     private val cartItems: Array<CartItem> by lazy {
         args.cartItems ?: emptyArray()
@@ -82,13 +80,17 @@ class PaymentFragment : Fragment() {
             return
         }
 
-        val isWalkIn = customerId == WALK_IN_CUSTOMER_ID
+        val currentCustomerId = customerId
+        if (currentCustomerId.isNullOrBlank()) {
+            showMessage("Error: No customer selected", Toast.LENGTH_LONG)
+            findNavController().navigateUp()
+            return
+        }
+
         uiState = uiState.copy(
             shopName = preferenceManager.getCurrentShopName().ifBlank { "Selected shop" },
-            customerLabel = args.customerName.ifBlank {
-                if (isWalkIn) "Walk-in Customer" else "Selected customer"
-            },
-            customerDetail = if (isWalkIn) "Default customer" else customerId,
+            customerLabel = args.customerName.ifBlank { "Selected customer" },
+            customerDetail = currentCustomerId,
             uniqueItemCount = cartItems.size,
             totalQuantity = cartItems.sumOf(CartItem::quantity),
             total = CurrencyFormatter.formatFull(totalAmount.toDouble()),
@@ -165,7 +167,7 @@ class PaymentFragment : Fragment() {
 
     private fun proceedWithPayment() {
         viewModel.completeSale(
-            customerId = customerId,
+            customerId = customerId.orEmpty(),
             paidAmount = totalAmount.toDouble(),
             paymentMethod = uiState.selectedMethod.apiValue,
             reference = uiState.reference.trim().ifEmpty { null },
@@ -204,9 +206,5 @@ class PaymentFragment : Fragment() {
 
     private fun showMessage(message: String, duration: Int = Toast.LENGTH_SHORT) {
         if (isAdded) Toast.makeText(requireContext(), message, duration).show()
-    }
-
-    companion object {
-        private const val WALK_IN_CUSTOMER_ID = "797231da-d7c2-4f8c-bf13-1e3fc08b2e8e"
     }
 }
