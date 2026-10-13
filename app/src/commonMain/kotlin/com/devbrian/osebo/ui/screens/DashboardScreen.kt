@@ -119,6 +119,7 @@ data class DashboardUiState(
     val expensesTrend: List<Float> = emptyList(),
     val shopPerformances: List<DashboardShopPerformanceUi> = emptyList(),
     val shops: List<DashboardShopUi> = emptyList(),
+    val errorMessage: String? = null,
 )
 
 private data class DashboardMetric(
@@ -268,6 +269,11 @@ fun DashboardScreen(
 
                 Spacer(Modifier.height(30.dp))
 
+                state.errorMessage?.let { message ->
+                    DashboardErrorBanner(message)
+                    Spacer(Modifier.height(16.dp))
+                }
+
                 OverviewFeatureCard(
                     metrics = metrics,
                     isLoading = state.isLoading,
@@ -388,6 +394,24 @@ private fun OverviewFeatureCard(
                 Spacer(Modifier.height(10.dp))
             }
         }
+    }
+}
+
+@Composable
+private fun DashboardErrorBanner(message: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFFFFEEF0), RoundedCornerShape(16.dp))
+            .padding(horizontal = 14.dp, vertical = 11.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = message,
+            color = Color(0xFFC62842),
+            fontFamily = oseboFontFamily(),
+            fontSize = 11.sp,
+        )
     }
 }
 

@@ -9,11 +9,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AttachMoney
-import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.MoreHoriz
-import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -91,6 +89,7 @@ import com.devbrian.osebo.data.settings.createSettingsStore
 import com.devbrian.osebo.ui.components.BottomNavBar
 import com.devbrian.osebo.ui.components.MoreMenu
 import com.devbrian.osebo.ui.components.MoreMenuEntry
+import com.devbrian.osebo.ui.components.MoreMenuSection
 import com.devbrian.osebo.ui.components.NavItem
 import com.devbrian.osebo.ui.components.ShopPickerItem
 import com.devbrian.osebo.ui.components.ShopPickerMenu
@@ -162,12 +161,16 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
 
+/**
+ * Mirrors Android's real UserNavigationItem (Home, Inventory, Sales, More) —
+ * Finance and Customers are not bottom-nav tabs on Android, they're reached
+ * from the More sheet's Business/People sections instead (see MoreMenu
+ * wiring below), so they're separate Destinations here, not AppTab entries.
+ */
 private enum class AppTab(val label: String) {
-    Dashboard("Dashboard"),
-    Sales("Sales"),
+    Dashboard("Home"),
     Inventory("Inventory"),
-    Finance("Finance"),
-    Customers("Customers"),
+    Sales("Sales"),
 }
 
 /**
@@ -195,6 +198,8 @@ private sealed class Destination {
     data object AddEmployee : Destination()
     data object Employees : Destination()
     data object Suppliers : Destination()
+    data object Finance : Destination()
+    data object Customers : Destination()
     data object Shops : Destination()
     data object ShopDashboard : Destination()
     data object AddProduct : Destination()
@@ -416,6 +421,7 @@ fun App() {
                 userName = sessionProvider.userFirstName() ?: "User",
                 currentDate = currentDateLabel(),
                 isLoading = true,
+                errorMessage = null,
             )
 
             when (val result = dashboardRepository.loadShopsAndTotals(selectedShopId)) {
@@ -440,8 +446,14 @@ fun App() {
                         shops = data.shops,
                     )
                 }
-                is ApiResult.Error -> dashboardState = dashboardState.copy(isLoading = false)
-                is ApiResult.NetworkError -> dashboardState = dashboardState.copy(isLoading = false)
+                is ApiResult.Error -> dashboardState = dashboardState.copy(
+                    isLoading = false,
+                    errorMessage = result.message,
+                )
+                is ApiResult.NetworkError -> dashboardState = dashboardState.copy(
+                    isLoading = false,
+                    errorMessage = result.message,
+                )
             }
         }
 
@@ -1806,6 +1818,12 @@ fun App() {
             transactionsState = transactionsSource.toTransactionsUiState()
         }
 
+        fun performLogout() {
+            isMoreMenuOpen = false
+            sessionProvider.clear()
+            sessionProvider.onSessionExpiredListener?.invoke()
+        }
+
         fun startAiConversation() {
             aiAssistantState = aiAssistantState.copy(
                 activeConversationId = null,
@@ -2010,26 +2028,6 @@ fun App() {
                                 onRemoveStockClick = { destination = Destination.RemoveStock },
                                 onProductClick = {},
                             )
-                            AppTab.Finance -> FinanceScreen(
-                                state = financeState,
-                                periods = listOf(
-                                    "Today", "This Week", "This Month",
-                                    "Last Month", "This Quarter", "This Year",
-                                ),
-                                onPeriodSelected = { financeState = financeState.copy(selectedPeriod = it) },
-                                onRefreshClick = {},
-                                onAddExpenseClick = { destination = Destination.AddExpense },
-                                onNewSaleClick = { destination = Destination.NewSale },
-                                onReportsClick = { destination = Destination.Reports },
-                                onCategoriesClick = { destination = Destination.ExpenseCategories },
-                                onStatementClick = { destination = Destination.FinancialStatement },
-                                onExportClick = {},
-                                onSettingsClick = { destination = Destination.FinanceSettings },
-                                onViewAllClick = { destination = Destination.AllTransactions },
-                                onTransactionClick = {},
-                                onTransactionAction = { _, _ -> },
-                            )
-                            AppTab.Customers -> CustomersScreen(state = customersState)
                         }
 
                         Box(
@@ -2039,11 +2037,9 @@ fun App() {
                         ) {
                             BottomNavBar(
                                 items = listOf(
-                                    NavItem(Icons.Default.Dashboard, AppTab.Dashboard.label),
-                                    NavItem(Icons.Default.ShoppingCart, AppTab.Sales.label),
+                                    NavItem(Icons.Default.Home, AppTab.Dashboard.label),
                                     NavItem(Icons.Default.Inventory2, AppTab.Inventory.label),
-                                    NavItem(Icons.Default.AttachMoney, AppTab.Finance.label),
-                                    NavItem(Icons.Default.People, AppTab.Customers.label),
+                                    NavItem(Icons.Default.ShoppingCart, AppTab.Sales.label),
                                     NavItem(Icons.Default.MoreHoriz, "More"),
                                 ),
                                 selectedIndex = selectedTab.ordinal,
@@ -2058,23 +2054,60 @@ fun App() {
                             MoreMenu(
                                 expanded = isMoreMenuOpen,
                                 onDismiss = { isMoreMenuOpen = false },
-                                entries = listOf(
-                                    MoreMenuEntry("Shops") {
-                                        isMoreMenuOpen = false
-                                        destination = Destination.Shops
-                                    },
-                                    MoreMenuEntry("Employees") {
-                                        isMoreMenuOpen = false
-                                        destination = Destination.Employees
-                                    },
-                                    MoreMenuEntry("Suppliers") {
-                                        isMoreMenuOpen = false
-                                        destination = Destination.Suppliers
-                                    },
-                                    MoreMenuEntry("Subscription") {
-                                        isMoreMenuOpen = false
-                                        destination = Destination.SubscriptionPackages
-                                    },
+                                sections = listOf(
+                                    MoreMenuSection(
+                                        "Shop",
+                                        listOf(
+                                            MoreMenuEntry("Shops") {
+                                                isMoreMenuOpen = false
+                                                destination = Destination.Shops
+                                            },
+                                            MoreMenuEntry("Shop Home") {
+                                                isMoreMenuOpen = false
+                                                destination = if (selectedShopId != null) {
+                                                    Destination.ShopDashboard
+                                                } else {
+                                                    Destination.Shops
+                                                }
+                                            },
+                                        ),
+                                    ),
+                                    MoreMenuSection(
+                                        "Business",
+                                        listOf(
+                                            MoreMenuEntry("Finance") {
+                                                isMoreMenuOpen = false
+                                                destination = Destination.Finance
+                                            },
+                                        ),
+                                    ),
+                                    MoreMenuSection(
+                                        "People",
+                                        listOf(
+                                            MoreMenuEntry("Employees") {
+                                                isMoreMenuOpen = false
+                                                destination = Destination.Employees
+                                            },
+                                            MoreMenuEntry("Suppliers") {
+                                                isMoreMenuOpen = false
+                                                destination = Destination.Suppliers
+                                            },
+                                            MoreMenuEntry("Customers") {
+                                                isMoreMenuOpen = false
+                                                destination = Destination.Customers
+                                            },
+                                        ),
+                                    ),
+                                    MoreMenuSection(
+                                        "Account & Support",
+                                        listOf(
+                                            MoreMenuEntry("Subscription") {
+                                                isMoreMenuOpen = false
+                                                destination = Destination.SubscriptionPackages
+                                            },
+                                            MoreMenuEntry("Logout", ::performLogout),
+                                        ),
+                                    ),
                                 ),
                             )
                         }
@@ -2099,6 +2132,32 @@ fun App() {
                             )
                         }
                     }
+
+                    Destination.Finance -> FinanceScreen(
+                        state = financeState,
+                        periods = listOf(
+                            "Today", "This Week", "This Month",
+                            "Last Month", "This Quarter", "This Year",
+                        ),
+                        onBackClick = { destination = Destination.MainTabs },
+                        onPeriodSelected = { financeState = financeState.copy(selectedPeriod = it) },
+                        onRefreshClick = {},
+                        onAddExpenseClick = { destination = Destination.AddExpense },
+                        onNewSaleClick = { destination = Destination.NewSale },
+                        onReportsClick = { destination = Destination.Reports },
+                        onCategoriesClick = { destination = Destination.ExpenseCategories },
+                        onStatementClick = { destination = Destination.FinancialStatement },
+                        onExportClick = {},
+                        onSettingsClick = { destination = Destination.FinanceSettings },
+                        onViewAllClick = { destination = Destination.AllTransactions },
+                        onTransactionClick = {},
+                        onTransactionAction = { _, _ -> },
+                    )
+
+                    Destination.Customers -> CustomersScreen(
+                        state = customersState,
+                        onBackClick = { destination = Destination.MainTabs },
+                    )
 
                     Destination.Reports -> ReportsScreen(
                         state = reportsState,
@@ -2279,7 +2338,7 @@ fun App() {
                         onRefreshClick = {},
                         onEmployeesClick = { destination = Destination.Employees },
                         onSuppliersClick = { destination = Destination.Suppliers },
-                        onCustomersClick = { destination = Destination.MainTabs; selectedTab = AppTab.Customers },
+                        onCustomersClick = { destination = Destination.Customers },
                         onSalesClick = { destination = Destination.MainTabs; selectedTab = AppTab.Sales },
                         onNewSaleClick = { destination = Destination.NewSale },
                         onAddProductClick = { destination = Destination.AddProduct },

@@ -49,6 +49,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.devbrian.osebo.resources.Res
+import com.devbrian.osebo.resources.iconsax_arrow_left
 import com.devbrian.osebo.resources.iconsax_balance
 import com.devbrian.osebo.resources.iconsax_category
 import com.devbrian.osebo.resources.iconsax_document
@@ -116,6 +117,7 @@ fun FinanceScreen(
     state: FinanceUiState,
     periods: List<String>,
     shopIcon: DrawableResource? = null,
+    onBackClick: (() -> Unit)? = null,
     onShopPickerClick: () -> Unit = {},
     onPeriodSelected: (String) -> Unit,
     onRefreshClick: () -> Unit,
@@ -151,6 +153,7 @@ fun FinanceScreen(
                     shopName = state.shopName,
                     isLoading = state.isLoading,
                     shopIcon = shopIcon,
+                    onBackClick = onBackClick,
                     onShopPickerClick = onShopPickerClick,
                     onRefreshClick = onRefreshClick,
                     onSettingsClick = onSettingsClick,
@@ -214,6 +217,7 @@ private fun FinanceHeader(
     shopName: String,
     isLoading: Boolean,
     shopIcon: DrawableResource?,
+    onBackClick: (() -> Unit)?,
     onShopPickerClick: () -> Unit,
     onRefreshClick: () -> Unit,
     onSettingsClick: () -> Unit,
@@ -223,6 +227,17 @@ private fun FinanceHeader(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        onBackClick?.let {
+            IconButton(onClick = it, modifier = Modifier.size(42.dp)) {
+                Icon(
+                    painter = painterResource(Res.drawable.iconsax_arrow_left),
+                    contentDescription = "Back",
+                    tint = FinanceInk,
+                    modifier = Modifier.size(21.dp),
+                )
+            }
+            Spacer(Modifier.width(4.dp))
+        }
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = "Finance",

@@ -59,6 +59,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.devbrian.osebo.resources.Res
 import com.devbrian.osebo.resources.iconsax_add
+import com.devbrian.osebo.resources.iconsax_arrow_left
 import com.devbrian.osebo.resources.iconsax_customers
 import com.devbrian.osebo.resources.iconsax_filter
 import com.devbrian.osebo.resources.iconsax_more
@@ -145,6 +146,7 @@ private fun avatarColorFor(name: String): Color {
 fun CustomersScreen(
     state: CustomersUiState,
     shopIcon: DrawableResource? = null,
+    onBackClick: (() -> Unit)? = null,
     onShopPickerClick: () -> Unit = {},
     onRefreshClick: () -> Unit = {},
     onSearchQueryChange: (String) -> Unit = {},
@@ -194,6 +196,7 @@ fun CustomersScreen(
                 CustomersHeader(
                     isLoading = state.isLoading,
                     shopIcon = shopIcon,
+                    onBackClick = onBackClick,
                     onShopPickerClick = onShopPickerClick,
                     onRefreshClick = onRefreshClick,
                     onAddClick = onAddClick,
@@ -299,6 +302,7 @@ fun CustomersScreen(
 private fun CustomersHeader(
     isLoading: Boolean,
     shopIcon: DrawableResource?,
+    onBackClick: (() -> Unit)?,
     onShopPickerClick: () -> Unit,
     onRefreshClick: () -> Unit,
     onAddClick: () -> Unit,
@@ -309,6 +313,17 @@ private fun CustomersHeader(
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top)),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        onBackClick?.let {
+            IconButton(onClick = it, modifier = Modifier.size(42.dp)) {
+                Icon(
+                    painter = painterResource(Res.drawable.iconsax_arrow_left),
+                    contentDescription = "Back",
+                    tint = CustomerInk,
+                    modifier = Modifier.size(21.dp),
+                )
+            }
+            Spacer(Modifier.width(4.dp))
+        }
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 "Customers",

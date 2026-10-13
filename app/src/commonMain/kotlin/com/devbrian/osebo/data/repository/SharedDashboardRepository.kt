@@ -114,11 +114,22 @@ class SharedDashboardRepository(private val api: KtorOseboApiService) {
             )
         }.sortedByDescending { shopSales[it.shopId] ?: 0.0 }
 
-        val timeSeriesShop = scopedShops.find { it.hasActiveSubscription } ?: scopedShops.first()
-        val timeSeriesResult = api.getTimeSeries(timeSeriesShop.id)
-        val timeSeries = when (timeSeriesResult) {
-            is ApiResult.Success -> timeSeriesResult.data.data
-            else -> null
+        // Mirrors MainDashboardFragment.kt: sum every scoped shop's time series
+        // index-wise (each shop's list is already labelled against the same
+        // xAxis for a given range), not just one representative shop's.
+        val salesByPeriod = mutableListOf<Double>()
+        val expensesByPeriod = mutableListOf<Double>()
+        for (shop in scopedShops) {
+            val timeSeries = when (val timeSeriesResult = api.getTimeSeries(shop.id)) {
+                is ApiResult.Success -> timeSeriesResult.data.data
+                else -> null
+            } ?: continue
+            timeSeries.sales.forEachIndexed { index, value ->
+                if (index < salesByPeriod.size) salesByPeriod[index] += value else salesByPeriod.add(value)
+            }
+            timeSeries.expenses.forEachIndexed { index, value ->
+                if (index < expensesByPeriod.size) expensesByPeriod[index] += value else expensesByPeriod.add(value)
+            }
         }
 
         return ApiResult.Success(
@@ -132,8 +143,8 @@ class SharedDashboardRepository(private val api: KtorOseboApiService) {
                 todaySales = formatCompactCurrency(todaySales),
                 todayExpenses = formatCompactCurrency(todayExpenses),
                 todayBalance = formatCompactCurrency(todaySales - todayExpenses),
-                salesTrend = timeSeries?.sales?.map { it.toFloat() }.orEmpty(),
-                expensesTrend = timeSeries?.expenses?.map { it.toFloat() }.orEmpty(),
+                salesTrend = salesByPeriod.map { it.toFloat() },
+                expensesTrend = expensesByPeriod.map { it.toFloat() },
             ),
             httpCode = 200,
         )
