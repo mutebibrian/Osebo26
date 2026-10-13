@@ -27,6 +27,7 @@ import com.devbrian.osebo.data.remote.dto.request.SelectAccountRequest
 import com.devbrian.osebo.data.remote.dto.response.ShopDto
 import com.devbrian.osebo.data.repository.SharedCustomerRepository
 import com.devbrian.osebo.data.repository.SharedDashboardRepository
+import com.devbrian.osebo.data.repository.SharedSalesRepository
 import com.devbrian.osebo.data.repository.currentDateLabel
 import com.devbrian.osebo.data.repository.currentGreeting
 import com.devbrian.osebo.data.settings.SettingsStoreSessionProvider
@@ -134,6 +135,7 @@ fun App() {
         val api = remember { KtorOseboApiService(httpClient, sessionProvider) }
         val customerRepository = remember { SharedCustomerRepository(api) }
         val dashboardRepository = remember { SharedDashboardRepository(api) }
+        val salesRepository = remember { SharedSalesRepository(api) }
         val scope = rememberCoroutineScope()
 
         var authState by remember { mutableStateOf<AuthState>(AuthState.Splash) }
@@ -144,6 +146,7 @@ fun App() {
         var customersState by remember { mutableStateOf(CustomersUiState()) }
         var hasLoadedCustomers by remember { mutableStateOf(false) }
         var dashboardState by remember { mutableStateOf(DashboardUiState()) }
+        var salesState by remember { mutableStateOf(SalesUiState()) }
         var shops by remember { mutableStateOf<List<ShopDto>>(emptyList()) }
         var selectedShopId by remember { mutableStateOf<String?>(null) }
         var isShopPickerOpen by remember { mutableStateOf(false) }
@@ -156,6 +159,7 @@ fun App() {
                 customersState = CustomersUiState()
                 hasLoadedCustomers = false
                 dashboardState = DashboardUiState()
+                salesState = SalesUiState()
                 shops = emptyList()
                 selectedShopId = null
             }
@@ -238,6 +242,31 @@ fun App() {
                 }
                 is ApiResult.Error -> dashboardState = dashboardState.copy(isLoading = false)
                 is ApiResult.NetworkError -> dashboardState = dashboardState.copy(isLoading = false)
+            }
+        }
+
+        LaunchedEffect(authState, selectedShopId) {
+            if (authState !is AuthState.LoggedIn) return@LaunchedEffect
+
+            val shopsResult = api.getShops()
+            val shopId = selectedShopId ?: when (shopsResult) {
+                is ApiResult.Success -> shopsResult.data.data?.firstOrNull()?.id
+                else -> null
+            }
+            if (shopId == null) return@LaunchedEffect
+
+            salesState = salesState.copy(isLoading = true)
+
+            when (val result = salesRepository.getSales(shopId)) {
+                is ApiResult.Success -> {
+                    salesState = salesState.copy(
+                        isLoading = false,
+                        recentSales = result.data.recentSales,
+                        totalSales = result.data.totalSales,
+                    )
+                }
+                is ApiResult.Error -> salesState = salesState.copy(isLoading = false)
+                is ApiResult.NetworkError -> salesState = salesState.copy(isLoading = false)
             }
         }
 
@@ -372,7 +401,7 @@ fun App() {
                                 onAddProductClick = { destination = Destination.AddStock },
                             )
                             AppTab.Sales -> SalesScreen(
-                                state = SalesUiState(),
+                                state = salesState,
                                 onNewSaleClick = {},
                                 onReportsClick = { destination = Destination.Reports },
                                 onRefreshClick = {},
