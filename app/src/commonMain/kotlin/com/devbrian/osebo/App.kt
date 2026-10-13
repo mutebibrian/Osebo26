@@ -27,6 +27,7 @@ import com.devbrian.osebo.data.remote.dto.request.SelectAccountRequest
 import com.devbrian.osebo.data.remote.dto.response.ShopDto
 import com.devbrian.osebo.data.repository.SharedCustomerRepository
 import com.devbrian.osebo.data.repository.SharedDashboardRepository
+import com.devbrian.osebo.data.repository.SharedInventoryRepository
 import com.devbrian.osebo.data.repository.SharedSalesRepository
 import com.devbrian.osebo.data.repository.currentDateLabel
 import com.devbrian.osebo.data.repository.currentGreeting
@@ -136,6 +137,7 @@ fun App() {
         val customerRepository = remember { SharedCustomerRepository(api) }
         val dashboardRepository = remember { SharedDashboardRepository(api) }
         val salesRepository = remember { SharedSalesRepository(api) }
+        val inventoryRepository = remember { SharedInventoryRepository(api) }
         val scope = rememberCoroutineScope()
 
         var authState by remember { mutableStateOf<AuthState>(AuthState.Splash) }
@@ -147,6 +149,7 @@ fun App() {
         var hasLoadedCustomers by remember { mutableStateOf(false) }
         var dashboardState by remember { mutableStateOf(DashboardUiState()) }
         var salesState by remember { mutableStateOf(SalesUiState()) }
+        var inventoryState by remember { mutableStateOf(InventoryUiState()) }
         var shops by remember { mutableStateOf<List<ShopDto>>(emptyList()) }
         var selectedShopId by remember { mutableStateOf<String?>(null) }
         var isShopPickerOpen by remember { mutableStateOf(false) }
@@ -160,6 +163,7 @@ fun App() {
                 hasLoadedCustomers = false
                 dashboardState = DashboardUiState()
                 salesState = SalesUiState()
+                inventoryState = InventoryUiState()
                 shops = emptyList()
                 selectedShopId = null
             }
@@ -267,6 +271,27 @@ fun App() {
                 }
                 is ApiResult.Error -> salesState = salesState.copy(isLoading = false)
                 is ApiResult.NetworkError -> salesState = salesState.copy(isLoading = false)
+            }
+        }
+
+        LaunchedEffect(authState, selectedShopId) {
+            if (authState !is AuthState.LoggedIn) return@LaunchedEffect
+
+            val shopsResult = api.getShops()
+            val shopId = selectedShopId ?: when (shopsResult) {
+                is ApiResult.Success -> shopsResult.data.data?.firstOrNull()?.id
+                else -> null
+            }
+            if (shopId == null) return@LaunchedEffect
+
+            inventoryState = inventoryState.copy(isLoading = true)
+
+            when (val result = inventoryRepository.getProducts(shopId)) {
+                is ApiResult.Success -> {
+                    inventoryState = inventoryState.copy(isLoading = false, products = result.data)
+                }
+                is ApiResult.Error -> inventoryState = inventoryState.copy(isLoading = false)
+                is ApiResult.NetworkError -> inventoryState = inventoryState.copy(isLoading = false)
             }
         }
 
@@ -408,8 +433,8 @@ fun App() {
                                 onSaleClick = {},
                             )
                             AppTab.Inventory -> InventoryScreen(
-                                state = InventoryUiState(),
-                                onQueryChange = {},
+                                state = inventoryState,
+                                onQueryChange = { inventoryState = inventoryState.copy(query = it) },
                                 onAddProductClick = {},
                                 onStockTransfersClick = {},
                                 onAddStockClick = { destination = Destination.AddStock },
