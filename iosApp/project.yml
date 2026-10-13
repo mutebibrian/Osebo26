@@ -1,0 +1,28 @@
+name: OseboApp
+options:
+  bundleIdPrefix: com.devbrian
+targets:
+  OseboApp:
+    type: application
+    platform: iOS
+    deploymentTarget: "15.0"
+    sources:
+      - path: Sources
+    info:
+      properties:
+        UILaunchScreen: {}
+        CADisableMinimumFrameDurationOnPhone: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.devbrian.osebo
+        FRAMEWORK_SEARCH_PATHS: "$(SRCROOT)/../app/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)"
+        OTHER_LDFLAGS: "-framework OseboShared"
+        CODE_SIGN_STYLE: Automatic
+        ENABLE_BITCODE: false
+    preBuildScripts:
+      - name: "Build Kotlin shared framework (Gradle)"
+        script: |
+          cd "$SRCROOT/.."
+          BUILD_TYPE=$(echo "$CONFIGURATION" | tr '[:upper:]' '[:lower:]')
+          ./gradlew :app:embedAndSignAppleFrameworkForXcode -PKOTLIN_FRAMEWORK_BUILD_TYPE=$BUILD_TYPE
+        basedOnDependencyAnalysis: false
