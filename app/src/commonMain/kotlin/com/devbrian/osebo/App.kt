@@ -36,7 +36,12 @@ import com.devbrian.osebo.data.repository.SharedSalesRepository
 import com.devbrian.osebo.data.repository.dateRangeForPeriod
 import com.devbrian.osebo.data.repository.SaleCartItem
 import com.devbrian.osebo.data.repository.cartSummary
+import com.devbrian.osebo.data.remote.api.SupplierDto
+import com.devbrian.osebo.data.remote.dto.request.AddSupplierRequest
+import com.devbrian.osebo.data.remote.dto.request.UpdateSupplierRequest
 import com.devbrian.osebo.data.repository.SharedEmployeeRepository
+import com.devbrian.osebo.data.repository.SharedSupplierRepository
+import com.devbrian.osebo.data.repository.toSupplierItemUi
 import com.devbrian.osebo.data.repository.countryDialCode
 import com.devbrian.osebo.data.repository.defaultEmployeeRoles
 import com.devbrian.osebo.data.repository.toAddStockProductUi
@@ -76,6 +81,10 @@ import com.devbrian.osebo.ui.screens.EmployeeFormUiState
 import com.devbrian.osebo.ui.screens.EmployeesScreen
 import com.devbrian.osebo.ui.screens.EmployeesUiState
 import com.devbrian.osebo.ui.screens.ExpenseCategoriesScreen
+import com.devbrian.osebo.ui.screens.SuppliersScreen
+import com.devbrian.osebo.ui.screens.SuppliersUiState
+import com.devbrian.osebo.ui.screens.SupplierFormDialog
+import com.devbrian.osebo.ui.screens.SupplierFormUiState
 import com.devbrian.osebo.ui.screens.ExpenseCategoryOption
 import com.devbrian.osebo.ui.screens.ExpenseCategoryUi
 import com.devbrian.osebo.ui.screens.NewSaleScreen
@@ -139,6 +148,7 @@ private sealed class Destination {
     data object Payment : Destination()
     data object AddEmployee : Destination()
     data object Employees : Destination()
+    data object Suppliers : Destination()
     data object AddExpense : Destination()
     data object ExpenseCategories : Destination()
     data object FinancialStatement : Destination()
@@ -186,6 +196,7 @@ fun App() {
         val financeRepository = remember { SharedFinanceRepository(api) }
         val reportsRepository = remember { SharedReportsRepository(api) }
         val employeeRepository = remember { SharedEmployeeRepository(api) }
+        val supplierRepository = remember { SharedSupplierRepository(api) }
         val scope = rememberCoroutineScope()
 
         var authState by remember { mutableStateOf<AuthState>(AuthState.Splash) }
@@ -213,6 +224,10 @@ fun App() {
         var employeesSource by remember { mutableStateOf<List<Employee>>(emptyList()) }
         var employeeFormState by remember { mutableStateOf(EmployeeFormUiState()) }
         var employeeRoles by remember { mutableStateOf<List<Role>>(emptyList()) }
+        var suppliersState by remember { mutableStateOf(SuppliersUiState()) }
+        var suppliersSource by remember { mutableStateOf<List<SupplierDto>>(emptyList()) }
+        var supplierEditorForm by remember { mutableStateOf<SupplierFormUiState?>(null) }
+        var editingSupplier by remember { mutableStateOf<SupplierDto?>(null) }
         var newSaleState by remember { mutableStateOf(NewSaleUiState()) }
         var newSaleCart by remember { mutableStateOf<List<SaleCartItem>>(emptyList()) }
         var newSaleSourceProducts by remember { mutableStateOf<List<ProductDto>>(emptyList()) }
@@ -248,6 +263,10 @@ fun App() {
                 employeesSource = emptyList()
                 employeeFormState = EmployeeFormUiState()
                 employeeRoles = emptyList()
+                suppliersState = SuppliersUiState()
+                suppliersSource = emptyList()
+                supplierEditorForm = null
+                editingSupplier = null
                 newSaleState = NewSaleUiState()
                 newSaleCart = emptyList()
                 newSaleSourceProducts = emptyList()
@@ -610,6 +629,31 @@ fun App() {
                 }
                 is ApiResult.Error -> employeesState = employeesState.copy(isLoading = false)
                 is ApiResult.NetworkError -> employeesState = employeesState.copy(isLoading = false)
+            }
+        }
+
+        LaunchedEffect(authState, selectedShopId, destination) {
+            if (authState !is AuthState.LoggedIn) return@LaunchedEffect
+            if (destination != Destination.Suppliers) return@LaunchedEffect
+
+            val shopsResult = api.getShops()
+            val shopId = selectedShopId ?: when (shopsResult) {
+                is ApiResult.Success -> shopsResult.data.data?.firstOrNull()?.id
+                else -> null
+            }
+            if (shopId == null) return@LaunchedEffect
+
+            suppliersState = suppliersState.copy(isLoading = true)
+            when (val result = supplierRepository.getSuppliers(shopId)) {
+                is ApiResult.Success -> {
+                    suppliersSource = result.data
+                    suppliersState = suppliersState.copy(
+                        isLoading = false,
+                        suppliers = result.data.map { it.toSupplierItemUi() },
+                    )
+                }
+                is ApiResult.Error -> suppliersState = suppliersState.copy(isLoading = false)
+                is ApiResult.NetworkError -> suppliersState = suppliersState.copy(isLoading = false)
             }
         }
 
@@ -1160,6 +1204,87 @@ fun App() {
             }
         }
 
+        fun openSupplierEditor(supplier: SupplierDto?) {
+            editingSupplier = supplier
+            supplierEditorForm = SupplierFormUiState(
+                name = supplier?.name.orEmpty(),
+                contactPerson = supplier?.contactPerson.orEmpty(),
+                phone = supplier?.phone.orEmpty(),
+                email = supplier?.email.orEmpty(),
+                address = supplier?.address.orEmpty(),
+            )
+        }
+
+        fun saveSupplierForm() {
+            val form = supplierEditorForm ?: return
+            val nameError = "Supplier name is required".takeIf { form.name.trim().isEmpty() }
+            val phoneError = "Phone number is required".takeIf { form.phone.trim().isEmpty() }
+            val email = form.email.trim()
+            val emailError = if (email.isNotBlank() && !(email.contains("@") && email.contains("."))) {
+                "Enter a valid email address"
+            } else {
+                null
+            }
+            if (nameError != null || phoneError != null || emailError != null) {
+                supplierEditorForm = form.copy(
+                    nameError = nameError,
+                    phoneError = phoneError,
+                    emailError = emailError,
+                    submitError = "Check the highlighted supplier details.",
+                )
+                return
+            }
+
+            val shopId = selectedShopId ?: shops.firstOrNull()?.id
+            if (shopId == null) {
+                supplierEditorForm = form.copy(submitError = "No shop selected")
+                return
+            }
+
+            supplierEditorForm = form.copy(isLoading = true, submitError = null)
+            val existing = editingSupplier
+            scope.launch {
+                val result = if (existing == null) {
+                    supplierRepository.createSupplier(
+                        shopId,
+                        AddSupplierRequest(
+                            name = form.name.trim(),
+                            contactPerson = form.contactPerson.trim().ifEmpty { null },
+                            email = email.ifEmpty { null },
+                            phone = form.phone.trim(),
+                            address = form.address.trim().ifEmpty { null },
+                        ),
+                    )
+                } else {
+                    supplierRepository.updateSupplier(
+                        shopId,
+                        existing.id,
+                        UpdateSupplierRequest(
+                            name = form.name.trim(),
+                            contactPerson = form.contactPerson.trim().ifEmpty { null },
+                            email = email.ifEmpty { null },
+                            phone = form.phone.trim(),
+                            address = form.address.trim().ifEmpty { null },
+                        ),
+                    )
+                }
+                when (result) {
+                    is ApiResult.Success -> {
+                        suppliersSource = if (existing == null) {
+                            listOf(result.data) + suppliersSource
+                        } else {
+                            suppliersSource.map { if (it.id == existing.id) result.data else it }
+                        }
+                        suppliersState = suppliersState.copy(suppliers = suppliersSource.map { it.toSupplierItemUi() })
+                        supplierEditorForm = null
+                        editingSupplier = null
+                    }
+                    is ApiResult.Error -> supplierEditorForm = form.copy(isLoading = false, submitError = result.message)
+                    is ApiResult.NetworkError -> supplierEditorForm = form.copy(isLoading = false, submitError = result.message)
+                }
+            }
+        }
+
         Box(modifier = Modifier.fillMaxSize()) {
             // Bound once here because authState is a `by remember` delegate —
             // Kotlin can't smart-cast a delegated var's payload directly off
@@ -1366,6 +1491,29 @@ fun App() {
                         onExportClick = {},
                         onRolesClick = {},
                     )
+
+                    Destination.Suppliers -> {
+                        SuppliersScreen(
+                            state = suppliersState,
+                            onRefreshClick = {},
+                            onAddSupplierClick = { openSupplierEditor(null) },
+                            onSupplierClick = { id ->
+                                suppliersSource.firstOrNull { it.id == id }?.let { openSupplierEditor(it) }
+                            },
+                            onSupplierOptionsClick = { id ->
+                                suppliersSource.firstOrNull { it.id == id }?.let { openSupplierEditor(it) }
+                            },
+                        )
+                        supplierEditorForm?.let { form ->
+                            SupplierFormDialog(
+                                state = form,
+                                isEditMode = editingSupplier != null,
+                                onStateChange = { supplierEditorForm = it },
+                                onDismiss = { if (!form.isLoading) supplierEditorForm = null },
+                                onSubmit = ::saveSupplierForm,
+                            )
+                        }
+                    }
 
                     Destination.AddExpense -> AddExpenseScreen(
                         state = addExpenseState,
