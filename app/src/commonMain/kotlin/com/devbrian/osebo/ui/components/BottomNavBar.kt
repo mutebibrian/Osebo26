@@ -12,12 +12,12 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.unit.dp
 import com.devbrian.osebo.ui.theme.OseboColors
 import com.devbrian.osebo.ui.theme.OseboShapes
 
-data class NavItem(val icon: ImageVector, val label: String)
+data class NavItem(val icon: Painter, val label: String)
 
 /**
  * Floating rounded bottom navigation bar; the selected item renders as a
@@ -46,7 +46,7 @@ fun BottomNavBar(
             items.forEachIndexed { index, item ->
                 val selected = index == selectedIndex
                 Icon(
-                    imageVector = item.icon,
+                    painter = item.icon,
                     contentDescription = item.label,
                     tint = if (selected) OseboColors.OnPrimary else OseboColors.IconInactive,
                     modifier = Modifier

@@ -8,11 +8,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Inventory2
-import androidx.compose.material.icons.filled.MoreHoriz
-import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -2065,10 +2060,10 @@ fun App() {
                         ) {
                             BottomNavBar(
                                 items = listOf(
-                                    NavItem(Icons.Default.Home, AppTab.Dashboard.label),
-                                    NavItem(Icons.Default.Inventory2, AppTab.Inventory.label),
-                                    NavItem(Icons.Default.ShoppingCart, AppTab.Sales.label),
-                                    NavItem(Icons.Default.MoreHoriz, "More"),
+                                    NavItem(painterResource(Res.drawable.iconsax_nav_home), AppTab.Dashboard.label),
+                                    NavItem(painterResource(Res.drawable.iconsax_nav_inventory), AppTab.Inventory.label),
+                                    NavItem(painterResource(Res.drawable.iconsax_nav_sales), AppTab.Sales.label),
+                                    NavItem(painterResource(Res.drawable.iconsax_more), "More"),
                                 ),
                                 selectedIndex = selectedTab.ordinal,
                                 onItemSelected = { index ->
