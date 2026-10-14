@@ -22,6 +22,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.devbrian.osebo.resources.Res
+import com.devbrian.osebo.resources.iconsax_more
+import com.devbrian.osebo.resources.iconsax_nav_home
+import com.devbrian.osebo.resources.iconsax_nav_inventory
+import com.devbrian.osebo.resources.iconsax_nav_sales
 import com.devbrian.osebo.resources.oseboicon
 import org.jetbrains.compose.resources.painterResource
 import com.devbrian.osebo.data.remote.ApiResult
