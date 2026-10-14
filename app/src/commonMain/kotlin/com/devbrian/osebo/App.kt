@@ -89,7 +89,7 @@ import com.devbrian.osebo.data.settings.createSettingsStore
 import com.devbrian.osebo.ui.components.BottomNavBar
 import com.devbrian.osebo.ui.components.MoreMenu
 import com.devbrian.osebo.ui.components.MoreMenuEntry
-import com.devbrian.osebo.ui.components.MoreMenuSection
+import com.devbrian.osebo.ui.components.SharedMoreMenuSection
 import com.devbrian.osebo.ui.components.NavItem
 import com.devbrian.osebo.ui.components.ShopPickerItem
 import com.devbrian.osebo.ui.components.ShopPickerMenu
@@ -2083,7 +2083,7 @@ fun App() {
                                 expanded = isMoreMenuOpen,
                                 onDismiss = { isMoreMenuOpen = false },
                                 sections = listOf(
-                                    MoreMenuSection(
+                                    SharedMoreMenuSection(
                                         "Shop",
                                         listOf(
                                             MoreMenuEntry("Shops") {
@@ -2100,7 +2100,7 @@ fun App() {
                                             },
                                         ),
                                     ),
-                                    MoreMenuSection(
+                                    SharedMoreMenuSection(
                                         "Business",
                                         listOf(
                                             MoreMenuEntry("Finance") {
@@ -2109,7 +2109,7 @@ fun App() {
                                             },
                                         ),
                                     ),
-                                    MoreMenuSection(
+                                    SharedMoreMenuSection(
                                         "People",
                                         listOf(
                                             MoreMenuEntry("Employees") {
@@ -2126,7 +2126,7 @@ fun App() {
                                             },
                                         ),
                                     ),
-                                    MoreMenuSection(
+                                    SharedMoreMenuSection(
                                         "Account & Support",
                                         listOf(
                                             MoreMenuEntry("Subscription") {

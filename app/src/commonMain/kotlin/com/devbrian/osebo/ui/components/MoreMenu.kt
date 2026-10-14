@@ -12,7 +12,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.padding
 
 data class MoreMenuEntry(val label: String, val onClick: () -> Unit)
-data class MoreMenuSection(val title: String, val entries: List<MoreMenuEntry>)
+
+// Named Shared* because androidMain already has its own, unrelated
+// MoreMenuSection in this same package (MoreMenuSheet.kt, its real "More"
+// bottom sheet, actively used by MainActivity.kt) — same name in the same
+// package is a hard redeclaration error once both source sets compile
+// together for the Android target.
+data class SharedMoreMenuSection(val title: String, val entries: List<MoreMenuEntry>)
 
 /**
  * Mirrors Android's "More" bottom sheet (reached via its 4th bottom-nav item,
@@ -27,7 +33,7 @@ data class MoreMenuSection(val title: String, val entries: List<MoreMenuEntry>)
  */
 @Composable
 fun MoreMenu(
-    sections: List<MoreMenuSection>,
+    sections: List<SharedMoreMenuSection>,
     expanded: Boolean,
     onDismiss: () -> Unit,
 ) {
