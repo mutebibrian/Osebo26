@@ -2,13 +2,15 @@ package com.devbrian.osebo.data.repository
 
 import com.devbrian.osebo.data.remote.ApiResult
 import com.devbrian.osebo.data.remote.KtorOseboApiService
+import com.devbrian.osebo.data.remote.dto.request.CreateShopRequest
 import com.devbrian.osebo.data.remote.dto.response.ShopDto
+import com.devbrian.osebo.data.remote.dto.response.ShopTypeDto
 import com.devbrian.osebo.ui.screens.ShopItemUi
 
 /**
- * First pass, mirroring shopsFragment on Android: just the shop list itself.
- * onAddShopClick/onSubscribeClick aren't wired — no shop-creation or
- * subscription-purchase screens exist in commonMain yet.
+ * Mirrors shopsFragment/ShopCreationActivity on Android: list, shop types,
+ * and shop creation. onSubscribeClick still isn't wired — no
+ * subscription-purchase screen exists in commonMain yet.
  *
  * Named "Shared" because androidMain already has its own, unrelated
  * Retrofit-based ShopRepository in this same package.
@@ -20,6 +22,21 @@ class SharedShopsRepository(private val api: KtorOseboApiService) {
                 result.data.data.orEmpty().map { it.toShopItemUi(currentShopId) },
                 result.httpCode,
             )
+            is ApiResult.Error -> result
+            is ApiResult.NetworkError -> result
+        }
+
+    suspend fun getShopTypes(): ApiResult<List<ShopTypeDto>> =
+        when (val result = api.getShopTypes()) {
+            is ApiResult.Success -> ApiResult.Success(result.data.data.orEmpty(), result.httpCode)
+            is ApiResult.Error -> result
+            is ApiResult.NetworkError -> result
+        }
+
+    suspend fun createShop(request: CreateShopRequest): ApiResult<ShopDto> =
+        when (val result = api.createShop(request)) {
+            is ApiResult.Success -> result.data.data?.let { ApiResult.Success(it, result.httpCode) }
+                ?: ApiResult.Error(result.httpCode, "No shop returned")
             is ApiResult.Error -> result
             is ApiResult.NetworkError -> result
         }

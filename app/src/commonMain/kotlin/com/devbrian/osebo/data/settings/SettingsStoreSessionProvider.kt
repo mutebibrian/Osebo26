@@ -38,11 +38,19 @@ class SettingsStoreSessionProvider(private val settings: SettingsStore) : OseboS
         settings.putString(KEY_USER_FIRST_NAME, firstName)
     }
 
+    /** Mirrors Android's "account_id" SharedPreferences entry — needed by CreateShopRequest. */
+    fun accountId(): String? = settings.getString(KEY_ACCOUNT_ID)
+
+    fun saveAccountId(accountId: String) {
+        settings.putString(KEY_ACCOUNT_ID, accountId)
+    }
+
     fun clear() {
         settings.remove(KEY_AUTH_TOKEN)
         settings.remove(KEY_REFRESH_TOKEN)
         settings.remove(KEY_SHOP_ID)
         settings.remove(KEY_USER_FIRST_NAME)
+        settings.remove(KEY_ACCOUNT_ID)
     }
 
     private companion object {
@@ -50,5 +58,6 @@ class SettingsStoreSessionProvider(private val settings: SettingsStore) : OseboS
         const val KEY_REFRESH_TOKEN = "refresh_token"
         const val KEY_SHOP_ID = "current_shop_id"
         const val KEY_USER_FIRST_NAME = "user_first_name"
+        const val KEY_ACCOUNT_ID = "account_id"
     }
 }

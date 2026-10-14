@@ -5,6 +5,7 @@ import com.devbrian.osebo.data.remote.dto.request.AddCustomerRequest
 import com.devbrian.osebo.data.remote.dto.request.AddSupplierRequest
 import com.devbrian.osebo.data.remote.dto.request.ChangePasswordRequest
 import com.devbrian.osebo.data.remote.dto.request.CreateCustomerRequest
+import com.devbrian.osebo.data.remote.dto.request.CreateShopRequest
 import com.devbrian.osebo.data.remote.dto.request.CreateExpenseCategoryRequest
 import com.devbrian.osebo.data.remote.dto.request.CreateExpenseRequest
 import com.devbrian.osebo.data.remote.dto.request.CreateSubscriptionRequest
@@ -53,6 +54,7 @@ import com.devbrian.osebo.data.remote.dto.response.SalesComparisonDto
 import com.devbrian.osebo.data.remote.dto.response.ShopDto
 import com.devbrian.osebo.data.remote.dto.response.ShopSummaryDto
 import com.devbrian.osebo.data.remote.dto.response.ShopTotalsDto
+import com.devbrian.osebo.data.remote.dto.response.ShopTypeDto
 import com.devbrian.osebo.data.remote.dto.response.StockCategoryDto
 import com.devbrian.osebo.data.remote.dto.response.SubscriptionResponse
 import com.devbrian.osebo.data.remote.api.SupplierDto
@@ -103,15 +105,16 @@ import kotlinx.coroutines.sync.withLock
  * incrementally, one repository at a time, each validated before the next.
  *
  * Covers every endpoint from ApiService.kt except the ones whose
- * request/response models are still Android-only domain objects (Shop,
- * ShopType, Product search, the ledger's FinancialStatement, and the legacy
- * Subscription model — which pulls in java.text.SimpleDateFormat and
- * android.R.color, neither multiplatform-safe): createShop, getShopTypes,
- * searchProductByBarcode, searchProducts, getGeneralLedger,
- * getCustomerLedger, checkShopSubscription, getShopSubscriptions,
- * getUserShopsSubscriptions, getSubscriptionDetails. Those land once those
- * models get a real multiplatform port (date formatting via
- * kotlinx-datetime, color resource IDs moved to an androidMain extension).
+ * request/response models are still Android-only domain objects (Product
+ * search, the ledger's FinancialStatement, and the legacy Subscription
+ * model — which pulls in java.text.SimpleDateFormat and android.R.color,
+ * neither multiplatform-safe): searchProductByBarcode, searchProducts,
+ * getGeneralLedger, getCustomerLedger, checkShopSubscription,
+ * getShopSubscriptions, getUserShopsSubscriptions, getSubscriptionDetails.
+ * Those land once those models get a real multiplatform port (date
+ * formatting via kotlinx-datetime, color resource IDs moved to an
+ * androidMain extension). createShop/getShopTypes turned out not to need
+ * this — ShopDto/ShopTypeDto/CreateShopRequest were already multiplatform-safe.
  */
 class KtorOseboApiService(
     private val client: HttpClient,
@@ -320,6 +323,12 @@ class KtorOseboApiService(
 
     suspend fun deleteShop(shopId: String): ApiResult<ApiResponse<Unit>> =
         execute { client.delete("shops/$shopId") }
+
+    suspend fun getShopTypes(): ApiResult<ApiResponse<List<ShopTypeDto>>> =
+        execute { client.get("api/v1/shop-type") }
+
+    suspend fun createShop(request: CreateShopRequest): ApiResult<ApiResponse<ShopDto>> =
+        execute { client.post("api/v1/shops") { setBody(request) } }
 
     suspend fun updateShop(shopId: String, request: UpdateShopRequest): ApiResult<ApiResponse<ShopDto>> =
         execute { client.put("shops/$shopId") { setBody(request) } }

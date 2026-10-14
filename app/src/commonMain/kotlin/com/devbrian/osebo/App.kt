@@ -35,11 +35,13 @@ import com.devbrian.osebo.data.remote.ApiResult
 import com.devbrian.osebo.data.remote.KtorOseboApiService
 import com.devbrian.osebo.data.remote.createOseboHttpClient
 import com.devbrian.osebo.data.remote.dto.request.CreateExpenseRequest
+import com.devbrian.osebo.data.remote.dto.request.CreateShopRequest
 import com.devbrian.osebo.data.remote.dto.request.LoginRequest
 import com.devbrian.osebo.data.remote.dto.request.SelectAccountRequest
 import com.devbrian.osebo.data.remote.dto.response.PackageDto
 import com.devbrian.osebo.data.remote.dto.response.ProductDto
 import com.devbrian.osebo.data.remote.dto.response.ShopDto
+import com.devbrian.osebo.data.remote.dto.response.ShopTypeDto
 import com.devbrian.osebo.data.repository.SharedCustomerRepository
 import com.devbrian.osebo.data.repository.SharedDashboardRepository
 import com.devbrian.osebo.data.repository.SharedFinanceRepository
@@ -116,6 +118,9 @@ import com.devbrian.osebo.ui.screens.EmployeesUiState
 import com.devbrian.osebo.ui.screens.ExpenseCategoriesScreen
 import com.devbrian.osebo.ui.screens.ShopDashboardScreen
 import com.devbrian.osebo.ui.screens.ShopDashboardUiState
+import com.devbrian.osebo.ui.screens.ShopFormMode
+import com.devbrian.osebo.ui.screens.ShopFormScreen
+import com.devbrian.osebo.ui.screens.ShopFormUiState
 import com.devbrian.osebo.ui.screens.ShopsScreen
 import com.devbrian.osebo.ui.screens.ShopsUiState
 import com.devbrian.osebo.ui.screens.SubscriptionPackagesScreen
@@ -204,6 +209,7 @@ private sealed class Destination {
     data object Finance : Destination()
     data object Customers : Destination()
     data object Shops : Destination()
+    data object ShopForm : Destination()
     data object ShopDashboard : Destination()
     data object AddProduct : Destination()
     data object AiAssistant : Destination()
@@ -299,6 +305,8 @@ fun App() {
         var editingSupplier by remember { mutableStateOf<SupplierDto?>(null) }
         var supplierPendingDelete by remember { mutableStateOf<SupplierDto?>(null) }
         var shopsListState by remember { mutableStateOf(ShopsUiState()) }
+        var shopFormState by remember { mutableStateOf(ShopFormUiState()) }
+        var shopFormTypes by remember { mutableStateOf<List<ShopTypeDto>>(emptyList()) }
         var shopDashboardState by remember { mutableStateOf(ShopDashboardUiState()) }
         var isMoreMenuOpen by remember { mutableStateOf(false) }
         var isBarcodeScannerActive by remember { mutableStateOf(false) }
@@ -352,6 +360,8 @@ fun App() {
                 supplierEditorForm = null
                 editingSupplier = null
                 supplierPendingDelete = null
+                shopFormState = ShopFormUiState()
+                shopFormTypes = emptyList()
                 shopsListState = ShopsUiState()
                 shopDashboardState = ShopDashboardUiState()
                 isMoreMenuOpen = false
@@ -789,6 +799,36 @@ fun App() {
             }
         }
 
+        // Mirrors ShopCreationActivity.loadShopTypes, including its
+        // hardcoded fallback pair when the endpoint is unreachable.
+        LaunchedEffect(authState, destination) {
+            if (authState !is AuthState.LoggedIn) return@LaunchedEffect
+            if (destination != Destination.ShopForm) return@LaunchedEffect
+
+            shopFormState = ShopFormUiState(mode = ShopFormMode.Create, isTypeLoading = true)
+            val loaded = when (val result = shopsRepository.getShopTypes()) {
+                is ApiResult.Success -> result.data
+                is ApiResult.Error -> emptyList()
+                is ApiResult.NetworkError -> emptyList()
+            }
+            if (loaded.isNotEmpty()) {
+                shopFormTypes = loaded
+                shopFormState = shopFormState.copy(type = loaded.first().name, isTypeLoading = false)
+            } else {
+                // Mirrors ShopCreationActivity.useFallbackShopTypes exactly,
+                // including its two hardcoded backend type IDs.
+                shopFormTypes = listOf(
+                    ShopTypeDto(id = "a5613dae-6297-448c-a022-40f7ef1f57f4", name = "Retail"),
+                    ShopTypeDto(id = "9423230e-df5a-4669-8fd8-193e11ce72b0", name = "Other"),
+                )
+                shopFormState = shopFormState.copy(
+                    type = "Retail",
+                    isTypeLoading = false,
+                    submitError = "Default shop types are available while the full list is offline.",
+                )
+            }
+        }
+
         LaunchedEffect(authState, selectedShopId, destination) {
             if (authState !is AuthState.LoggedIn) return@LaunchedEffect
             if (destination != Destination.ShopDashboard) return@LaunchedEffect
@@ -934,6 +974,7 @@ fun App() {
                             authData?.refreshToken?.let { sessionProvider.saveRefreshToken(it) }
                             val firstName = authData?.user?.extractFirstName()?.takeIf { it.isNotBlank() } ?: "User"
                             sessionProvider.saveUserFirstName(firstName)
+                            sessionProvider.saveAccountId(accountId)
                             selectAccountState = SelectAccountUiState()
                             authState = AuthState.LoggedIn(token)
                         } else {
@@ -1639,6 +1680,75 @@ fun App() {
                     is ApiResult.NetworkError -> supplierEditorForm = supplierEditorForm?.copy(isLoading = false, submitError = result.message)
                 }
                 supplierPendingDelete = null
+            }
+        }
+
+        // Mirrors ShopCreationActivity.validatePrimaryStep.
+        fun validateShopFormPrimaryStep() {
+            val state = shopFormState
+            val nameError = when {
+                state.name.trim().isEmpty() -> "Shop name is required"
+                state.name.trim().length < 2 -> "Use at least 2 characters"
+                else -> null
+            }
+            val addressError = "Address is required".takeIf { state.address.trim().isEmpty() }
+            val typeError = "Choose a shop type".takeIf { shopFormTypes.none { it.name.equals(state.type, ignoreCase = true) } }
+            val hasError = listOf(nameError, addressError, typeError).any { it != null }
+            shopFormState = state.copy(
+                nameError = nameError,
+                addressError = addressError,
+                typeError = typeError,
+                currentStep = if (hasError) 0 else 1,
+                submitError = if (hasError) "Check the highlighted shop details." else null,
+            )
+        }
+
+        // Mirrors ShopCreationActivity.handleShopCreationSuccess: changing
+        // selectedShopId re-triggers the dashboard's own LaunchedEffect,
+        // which reloads shops/totals for the new shop — same effect as
+        // Android's restart-into-MainActivity.
+        fun handleShopCreationSuccess(shop: ShopDto) {
+            sessionProvider.saveCurrentShopId(shop.id)
+            shopFormState = ShopFormUiState()
+            destination = Destination.MainTabs
+            selectedTab = AppTab.Dashboard
+            selectedShopId = shop.id
+        }
+
+        // Mirrors ShopCreationActivity.createShop/performCreateShop.
+        fun submitShopForm() {
+            validateShopFormPrimaryStep()
+            if (shopFormState.currentStep == 0 || shopFormState.isLoading) return
+
+            val accountId = sessionProvider.accountId()
+            if (accountId.isNullOrBlank()) {
+                shopFormState = shopFormState.copy(submitError = "Session expired. Please log in again.")
+                return
+            }
+            val selectedType = shopFormTypes.firstOrNull { it.name.equals(shopFormState.type, ignoreCase = true) }
+            if (selectedType == null) {
+                shopFormState = shopFormState.copy(currentStep = 0, typeError = "Choose a valid shop type")
+                return
+            }
+
+            shopFormState = shopFormState.copy(isLoading = true, submitError = null)
+            scope.launch {
+                val result = shopsRepository.createShop(
+                    CreateShopRequest(
+                        name = shopFormState.name.trim(),
+                        address = shopFormState.address.trim(),
+                        shopTypeId = selectedType.id,
+                        registrationNumber = shopFormState.registrationNumber.trim().ifEmpty { null },
+                        taxIdentificationNumber = shopFormState.tin.trim().ifEmpty { null },
+                        description = shopFormState.description.trim().ifEmpty { " " },
+                        accountId = accountId,
+                    ),
+                )
+                when (result) {
+                    is ApiResult.Success -> handleShopCreationSuccess(result.data)
+                    is ApiResult.Error -> shopFormState = shopFormState.copy(isLoading = false, submitError = result.message)
+                    is ApiResult.NetworkError -> shopFormState = shopFormState.copy(isLoading = false, submitError = result.message)
+                }
             }
         }
 
@@ -2414,7 +2524,7 @@ fun App() {
 
                     Destination.Shops -> ShopsScreen(
                         state = shopsListState,
-                        onAddShopClick = {},
+                        onAddShopClick = { destination = Destination.ShopForm },
                         onRefreshClick = {},
                         onShopClick = { id ->
                             selectedShopId = id
@@ -2426,6 +2536,15 @@ fun App() {
                             sessionProvider.saveCurrentShopId(id)
                             destination = Destination.SubscriptionPackages
                         },
+                    )
+
+                    Destination.ShopForm -> ShopFormScreen(
+                        state = shopFormState,
+                        shopTypes = shopFormTypes.map { it.name },
+                        onStateChange = { shopFormState = it },
+                        onBackClick = { destination = Destination.Shops },
+                        onContinue = ::validateShopFormPrimaryStep,
+                        onSave = ::submitShopForm,
                     )
 
                     Destination.ShopDashboard -> ShopDashboardScreen(
