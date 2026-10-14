@@ -8,11 +8,9 @@ import com.devbrian.osebo.data.remote.dto.request.UpdateSupplierRequest
 import com.devbrian.osebo.ui.screens.SupplierItemUi
 
 /**
- * First pass, mirroring SuppliersFragment on Android: list, create, update.
- * delete isn't wired — Android confirms it with a native AlertDialog first,
- * and App() has no destructive-action confirmation UI yet (same reasoning
- * as skipping the Add/Remove Stock confirm step earlier), so it's left out
- * rather than firing a delete with no "are you sure" step.
+ * Mirrors SuppliersFragment on Android: list, create, update, delete (with
+ * a confirmation step first — see SupplierFormDialog's onDelete and App()'s
+ * supplierPendingDelete, matching Android's confirmDeleteSupplier).
  */
 class SharedSupplierRepository(private val api: KtorOseboApiService) {
     suspend fun getSuppliers(shopId: String): ApiResult<List<SupplierDto>> =
@@ -34,6 +32,13 @@ class SharedSupplierRepository(private val api: KtorOseboApiService) {
         when (val result = api.updateSupplier(shopId, supplierId, request)) {
             is ApiResult.Success -> result.data.data?.let { ApiResult.Success(it, result.httpCode) }
                 ?: ApiResult.Error(result.httpCode, "No supplier returned")
+            is ApiResult.Error -> result
+            is ApiResult.NetworkError -> result
+        }
+
+    suspend fun deleteSupplier(shopId: String, supplierId: String): ApiResult<Unit> =
+        when (val result = api.deleteSupplier(shopId, supplierId)) {
+            is ApiResult.Success -> ApiResult.Success(Unit, result.httpCode)
             is ApiResult.Error -> result
             is ApiResult.NetworkError -> result
         }

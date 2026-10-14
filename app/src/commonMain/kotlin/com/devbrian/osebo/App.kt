@@ -19,6 +19,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.devbrian.osebo.resources.Res
@@ -294,6 +297,7 @@ fun App() {
         var suppliersSource by remember { mutableStateOf<List<SupplierDto>>(emptyList()) }
         var supplierEditorForm by remember { mutableStateOf<SupplierFormUiState?>(null) }
         var editingSupplier by remember { mutableStateOf<SupplierDto?>(null) }
+        var supplierPendingDelete by remember { mutableStateOf<SupplierDto?>(null) }
         var shopsListState by remember { mutableStateOf(ShopsUiState()) }
         var shopDashboardState by remember { mutableStateOf(ShopDashboardUiState()) }
         var isMoreMenuOpen by remember { mutableStateOf(false) }
@@ -347,6 +351,7 @@ fun App() {
                 suppliersSource = emptyList()
                 supplierEditorForm = null
                 editingSupplier = null
+                supplierPendingDelete = null
                 shopsListState = ShopsUiState()
                 shopDashboardState = ShopDashboardUiState()
                 isMoreMenuOpen = false
@@ -1609,6 +1614,34 @@ fun App() {
             }
         }
 
+        // Mirrors confirmDeleteSupplier/deleteSupplier on Android: the
+        // confirmation step itself (supplierPendingDelete + the AlertDialog
+        // in App()) is what the earlier commonMain pass deliberately left
+        // out rather than wiring a no-confirmation delete.
+        fun deleteSupplierConfirmed() {
+            val supplier = supplierPendingDelete ?: return
+            val shopId = selectedShopId ?: shops.firstOrNull()?.id
+            if (shopId == null) {
+                supplierEditorForm = supplierEditorForm?.copy(submitError = "No shop selected")
+                supplierPendingDelete = null
+                return
+            }
+            supplierEditorForm = supplierEditorForm?.copy(isLoading = true, submitError = null)
+            scope.launch {
+                when (val result = supplierRepository.deleteSupplier(shopId, supplier.id)) {
+                    is ApiResult.Success -> {
+                        suppliersSource = suppliersSource.filterNot { it.id == supplier.id }
+                        suppliersState = suppliersState.copy(suppliers = suppliersSource.map { it.toSupplierItemUi() })
+                        supplierEditorForm = null
+                        editingSupplier = null
+                    }
+                    is ApiResult.Error -> supplierEditorForm = supplierEditorForm?.copy(isLoading = false, submitError = result.message)
+                    is ApiResult.NetworkError -> supplierEditorForm = supplierEditorForm?.copy(isLoading = false, submitError = result.message)
+                }
+                supplierPendingDelete = null
+            }
+        }
+
         suspend fun refreshAiAssistant() {
             aiAssistantState = aiAssistantState.copy(isLoading = true, errorMessage = null)
             val readiness = aiAssistantRepository.getReadiness().getOrNull()
@@ -2361,6 +2394,20 @@ fun App() {
                                 onStateChange = { supplierEditorForm = it },
                                 onDismiss = { if (!form.isLoading) supplierEditorForm = null },
                                 onSubmit = ::saveSupplierForm,
+                                onDelete = { editingSupplier?.let { supplierPendingDelete = it } },
+                            )
+                        }
+                        supplierPendingDelete?.let { supplier ->
+                            AlertDialog(
+                                onDismissRequest = { supplierPendingDelete = null },
+                                title = { Text("Delete supplier") },
+                                text = { Text("Are you sure you want to delete ${supplier.name}?") },
+                                confirmButton = {
+                                    TextButton(onClick = ::deleteSupplierConfirmed) { Text("Delete") }
+                                },
+                                dismissButton = {
+                                    TextButton(onClick = { supplierPendingDelete = null }) { Text("Cancel") }
+                                },
                             )
                         }
                     }

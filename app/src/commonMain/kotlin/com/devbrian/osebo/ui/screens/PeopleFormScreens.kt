@@ -337,6 +337,7 @@ fun SupplierFormDialog(
     onStateChange: (SupplierFormUiState) -> Unit,
     onDismiss: () -> Unit,
     onSubmit: () -> Unit,
+    onDelete: (() -> Unit)? = null,
 ) {
     Dialog(
         onDismissRequest = { if (!state.isLoading) onDismiss() },
@@ -416,6 +417,15 @@ fun SupplierFormDialog(
                     onSecondary = onDismiss,
                     onPrimary = onSubmit,
                 )
+                if (isEditMode && onDelete != null) {
+                    TextButton(
+                        onClick = onDelete,
+                        enabled = !state.isLoading,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                    ) {
+                        Text("Delete supplier", color = Color(0xFFE75A67))
+                    }
+                }
             }
         }
     }
