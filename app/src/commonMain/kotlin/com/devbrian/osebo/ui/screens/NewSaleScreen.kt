@@ -44,6 +44,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -75,6 +76,7 @@ import com.devbrian.osebo.resources.iconsax_trash
 import com.devbrian.osebo.resources.inventory_products
 import com.devbrian.osebo.ui.components.SkeletonBlock
 import com.devbrian.osebo.ui.theme.oseboFontFamily
+import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.painterResource
 
 data class NewSaleProductUi(
@@ -118,6 +120,7 @@ data class NewSaleUiState(
     val isLoading: Boolean = false,
     val isOffline: Boolean = false,
     val errorMessage: String? = null,
+    val successMessage: String? = null,
 )
 
 private enum class SaleStep { Products, Cart }
@@ -136,6 +139,7 @@ fun NewSaleScreen(
     onClearCart: () -> Unit,
     onHoldSale: () -> Unit,
     onCheckout: () -> Unit,
+    onSuccessMessageShown: () -> Unit = {},
 ) {
     var step by remember { mutableStateOf(SaleStep.Products) }
     var query by remember { mutableStateOf("") }
@@ -149,6 +153,15 @@ fun NewSaleScreen(
     }
     val visibleProducts = if (category == "All") state.products else state.products.filter { it.category == category }
     val cartCount = state.cartItems.sumOf { it.quantity }
+
+    // Mirrors Android's Toast.LENGTH_SHORT-ish lifetime for holdSale()'s
+    // "Sale held successfully" message (SalesViewModel.holdSale).
+    LaunchedEffect(state.successMessage) {
+        if (state.successMessage != null) {
+            delay(2500)
+            onSuccessMessageShown()
+        }
+    }
 
     Scaffold(
         // Applied here, not inside a slot, so Scaffold's own bounds shrink
@@ -195,6 +208,10 @@ fun NewSaleScreen(
             state.errorMessage?.let { message ->
                 Spacer(Modifier.height(10.dp))
                 NewSaleErrorBanner(message)
+            }
+            state.successMessage?.let { message ->
+                Spacer(Modifier.height(10.dp))
+                NewSaleSuccessBanner(message)
             }
             Spacer(Modifier.height(14.dp))
             SaleStepControl(
@@ -282,6 +299,23 @@ private fun NewSaleErrorBanner(message: String) {
         Text(
             text = message,
             color = Color(0xFFC62842),
+            fontFamily = oseboFontFamily(),
+            fontSize = 11.sp,
+        )
+    }
+}
+
+@Composable
+private fun NewSaleSuccessBanner(message: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFFE7F7EE), RoundedCornerShape(16.dp))
+            .padding(horizontal = 14.dp, vertical = 11.dp),
+    ) {
+        Text(
+            text = message,
+            color = Color(0xFF1F9254),
             fontFamily = oseboFontFamily(),
             fontSize = 11.sp,
         )

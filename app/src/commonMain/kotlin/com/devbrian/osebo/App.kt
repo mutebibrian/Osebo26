@@ -1281,6 +1281,13 @@ fun App() {
             }
         }
 
+        // Mirrors SalesViewModel.holdSale on Android: it's a toast-only stub
+        // there too (no real persistence, cart isn't even cleared), so this
+        // matches that behavior exactly rather than building a real one.
+        fun holdNewSale() {
+            newSaleState = newSaleState.copy(successMessage = "Sale held successfully")
+        }
+
         fun changeNewSaleQuantity(productId: String, quantity: Int) {
             newSaleCart = if (quantity <= 0) {
                 newSaleCart.filterNot { it.product.id == productId }
@@ -2278,8 +2285,9 @@ fun App() {
                         onRemoveItem = ::removeNewSaleItem,
                         onDiscountApplied = ::applyNewSaleDiscount,
                         onClearCart = ::clearNewSaleCart,
-                        onHoldSale = {},
+                        onHoldSale = ::holdNewSale,
                         onCheckout = ::proceedToPaymentScreen,
+                        onSuccessMessageShown = { newSaleState = newSaleState.copy(successMessage = null) },
                     )
 
                     Destination.Payment -> PaymentScreen(
