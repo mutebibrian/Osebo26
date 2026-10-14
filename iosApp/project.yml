@@ -13,6 +13,7 @@ targets:
       properties:
         UILaunchScreen: {}
         CADisableMinimumFrameDurationOnPhone: true
+        NSCameraUsageDescription: "Osebo needs camera access to scan product barcodes."
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.devbrian.osebo

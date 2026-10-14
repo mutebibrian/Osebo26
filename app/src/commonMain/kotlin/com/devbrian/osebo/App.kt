@@ -81,6 +81,7 @@ import com.devbrian.osebo.data.repository.currentDateLabel
 import com.devbrian.osebo.data.repository.currentGreeting
 import com.devbrian.osebo.data.settings.SettingsStoreSessionProvider
 import com.devbrian.osebo.data.settings.createSettingsStore
+import com.devbrian.osebo.ui.components.BarcodeScannerView
 import com.devbrian.osebo.ui.components.BottomNavBar
 import com.devbrian.osebo.ui.components.MoreMenu
 import com.devbrian.osebo.ui.components.MoreMenuEntry
@@ -292,6 +293,7 @@ fun App() {
         var shopsListState by remember { mutableStateOf(ShopsUiState()) }
         var shopDashboardState by remember { mutableStateOf(ShopDashboardUiState()) }
         var isMoreMenuOpen by remember { mutableStateOf(false) }
+        var isBarcodeScannerActive by remember { mutableStateOf(false) }
         var aiAssistantState by remember { mutableStateOf(AiAssistantUiState()) }
         var subscriptionPackagesState by remember { mutableStateOf(SubscriptionPackagesUiState()) }
         var subscriptionPackagesSource by remember { mutableStateOf<List<PackageDto>>(emptyList()) }
@@ -1261,6 +1263,18 @@ fun App() {
                 newSaleCart + SaleCartItem(product = product, quantity = 1)
             }
             refreshNewSaleUiState()
+        }
+
+        // Mirrors NewSaleFragment.searchProductByBarcode on Android: an exact
+        // barcode match adds straight to the cart instead of just filtering
+        // the product list, so scanning feels instant.
+        fun addProductByBarcode(barcode: String) {
+            val product = newSaleSourceProducts.firstOrNull { it.barcode == barcode }
+            if (product == null) {
+                newSaleState = newSaleState.copy(errorMessage = "No product found for this barcode")
+            } else {
+                addProductToNewSale(product.id)
+            }
         }
 
         fun changeNewSaleQuantity(productId: String, quantity: Int) {
@@ -2253,7 +2267,7 @@ fun App() {
                         state = newSaleState,
                         onBackClick = { destination = Destination.MainTabs },
                         onSearchChange = ::searchNewSaleProducts,
-                        onScanClick = {},
+                        onScanClick = { isBarcodeScannerActive = true },
                         onCustomerSelected = ::selectNewSaleCustomer,
                         onAddProduct = ::addProductToNewSale,
                         onQuantityChanged = ::changeNewSaleQuantity,
@@ -2436,6 +2450,21 @@ fun App() {
                             }
                         }
                     }
+                }
+            }
+
+            if (isBarcodeScannerActive) {
+                Dialog(
+                    onDismissRequest = { isBarcodeScannerActive = false },
+                    properties = DialogProperties(usePlatformDefaultWidth = false),
+                ) {
+                    BarcodeScannerView(
+                        onResult = { code ->
+                            isBarcodeScannerActive = false
+                            addProductByBarcode(code)
+                        },
+                        onCancel = { isBarcodeScannerActive = false },
+                    )
                 }
             }
 
