@@ -21,6 +21,7 @@ import com.devbrian.osebo.data.remote.dto.request.ResendOtpRequest
 import com.devbrian.osebo.data.remote.dto.request.ResetPasswordRequest
 import com.devbrian.osebo.data.remote.dto.request.SaleRequest
 import com.devbrian.osebo.data.remote.dto.request.SelectAccountRequest
+import com.devbrian.osebo.data.remote.dto.request.SignUpRequest
 import com.devbrian.osebo.data.remote.dto.request.SwitchAccountRequest
 import com.devbrian.osebo.data.remote.dto.request.AccountsByPhoneRequest
 import com.devbrian.osebo.data.remote.dto.request.TwoFactorAuthRequest
@@ -51,6 +52,8 @@ import com.devbrian.osebo.data.remote.dto.response.ResetResponse
 import com.devbrian.osebo.data.remote.dto.response.SaleApiResponse
 import com.devbrian.osebo.data.remote.dto.response.SaleListApiResponse
 import com.devbrian.osebo.data.remote.dto.response.SalesComparisonDto
+import com.devbrian.osebo.data.remote.dto.response.SigninResponse
+import com.devbrian.osebo.data.remote.dto.response.SignUpResponse
 import com.devbrian.osebo.data.remote.dto.response.ShopDto
 import com.devbrian.osebo.data.remote.dto.response.ShopSummaryDto
 import com.devbrian.osebo.data.remote.dto.response.ShopTotalsDto
@@ -224,6 +227,21 @@ class KtorOseboApiService(
 
     suspend fun register(request: RegisterRequest): ApiResult<AuthResponse> =
         execute { client.post("auth/signup") { setBody(request) } }
+
+    // Mirrors AuthRepository.requestOtp/verify2fa/signUp on Android exactly
+    // (same three endpoints, same request/response shapes) — SignUpActivity
+    // sends a sign-in-style OTP to the phone number first to prove it's
+    // real, verifies it, then posts the actual signup. Separate from
+    // signIn/verifyTwoFactor above since those assume a login's AuthResponse
+    // shape, not this flow's BaseResponse<SigninResponse/PreAuthData>.
+    suspend fun requestSignUpOtp(username: String): ApiResult<BaseResponse<SigninResponse>> =
+        execute { client.post("api/v1/auth/signin") { setBody(mapOf("username" to username)) } }
+
+    suspend fun verifySignUpOtp(userId: String, otp: String): ApiResult<BaseResponse<PreAuthData>> =
+        execute { client.post("api/v1/auth/verify-2fa") { setBody(mapOf("userId" to userId, "otp" to otp)) } }
+
+    suspend fun signUp(request: SignUpRequest): ApiResult<BaseResponse<SignUpResponse>> =
+        execute { client.post("api/v1/auth/signup") { setBody(request) } }
 
     suspend fun logout(): ApiResult<ApiResponse<Unit>> =
         execute { client.post("auth/logout") }

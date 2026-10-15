@@ -39,6 +39,7 @@ import com.devbrian.osebo.data.remote.dto.request.CreateExpenseRequest
 import com.devbrian.osebo.data.remote.dto.request.CreateShopRequest
 import com.devbrian.osebo.data.remote.dto.request.LoginRequest
 import com.devbrian.osebo.data.remote.dto.request.SelectAccountRequest
+import com.devbrian.osebo.data.remote.dto.request.SignUpRequest
 import com.devbrian.osebo.data.remote.dto.response.PackageDto
 import com.devbrian.osebo.data.remote.dto.response.ProductDto
 import com.devbrian.osebo.data.remote.dto.response.ShopDto
@@ -127,6 +128,8 @@ import com.devbrian.osebo.ui.screens.SharedAccountScreenState
 import com.devbrian.osebo.ui.screens.SharedEditAccountScreen
 import com.devbrian.osebo.ui.screens.SharedEditableAccountDetails
 import com.devbrian.osebo.ui.screens.SharedPaymentMethodScreen
+import com.devbrian.osebo.ui.screens.SignUpScreen
+import com.devbrian.osebo.ui.screens.SignUpUiState
 import com.devbrian.osebo.ui.screens.defaultFaqItems
 import com.devbrian.osebo.ui.screens.FaqDetailDialog
 import com.devbrian.osebo.ui.screens.FaqScreen
@@ -270,6 +273,7 @@ private sealed class AuthState {
     data object Splash : AuthState()
     data object LoggedOut : AuthState()
     data object EnteringCredentials : AuthState()
+    data object SigningUp : AuthState()
     data class SelectingAccount(val preAuthToken: String) : AuthState()
     data class LoggedIn(val token: String) : AuthState()
 }
@@ -309,6 +313,9 @@ fun App() {
         var authState by remember { mutableStateOf<AuthState>(AuthState.Splash) }
         var loginState by remember { mutableStateOf(LoginUiState()) }
         var selectAccountState by remember { mutableStateOf(SelectAccountUiState()) }
+        var signUpState by remember { mutableStateOf(SignUpUiState()) }
+        var signUpUserId by remember { mutableStateOf<String?>(null) }
+        var signUpPhone by remember { mutableStateOf("") }
         var selectedTab by remember { mutableStateOf(AppTab.Dashboard) }
         var destination by remember { mutableStateOf<Destination>(Destination.MainTabs) }
         var customersState by remember { mutableStateOf(CustomersUiState()) }
@@ -1062,6 +1069,109 @@ fun App() {
                         isLoading = false,
                         errorMessage = result.message,
                     )
+                }
+            }
+        }
+
+        // Mirrors SignUpActivity.requestOtp: sends a sign-in-style OTP to
+        // the phone number to prove it's real before letting the user
+        // actually register.
+        fun requestSignUpOtp() {
+            val phoneClean = signUpState.phone.trim().replace(" ", "")
+            if (phoneClean.isEmpty()) {
+                signUpState = signUpState.copy(phoneError = "Phone required")
+                return
+            }
+            if (phoneClean.length < 6) {
+                signUpState = signUpState.copy(phoneError = "Invalid phone number")
+                return
+            }
+            signUpPhone = signUpState.countryCode + phoneClean
+            signUpState = signUpState.copy(isLoading = true, phoneError = null, submitError = null)
+            scope.launch {
+                when (val result = api.requestSignUpOtp(signUpPhone)) {
+                    is ApiResult.Success -> {
+                        val data = result.data.data
+                        if (result.data.success && !data?.userId.isNullOrEmpty()) {
+                            signUpUserId = data?.userId
+                            signUpState = signUpState.copy(isLoading = false, isOtpMode = true)
+                        } else {
+                            signUpState = signUpState.copy(
+                                isLoading = false,
+                                submitError = result.data.message.ifBlank { "Failed to send verification code" },
+                            )
+                        }
+                    }
+                    is ApiResult.Error -> signUpState = signUpState.copy(isLoading = false, submitError = result.message)
+                    is ApiResult.NetworkError -> signUpState = signUpState.copy(isLoading = false, submitError = result.message)
+                }
+            }
+        }
+
+        // Mirrors SignUpActivity.verifyAndSignup.
+        fun verifyAndSignUp() {
+            val code = signUpState.otp.trim()
+            if (code.length != 6) {
+                signUpState = signUpState.copy(otpError = "Enter 6-digit code")
+                return
+            }
+            val userId = signUpUserId
+            if (userId == null) {
+                signUpState = signUpState.copy(isOtpMode = false, submitError = "Session expired. Try again.")
+                return
+            }
+            val firstName = signUpState.firstName.trim()
+            val lastName = signUpState.lastName.trim()
+            val email = signUpState.email.trim()
+            if (firstName.isEmpty() || lastName.isEmpty()) {
+                signUpState = signUpState.copy(submitError = "First and last name required")
+                return
+            }
+            if (!signUpState.acceptsTerms) {
+                signUpState = signUpState.copy(submitError = "Accept Terms and Conditions")
+                return
+            }
+            if (email.isNotEmpty() && (!email.contains("@") || !email.substringAfter("@").contains("."))) {
+                signUpState = signUpState.copy(emailError = "Invalid email")
+                return
+            }
+            signUpState = signUpState.copy(isLoading = true, submitError = null)
+            scope.launch {
+                val verified = when (val verifyResult = api.verifySignUpOtp(userId, code)) {
+                    is ApiResult.Success -> verifyResult.data.success
+                    is ApiResult.Error -> false
+                    is ApiResult.NetworkError -> false
+                }
+                if (!verified) {
+                    signUpState = signUpState.copy(isLoading = false, otpError = "Invalid OTP")
+                    return@launch
+                }
+                val signUpResult = api.signUp(
+                    SignUpRequest(
+                        firstName = firstName,
+                        lastName = lastName,
+                        email = email,
+                        phone = signUpPhone,
+                        title = signUpState.title,
+                        otp = code,
+                    ),
+                )
+                when (signUpResult) {
+                    is ApiResult.Success -> {
+                        if (signUpResult.data.success) {
+                            signUpState = SignUpUiState()
+                            signUpUserId = null
+                            signUpPhone = ""
+                            authState = AuthState.EnteringCredentials
+                        } else {
+                            signUpState = signUpState.copy(
+                                isLoading = false,
+                                submitError = signUpResult.data.message.ifBlank { "Signup failed" },
+                            )
+                        }
+                    }
+                    is ApiResult.Error -> signUpState = signUpState.copy(isLoading = false, submitError = signUpResult.message)
+                    is ApiResult.NetworkError -> signUpState = signUpState.copy(isLoading = false, submitError = signUpResult.message)
                 }
             }
         }
@@ -2495,9 +2605,12 @@ fun App() {
 
                 AuthState.LoggedOut -> WelcomeScreen(
                     onLogin = { authState = AuthState.EnteringCredentials },
-                    // Sign-up isn't built for iOS yet — Register is a no-op for now,
-                    // matching Welcome's own real button layout on Android.
-                    onRegister = {},
+                    onRegister = {
+                        signUpState = SignUpUiState()
+                        signUpUserId = null
+                        signUpPhone = ""
+                        authState = AuthState.SigningUp
+                    },
                 )
 
                 AuthState.EnteringCredentials -> LoginScreen(
@@ -2508,6 +2621,19 @@ fun App() {
                     onBackClick = {
                         loginState = LoginUiState()
                         authState = AuthState.LoggedOut
+                    },
+                )
+
+                AuthState.SigningUp -> SignUpScreen(
+                    state = signUpState,
+                    onStateChange = { signUpState = it },
+                    onPrimaryAction = { if (signUpState.isOtpMode) verifyAndSignUp() else requestSignUpOtp() },
+                    onResendOtp = ::requestSignUpOtp,
+                    onSignInClick = {
+                        signUpState = SignUpUiState()
+                        signUpUserId = null
+                        signUpPhone = ""
+                        authState = AuthState.EnteringCredentials
                     },
                 )
 
