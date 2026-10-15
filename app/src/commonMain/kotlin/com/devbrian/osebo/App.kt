@@ -83,6 +83,7 @@ import com.devbrian.osebo.models.AiChatMessage
 import com.devbrian.osebo.models.AiConversation
 import com.devbrian.osebo.models.Customer
 import com.devbrian.osebo.models.Employee
+import com.devbrian.osebo.models.PermissionType
 import com.devbrian.osebo.models.Role
 import com.devbrian.osebo.models.ExpenseCategory
 import com.devbrian.osebo.models.Transaction
@@ -975,6 +976,8 @@ fun App() {
                             val firstName = authData?.user?.extractFirstName()?.takeIf { it.isNotBlank() } ?: "User"
                             sessionProvider.saveUserFirstName(firstName)
                             sessionProvider.saveAccountId(accountId)
+                            sessionProvider.saveRole(authData?.user?.role)
+                            sessionProvider.savePermissions(authData?.user?.permissions.orEmpty())
                             selectAccountState = SelectAccountUiState()
                             authState = AuthState.LoggedIn(token)
                         } else {
@@ -2245,14 +2248,17 @@ fun App() {
                             MoreMenu(
                                 expanded = isMoreMenuOpen,
                                 onDismiss = { isMoreMenuOpen = false },
-                                sections = listOf(
+                                // Mirrors MainActivity.refreshMoreMenuSections' visibility
+                                // rules exactly, Suppliers-gated-by-VIEW_INVENTORY included
+                                // (that's what Android's own code checks, not VIEW_SUPPLIERS).
+                                sections = listOfNotNull(
                                     SharedMoreMenuSection(
                                         "Shop",
-                                        listOf(
+                                        listOfNotNull(
                                             MoreMenuEntry("Shops") {
                                                 isMoreMenuOpen = false
                                                 destination = Destination.Shops
-                                            },
+                                            }.takeIf { sessionProvider.isShopOwner() },
                                             MoreMenuEntry("Shop Home") {
                                                 isMoreMenuOpen = false
                                                 destination = if (selectedShopId != null) {
@@ -2260,42 +2266,42 @@ fun App() {
                                                 } else {
                                                     Destination.Shops
                                                 }
-                                            },
+                                            }.takeIf { shops.isNotEmpty() },
                                         ),
-                                    ),
+                                    ).takeIf { it.entries.isNotEmpty() },
                                     SharedMoreMenuSection(
                                         "Business",
-                                        listOf(
+                                        listOfNotNull(
                                             MoreMenuEntry("Finance") {
                                                 isMoreMenuOpen = false
                                                 destination = Destination.Finance
-                                            },
+                                            }.takeIf { shops.isNotEmpty() && sessionProvider.hasPermission(PermissionType.VIEW_FINANCE) },
                                         ),
-                                    ),
+                                    ).takeIf { it.entries.isNotEmpty() },
                                     SharedMoreMenuSection(
                                         "People",
-                                        listOf(
+                                        listOfNotNull(
                                             MoreMenuEntry("Employees") {
                                                 isMoreMenuOpen = false
                                                 destination = Destination.Employees
-                                            },
+                                            }.takeIf { shops.isNotEmpty() && sessionProvider.hasPermission(PermissionType.VIEW_EMPLOYEES) },
                                             MoreMenuEntry("Suppliers") {
                                                 isMoreMenuOpen = false
                                                 destination = Destination.Suppliers
-                                            },
+                                            }.takeIf { shops.isNotEmpty() && sessionProvider.hasPermission(PermissionType.VIEW_INVENTORY) },
                                             MoreMenuEntry("Customers") {
                                                 isMoreMenuOpen = false
                                                 destination = Destination.Customers
-                                            },
+                                            }.takeIf { shops.isNotEmpty() && sessionProvider.hasPermission(PermissionType.VIEW_CUSTOMERS) },
                                         ),
-                                    ),
+                                    ).takeIf { it.entries.isNotEmpty() },
                                     SharedMoreMenuSection(
                                         "Account & Support",
-                                        listOf(
+                                        listOfNotNull(
                                             MoreMenuEntry("Subscription") {
                                                 isMoreMenuOpen = false
                                                 destination = Destination.SubscriptionPackages
-                                            },
+                                            }.takeIf { shops.isNotEmpty() && sessionProvider.isShopOwner() },
                                             MoreMenuEntry("Logout", ::performLogout),
                                         ),
                                     ),
