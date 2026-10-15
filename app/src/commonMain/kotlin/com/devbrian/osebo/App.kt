@@ -18,6 +18,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
@@ -119,6 +120,12 @@ import com.devbrian.osebo.ui.screens.EmployeesUiState
 import com.devbrian.osebo.ui.screens.ExpenseCategoriesScreen
 import com.devbrian.osebo.ui.screens.ShopDashboardScreen
 import com.devbrian.osebo.ui.screens.ShopDashboardUiState
+import com.devbrian.osebo.ui.screens.defaultFaqItems
+import com.devbrian.osebo.ui.screens.FaqDetailDialog
+import com.devbrian.osebo.ui.screens.FaqScreen
+import com.devbrian.osebo.ui.screens.SharedContactInfoUi
+import com.devbrian.osebo.ui.screens.SharedContactUsScreen
+import com.devbrian.osebo.ui.screens.SharedSupportMessageUi
 import com.devbrian.osebo.ui.screens.EditPermissionsState
 import com.devbrian.osebo.ui.screens.PermissionCategoryUi
 import com.devbrian.osebo.ui.screens.PermissionItemUi
@@ -220,6 +227,8 @@ private sealed class Destination {
     data object FinanceSettings : Destination()
     data object AllTransactions : Destination()
     data object UserRoles : Destination()
+    data object ContactUs : Destination()
+    data object FaqList : Destination()
 }
 
 /**
@@ -329,6 +338,20 @@ fun App() {
         var userRolesState by remember { mutableStateOf(UserRolesUiState()) }
         var userRolesSource by remember { mutableStateOf<List<DemoUserRole>>(emptyList()) }
         var userRolesEditCategories by remember { mutableStateOf<List<PermissionCategoryUi>>(emptyList()) }
+        var contactInfo by remember {
+            mutableStateOf(
+                SharedContactInfoUi(
+                    email = "support@osebo.ai",
+                    phone = "+256 765 549811",
+                    whatsapp = "+256 765 549811",
+                    address = "Innovation Village, Ntinda Complex, Block C, 3rd floor",
+                    workingHours = "Mon–Fri: 8:00 AM–6:00 PM",
+                ),
+            )
+        }
+        var isContactUsSubmitting by remember { mutableStateOf(false) }
+        var contactUsResetKey by remember { mutableStateOf(0) }
+        var faqDetailTarget by remember { mutableStateOf<Int?>(null) }
         var shopDashboardState by remember { mutableStateOf(ShopDashboardUiState()) }
         var isMoreMenuOpen by remember { mutableStateOf(false) }
         var isBarcodeScannerActive by remember { mutableStateOf(false) }
@@ -387,6 +410,9 @@ fun App() {
                 userRolesState = UserRolesUiState()
                 userRolesSource = emptyList()
                 userRolesEditCategories = emptyList()
+                isContactUsSubmitting = false
+                contactUsResetKey = 0
+                faqDetailTarget = null
                 shopsListState = ShopsUiState()
                 shopDashboardState = ShopDashboardUiState()
                 isMoreMenuOpen = false
@@ -1951,6 +1977,22 @@ fun App() {
             }
         }
 
+        // Mirrors ContactUsFragment.submitSupportMessage + ContactUsViewModel
+        // .sendSupportMessage: same field/email validation, but no real
+        // backend call on Android either (CreateSupportTicketRequest exists
+        // but is never actually used) — just a fake success flip.
+        fun submitSupportMessage(message: SharedSupportMessageUi) {
+            if (message.name.isBlank() || message.email.isBlank() || message.subject.isBlank() ||
+                message.category.isBlank() || message.message.isBlank()
+            ) {
+                return
+            }
+            if (!message.email.contains("@") || !message.email.substringAfter("@").contains(".")) return
+            isContactUsSubmitting = true
+            isContactUsSubmitting = false
+            contactUsResetKey++
+        }
+
         suspend fun refreshAiAssistant() {
             aiAssistantState = aiAssistantState.copy(isLoading = true, errorMessage = null)
             val readiness = aiAssistantRepository.getReadiness().getOrNull()
@@ -2503,6 +2545,10 @@ fun App() {
                                                 loadUserRoles()
                                                 destination = Destination.UserRoles
                                             }.takeIf { shops.isNotEmpty() && sessionProvider.isShopOwner() },
+                                            MoreMenuEntry("Contact Us") {
+                                                isMoreMenuOpen = false
+                                                destination = Destination.ContactUs
+                                            },
                                             MoreMenuEntry("Logout", ::performLogout),
                                         ),
                                     ),
@@ -2846,7 +2892,45 @@ fun App() {
                         onPermissionToggle = ::toggleUserRolePermission,
                         onSaveChanges = ::saveUserRoleChanges,
                     )
+
+                    Destination.ContactUs -> {
+                        val uriHandler = LocalUriHandler.current
+                        SharedContactUsScreen(
+                            contact = contactInfo,
+                            isLoading = isContactUsSubmitting,
+                            resetKey = contactUsResetKey,
+                            onBack = { destination = Destination.MainTabs },
+                            onCall = { uriHandler.openUri("tel:${contactInfo.phone}") },
+                            onEmail = { uriHandler.openUri("mailto:${contactInfo.email}") },
+                            onWhatsApp = {
+                                uriHandler.openUri("https://wa.me/${contactInfo.whatsapp.filter { it.isDigit() }}")
+                            },
+                            onMaps = {
+                                uriHandler.openUri("https://www.google.com/maps/search/?api=1&query=${contactInfo.address.replace(" ", "+")}")
+                            },
+                            onFaq = { faqDetailTarget = it },
+                            onViewAllFaqs = { destination = Destination.FaqList },
+                            onSubmit = ::submitSupportMessage,
+                        )
+                    }
+
+                    Destination.FaqList -> FaqScreen(
+                        items = defaultFaqItems,
+                        onBack = { destination = Destination.ContactUs },
+                        onFaqClick = { faqDetailTarget = it },
+                    )
                 }
+            }
+
+            faqDetailTarget?.let { id ->
+                FaqDetailDialog(
+                    faqId = id,
+                    onDismiss = { faqDetailTarget = null },
+                    onContactSupport = {
+                        faqDetailTarget = null
+                        destination = Destination.ContactUs
+                    },
+                )
             }
 
             if (isBarcodeScannerActive) {
