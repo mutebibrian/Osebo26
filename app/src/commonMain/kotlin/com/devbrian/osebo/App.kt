@@ -119,10 +119,16 @@ import com.devbrian.osebo.ui.screens.EmployeesUiState
 import com.devbrian.osebo.ui.screens.ExpenseCategoriesScreen
 import com.devbrian.osebo.ui.screens.ShopDashboardScreen
 import com.devbrian.osebo.ui.screens.ShopDashboardUiState
+import com.devbrian.osebo.ui.screens.EditPermissionsState
+import com.devbrian.osebo.ui.screens.PermissionCategoryUi
+import com.devbrian.osebo.ui.screens.PermissionItemUi
 import com.devbrian.osebo.ui.screens.ShopFormMode
 import com.devbrian.osebo.ui.screens.ShopFormScreen
 import com.devbrian.osebo.ui.screens.ShopFormUiState
 import com.devbrian.osebo.ui.screens.ShopsScreen
+import com.devbrian.osebo.ui.screens.UserRoleUi
+import com.devbrian.osebo.ui.screens.UserRolesScreen
+import com.devbrian.osebo.ui.screens.UserRolesUiState
 import com.devbrian.osebo.ui.screens.ShopsUiState
 import com.devbrian.osebo.ui.screens.SubscriptionPackagesScreen
 import com.devbrian.osebo.ui.screens.SubscriptionPackagesUiState
@@ -184,17 +190,9 @@ private enum class AppTab(val label: String) {
 
 /**
  * Screens pushed on top of the tab shell (not peer tabs — each has its own
- * back button wired to return to MainTabs). Reached from an existing
- * callback on one of the 5 tab screens below; see the when-blocks for which
- * callback triggers which push.
- *
- * Shops, Suppliers, UserRoles, Subscription, SubscriptionPackages, and
- * ShopDashboard aren't reachable yet — none of the 5 tab screens has an
- * existing callback that leads to them, and inventing one (a settings menu,
- * a drawer, a 6th tab) is a real navigation-design decision, not something
- * to guess at here. Employees is excluded for a different reason: it has
- * no back-navigation affordance of its own (no onBack param, no back icon
- * in its body) — pushing it would trap the user with no way back.
+ * back button wired to return to MainTabs). Reached from the More sheet or
+ * from another pushed screen's own callbacks; see the when-blocks below for
+ * which callback triggers which push.
  */
 private sealed class Destination {
     data object MainTabs : Destination()
@@ -221,7 +219,27 @@ private sealed class Destination {
     data object FinancialStatement : Destination()
     data object FinanceSettings : Destination()
     data object AllTransactions : Destination()
+    data object UserRoles : Destination()
 }
+
+/**
+ * Mirrors UserRolesViewModel's own UserRole domain model exactly — including
+ * that it's sample/placeholder data with no real backend behind it (see
+ * loadUserRoles/saveUserRoleChanges below). Kept separate from
+ * models.Role/PermissionType (the real, backend-driven permission system
+ * gating the More menu): Android itself keeps these two permission
+ * vocabularies — enum-based PermissionType and raw strings like
+ * "customers_view" — unrelated and side by side, confusingly, but that's
+ * its actual design, not something to unify here.
+ */
+private data class DemoUserRole(
+    val id: String,
+    val name: String,
+    val description: String,
+    val permissions: List<String>,
+)
+
+private fun DemoUserRole.toUserRoleUi() = UserRoleUi(id = id, name = name, description = description, permissionCount = permissions.size)
 
 /**
  * Mirrors the real Android launch flow: an animated Splash screen decides
@@ -308,6 +326,9 @@ fun App() {
         var shopsListState by remember { mutableStateOf(ShopsUiState()) }
         var shopFormState by remember { mutableStateOf(ShopFormUiState()) }
         var shopFormTypes by remember { mutableStateOf<List<ShopTypeDto>>(emptyList()) }
+        var userRolesState by remember { mutableStateOf(UserRolesUiState()) }
+        var userRolesSource by remember { mutableStateOf<List<DemoUserRole>>(emptyList()) }
+        var userRolesEditCategories by remember { mutableStateOf<List<PermissionCategoryUi>>(emptyList()) }
         var shopDashboardState by remember { mutableStateOf(ShopDashboardUiState()) }
         var isMoreMenuOpen by remember { mutableStateOf(false) }
         var isBarcodeScannerActive by remember { mutableStateOf(false) }
@@ -363,6 +384,9 @@ fun App() {
                 supplierPendingDelete = null
                 shopFormState = ShopFormUiState()
                 shopFormTypes = emptyList()
+                userRolesState = UserRolesUiState()
+                userRolesSource = emptyList()
+                userRolesEditCategories = emptyList()
                 shopsListState = ShopsUiState()
                 shopDashboardState = ShopDashboardUiState()
                 isMoreMenuOpen = false
@@ -1755,6 +1779,178 @@ fun App() {
             }
         }
 
+        // Mirrors UserRolesViewModel exactly, fake delay and all — see its
+        // own doc comment: roles are sample/placeholder data, Save Changes
+        // never persisted anywhere on Android either (a real roles API
+        // doesn't exist yet on either platform).
+        fun userRolePermissionCategories(role: DemoUserRole): List<PermissionCategoryUi> {
+            fun item(id: String, name: String, displayName: String) =
+                PermissionItemUi(id = id, name = name, displayName = displayName, isChecked = role.permissions.contains(name))
+            return listOf(
+                PermissionCategoryUi(
+                    "Customers",
+                    listOf(
+                        item("cust_create", "customers_create", "Customers Create"),
+                        item("cust_delete", "customers_delete", "Customers Delete"),
+                        item("cust_edit", "customers_edit", "Customers Edit"),
+                        item("cust_view", "customers_view", "Customers View"),
+                    ),
+                ),
+                PermissionCategoryUi(
+                    "Financial Statement",
+                    listOf(
+                        item("fs_create", "financial_statement_create", "Financial Statement Create"),
+                        item("fs_delete", "financial_statement_delete", "Financial Statement Delete"),
+                        item("fs_edit", "financial_statement_edit", "Financial Statement Edit"),
+                        item("fs_view", "financial_statement_view", "Financial Statement View"),
+                    ),
+                ),
+                PermissionCategoryUi(
+                    "Stock",
+                    listOf(
+                        item("stock_create", "stock_create", "Stock Create"),
+                        item("stock_delete", "stock_delete", "Stock Delete"),
+                        item("stock_edit", "stock_edit", "Stock Edit"),
+                        item("stock_view", "stock_view", "Stock View"),
+                    ),
+                ),
+                PermissionCategoryUi(
+                    "Expense Categories",
+                    listOf(
+                        item("exp_cat_create", "expense_categories_create", "Expense Categories Create"),
+                        item("exp_cat_delete", "expense_categories_delete", "Expense Categories Delete"),
+                        item("exp_cat_edit", "expense_categories_edit", "Expense Categories Edit"),
+                        item("exp_cat_view", "expense_categories_view", "Expense Categories View"),
+                    ),
+                ),
+                PermissionCategoryUi(
+                    "Procurement",
+                    listOf(
+                        item("proc_create", "procurement_create", "Procurement Create"),
+                        item("proc_delete", "procurement_delete", "Procurement Delete"),
+                        item("proc_edit", "procurement_edit", "Procurement Edit"),
+                        item("proc_view", "procurement_view", "Procurement View"),
+                    ),
+                ),
+                PermissionCategoryUi(
+                    "Sales",
+                    listOf(
+                        item("sales_create", "sales_create", "Sales Create"),
+                        item("sales_delete", "sales_delete", "Sales Delete"),
+                        item("sales_edit", "sales_edit", "Sales Edit"),
+                        item("sales_view", "sales_view", "Sales View"),
+                    ),
+                ),
+                PermissionCategoryUi(
+                    "Stock Categories",
+                    listOf(
+                        item("stock_cat_create", "stock_categories_create", "Stock Categories Create"),
+                        item("stock_cat_delete", "stock_categories_delete", "Stock Categories Delete"),
+                        item("stock_cat_edit", "stock_categories_edit", "Stock Categories Edit"),
+                        item("stock_cat_view", "stock_categories_view", "Stock Categories View"),
+                    ),
+                ),
+                PermissionCategoryUi(
+                    "Suppliers",
+                    listOf(
+                        item("supp_create", "suppliers_create", "Suppliers Create"),
+                        item("supp_delete", "suppliers_delete", "Suppliers Delete"),
+                        item("supp_edit", "suppliers_edit", "Suppliers Edit"),
+                        item("supp_view", "suppliers_view", "Suppliers View"),
+                    ),
+                ),
+            )
+        }
+
+        fun loadUserRoles() {
+            userRolesState = userRolesState.copy(
+                isLoading = true,
+                shopLabel = shops.firstOrNull { it.id == selectedShopId }?.name.orEmpty(),
+            )
+            userRolesSource = listOf(
+                DemoUserRole(
+                    id = "1",
+                    name = "Manager",
+                    description = "Manager with operational privileges",
+                    permissions = listOf("customers_view", "sales_view", "stock_view"),
+                ),
+                DemoUserRole(
+                    id = "2",
+                    name = "Staff",
+                    description = "Staff member with basic privileges",
+                    permissions = listOf("sales_view", "stock_view"),
+                ),
+            )
+            userRolesState = userRolesState.copy(
+                isLoading = false,
+                roles = userRolesSource.map { it.toUserRoleUi() },
+                emptyMessage = if (userRolesSource.isEmpty()) "No roles found" else null,
+            )
+        }
+
+        fun filterUserRolesEditSearch(query: String) {
+            val edit = userRolesState.editState ?: return
+            val filtered = if (query.isBlank()) {
+                userRolesEditCategories
+            } else {
+                userRolesEditCategories.mapNotNull { category ->
+                    val matches = category.permissions.filter {
+                        it.displayName.contains(query, ignoreCase = true) || it.name.contains(query, ignoreCase = true)
+                    }
+                    if (matches.isNotEmpty()) category.copy(permissions = matches) else null
+                }
+            }
+            userRolesState = userRolesState.copy(
+                editState = edit.copy(
+                    searchQuery = query,
+                    categories = filtered,
+                    selectedCount = userRolesEditCategories.sumOf { category -> category.permissions.count { it.isChecked } },
+                    totalCount = userRolesEditCategories.sumOf { it.permissions.size },
+                ),
+            )
+        }
+
+        fun editUserRolePermissions(role: UserRoleUi) {
+            val fullRole = userRolesSource.firstOrNull { it.id == role.id } ?: return
+            userRolesEditCategories = userRolePermissionCategories(fullRole)
+            userRolesState = userRolesState.copy(
+                editState = EditPermissionsState(
+                    role = role,
+                    categories = userRolesEditCategories,
+                    selectedCount = userRolesEditCategories.sumOf { category -> category.permissions.count { it.isChecked } },
+                    totalCount = userRolesEditCategories.sumOf { it.permissions.size },
+                ),
+            )
+        }
+
+        fun toggleUserRolePermission(categoryName: String, permissionId: String) {
+            userRolesEditCategories = userRolesEditCategories.map { category ->
+                if (category.name != categoryName) {
+                    category
+                } else {
+                    category.copy(
+                        permissions = category.permissions.map { permission ->
+                            if (permission.id == permissionId) permission.copy(isChecked = !permission.isChecked) else permission
+                        },
+                    )
+                }
+            }
+            filterUserRolesEditSearch(userRolesState.editState?.searchQuery.orEmpty())
+        }
+
+        fun saveUserRoleChanges() {
+            val edit = userRolesState.editState ?: return
+            userRolesState = userRolesState.copy(editState = edit.copy(isSaving = true))
+            scope.launch {
+                delay(1000)
+                val selectedPermissions = userRolesEditCategories.flatMap { it.permissions }.filter { it.isChecked }.map { it.name }
+                userRolesSource = userRolesSource.map { role ->
+                    if (role.id == edit.role.id) role.copy(permissions = selectedPermissions) else role
+                }
+                userRolesState = userRolesState.copy(roles = userRolesSource.map { it.toUserRoleUi() }, editState = null)
+            }
+        }
+
         suspend fun refreshAiAssistant() {
             aiAssistantState = aiAssistantState.copy(isLoading = true, errorMessage = null)
             val readiness = aiAssistantRepository.getReadiness().getOrNull()
@@ -2302,6 +2498,11 @@ fun App() {
                                                 isMoreMenuOpen = false
                                                 destination = Destination.SubscriptionPackages
                                             }.takeIf { shops.isNotEmpty() && sessionProvider.isShopOwner() },
+                                            MoreMenuEntry("User Roles") {
+                                                isMoreMenuOpen = false
+                                                loadUserRoles()
+                                                destination = Destination.UserRoles
+                                            }.takeIf { shops.isNotEmpty() && sessionProvider.isShopOwner() },
                                             MoreMenuEntry("Logout", ::performLogout),
                                         ),
                                     ),
@@ -2634,6 +2835,17 @@ fun App() {
                             }
                         }
                     }
+
+                    Destination.UserRoles -> UserRolesScreen(
+                        state = userRolesState,
+                        onBack = { destination = Destination.MainTabs },
+                        onRefresh = ::loadUserRoles,
+                        onEditPermissions = ::editUserRolePermissions,
+                        onDismissEdit = { userRolesState = userRolesState.copy(editState = null) },
+                        onEditSearchQueryChange = ::filterUserRolesEditSearch,
+                        onPermissionToggle = ::toggleUserRolePermission,
+                        onSaveChanges = ::saveUserRoleChanges,
+                    )
                 }
             }
 
