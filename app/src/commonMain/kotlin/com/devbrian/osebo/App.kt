@@ -120,6 +120,13 @@ import com.devbrian.osebo.ui.screens.EmployeesUiState
 import com.devbrian.osebo.ui.screens.ExpenseCategoriesScreen
 import com.devbrian.osebo.ui.screens.ShopDashboardScreen
 import com.devbrian.osebo.ui.screens.ShopDashboardUiState
+import com.devbrian.osebo.data.repository.SharedAccountRepository
+import com.devbrian.osebo.ui.screens.SharedAccountConfirmation
+import com.devbrian.osebo.ui.screens.SharedAccountScreen
+import com.devbrian.osebo.ui.screens.SharedAccountScreenState
+import com.devbrian.osebo.ui.screens.SharedEditAccountScreen
+import com.devbrian.osebo.ui.screens.SharedEditableAccountDetails
+import com.devbrian.osebo.ui.screens.SharedPaymentMethodScreen
 import com.devbrian.osebo.ui.screens.defaultFaqItems
 import com.devbrian.osebo.ui.screens.FaqDetailDialog
 import com.devbrian.osebo.ui.screens.FaqScreen
@@ -229,6 +236,7 @@ private sealed class Destination {
     data object UserRoles : Destination()
     data object ContactUs : Destination()
     data object FaqList : Destination()
+    data object Account : Destination()
 }
 
 /**
@@ -292,6 +300,7 @@ fun App() {
         val employeeRepository = remember { SharedEmployeeRepository(api) }
         val supplierRepository = remember { SharedSupplierRepository(api) }
         val shopsRepository = remember { SharedShopsRepository(api) }
+        val accountRepository = remember { SharedAccountRepository(api) }
         val shopDashboardRepository = remember { SharedShopDashboardRepository(api) }
         val aiAssistantRepository = remember { SharedAiAssistantRepository(api) }
         val subscriptionRepository = remember { SharedSubscriptionRepository(api) }
@@ -352,6 +361,10 @@ fun App() {
         var isContactUsSubmitting by remember { mutableStateOf(false) }
         var contactUsResetKey by remember { mutableStateOf(0) }
         var faqDetailTarget by remember { mutableStateOf<Int?>(null) }
+        var accountState by remember { mutableStateOf(SharedAccountScreenState()) }
+        var accountConfirmation by remember { mutableStateOf<SharedAccountConfirmation?>(null) }
+        var isEditAccountOpen by remember { mutableStateOf(false) }
+        var isPaymentMethodOpen by remember { mutableStateOf(false) }
         var shopDashboardState by remember { mutableStateOf(ShopDashboardUiState()) }
         var isMoreMenuOpen by remember { mutableStateOf(false) }
         var isBarcodeScannerActive by remember { mutableStateOf(false) }
@@ -413,6 +426,10 @@ fun App() {
                 isContactUsSubmitting = false
                 contactUsResetKey = 0
                 faqDetailTarget = null
+                accountState = SharedAccountScreenState()
+                accountConfirmation = null
+                isEditAccountOpen = false
+                isPaymentMethodOpen = false
                 shopsListState = ShopsUiState()
                 shopDashboardState = ShopDashboardUiState()
                 isMoreMenuOpen = false
@@ -2255,6 +2272,88 @@ fun App() {
             sessionProvider.onSessionExpiredListener?.invoke()
         }
 
+        // Mirrors AccountViewModel.loadAccountData, minus Android's local
+        // SQLite/SharedPreferences cache fallback (no equivalent cache
+        // exists in commonMain yet) — a load failure just leaves profile
+        // null, which SharedAccountScreen already renders as an
+        // "unavailable, try again" card.
+        fun loadAccount() {
+            accountState = accountState.copy(isLoading = true)
+            scope.launch {
+                when (val result = accountRepository.getAccount()) {
+                    is ApiResult.Success -> accountState = accountState.copy(isLoading = false, profile = result.data)
+                    is ApiResult.Error -> accountState = accountState.copy(isLoading = false)
+                    is ApiResult.NetworkError -> accountState = accountState.copy(isLoading = false)
+                }
+            }
+        }
+
+        fun toggleTwoFactorAuth(enabled: Boolean) {
+            accountState = accountState.copy(isLoading = true)
+            scope.launch {
+                when (val result = accountRepository.updateTwoFactorAuth(enabled)) {
+                    is ApiResult.Success -> accountState = accountState.copy(isLoading = false, profile = result.data)
+                    is ApiResult.Error -> accountState = accountState.copy(isLoading = false)
+                    is ApiResult.NetworkError -> accountState = accountState.copy(isLoading = false)
+                }
+            }
+        }
+
+        fun toggleLoginNotifications(enabled: Boolean) {
+            accountState = accountState.copy(isLoading = true)
+            scope.launch {
+                when (val result = accountRepository.updateLoginNotifications(enabled)) {
+                    is ApiResult.Success -> accountState = accountState.copy(isLoading = false, profile = result.data)
+                    is ApiResult.Error -> accountState = accountState.copy(isLoading = false)
+                    is ApiResult.NetworkError -> accountState = accountState.copy(isLoading = false)
+                }
+            }
+        }
+
+        // Mirrors confirmAccountAction, but logs out on success instead of
+        // Android's own behavior (a generic "updated successfully" toast
+        // with no navigation away) — staying signed in against a deleted
+        // or deactivated account would just produce broken API calls from
+        // here on, so this closes the now-invalid session instead.
+        fun confirmAccountAction() {
+            val action = accountConfirmation ?: return
+            accountConfirmation = null
+            accountState = accountState.copy(isLoading = true)
+            scope.launch {
+                val result = when (action) {
+                    SharedAccountConfirmation.DEACTIVATE -> accountRepository.deactivateAccount()
+                    SharedAccountConfirmation.DELETE -> accountRepository.deleteAccount()
+                }
+                when (result) {
+                    is ApiResult.Success -> performLogout()
+                    is ApiResult.Error -> accountState = accountState.copy(isLoading = false)
+                    is ApiResult.NetworkError -> accountState = accountState.copy(isLoading = false)
+                }
+            }
+        }
+
+        // Mirrors AccountFragment's edit-account/payment-method dialog
+        // result listeners exactly: local-only, no real persistence -
+        // neither EditAccountDialogFragment nor PaymentMethodDialogFragment
+        // call a backend on Android either.
+        fun saveEditedAccount(details: SharedEditableAccountDetails) {
+            accountState = accountState.copy(
+                profile = accountState.profile?.copy(
+                    businessName = details.businessName,
+                    businessType = details.businessType,
+                    registrationNumber = details.registrationNumber,
+                    taxId = details.taxId,
+                    address = details.address,
+                ),
+            )
+            isEditAccountOpen = false
+        }
+
+        fun savePaymentMethod(method: String) {
+            accountState = accountState.copy(profile = accountState.profile?.copy(paymentMethod = method))
+            isPaymentMethodOpen = false
+        }
+
         fun startAiConversation() {
             aiAssistantState = aiAssistantState.copy(
                 activeConversationId = null,
@@ -2545,6 +2644,14 @@ fun App() {
                                                 loadUserRoles()
                                                 destination = Destination.UserRoles
                                             }.takeIf { shops.isNotEmpty() && sessionProvider.isShopOwner() },
+                                            MoreMenuEntry("Account") {
+                                                isMoreMenuOpen = false
+                                                loadAccount()
+                                                destination = Destination.Account
+                                            }.takeIf {
+                                                shops.isNotEmpty() &&
+                                                    (sessionProvider.isShopOwner() || sessionProvider.hasPermission(PermissionType.VIEW_EMPLOYEES))
+                                            },
                                             MoreMenuEntry("Contact Us") {
                                                 isMoreMenuOpen = false
                                                 destination = Destination.ContactUs
@@ -2919,6 +3026,22 @@ fun App() {
                         onBack = { destination = Destination.ContactUs },
                         onFaqClick = { faqDetailTarget = it },
                     )
+
+                    Destination.Account -> SharedAccountScreen(
+                        state = accountState,
+                        confirmation = accountConfirmation,
+                        onBack = { destination = Destination.MainTabs },
+                        onRefresh = ::loadAccount,
+                        onEditAccount = { isEditAccountOpen = true },
+                        onUpdatePayment = { isPaymentMethodOpen = true },
+                        onTwoFactorChanged = ::toggleTwoFactorAuth,
+                        onLoginNotificationsChanged = ::toggleLoginNotifications,
+                        onManageSessions = {},
+                        onDeactivateAccount = { accountConfirmation = SharedAccountConfirmation.DEACTIVATE },
+                        onDeleteAccount = { accountConfirmation = SharedAccountConfirmation.DELETE },
+                        onDismissConfirmation = { accountConfirmation = null },
+                        onConfirmAction = ::confirmAccountAction,
+                    )
                 }
             }
 
@@ -2931,6 +3054,39 @@ fun App() {
                         destination = Destination.ContactUs
                     },
                 )
+            }
+
+            if (isEditAccountOpen) {
+                Dialog(
+                    onDismissRequest = { isEditAccountOpen = false },
+                    properties = DialogProperties(usePlatformDefaultWidth = false),
+                ) {
+                    val profile = accountState.profile
+                    SharedEditAccountScreen(
+                        initial = SharedEditableAccountDetails(
+                            businessName = profile?.businessName.orEmpty(),
+                            businessType = profile?.businessType.orEmpty(),
+                            registrationNumber = profile?.registrationNumber.orEmpty(),
+                            taxId = profile?.taxId.orEmpty(),
+                            address = profile?.address.orEmpty(),
+                        ),
+                        onClose = { isEditAccountOpen = false },
+                        onSave = ::saveEditedAccount,
+                    )
+                }
+            }
+
+            if (isPaymentMethodOpen) {
+                Dialog(
+                    onDismissRequest = { isPaymentMethodOpen = false },
+                    properties = DialogProperties(usePlatformDefaultWidth = false),
+                ) {
+                    SharedPaymentMethodScreen(
+                        initialMethod = accountState.profile?.paymentMethod.orEmpty(),
+                        onClose = { isPaymentMethodOpen = false },
+                        onSave = ::savePaymentMethod,
+                    )
+                }
             }
 
             if (isBarcodeScannerActive) {
