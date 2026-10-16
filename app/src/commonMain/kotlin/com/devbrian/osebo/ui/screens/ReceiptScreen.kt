@@ -72,6 +72,33 @@ data class ReceiptUiState(
     val paymentMethod: String = "",
 )
 
+/** Plain-text rendering of the receipt for Share/AirPrint — see ReceiptSharing.kt. */
+fun ReceiptUiState.toShareText(): String = buildString {
+    appendLine(shopName.uppercase())
+    if (shopAddress.isNotBlank()) appendLine(shopAddress)
+    if (shopContact.isNotBlank()) appendLine(shopContact)
+    appendLine()
+    appendLine("Invoice: $invoiceNumber")
+    appendLine("Date: $receiptDate")
+    if (servedBy.isNotBlank()) appendLine("Served by: $servedBy")
+    appendLine("Customer: $customerName ($customerPhone)")
+    appendLine()
+    appendLine("--------------------------------")
+    items.forEach { item ->
+        appendLine("${item.name} x${item.quantity} @ ${item.unitPrice} = ${item.lineTotal}")
+        item.discountLabel?.let { appendLine("  $it") }
+    }
+    appendLine("--------------------------------")
+    appendLine("Subtotal: $subtotal")
+    if (discount != "UGX 0") appendLine("Discount: $discount")
+    appendLine("Tax: $tax")
+    appendLine("Total: $total")
+    appendLine("Paid ($paymentMethod): $paid")
+    appendLine("Change: $change")
+    appendLine()
+    appendLine("Thank you for your business!")
+}
+
 /**
  * Mirrors ReceiptFragment/fragment_receipt.xml's card layout. Print and
  * Share are left as documented no-ops: Android's versions depend on a

@@ -35,6 +35,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -70,6 +71,7 @@ import com.devbrian.osebo.models.AiChatMessage
 import com.devbrian.osebo.models.AiConversation
 import com.devbrian.osebo.resources.Res
 import com.devbrian.osebo.resources.iconsax_add
+import com.devbrian.osebo.resources.iconsax_arrow_left
 import com.devbrian.osebo.resources.iconsax_box
 import com.devbrian.osebo.resources.iconsax_calendar
 import com.devbrian.osebo.resources.iconsax_history
@@ -160,7 +162,7 @@ fun OseboAiScreen(
                     }
                 },
         ) {
-            AiHeader(onHistoryClick = { showHistory = true })
+            AiHeader(onBackClick = onBackClick, onHistoryClick = { showHistory = true })
 
             if (uiState.messages.isEmpty()) {
                 Spacer(Modifier.height(if (isKeyboardVisible) 24.dp else 150.dp))
@@ -279,13 +281,22 @@ fun OseboAiScreen(
 }
 
 @Composable
-private fun AiHeader(onHistoryClick: () -> Unit) {
+private fun AiHeader(onBackClick: () -> Unit, onHistoryClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 20.dp, top = 34.dp, end = 20.dp),
+            .padding(start = 8.dp, top = 34.dp, end = 20.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        IconButton(onClick = onBackClick, modifier = Modifier.size(42.dp)) {
+            Icon(
+                painter = painterResource(Res.drawable.iconsax_arrow_left),
+                contentDescription = "Back",
+                tint = AiInk,
+                modifier = Modifier.size(22.dp),
+            )
+        }
+        Spacer(Modifier.width(4.dp))
         Surface(modifier = Modifier.size(36.dp), shape = CircleShape, color = AiBlue) {
             Image(
                 painter = painterResource(Res.drawable.oseboicon),

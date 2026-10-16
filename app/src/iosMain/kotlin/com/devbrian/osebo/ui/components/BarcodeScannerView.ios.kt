@@ -60,6 +60,11 @@ import platform.darwin.dispatch_get_main_queue
 @Composable
 actual fun BarcodeScannerView(onResult: (String) -> Unit, onCancel: () -> Unit) {
     var hasScanned by remember { mutableStateOf(false) }
+    // Was previously just onCancel() on denial/setup failure, which closed this dialog
+    // instantly with zero feedback — indistinguishable from the scan button doing
+    // nothing at all. Surfacing a real message instead so a denied permission is
+    // visible and actionable rather than looking like a dead feature.
+    var errorMessage by remember { mutableStateOf<String?>(null) }
     val session = remember { AVCaptureSession() }
     val previewLayer = remember { AVCaptureVideoPreviewLayer(session = session) }
 
@@ -87,13 +92,14 @@ actual fun BarcodeScannerView(onResult: (String) -> Unit, onCancel: () -> Unit) 
         AVCaptureDevice.requestAccessForMediaType(AVMediaTypeVideo) { granted ->
             dispatch_async(dispatch_get_main_queue()) {
                 if (!granted) {
-                    onCancel()
+                    errorMessage = "Camera access is off for Osebo. " +
+                        "Enable it in Settings → Osebo → Camera to scan barcodes."
                     return@dispatch_async
                 }
                 val device = AVCaptureDevice.defaultDeviceWithMediaType(AVMediaTypeVideo)
                 val input = device?.let { AVCaptureDeviceInput.deviceInputWithDevice(it, null) }
                 if (device == null || input == null) {
-                    onCancel()
+                    errorMessage = "No camera is available on this device."
                     return@dispatch_async
                 }
                 if (session.canAddInput(input)) session.addInput(input)
@@ -145,9 +151,9 @@ actual fun BarcodeScannerView(onResult: (String) -> Unit, onCancel: () -> Unit) 
         }
 
         Text(
-            text = "Point the camera at a barcode",
+            text = errorMessage ?: "Point the camera at a barcode",
             color = Color.White,
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 48.dp),
+            modifier = Modifier.align(Alignment.BottomCenter).padding(horizontal = 32.dp, vertical = 48.dp),
         )
     }
 }

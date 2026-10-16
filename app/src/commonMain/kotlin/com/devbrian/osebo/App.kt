@@ -107,6 +107,8 @@ import com.devbrian.osebo.ui.components.SharedMoreMenuSection
 import com.devbrian.osebo.ui.components.NavItem
 import com.devbrian.osebo.ui.components.ShopPickerItem
 import com.devbrian.osebo.ui.components.ShopPickerMenu
+import com.devbrian.osebo.ui.components.printReceiptText
+import com.devbrian.osebo.ui.components.shareReceiptText
 import com.devbrian.osebo.ui.screens.AddExpenseScreen
 import com.devbrian.osebo.ui.screens.AddExpenseUiState
 import com.devbrian.osebo.ui.screens.AddStockProductUi
@@ -180,6 +182,7 @@ import com.devbrian.osebo.ui.screens.LoginScreen
 import com.devbrian.osebo.ui.screens.LoginUiState
 import com.devbrian.osebo.ui.screens.ReceiptScreen
 import com.devbrian.osebo.ui.screens.ReceiptUiState
+import com.devbrian.osebo.ui.screens.toShareText
 import com.devbrian.osebo.ui.screens.ReportsScreen
 import com.devbrian.osebo.ui.screens.ReportsUiState
 import com.devbrian.osebo.ui.screens.SalesScreen
@@ -1451,11 +1454,11 @@ fun App() {
 
             val shopId = selectedShopId ?: shops.firstOrNull()?.id
             if (shopId == null) {
-                addProductState = addProductState.copy(isLoading = false)
+                addProductState = addProductState.copy(isLoading = false, errorMessage = "No shop selected")
                 return
             }
 
-            addProductState = addProductState.copy(isLoading = true)
+            addProductState = addProductState.copy(isLoading = true, errorMessage = null)
             scope.launch {
                 val result = inventoryRepository.createProduct(
                     shopId = shopId,
@@ -1479,8 +1482,14 @@ fun App() {
                             else -> Unit
                         }
                     }
-                    is ApiResult.Error -> addProductState = addProductState.copy(isLoading = false)
-                    is ApiResult.NetworkError -> addProductState = addProductState.copy(isLoading = false)
+                    is ApiResult.Error -> addProductState = addProductState.copy(
+                        isLoading = false,
+                        errorMessage = result.message,
+                    )
+                    is ApiResult.NetworkError -> addProductState = addProductState.copy(
+                        isLoading = false,
+                        errorMessage = result.message,
+                    )
                 }
             }
         }
@@ -2972,8 +2981,12 @@ fun App() {
                     Destination.Receipt -> ReceiptScreen(
                         state = receiptState,
                         onBackClick = { destination = Destination.MainTabs; selectedTab = AppTab.Sales },
-                        onPrintClick = {},
-                        onShareClick = {},
+                        onPrintClick = {
+                            printReceiptText(receiptState.toShareText(), "Receipt ${receiptState.invoiceNumber}")
+                        },
+                        onShareClick = {
+                            shareReceiptText(receiptState.toShareText(), "Receipt ${receiptState.invoiceNumber}")
+                        },
                         onNewSaleClick = { destination = Destination.NewSale },
                     )
 
