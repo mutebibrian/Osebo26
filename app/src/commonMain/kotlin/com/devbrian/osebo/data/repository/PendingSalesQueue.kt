@@ -6,6 +6,7 @@ import com.devbrian.osebo.data.remote.dto.request.SaleRequest
 import com.devbrian.osebo.data.settings.SettingsStore
 import kotlinx.datetime.Clock
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 
 @Serializable
@@ -65,7 +66,16 @@ class PendingSalesQueue(
     }
 
     private fun writeAll(entries: List<PendingSaleEntry>) {
-        if (entries.isEmpty()) settings.remove(KEY) else settings.putString(KEY, json.encodeToString<List<PendingSaleEntry>>(entries))
+        if (entries.isEmpty()) {
+            settings.remove(KEY)
+        } else {
+            // Json.encodeToString's single-arg reified overload is shadowed by the
+            // SerializationStrategy-taking member of the same name, so the plain
+            // call never resolves to it — passing the serializer explicitly
+            // sidesteps that entirely instead of relying on overload resolution.
+            val serialized = json.encodeToString(ListSerializer(PendingSaleEntry.serializer()), entries)
+            settings.putString(KEY, serialized)
+        }
     }
 
     private companion object {

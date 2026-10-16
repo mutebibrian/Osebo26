@@ -4,7 +4,6 @@ import kotlinx.cinterop.ExperimentalForeignApi
 import platform.UIKit.UIActivityViewController
 import platform.UIKit.UIApplication
 import platform.UIKit.UIPrintInfo
-import platform.UIKit.UIPrintInfoOutputGeneral
 import platform.UIKit.UIPrintInteractionController
 import platform.UIKit.UISimpleTextPrintFormatter
 import platform.UIKit.UIViewController
@@ -34,8 +33,10 @@ actual fun shareReceiptText(text: String, title: String) {
 @OptIn(ExperimentalForeignApi::class)
 actual fun printReceiptText(text: String, title: String) {
     val printController = UIPrintInteractionController.sharedPrintController ?: return
+    // outputType left at its default (UIPrintInfoOutputGeneral per Apple's docs)
+    // rather than set explicitly — avoids depending on the exact synthetic name
+    // Kotlin/Native generates for that enum constant.
     val printInfo = UIPrintInfo.printInfo()
-    printInfo.outputType = UIPrintInfoOutputGeneral
     printInfo.jobName = title
     printController.printInfo = printInfo
     printController.printFormatter = UISimpleTextPrintFormatter(text = text)

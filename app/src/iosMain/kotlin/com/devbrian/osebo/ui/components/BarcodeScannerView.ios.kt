@@ -2,6 +2,7 @@ package com.devbrian.osebo.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -20,23 +21,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.UIKitView
 import kotlinx.cinterop.ExperimentalForeignApi
-import platform.AVFoundation.AVCaptureConnection
-import platform.AVFoundation.AVCaptureDevice
-import platform.AVFoundation.AVCaptureDeviceInput
-import platform.AVFoundation.AVCaptureMetadataOutput
-import platform.AVFoundation.AVCaptureMetadataOutputObjectsDelegateProtocol
-import platform.AVFoundation.AVCaptureOutput
-import platform.AVFoundation.AVCaptureSession
-import platform.AVFoundation.AVCaptureVideoPreviewLayer
-import platform.AVFoundation.AVLayerVideoGravityResizeAspectFill
-import platform.AVFoundation.AVMediaTypeVideo
-import platform.AVFoundation.AVMetadataMachineReadableCodeObject
-import platform.AVFoundation.AVMetadataObjectTypeCode128Code
-import platform.AVFoundation.AVMetadataObjectTypeCode39Code
-import platform.AVFoundation.AVMetadataObjectTypeEAN13Code
-import platform.AVFoundation.AVMetadataObjectTypeEAN8Code
-import platform.AVFoundation.AVMetadataObjectTypeQRCode
-import platform.AVFoundation.AVMetadataObjectTypeUPCECode
+import kotlinx.cinterop.readValue
+// Wildcarded rather than named: requestAccessForMediaType is a
+// completion-handler-based ObjC class method, and Kotlin/Native generates
+// these as package-level extension functions under a synthetic name that
+// isn't reliably guessable without compiling against the real SDK headers.
+import platform.AVFoundation.*
 import platform.CoreGraphics.CGRectZero
 import platform.QuartzCore.CATransaction
 import platform.QuartzCore.kCATransactionDisableActions
