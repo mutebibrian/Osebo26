@@ -21,8 +21,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.devbrian.osebo.resources.Res
@@ -190,8 +193,10 @@ import com.devbrian.osebo.ui.theme.OseboTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
+import kotlinx.datetime.toLocalDateTime
 
 /**
  * Mirrors Android's real UserNavigationItem (Home, Inventory, Sales, More) —
@@ -261,6 +266,17 @@ private data class DemoUserRole(
 
 private fun DemoUserRole.toUserRoleUi() = UserRoleUi(id = id, name = name, description = description, permissionCount = permissions.size)
 
+// Mirrors AddExpenseFragment's displayDateFormat ("dd MMM yyyy") using
+// kotlinx-datetime instead of java.text.SimpleDateFormat.
+private val ExpenseDateMonthAbbreviations = listOf(
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+)
+
+private fun kotlinx.datetime.LocalDate.toDisplayLabel(): String {
+    val day = dayOfMonth.toString().padStart(2, '0')
+    return "$day ${ExpenseDateMonthAbbreviations[month.ordinal]} $year"
+}
+
 /**
  * Mirrors the real Android launch flow: an animated Splash screen decides
  * between Welcome (logged out) and the main app (logged in). Welcome leads
@@ -327,6 +343,7 @@ fun App() {
         var reportsState by remember { mutableStateOf(ReportsUiState()) }
         var addExpenseState by remember { mutableStateOf(AddExpenseUiState()) }
         var addExpenseDate by remember { mutableStateOf("") }
+        var isExpenseDatePickerOpen by remember { mutableStateOf(false) }
         var expenseCategoriesSource by remember { mutableStateOf<List<ExpenseCategory>>(emptyList()) }
         var expenseCategoriesUi by remember { mutableStateOf<List<ExpenseCategoryUi>>(emptyList()) }
         var isExpenseCategoriesLoading by remember { mutableStateOf(false) }
@@ -3052,10 +3069,38 @@ fun App() {
                         state = addExpenseState,
                         onStateChange = { addExpenseState = it },
                         onBackClick = { destination = Destination.MainTabs },
-                        onDateClick = {},
+                        onDateClick = { isExpenseDatePickerOpen = true },
+                        // Mirrors Android's own showAttachmentOptions exactly:
+                        // a picker dialog that just toasts the chosen option's
+                        // name back — no real camera/gallery attachment
+                        // happens there either.
                         onAttachReceiptClick = {},
                         onSaveClick = ::saveExpense,
                     )
+
+                    if (isExpenseDatePickerOpen) {
+                        val datePickerState = rememberDatePickerState()
+                        DatePickerDialog(
+                            onDismissRequest = { isExpenseDatePickerOpen = false },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    val millis = datePickerState.selectedDateMillis
+                                    if (millis != null) {
+                                        val date = Instant.fromEpochMilliseconds(millis)
+                                            .toLocalDateTime(TimeZone.UTC).date
+                                        addExpenseDate = date.toString()
+                                        addExpenseState = addExpenseState.copy(dateLabel = date.toDisplayLabel())
+                                    }
+                                    isExpenseDatePickerOpen = false
+                                }) { Text("OK") }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { isExpenseDatePickerOpen = false }) { Text("Cancel") }
+                            },
+                        ) {
+                            DatePicker(state = datePickerState)
+                        }
+                    }
 
                     Destination.ExpenseCategories -> ExpenseCategoriesScreen(
                         categories = expenseCategoriesUi,
