@@ -92,6 +92,7 @@ data class SalesUiState(
     val recentSales: List<SaleItemUi> = emptyList(),
     val topProducts: List<TopSellingProductUi> = emptyList(),
     val isLoading: Boolean = false,
+    val pendingSalesCount: Int = 0,
 )
 
 private enum class SalesFilter(val label: String) {
@@ -186,6 +187,11 @@ fun SalesScreen(
                             )
                         }
                     }
+                }
+
+                if (state.pendingSalesCount > 0) {
+                    Spacer(Modifier.height(16.dp))
+                    PendingSalesBanner(state.pendingSalesCount)
                 }
 
                 Spacer(Modifier.height(24.dp))
@@ -325,6 +331,30 @@ fun SalesScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun PendingSalesBanner(count: Int) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color(0xFFFFF4DC))
+            .padding(horizontal = 14.dp, vertical = 11.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = if (count == 1) {
+                "1 sale is waiting to upload — it'll sync automatically when you're back online."
+            } else {
+                "$count sales are waiting to upload — they'll sync automatically when you're back online."
+            },
+            color = Color(0xFF9A6515),
+            fontFamily = oseboFontFamily(),
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium,
+        )
     }
 }
 

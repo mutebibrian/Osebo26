@@ -55,6 +55,7 @@ import com.devbrian.osebo.data.repository.SharedFinanceRepository
 import com.devbrian.osebo.data.repository.SharedInventoryRepository
 import com.devbrian.osebo.data.repository.SharedReportsRepository
 import com.devbrian.osebo.data.repository.CreateSaleOutcome
+import com.devbrian.osebo.data.repository.NewSaleDataCache
 import com.devbrian.osebo.data.repository.PendingSalesQueue
 import com.devbrian.osebo.data.repository.SharedSalesRepository
 import com.devbrian.osebo.data.repository.buildReceiptState
@@ -323,6 +324,7 @@ fun App() {
         val dashboardRepository = remember { SharedDashboardRepository(api) }
         val salesRepository = remember { SharedSalesRepository(api) }
         val pendingSalesQueue = remember { PendingSalesQueue(settingsStore, api) }
+        val newSaleDataCache = remember { NewSaleDataCache(settingsStore) }
         val inventoryRepository = remember { SharedInventoryRepository(api) }
         val financeRepository = remember { SharedFinanceRepository(api) }
         val reportsRepository = remember { SharedReportsRepository(api) }
@@ -592,10 +594,17 @@ fun App() {
                         isLoading = false,
                         recentSales = result.data.recentSales,
                         totalSales = result.data.totalSales,
+                        pendingSalesCount = pendingSalesQueue.pendingCount(),
                     )
                 }
-                is ApiResult.Error -> salesState = salesState.copy(isLoading = false)
-                is ApiResult.NetworkError -> salesState = salesState.copy(isLoading = false)
+                is ApiResult.Error -> salesState = salesState.copy(
+                    isLoading = false,
+                    pendingSalesCount = pendingSalesQueue.pendingCount(),
+                )
+                is ApiResult.NetworkError -> salesState = salesState.copy(
+                    isLoading = false,
+                    pendingSalesCount = pendingSalesQueue.pendingCount(),
+                )
             }
         }
 
@@ -1004,19 +1013,39 @@ fun App() {
                         isOffline = false,
                         products = result.data.map { it.toNewSaleProductUi(cartQuantity = 0) },
                     )
+                    newSaleDataCache.cacheProducts(shopId, result.data)
                     // This fetch succeeding is proof connectivity is back, so this is as good
                     // a moment as any to opportunistically drain any sale(s) made while offline.
-                    if (pendingSalesQueue.pendingCount() > 0) pendingSalesQueue.flush()
+                    if (pendingSalesQueue.pendingCount() > 0) {
+                        pendingSalesQueue.flush()
+                        salesState = salesState.copy(pendingSalesCount = pendingSalesQueue.pendingCount())
+                    }
                 }
                 is ApiResult.Error -> newSaleState = newSaleState.copy(
                     isLoading = false,
                     errorMessage = result.message,
                 )
-                is ApiResult.NetworkError -> newSaleState = newSaleState.copy(
-                    isLoading = false,
-                    isOffline = true,
-                    errorMessage = result.message,
-                )
+                is ApiResult.NetworkError -> {
+                    // First time New Sale is opened with zero connectivity (not just a
+                    // mid-session drop) previously just blocked here with an error and no
+                    // products at all. Fall back to whatever was cached from the last
+                    // successful fetch so a sale can still be made.
+                    val cached = newSaleDataCache.cachedProducts(shopId)
+                    if (cached != null) {
+                        newSaleSourceProducts = cached
+                        newSaleState = newSaleState.copy(
+                            isLoading = false,
+                            isOffline = true,
+                            products = cached.map { it.toNewSaleProductUi(cartQuantity = 0) },
+                        )
+                    } else {
+                        newSaleState = newSaleState.copy(
+                            isLoading = false,
+                            isOffline = true,
+                            errorMessage = result.message,
+                        )
+                    }
+                }
             }
 
             when (val result = customerRepository.getRawCustomers(shopId)) {
@@ -1030,8 +1059,23 @@ fun App() {
                         selectedCustomerName = defaultCustomer?.name?.ifBlank { "Walk-in Customer" }
                             ?: "Walk-in Customer",
                     )
+                    newSaleDataCache.cacheCustomers(shopId, result.data)
                 }
-                is ApiResult.Error, is ApiResult.NetworkError -> Unit
+                is ApiResult.Error -> Unit
+                is ApiResult.NetworkError -> {
+                    val cached = newSaleDataCache.cachedCustomers(shopId)
+                    if (cached != null) {
+                        newSaleCustomers = cached
+                        newSaleState = newSaleState.copy(customers = cached.map { it.toNewSaleCustomerUi() })
+                        val defaultCustomer = selectedSaleCustomer ?: cached.firstOrNull(Customer::isDefault)
+                        selectedSaleCustomer = defaultCustomer
+                        newSaleState = newSaleState.copy(
+                            selectedCustomerId = defaultCustomer?.id.orEmpty(),
+                            selectedCustomerName = defaultCustomer?.name?.ifBlank { "Walk-in Customer" }
+                                ?: "Walk-in Customer",
+                        )
+                    }
+                }
             }
         }
 
@@ -1663,6 +1707,9 @@ fun App() {
                                 else -> Unit
                             }
                         }
+                        // Reflect the queue's state either way: QueuedOffline just grew it,
+                        // and a Submitted sale may have just drained others via flush().
+                        salesState = salesState.copy(pendingSalesCount = pendingSalesQueue.pendingCount())
                     }
                     is CreateSaleOutcome.Failed -> paymentState = paymentState.copy(
                         isLoading = false,
