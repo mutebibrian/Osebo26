@@ -2748,6 +2748,7 @@ fun App() {
                                         selectedTab = AppTab.entries[index]
                                     }
                                 },
+                                onAiClick = { destination = Destination.AiAssistant },
                             )
                             MoreMenu(
                                 expanded = isMoreMenuOpen,
@@ -2827,26 +2828,6 @@ fun App() {
                                         ),
                                     ),
                                 ),
-                            )
-                        }
-
-                        // Android exposes Osebo AI as its own dedicated circular button
-                        // next to UserBottomNavigation, not through the More menu — see
-                        // UserBottomNavigation.kt's onOseboAiClick. Floating it above the
-                        // bar here keeps BottomNavBar's own fillMaxWidth layout untouched.
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.BottomEnd)
-                                .padding(end = 28.dp, bottom = 92.dp)
-                                .size(52.dp)
-                                .background(Color(0xFF0783CF), CircleShape)
-                                .clickable { destination = Destination.AiAssistant },
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Image(
-                                painter = painterResource(Res.drawable.oseboicon),
-                                contentDescription = "Open Osebo AI",
-                                modifier = Modifier.size(30.dp),
                             )
                         }
                     }
