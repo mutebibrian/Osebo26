@@ -68,6 +68,7 @@ import com.devbrian.osebo.resources.iconsax_scan_barcode
 import com.devbrian.osebo.resources.iconsax_suppliers
 import com.devbrian.osebo.resources.iconsax_today_sales
 import com.devbrian.osebo.resources.inventory_products
+import com.devbrian.osebo.ui.components.OseboToast
 import com.devbrian.osebo.ui.theme.oseboFontFamily
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
@@ -143,10 +144,6 @@ fun AddProductScreen(
                 .padding(horizontal = 18.dp, vertical = 10.dp),
         ) {
             ProductFormHeader(state = state, onBackClick = onBackClick)
-            state.errorMessage?.let { message ->
-                Spacer(Modifier.height(10.dp))
-                ProductFormErrorBanner(message)
-            }
             Spacer(Modifier.height(18.dp))
             ProductFormTabs(
                 selected = state.currentStep,
@@ -207,6 +204,12 @@ fun AddProductScreen(
             },
         )
     }
+
+    OseboToast(
+        message = state.errorMessage,
+        onDismiss = { onStateChange(state.copy(errorMessage = null)) },
+        isError = true,
+    )
 }
 
 @Composable
@@ -243,23 +246,6 @@ private fun ProductFormHeader(state: AddProductUiState, onBackClick: () -> Unit)
                 modifier = Modifier.padding(9.dp),
             )
         }
-    }
-}
-
-@Composable
-private fun ProductFormErrorBanner(message: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color(0xFFFFEEF0), RoundedCornerShape(16.dp))
-            .padding(horizontal = 14.dp, vertical = 11.dp),
-    ) {
-        Text(
-            text = message,
-            color = Color(0xFFC62842),
-            fontFamily = oseboFontFamily(),
-            fontSize = 11.sp,
-        )
     }
 }
 

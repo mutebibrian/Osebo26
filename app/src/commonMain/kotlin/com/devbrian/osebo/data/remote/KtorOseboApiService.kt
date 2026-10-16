@@ -77,6 +77,8 @@ import com.devbrian.osebo.models.ExpenseCategory
 import com.devbrian.osebo.models.Permission
 import com.devbrian.osebo.models.RenewSubscriptionRequest
 import com.devbrian.osebo.models.TimeSeriesApiResponse
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -119,11 +121,15 @@ import kotlinx.coroutines.sync.withLock
  * androidMain extension). createShop/getShopTypes turned out not to need
  * this — ShopDto/ShopTypeDto/CreateShopRequest were already multiplatform-safe.
  */
+@Serializable
+private data class ErrorBody(val message: String? = null)
+
 class KtorOseboApiService(
     private val client: HttpClient,
     private val sessionProvider: OseboSessionProvider,
 ) {
     private val refreshMutex = Mutex()
+    private val errorBodyJson = Json { ignoreUnknownKeys = true }
 
     private suspend inline fun <reified T> execute(crossinline call: suspend () -> HttpResponse): ApiResult<T> {
         return try {
@@ -138,7 +144,13 @@ class KtorOseboApiService(
                 ApiResult.Success(response.body<T>(), response.status.value)
             } else {
                 val message = try {
-                    response.bodyAsText()
+                    val raw = response.bodyAsText()
+                    // The server's error body is {"success":false,"message":"...","data":null} —
+                    // extract just the message instead of showing the raw JSON to the user.
+                    runCatching { errorBodyJson.decodeFromString<ErrorBody>(raw).message }
+                        .getOrNull()
+                        ?.takeIf { it.isNotBlank() }
+                        ?: raw
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
