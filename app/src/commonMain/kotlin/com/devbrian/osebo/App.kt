@@ -1439,20 +1439,6 @@ fun App() {
                 price < 0 -> "Price cannot be negative"
                 else -> null
             }
-            val cost = state.cost.toDoubleOrNull()
-            val costError = when {
-                state.cost.isBlank() -> null
-                cost == null -> "Enter a valid cost"
-                cost < 0 -> "Cost cannot be negative"
-                else -> null
-            }
-            val stock = state.stock.toDoubleOrNull()
-            val stockError = when {
-                state.stock.isBlank() -> "Current stock is required"
-                stock == null -> "Enter a valid quantity"
-                stock < 0 -> "Stock cannot be negative"
-                else -> null
-            }
             val threshold = state.lowStockThreshold.toIntOrNull()
             val thresholdError = when {
                 state.lowStockThreshold.isBlank() -> "Low-stock alert is required"
@@ -1460,35 +1446,24 @@ fun App() {
                 threshold < 0 -> "Alert cannot be negative"
                 else -> null
             }
-            val tax = state.taxRate.toDoubleOrNull()
-            val taxError = when {
-                state.taxRate.isBlank() -> null
-                tax == null -> "Enter a valid rate"
-                tax !in 0.0..100.0 -> "Use a rate from 0 to 100"
-                else -> null
-            }
-            val weight = state.weight.toDoubleOrNull()
-            val weightError = when {
-                state.weight.isBlank() -> null
-                weight == null -> "Enter a valid weight"
-                weight < 0 -> "Weight cannot be negative"
+            val maxDiscount = state.maxDiscount.toDoubleOrNull()
+            val maxDiscountError = when {
+                state.maxDiscount.isBlank() -> null
+                maxDiscount == null -> "Enter a valid discount"
+                maxDiscount !in 0.0..100.0 -> "Use a discount from 0 to 100"
                 else -> null
             }
 
             val detailsInvalid = nameError != null || skuError != null || categoryError != null
-            val stockInvalid = priceError != null || costError != null || stockError != null ||
-                thresholdError != null || taxError != null || weightError != null
+            val stockInvalid = priceError != null || thresholdError != null || maxDiscountError != null
             addProductState = state.copy(
                 currentStep = if (detailsInvalid) 0 else 1,
                 nameError = nameError,
                 skuError = skuError,
                 categoryError = categoryError,
                 priceError = priceError,
-                costError = costError,
-                stockError = stockError,
                 thresholdError = thresholdError,
-                taxError = taxError,
-                weightError = weightError,
+                maxDiscountError = maxDiscountError,
             )
             if (detailsInvalid || stockInvalid) return
 
@@ -1512,9 +1487,8 @@ fun App() {
                     sku = state.sku.trim(),
                     description = state.description.trim().ifBlank { null },
                     lowQuantityMark = threshold.toString(),
-                    purchasePrice = (cost ?: 0.0).toString(),
                     sellingPrice = price.toString(),
-                    quantity = stock.toString(),
+                    maxDiscount = (maxDiscount ?: 0.0).toString(),
                     unitMeasure = state.unit.ifBlank { "Piece" },
                     stockCategoryId = category.id,
                 )

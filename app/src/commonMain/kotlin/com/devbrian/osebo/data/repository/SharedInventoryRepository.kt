@@ -59,8 +59,13 @@ class SharedInventoryRepository(private val api: KtorOseboApiService) {
      * ID, etc." per its own comment) — it never reaches the real server.
      * iOS has no local cache to fake-save into, so this calls the real
      * POST /stock-item/single endpoint instead, resolving the picked
-     * category name to its real stockCategoryId. maxDiscount isn't collected
-     * by the form on either platform, so it's sent as "0".
+     * category name to its real stockCategoryId.
+     *
+     * Matches the web app's own Add Stock Item form, which collects neither
+     * a cost/purchase price nor an initial quantity — confirmed by the
+     * server's own rejection ("Stock items cannot be created with quantity.
+     * Quantities must be setup via a procurement."), so both are hardcoded
+     * to "0" here rather than taken from the caller.
      */
     suspend fun createProduct(
         shopId: String,
@@ -68,9 +73,8 @@ class SharedInventoryRepository(private val api: KtorOseboApiService) {
         sku: String,
         description: String?,
         lowQuantityMark: String,
-        purchasePrice: String,
         sellingPrice: String,
-        quantity: String,
+        maxDiscount: String,
         unitMeasure: String,
         stockCategoryId: String,
     ): ApiResult<ProductDto> =
@@ -81,10 +85,10 @@ class SharedInventoryRepository(private val api: KtorOseboApiService) {
                 sku = sku,
                 description = description,
                 lowQuantityMark = lowQuantityMark,
-                purchasePrice = purchasePrice,
+                purchasePrice = "0",
                 sellingPrice = sellingPrice,
-                maxDiscount = "0",
-                quantity = quantity,
+                maxDiscount = maxDiscount,
+                quantity = "0",
                 unitMeasure = unitMeasure,
                 stockCategoryId = stockCategoryId,
             )
