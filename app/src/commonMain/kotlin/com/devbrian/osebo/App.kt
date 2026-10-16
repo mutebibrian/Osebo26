@@ -45,6 +45,7 @@ import com.devbrian.osebo.data.remote.dto.request.SelectAccountRequest
 import com.devbrian.osebo.data.remote.dto.request.SignUpRequest
 import com.devbrian.osebo.data.remote.dto.response.PackageDto
 import com.devbrian.osebo.data.remote.dto.response.ProductDto
+import com.devbrian.osebo.data.remote.dto.response.SaleApiData
 import com.devbrian.osebo.data.remote.dto.response.ShopDto
 import com.devbrian.osebo.data.remote.dto.response.ShopTypeDto
 import com.devbrian.osebo.data.repository.SharedCustomerRepository
@@ -52,6 +53,8 @@ import com.devbrian.osebo.data.repository.SharedDashboardRepository
 import com.devbrian.osebo.data.repository.SharedFinanceRepository
 import com.devbrian.osebo.data.repository.SharedInventoryRepository
 import com.devbrian.osebo.data.repository.SharedReportsRepository
+import com.devbrian.osebo.data.repository.CreateSaleOutcome
+import com.devbrian.osebo.data.repository.PendingSalesQueue
 import com.devbrian.osebo.data.repository.SharedSalesRepository
 import com.devbrian.osebo.data.repository.buildReceiptState
 import com.devbrian.osebo.data.repository.dateRangeForPeriod
@@ -314,6 +317,7 @@ fun App() {
         val customerRepository = remember { SharedCustomerRepository(api) }
         val dashboardRepository = remember { SharedDashboardRepository(api) }
         val salesRepository = remember { SharedSalesRepository(api) }
+        val pendingSalesQueue = remember { PendingSalesQueue(settingsStore, api) }
         val inventoryRepository = remember { SharedInventoryRepository(api) }
         val financeRepository = remember { SharedFinanceRepository(api) }
         val reportsRepository = remember { SharedReportsRepository(api) }
@@ -992,8 +996,12 @@ fun App() {
                     newSaleSourceProducts = result.data
                     newSaleState = newSaleState.copy(
                         isLoading = false,
+                        isOffline = false,
                         products = result.data.map { it.toNewSaleProductUi(cartQuantity = 0) },
                     )
+                    // This fetch succeeding is proof connectivity is back, so this is as good
+                    // a moment as any to opportunistically drain any sale(s) made while offline.
+                    if (pendingSalesQueue.pendingCount() > 0) pendingSalesQueue.flush()
                 }
                 is ApiResult.Error -> newSaleState = newSaleState.copy(
                     isLoading = false,
@@ -1001,6 +1009,7 @@ fun App() {
                 )
                 is ApiResult.NetworkError -> newSaleState = newSaleState.copy(
                     isLoading = false,
+                    isOffline = true,
                     errorMessage = result.message,
                 )
             }
@@ -1598,49 +1607,55 @@ fun App() {
                 }.ifEmpty { null }
 
                 when (
-                    val result = salesRepository.createSale(
+                    val outcome = salesRepository.createSale(
                         shopId = shopId,
                         customerId = customer?.id,
                         cartItems = newSaleCart,
                         paidAmount = totalAmount,
+                        pendingSalesQueue = pendingSalesQueue,
                         notes = notes,
                     )
                 ) {
-                    is ApiResult.Success -> {
-                        val sale = result.data.data
+                    is CreateSaleOutcome.Submitted, is CreateSaleOutcome.QueuedOffline -> {
+                        // QueuedOffline mirrors Android's own optimistic flow: the sale is
+                        // accepted locally and the user proceeds straight to the receipt,
+                        // same as if the server had answered, since the queue will upload it
+                        // for real the next time connectivity comes back (see pendingSalesQueue.flush()).
+                        val sale = (outcome as? CreateSaleOutcome.Submitted)?.response?.data
+                            ?: SaleApiData(
+                                id = "offline",
+                                createdAt = Clock.System.now().toString(),
+                                totalPrice = totalAmount,
+                            )
                         val cartSnapshot = newSaleCart
                         val paymentMethod = paymentState.selectedMethod.apiValue
-                        if (sale != null) {
-                            receiptState = buildReceiptState(
-                                sale = sale,
-                                cartItems = cartSnapshot,
-                                customerName = customer?.name.orEmpty(),
-                                customerPhone = customer?.phone.orEmpty(),
-                                servedBy = sessionProvider.userFirstName().orEmpty(),
-                                paidAmount = totalAmount,
-                                paymentMethod = paymentMethod,
-                            )
-                        }
+                        receiptState = buildReceiptState(
+                            sale = sale,
+                            cartItems = cartSnapshot,
+                            customerName = customer?.name.orEmpty(),
+                            customerPhone = customer?.phone.orEmpty(),
+                            servedBy = sessionProvider.userFirstName().orEmpty(),
+                            paidAmount = totalAmount,
+                            paymentMethod = paymentMethod,
+                        )
                         paymentState = PaymentUiState()
                         newSaleCart = emptyList()
                         newSaleQuery = ""
-                        // Falls back to MainTabs/Sales on the rare case the server's own
-                        // create-sale response omits `data` — the sale itself still
-                        // succeeded, there's just nothing to build a receipt from.
-                        destination = if (sale != null) Destination.Receipt else Destination.MainTabs
+                        destination = Destination.Receipt
                         selectedTab = AppTab.Sales
-                        when (val salesResult = salesRepository.getSales(shopId)) {
-                            is ApiResult.Success -> salesState = salesState.copy(
-                                recentSales = salesResult.data.recentSales,
-                                totalSales = salesResult.data.totalSales,
-                            )
-                            else -> Unit
+                        if (outcome is CreateSaleOutcome.Submitted) {
+                            when (val salesResult = salesRepository.getSales(shopId)) {
+                                is ApiResult.Success -> salesState = salesState.copy(
+                                    recentSales = salesResult.data.recentSales,
+                                    totalSales = salesResult.data.totalSales,
+                                )
+                                else -> Unit
+                            }
                         }
                     }
-                    is ApiResult.Error -> paymentState = paymentState.copy(isLoading = false, amountError = result.message)
-                    is ApiResult.NetworkError -> paymentState = paymentState.copy(
+                    is CreateSaleOutcome.Failed -> paymentState = paymentState.copy(
                         isLoading = false,
-                        amountError = result.message,
+                        amountError = outcome.message,
                     )
                 }
             }

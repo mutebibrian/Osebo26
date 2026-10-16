@@ -53,15 +53,27 @@ class SharedSalesRepository(private val api: KtorOseboApiService) {
         }
     }
 
-    /** Mirrors SalesRepository.createSale() on Android, minus its local Room cache/offline-sync queue. */
+    /**
+     * Mirrors SalesRepository.createSale() on Android, including its
+     * offline queue — but scoped to just sales (via PendingSalesQueue)
+     * rather than Android's generic Room-backed sync_queue. A genuine
+     * connectivity failure (ApiResult.NetworkError — execute() only
+     * produces this from a thrown exception, never from an HTTP error
+     * status) queues the sale and reports it as submitted rather than
+     * blocking the sale; a real server rejection (ApiResult.Error — 400s,
+     * a 401 that survives token refresh, etc.) is NOT queued, since
+     * silently retrying something the server actively rejected would
+     * just hide a real problem.
+     */
     suspend fun createSale(
         shopId: String,
         customerId: String?,
         cartItems: List<SaleCartItem>,
         paidAmount: Double,
+        pendingSalesQueue: PendingSalesQueue,
         saleType: String = "sale",
         notes: String? = null,
-    ): ApiResult<SaleApiResponse> {
+    ): CreateSaleOutcome {
         val request = SaleRequest(
             customerId = customerId,
             paidAmount = paidAmount.toString(),
@@ -76,8 +88,21 @@ class SharedSalesRepository(private val api: KtorOseboApiService) {
             },
             notes = notes,
         )
-        return api.createSale(shopId, request)
+        return when (val result = api.createSale(shopId, request)) {
+            is ApiResult.Success -> CreateSaleOutcome.Submitted(result.data)
+            is ApiResult.Error -> CreateSaleOutcome.Failed(result.message)
+            is ApiResult.NetworkError -> {
+                pendingSalesQueue.enqueue(shopId, request)
+                CreateSaleOutcome.QueuedOffline
+            }
+        }
     }
+}
+
+sealed class CreateSaleOutcome {
+    data class Submitted(val response: SaleApiResponse) : CreateSaleOutcome()
+    data object QueuedOffline : CreateSaleOutcome()
+    data class Failed(val message: String) : CreateSaleOutcome()
 }
 
 /**
