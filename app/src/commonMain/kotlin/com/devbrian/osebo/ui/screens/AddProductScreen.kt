@@ -60,10 +60,12 @@ import androidx.compose.ui.unit.sp
 import com.devbrian.osebo.resources.Res
 import com.devbrian.osebo.resources.iconsax_arrow_down
 import com.devbrian.osebo.resources.iconsax_arrow_left
+import com.devbrian.osebo.resources.iconsax_attach
 import com.devbrian.osebo.resources.iconsax_box
 import com.devbrian.osebo.resources.iconsax_category
 import com.devbrian.osebo.resources.iconsax_document
 import com.devbrian.osebo.resources.iconsax_scan_barcode
+import com.devbrian.osebo.resources.iconsax_suppliers
 import com.devbrian.osebo.resources.iconsax_today_sales
 import com.devbrian.osebo.resources.inventory_products
 import com.devbrian.osebo.ui.components.OseboToast
@@ -79,16 +81,26 @@ data class AddProductUiState(
     val barcode: String = "",
     val category: String = "",
     val unit: String = "",
+    val supplier: String = "",
     val description: String = "",
     val price: String = "",
+    val cost: String = "",
     val maxDiscount: String = "",
+    val stock: String = "",
     val lowStockThreshold: String = "",
+    val location: String = "",
+    val taxRate: String = "",
+    val weight: String = "",
     val nameError: String? = null,
     val skuError: String? = null,
     val categoryError: String? = null,
     val priceError: String? = null,
+    val costError: String? = null,
     val maxDiscountError: String? = null,
+    val stockError: String? = null,
     val thresholdError: String? = null,
+    val taxError: String? = null,
+    val weightError: String? = null,
     val isLoading: Boolean = false,
     val isOffline: Boolean = false,
     val errorMessage: String? = null,
@@ -350,6 +362,17 @@ private fun ProductDetailsStep(
             icon = Res.drawable.iconsax_box,
             onClick = onUnitClick,
         )
+        // Supplier isn't on the web app's Add Stock Item form (only used when
+        // editing an existing product, which already has one on Android).
+        if (state.isEditMode) {
+            ProductTextField(
+                label = "Supplier",
+                value = state.supplier,
+                placeholder = "Optional supplier name",
+                icon = Res.drawable.iconsax_suppliers,
+                onValueChange = { onStateChange(state.copy(supplier = it)) },
+            )
+        }
         ProductTextField(
             label = "Description",
             value = state.description,
@@ -366,11 +389,13 @@ private fun ProductStockStep(state: AddProductUiState, onStateChange: (AddProduc
     ProductFormCard(
         gradient = listOf(Color(0xFFE3E3FF), Color(0xFFF6F5FF)),
     ) {
-        // Matches the web app's Add Stock Item form exactly: no quantity field here —
-        // the server rejects stock items created with a quantity ("Stock items cannot
-        // be created with quantity. Quantities must be setup via a procurement."), and
-        // web's own form has never collected one. Cost price isn't on web's form either,
-        // so it's dropped too (sent as 0 — see SharedInventoryRepository.createProduct).
+        // Creating a new item matches the web app's Add Stock Item form exactly: no
+        // quantity or cost price field — the server rejects stock items created with
+        // a quantity ("Stock items cannot be created with quantity. Quantities must be
+        // setup via a procurement."), and web's own create form has never collected
+        // either (sent as 0 — see SharedInventoryRepository.createProduct). Editing an
+        // *existing* product is different: Android's edit flow needs its real current
+        // stock/cost, since those already exist and aren't being "created".
         ProductSectionHeading("Pricing", "Set selling price and discount")
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             ProductTextField(
@@ -383,32 +408,99 @@ private fun ProductStockStep(state: AddProductUiState, onStateChange: (AddProduc
                 modifier = Modifier.weight(1f),
                 onValueChange = { onStateChange(state.copy(price = it, priceError = null)) },
             )
-            ProductTextField(
-                label = "Max discount %",
-                value = state.maxDiscount,
-                placeholder = "Optional",
-                icon = Res.drawable.iconsax_today_sales,
-                error = state.maxDiscountError,
-                keyboardType = KeyboardType.Decimal,
-                modifier = Modifier.weight(1f),
-                onValueChange = { onStateChange(state.copy(maxDiscount = it, maxDiscountError = null)) },
-            )
+            if (state.isEditMode) {
+                ProductTextField(
+                    label = "Cost price",
+                    value = state.cost,
+                    placeholder = "Optional",
+                    icon = Res.drawable.iconsax_today_sales,
+                    error = state.costError,
+                    keyboardType = KeyboardType.Decimal,
+                    modifier = Modifier.weight(1f),
+                    onValueChange = { onStateChange(state.copy(cost = it, costError = null)) },
+                )
+            } else {
+                ProductTextField(
+                    label = "Max discount %",
+                    value = state.maxDiscount,
+                    placeholder = "Optional",
+                    icon = Res.drawable.iconsax_today_sales,
+                    error = state.maxDiscountError,
+                    keyboardType = KeyboardType.Decimal,
+                    modifier = Modifier.weight(1f),
+                    onValueChange = { onStateChange(state.copy(maxDiscount = it, maxDiscountError = null)) },
+                )
+            }
         }
     }
     Spacer(Modifier.height(12.dp))
     ProductFormCard(
         gradient = listOf(Color(0xFFD7F2F5), Color(0xFFF0FAFA)),
     ) {
-        ProductSectionHeading("Stock settings", "Low-stock alert threshold")
-        ProductTextField(
-            label = "Low-stock alert *",
-            value = state.lowStockThreshold,
-            placeholder = "0",
-            icon = Res.drawable.iconsax_box,
-            error = state.thresholdError,
-            keyboardType = KeyboardType.Number,
-            onValueChange = { onStateChange(state.copy(lowStockThreshold = it, thresholdError = null)) },
-        )
+        ProductSectionHeading("Stock settings", "Track quantities and low-stock alerts")
+        if (state.isEditMode) {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                ProductTextField(
+                    label = "Current stock *",
+                    value = state.stock,
+                    placeholder = "0",
+                    icon = Res.drawable.iconsax_box,
+                    error = state.stockError,
+                    keyboardType = KeyboardType.Decimal,
+                    modifier = Modifier.weight(1f),
+                    onValueChange = { onStateChange(state.copy(stock = it, stockError = null)) },
+                )
+                ProductTextField(
+                    label = "Low-stock alert *",
+                    value = state.lowStockThreshold,
+                    placeholder = "0",
+                    icon = Res.drawable.iconsax_box,
+                    error = state.thresholdError,
+                    keyboardType = KeyboardType.Number,
+                    modifier = Modifier.weight(1f),
+                    onValueChange = { onStateChange(state.copy(lowStockThreshold = it, thresholdError = null)) },
+                )
+            }
+            ProductTextField(
+                label = "Shelf location",
+                value = state.location,
+                placeholder = "Aisle or shelf",
+                icon = Res.drawable.iconsax_category,
+                onValueChange = { onStateChange(state.copy(location = it)) },
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                ProductTextField(
+                    label = "Tax rate %",
+                    value = state.taxRate,
+                    placeholder = "Optional",
+                    icon = Res.drawable.iconsax_document,
+                    error = state.taxError,
+                    keyboardType = KeyboardType.Decimal,
+                    modifier = Modifier.weight(1f),
+                    onValueChange = { onStateChange(state.copy(taxRate = it, taxError = null)) },
+                )
+                ProductTextField(
+                    label = "Weight kg",
+                    value = state.weight,
+                    placeholder = "Optional",
+                    icon = Res.drawable.iconsax_attach,
+                    error = state.weightError,
+                    keyboardType = KeyboardType.Decimal,
+                    modifier = Modifier.weight(1f),
+                    onValueChange = { onStateChange(state.copy(weight = it, weightError = null)) },
+                )
+            }
+        } else {
+            ProductTextField(
+                label = "Low-stock alert *",
+                value = state.lowStockThreshold,
+                placeholder = "0",
+                icon = Res.drawable.iconsax_box,
+                error = state.thresholdError,
+                keyboardType = KeyboardType.Number,
+                onValueChange = { onStateChange(state.copy(lowStockThreshold = it, thresholdError = null)) },
+            )
+        }
     }
 }
 
