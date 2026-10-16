@@ -65,7 +65,7 @@ class PendingSalesQueue(
     }
 
     private fun writeAll(entries: List<PendingSaleEntry>) {
-        if (entries.isEmpty()) settings.remove(KEY) else settings.putString(KEY, json.encodeToString(entries))
+        if (entries.isEmpty()) settings.remove(KEY) else settings.putString(KEY, json.encodeToString<List<PendingSaleEntry>>(entries))
     }
 
     private companion object {

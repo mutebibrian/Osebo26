@@ -3080,40 +3080,42 @@ fun App() {
                         onProductClick = {},
                     )
 
-                    Destination.AddExpense -> AddExpenseScreen(
-                        state = addExpenseState,
-                        onStateChange = { addExpenseState = it },
-                        onBackClick = { destination = Destination.MainTabs },
-                        onDateClick = { isExpenseDatePickerOpen = true },
-                        // Mirrors Android's own showAttachmentOptions exactly:
-                        // a picker dialog that just toasts the chosen option's
-                        // name back — no real camera/gallery attachment
-                        // happens there either.
-                        onAttachReceiptClick = {},
-                        onSaveClick = ::saveExpense,
-                    )
+                    Destination.AddExpense -> {
+                        AddExpenseScreen(
+                            state = addExpenseState,
+                            onStateChange = { addExpenseState = it },
+                            onBackClick = { destination = Destination.MainTabs },
+                            onDateClick = { isExpenseDatePickerOpen = true },
+                            // Mirrors Android's own showAttachmentOptions exactly:
+                            // a picker dialog that just toasts the chosen option's
+                            // name back — no real camera/gallery attachment
+                            // happens there either.
+                            onAttachReceiptClick = {},
+                            onSaveClick = ::saveExpense,
+                        )
 
-                    if (isExpenseDatePickerOpen) {
-                        val datePickerState = rememberDatePickerState()
-                        DatePickerDialog(
-                            onDismissRequest = { isExpenseDatePickerOpen = false },
-                            confirmButton = {
-                                TextButton(onClick = {
-                                    val millis = datePickerState.selectedDateMillis
-                                    if (millis != null) {
-                                        val date = Instant.fromEpochMilliseconds(millis)
-                                            .toLocalDateTime(TimeZone.UTC).date
-                                        addExpenseDate = date.toString()
-                                        addExpenseState = addExpenseState.copy(dateLabel = date.toDisplayLabel())
-                                    }
-                                    isExpenseDatePickerOpen = false
-                                }) { Text("OK") }
-                            },
-                            dismissButton = {
-                                TextButton(onClick = { isExpenseDatePickerOpen = false }) { Text("Cancel") }
-                            },
-                        ) {
-                            DatePicker(state = datePickerState)
+                        if (isExpenseDatePickerOpen) {
+                            val datePickerState = rememberDatePickerState()
+                            DatePickerDialog(
+                                onDismissRequest = { isExpenseDatePickerOpen = false },
+                                confirmButton = {
+                                    TextButton(onClick = {
+                                        val millis = datePickerState.selectedDateMillis
+                                        if (millis != null) {
+                                            val date = Instant.fromEpochMilliseconds(millis)
+                                                .toLocalDateTime(TimeZone.UTC).date
+                                            addExpenseDate = date.toString()
+                                            addExpenseState = addExpenseState.copy(dateLabel = date.toDisplayLabel())
+                                        }
+                                        isExpenseDatePickerOpen = false
+                                    }) { Text("OK") }
+                                },
+                                dismissButton = {
+                                    TextButton(onClick = { isExpenseDatePickerOpen = false }) { Text("Cancel") }
+                                },
+                            ) {
+                                DatePicker(state = datePickerState)
+                            }
                         }
                     }
 
