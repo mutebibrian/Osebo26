@@ -161,7 +161,14 @@ class KtorOseboApiService(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            ApiResult.NetworkError(e.message ?: "Network error")
+            // e.message here is whatever the platform's HTTP engine put in the
+            // exception — on iOS that's the raw NSError debug dump (hundreds of
+            // characters of NSURLErrorDomain/UserInfo noise), not anything fit to
+            // show a user. Every path that reaches this catch block is already a
+            // genuine connectivity failure (see execute()'s own contract: NetworkError
+            // only ever comes from a thrown exception here, never an HTTP response),
+            // so a single clean message is always correct, never a loss of information.
+            ApiResult.NetworkError("No internet connection. Check your network and try again.")
         }
     }
 
