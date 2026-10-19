@@ -82,7 +82,9 @@ import com.devbrian.osebo.ui.theme.oseboFontFamily
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import kotlin.math.roundToInt
+import kotlinx.serialization.Serializable
 
+@Serializable
 data class DashboardShopUi(
     val id: String,
     val name: String,
@@ -90,6 +92,7 @@ data class DashboardShopUi(
     val isSubscriptionActive: Boolean,
 )
 
+@Serializable
 data class DashboardShopPerformanceUi(
     val shopId: String,
     val shopName: String,
@@ -119,6 +122,7 @@ data class DashboardUiState(
     val expensesTrend: List<Float> = emptyList(),
     val shopPerformances: List<DashboardShopPerformanceUi> = emptyList(),
     val shops: List<DashboardShopUi> = emptyList(),
+    val isOffline: Boolean = false,
     val errorMessage: String? = null,
 )
 
@@ -269,8 +273,11 @@ fun DashboardScreen(
 
                 Spacer(Modifier.height(30.dp))
 
-                state.errorMessage?.let { message ->
-                    DashboardErrorBanner(message)
+                if (state.errorMessage != null) {
+                    DashboardErrorBanner(state.errorMessage)
+                    Spacer(Modifier.height(16.dp))
+                } else if (state.isOffline) {
+                    DashboardOfflineBanner()
                     Spacer(Modifier.height(16.dp))
                 }
 
@@ -409,6 +416,24 @@ private fun DashboardErrorBanner(message: String) {
         Text(
             text = message,
             color = Color(0xFFC62842),
+            fontFamily = oseboFontFamily(),
+            fontSize = 11.sp,
+        )
+    }
+}
+
+@Composable
+private fun DashboardOfflineBanner() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFFFFF4DC), RoundedCornerShape(16.dp))
+            .padding(horizontal = 14.dp, vertical = 11.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = "You're offline — showing figures from your last sync.",
+            color = Color(0xFF9A6515),
             fontFamily = oseboFontFamily(),
             fontSize = 11.sp,
         )

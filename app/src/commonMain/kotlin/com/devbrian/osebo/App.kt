@@ -55,6 +55,7 @@ import com.devbrian.osebo.data.repository.SharedFinanceRepository
 import com.devbrian.osebo.data.repository.SharedInventoryRepository
 import com.devbrian.osebo.data.repository.SharedReportsRepository
 import com.devbrian.osebo.data.repository.CreateSaleOutcome
+import com.devbrian.osebo.data.repository.DashboardDataCache
 import com.devbrian.osebo.data.repository.NewSaleDataCache
 import com.devbrian.osebo.data.repository.PendingSalesQueue
 import com.devbrian.osebo.data.repository.SharedSalesRepository
@@ -325,6 +326,7 @@ fun App() {
         val salesRepository = remember { SharedSalesRepository(api) }
         val pendingSalesQueue = remember { PendingSalesQueue(settingsStore, api) }
         val newSaleDataCache = remember { NewSaleDataCache(settingsStore) }
+        val dashboardDataCache = remember { DashboardDataCache(settingsStore) }
         val inventoryRepository = remember { SharedInventoryRepository(api) }
         val financeRepository = remember { SharedFinanceRepository(api) }
         val reportsRepository = remember { SharedReportsRepository(api) }
@@ -550,6 +552,7 @@ fun App() {
                     val selectedShop = selectedShopId?.let { id -> data.allShops.find { it.id == id } }
                     dashboardState = dashboardState.copy(
                         isLoading = false,
+                        isOffline = false,
                         isShopSelected = selectedShop != null,
                         selectedShopName = selectedShop?.name.orEmpty(),
                         selectedShopType = selectedShop?.shopType.orEmpty(),
@@ -564,15 +567,43 @@ fun App() {
                         shopPerformances = data.shopPerformances,
                         shops = data.shops,
                     )
+                    dashboardDataCache.cache(selectedShopId, data)
                 }
                 is ApiResult.Error -> dashboardState = dashboardState.copy(
                     isLoading = false,
                     errorMessage = result.message,
                 )
-                is ApiResult.NetworkError -> dashboardState = dashboardState.copy(
-                    isLoading = false,
-                    errorMessage = result.message,
-                )
+                is ApiResult.NetworkError -> {
+                    val cached = dashboardDataCache.cached(selectedShopId)
+                    if (cached != null) {
+                        shops = cached.allShops
+                        val selectedShop = selectedShopId?.let { id -> cached.allShops.find { it.id == id } }
+                        dashboardState = dashboardState.copy(
+                            isLoading = false,
+                            isOffline = true,
+                            errorMessage = null,
+                            isShopSelected = selectedShop != null,
+                            selectedShopName = selectedShop?.name.orEmpty(),
+                            selectedShopType = selectedShop?.shopType.orEmpty(),
+                            totalSales = cached.totalSales,
+                            totalExpenses = cached.totalExpenses,
+                            totalShopsLabel = cached.totalShopsLabel,
+                            todaySales = cached.todaySales,
+                            todayExpenses = cached.todayExpenses,
+                            todayBalance = cached.todayBalance,
+                            salesTrend = cached.salesTrend,
+                            expensesTrend = cached.expensesTrend,
+                            shopPerformances = cached.shopPerformances,
+                            shops = cached.shops,
+                        )
+                    } else {
+                        dashboardState = dashboardState.copy(
+                            isLoading = false,
+                            isOffline = true,
+                            errorMessage = result.message,
+                        )
+                    }
+                }
             }
         }
 
