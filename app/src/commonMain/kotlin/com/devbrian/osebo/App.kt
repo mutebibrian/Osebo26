@@ -44,6 +44,7 @@ import com.devbrian.osebo.data.remote.dto.request.CreateShopRequest
 import com.devbrian.osebo.data.remote.dto.request.LoginRequest
 import com.devbrian.osebo.data.remote.dto.request.SelectAccountRequest
 import com.devbrian.osebo.data.remote.dto.request.SignUpRequest
+import com.devbrian.osebo.data.remote.dto.request.UpdateShopRequest
 import com.devbrian.osebo.data.remote.dto.response.PackageDto
 import com.devbrian.osebo.data.remote.dto.response.ProductDto
 import com.devbrian.osebo.data.remote.dto.response.SaleApiData
@@ -381,6 +382,7 @@ fun App() {
         var shopsListState by remember { mutableStateOf(ShopsUiState()) }
         var shopFormState by remember { mutableStateOf(ShopFormUiState()) }
         var shopFormTypes by remember { mutableStateOf<List<ShopTypeDto>>(emptyList()) }
+        var editingShopId by remember { mutableStateOf<String?>(null) }
         var userRolesState by remember { mutableStateOf(UserRolesUiState()) }
         var userRolesSource by remember { mutableStateOf<List<DemoUserRole>>(emptyList()) }
         var userRolesEditCategories by remember { mutableStateOf<List<PermissionCategoryUi>>(emptyList()) }
@@ -942,11 +944,28 @@ fun App() {
 
         // Mirrors ShopCreationActivity.loadShopTypes, including its
         // hardcoded fallback pair when the endpoint is unreachable.
-        LaunchedEffect(authState, destination) {
+        LaunchedEffect(authState, destination, editingShopId) {
             if (authState !is AuthState.LoggedIn) return@LaunchedEffect
             if (destination != Destination.ShopForm) return@LaunchedEffect
 
-            shopFormState = ShopFormUiState(mode = ShopFormMode.Create, isTypeLoading = true)
+            val shopToEdit = editingShopId?.let { id -> shops.firstOrNull { it.id == id } }
+            shopFormState = if (shopToEdit != null) {
+                ShopFormUiState(
+                    mode = ShopFormMode.Edit,
+                    name = shopToEdit.name,
+                    address = shopToEdit.address.orEmpty(),
+                    type = shopToEdit.businessType ?: shopToEdit.shopType.orEmpty(),
+                    registrationNumber = shopToEdit.registrationNumber.orEmpty(),
+                    tin = shopToEdit.taxIdentificationNumber.orEmpty(),
+                    description = shopToEdit.description.orEmpty(),
+                    phone = shopToEdit.phone.orEmpty(),
+                    email = shopToEdit.email.orEmpty(),
+                    isActive = shopToEdit.isActive,
+                    isTypeLoading = true,
+                )
+            } else {
+                ShopFormUiState(mode = ShopFormMode.Create, isTypeLoading = true)
+            }
             val loaded = when (val result = shopsRepository.getShopTypes()) {
                 is ApiResult.Success -> result.data
                 is ApiResult.Error -> emptyList()
@@ -954,7 +973,10 @@ fun App() {
             }
             if (loaded.isNotEmpty()) {
                 shopFormTypes = loaded
-                shopFormState = shopFormState.copy(type = loaded.first().name, isTypeLoading = false)
+                shopFormState = shopFormState.copy(
+                    type = shopFormState.type.ifBlank { loaded.first().name },
+                    isTypeLoading = false,
+                )
             } else {
                 // Mirrors ShopCreationActivity.useFallbackShopTypes exactly,
                 // including its two hardcoded backend type IDs.
@@ -963,7 +985,7 @@ fun App() {
                     ShopTypeDto(id = "9423230e-df5a-4669-8fd8-193e11ce72b0", name = "Other"),
                 )
                 shopFormState = shopFormState.copy(
-                    type = "Retail",
+                    type = shopFormState.type.ifBlank { "Retail" },
                     isTypeLoading = false,
                     submitError = "Default shop types are available while the full list is offline.",
                 )
@@ -1990,10 +2012,55 @@ fun App() {
             selectedShopId = shop.id
         }
 
-        // Mirrors ShopCreationActivity.createShop/performCreateShop.
+        fun handleShopEditSuccess(shop: ShopDto) {
+            shops = shops.map { if (it.id == shop.id) shop else it }
+            shopFormState = ShopFormUiState()
+            editingShopId = null
+            destination = Destination.Shops
+            shopsListState = shopsListState.copy(
+                shops = shopsListState.shops.map { item ->
+                    if (item.id == shop.id) {
+                        item.copy(name = shop.name, location = shop.address ?: item.location)
+                    } else {
+                        item
+                    }
+                },
+            )
+        }
+
+        // Mirrors ShopCreationActivity.createShop/performCreateShop for
+        // Create. Edit hits PUT /shops/{id} instead, which only accepts
+        // name/address/phone/email/status — not shopTypeId/registration
+        // number/tin/description, so those stay display-only when editing.
         fun submitShopForm() {
             validateShopFormPrimaryStep()
             if (shopFormState.currentStep == 0 || shopFormState.isLoading) return
+
+            if (shopFormState.mode == ShopFormMode.Edit) {
+                val shopId = editingShopId
+                if (shopId == null) {
+                    shopFormState = shopFormState.copy(submitError = "No shop selected to edit")
+                    return
+                }
+                shopFormState = shopFormState.copy(isLoading = true, submitError = null)
+                scope.launch {
+                    val result = shopsRepository.updateShop(
+                        shopId,
+                        UpdateShopRequest(
+                            name = shopFormState.name.trim(),
+                            address = shopFormState.address.trim(),
+                            phone = shopFormState.phone.trim().ifEmpty { null },
+                            email = shopFormState.email.trim().ifEmpty { null },
+                        ),
+                    )
+                    when (result) {
+                        is ApiResult.Success -> handleShopEditSuccess(result.data)
+                        is ApiResult.Error -> shopFormState = shopFormState.copy(isLoading = false, submitError = result.message)
+                        is ApiResult.NetworkError -> shopFormState = shopFormState.copy(isLoading = false, submitError = result.message)
+                    }
+                }
+                return
+            }
 
             val accountId = sessionProvider.accountId()
             if (accountId.isNullOrBlank()) {
@@ -3090,12 +3157,19 @@ fun App() {
 
                     Destination.Shops -> ShopsScreen(
                         state = shopsListState,
-                        onAddShopClick = { destination = Destination.ShopForm },
+                        onAddShopClick = {
+                            editingShopId = null
+                            destination = Destination.ShopForm
+                        },
                         onRefreshClick = {},
                         onShopClick = { id ->
                             selectedShopId = id
                             sessionProvider.saveCurrentShopId(id)
                             destination = Destination.ShopDashboard
+                        },
+                        onEditClick = { id ->
+                            editingShopId = id
+                            destination = Destination.ShopForm
                         },
                         onSubscribeClick = { id ->
                             selectedShopId = id
@@ -3108,7 +3182,10 @@ fun App() {
                         state = shopFormState,
                         shopTypes = shopFormTypes.map { it.name },
                         onStateChange = { shopFormState = it },
-                        onBackClick = { destination = Destination.Shops },
+                        onBackClick = {
+                            editingShopId = null
+                            destination = Destination.Shops
+                        },
                         onContinue = ::validateShopFormPrimaryStep,
                         onSave = ::submitShopForm,
                     )

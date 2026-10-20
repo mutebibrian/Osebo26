@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
@@ -47,6 +48,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -77,6 +79,7 @@ fun ShopsScreen(
     onAddShopClick: () -> Unit,
     onRefreshClick: () -> Unit,
     onShopClick: (String) -> Unit,
+    onEditClick: (String) -> Unit,
     onSubscribeClick: (String) -> Unit,
 ) {
     val poppins = oseboFontFamily()
@@ -228,10 +231,9 @@ fun ShopsScreen(
                 else -> items(visibleShops, key = { it.id }) { shop ->
                     ShopCard(
                         shop = shop,
-                        onClick = {
-                            if (shop.isSubscriptionActive) onShopClick(shop.id)
-                            else onSubscribeClick(shop.id)
-                        },
+                        onViewClick = { onShopClick(shop.id) },
+                        onEditClick = { onEditClick(shop.id) },
+                        onActivateClick = { onSubscribeClick(shop.id) },
                     )
                     Spacer(Modifier.height(14.dp))
                 }
@@ -241,7 +243,12 @@ fun ShopsScreen(
 }
 
 @Composable
-private fun ShopCard(shop: ShopItemUi, onClick: () -> Unit) {
+private fun ShopCard(
+    shop: ShopItemUi,
+    onViewClick: () -> Unit,
+    onEditClick: () -> Unit,
+    onActivateClick: () -> Unit,
+) {
     val poppins = oseboFontFamily()
     val cardShape = RoundedCornerShape(28.dp)
     val cardColors = when {
@@ -269,7 +276,6 @@ private fun ShopCard(shop: ShopItemUi, onClick: () -> Unit) {
                 ),
             )
             .border(1.dp, Color.White.copy(alpha = 0.82f), cardShape)
-            .clickable(onClick = onClick)
             .padding(horizontal = 18.dp, vertical = 17.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -342,32 +348,82 @@ private fun ShopCard(shop: ShopItemUi, onClick: () -> Unit) {
                     .weight(1f)
                     .padding(start = 5.dp),
             )
+        }
 
-            Spacer(Modifier.width(10.dp))
+        Spacer(Modifier.height(12.dp))
 
-            Row(
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .background(if (shop.isSubscriptionActive) OseboBlue else Color(0xFFFFE8CF))
-                    .padding(horizontal = 16.dp, vertical = 9.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = if (shop.isSubscriptionActive) "Open shop" else "Activate plan",
-                    color = if (shop.isSubscriptionActive) Color.White else Color(0xFF9A5A18),
-                    fontFamily = poppins,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.SemiBold,
+        // Active (or trial) subscription: only View/Edit — there's nothing to
+        // "activate". No subscription yet, or it's expired: only the activate
+        // action — viewing/editing a shop you can't use isn't useful, and
+        // matches the backend's own gating (an inactive shop can't be opened).
+        if (shop.isSubscriptionActive) {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                ShopCardActionPill(
+                    label = "View shop",
+                    icon = Icons.AutoMirrored.Filled.ArrowForward,
+                    containerColor = OseboBlue,
+                    contentColor = Color.White,
+                    onClick = onViewClick,
+                    modifier = Modifier.weight(1f),
                 )
-                Spacer(Modifier.width(5.dp))
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = null,
-                    tint = if (shop.isSubscriptionActive) Color.White else Color(0xFF9A5A18),
-                    modifier = Modifier.size(14.dp),
+                ShopCardActionPill(
+                    label = "Edit",
+                    icon = Icons.Filled.Edit,
+                    containerColor = Color.White,
+                    contentColor = OseboBlue,
+                    onClick = onEditClick,
+                    modifier = Modifier.weight(1f),
                 )
             }
+        } else {
+            ShopCardActionPill(
+                label = "Activate shop subscription",
+                icon = Icons.AutoMirrored.Filled.ArrowForward,
+                containerColor = Color(0xFFFFE8CF),
+                contentColor = Color(0xFF9A5A18),
+                onClick = onActivateClick,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
+    }
+}
+
+@Composable
+private fun ShopCardActionPill(
+    label: String,
+    icon: ImageVector,
+    containerColor: Color,
+    contentColor: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val poppins = oseboFontFamily()
+    Row(
+        modifier = modifier
+            .clip(CircleShape)
+            .background(containerColor)
+            .let { if (containerColor == Color.White) it.border(1.dp, OseboBlue.copy(alpha = 0.35f), CircleShape) else it }
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 9.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            color = contentColor,
+            fontFamily = poppins,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Spacer(Modifier.width(5.dp))
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = contentColor,
+            modifier = Modifier.size(13.dp),
+        )
     }
 }
 

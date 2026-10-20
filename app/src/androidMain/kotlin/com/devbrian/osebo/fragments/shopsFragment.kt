@@ -49,6 +49,7 @@ class ShopsFragment : Fragment() {
                         onAddShopClick = ::navigateToShopCreation,
                         onRefreshClick = shopViewModel::loadShops,
                         onShopClick = ::openShop,
+                        onEditClick = ::navigateToShopEdit,
                         onSubscribeClick = ::openSubscription,
                     )
                 }
@@ -142,6 +143,16 @@ class ShopsFragment : Fragment() {
 
     private fun openSubscription(shopId: String) {
         shopsById[shopId]?.let(::navigateToSubscriptionPackages)
+    }
+
+    private fun navigateToShopEdit(shopId: String) {
+        val shop = shopsById[shopId] ?: return
+        runCatching {
+            val action = ShopsFragmentDirections.actionShopsFragmentToEditShopFragment(shop)
+            findNavController().navigate(action)
+        }.onFailure {
+            Toast.makeText(requireContext(), "Unable to edit this shop", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun navigateToShopCreation() {
