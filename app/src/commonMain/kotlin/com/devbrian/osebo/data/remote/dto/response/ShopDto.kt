@@ -45,7 +45,7 @@ data class ShopDto(
     val madeBy: MadeByDto? = null,
 
     @SerialName("status")
-    val status: String? = "active",
+    val status: String? = null,
 
     @SerialName("is_active")
     val isActive: Boolean = true,
@@ -59,6 +59,9 @@ data class ShopDto(
     @SerialName("subscription")
     val subscription: ShopSubscriptionDto? = null,
 
+    @SerialName("subscription_status")
+    val subscriptionStatusField: String? = null,
+
     @SerialName("shopType")
     val shopTypeObject: ShopTypeDto? = null,
 
@@ -69,21 +72,32 @@ data class ShopDto(
     val ownerId: String?
         get() = madeBy?.id
 
-    // Helper property to check if shop has active subscription
-    // Use isActive from subscription if available
+    // Helper property to check if shop has active subscription.
+    // Mirrors androidMain's Shop.isSubscriptionActive: the shops-list
+    // endpoint sends a flat "subscription_status" field per shop and
+    // doesn't populate the nested "subscription" object, so that flat
+    // field (then the shop's own "status") has to be checked first —
+    // relying on the nested object alone left every shop reading as
+    // inactive here while Android showed them correctly.
     val hasActiveSubscription: Boolean
-        get() = subscription?.isActive == true ||
-                subscription?.isTrialActive == true ||
-                subscription?.status.equals("ACTIVE", ignoreCase = true) == true ||
-                subscription?.status.equals("TRIAL", ignoreCase = true) == true
+        get() = subscriptionStatusField.equals("active", ignoreCase = true) ||
+                subscriptionStatusField.equals("trial", ignoreCase = true) ||
+                status.equals("active", ignoreCase = true) ||
+                status.equals("trial", ignoreCase = true) ||
+                subscription?.isActive == true ||
+                subscription?.isTrialActive == true
 
     // Helper property to get subscription status string
     val subscriptionStatusString: String
         get() = when {
-            subscription == null -> "INACTIVE"
-            subscription.isTrialActive -> "TRIAL"
-            subscription.isActiveStatus -> "ACTIVE"
-            subscription.status.equals("EXPIRED", ignoreCase = true) -> "EXPIRED"
+            subscriptionStatusField.equals("trial", ignoreCase = true) -> "TRIAL"
+            subscriptionStatusField.equals("active", ignoreCase = true) -> "ACTIVE"
+            subscriptionStatusField.equals("expired", ignoreCase = true) -> "EXPIRED"
+            status.equals("trial", ignoreCase = true) -> "TRIAL"
+            status.equals("active", ignoreCase = true) -> "ACTIVE"
+            subscription?.isTrialActive == true -> "TRIAL"
+            subscription?.isActiveStatus == true -> "ACTIVE"
+            subscription?.status.equals("EXPIRED", ignoreCase = true) == true -> "EXPIRED"
             else -> "INACTIVE"
         }
 
