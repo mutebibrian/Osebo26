@@ -85,7 +85,7 @@ class AccountRepository(
         status = status ?: if (isActive) "active" else "inactive",
         paymentMethod = preferenceManager.getString("payment_method"),
         billingCycle = preferenceManager.getSubscriptionType(),
-        nextBillingDate = subscription?.endsAt ?: preferenceManager.getSubscriptionExpiry(),
+        nextBillingDate = subscription?.latestEndsAt ?: preferenceManager.getSubscriptionExpiry(),
         twoFactorEnabled = preferenceManager.getBoolean("two_factor_enabled"),
         loginNotificationsEnabled = preferenceManager.isNotificationEnabled(),
         createdAt = createdAt.orEmpty(),

@@ -80,7 +80,7 @@ data class ShopEntity(
             val subscriptionStatus = dto.subscriptionStatusString
             val subscriptionExpiry = dto.subscriptionExpiryString
             val subscriptionType = dto.subscriptionTypeString
-            val planId = dto.subscription?.packageDetails?.id
+            val planId = dto.subscription?.primaryEntry?.packageDetails?.id
 
             // Get shop type name - use shopTypeObject if available, otherwise shopType string
             val shopTypeName = dto.shopTypeObject?.name ?: dto.shopType

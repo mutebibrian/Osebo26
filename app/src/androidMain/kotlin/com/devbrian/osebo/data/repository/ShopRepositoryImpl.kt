@@ -81,7 +81,7 @@ class ShopRepositoryImpl(
                     shops.forEachIndexed { index, dto ->
                         println("   API Shop[$index] - ID: ${dto.id}, Name: ${dto.name}")
                         if (dto.subscription != null) {
-                            println("        Subscription isActive: ${dto.subscription.isActive}")
+                            println("        Subscription isActive: ${dto.subscription.isActiveStatus}")
                             println("        Subscription isTrial: ${dto.subscription.isTrialActive}")
                         }
                     }
@@ -123,8 +123,8 @@ class ShopRepositoryImpl(
                             if (activeShop.hasActiveSubscription) "ACTIVE" else "INACTIVE"
                         )
                         preferenceManager.saveSubscriptionId(activeShop.subscription?.id ?: "")
-                        preferenceManager.saveSubscriptionType(activeShop.subscription?.packageType ?: "")
-                        preferenceManager.saveSubscriptionExpiry(activeShop.subscription?.endsAt ?: "")
+                        preferenceManager.saveSubscriptionType(activeShop.subscription?.packageDisplayName ?: "")
+                        preferenceManager.saveSubscriptionExpiry(activeShop.subscription?.latestEndsAt ?: "")
 
                         println("✅ Auto-activated shop: ${activeShop.name}")
                         preferenceManager.debugSubscriptionInfo()

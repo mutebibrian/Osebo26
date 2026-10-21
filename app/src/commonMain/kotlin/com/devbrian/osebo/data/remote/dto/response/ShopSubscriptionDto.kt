@@ -33,6 +33,13 @@ data class ShopSubscriptionDto(
     private val currentEntries: List<ShopPackageSubscriptionDto>
         get() = packageSubscriptions.filter { it.isCurrentlyActive }
 
+    // The entry other code should treat as "the" subscription when it needs
+    // one value (display name, start/end dates, duration): the current one
+    // if there is one, otherwise the most recent on record so an expired
+    // subscription still has something to show instead of nothing.
+    val primaryEntry: ShopPackageSubscriptionDto?
+        get() = currentEntries.firstOrNull() ?: packageSubscriptions.firstOrNull()
+
     val isActiveStatus: Boolean
         get() = currentEntries.isNotEmpty()
 
@@ -51,7 +58,7 @@ data class ShopSubscriptionDto(
         get() = currentEntries.mapNotNull { it.endsAt }.maxOrNull()
 
     val packageDisplayName: String?
-        get() = (currentEntries.firstOrNull() ?: packageSubscriptions.firstOrNull())?.packageDetails?.name
+        get() = primaryEntry?.packageDetails?.name
 
     companion object {
         fun createSample(active: Boolean = true, trial: Boolean = false): ShopSubscriptionDto = ShopSubscriptionDto(

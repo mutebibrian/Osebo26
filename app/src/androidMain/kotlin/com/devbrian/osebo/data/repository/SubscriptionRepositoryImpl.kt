@@ -63,25 +63,29 @@ class SubscriptionRepositoryImpl(
             profit = 0.0,
             totalProducts = 0,
             totalEmployees = 0,
-            subscriptionStatus = this.subscription?.status ?: "inactive",
-            subscriptionType = this.subscription?.packageType,
-            subscriptionExpiry = this.subscription?.endsAt,
-            planId = this.subscription?.packageDetails?.id,
+            subscriptionStatus = this.subscription?.displayStatus?.uppercase() ?: "INACTIVE",
+            subscriptionType = this.subscription?.packageDisplayName,
+            subscriptionExpiry = this.subscription?.latestEndsAt,
+            planId = this.subscription?.primaryEntry?.packageDetails?.id,
             subscription = subscription
         )
     }
 
     private fun ShopSubscriptionDto.toShopSubscription(): ShopSubscription {
-        // ✅ Removed the unused variable and the extra parameters
+        // Mirrors the real /shops shape: a subscription's own useful fields
+        // (status/dates/duration) live one level down, per packageSubscriptions
+        // entry, not on this object directly — primaryEntry picks the one to
+        // represent (the current one, or the most recent if none is current).
+        val entry = this.primaryEntry
         return ShopSubscription(
             id = this.id,
-            status = this.status,
-            packageType = this.packageType,
-            startsAt = this.startsAt,
-            endsAt = this.endsAt,
-            isActive = this.isActive,
-            durationDays = this.durationDays,
-            isTrial = this.isTrial
+            status = this.displayStatus.uppercase(),
+            packageType = this.packageDisplayName,
+            startsAt = entry?.startsAt,
+            endsAt = entry?.endsAt,
+            isActive = this.isActiveStatus,
+            durationDays = entry?.durationDays ?: 0,
+            isTrial = this.isTrialActive
         )
     }
 
