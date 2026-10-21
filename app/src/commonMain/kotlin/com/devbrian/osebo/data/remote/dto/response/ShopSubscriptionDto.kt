@@ -1,21 +1,119 @@
 package com.devbrian.osebo.data.remote.dto.response
 
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
+/**
+ * Mirrors the REAL /shops response shape for a shop's "subscription" field,
+ * confirmed from a live captured payload rather than assumed — an active
+ * shop's subscription looks like:
+ * {"id","is_paid","packageSubscriptions":[{"id","is_trial","cancelled_at",
+ * "starts_at","ends_at","duration_days","package":{...}}]}
+ * An inactive shop's subscription is simply null.
+ *
+ * There is no top-level status/is_active/package_type/ends_at on this
+ * object — a previous version of this class assumed those existed and
+ * every shop read as inactive as a result, regardless of its real state.
+ */
 @Serializable
 data class ShopSubscriptionDto(
     @SerialName("id")
-    val id: String? = null,  
+    val id: String? = null,
 
-    @SerialName("status")
-    val status: String? = null,  
+    @SerialName("is_paid")
+    val isPaid: Boolean = false,
 
-    @SerialName("package_type")
-    val packageType: String? = null,
+    @SerialName("packageSubscriptions")
+    val packageSubscriptions: List<ShopPackageSubscriptionDto> = emptyList(),
+) {
+    // Package subscriptions aren't deleted when they end — they're kept
+    // for history — so "active" means not cancelled and not past ends_at.
+    private val currentEntries: List<ShopPackageSubscriptionDto>
+        get() = packageSubscriptions.filter { it.isCurrentlyActive }
 
-    @SerialName("package")
-    val packageDetails: PackageDto? = null,
+    val isActiveStatus: Boolean
+        get() = currentEntries.isNotEmpty()
+
+    val isTrialActive: Boolean
+        get() = currentEntries.any { it.isTrial }
+
+    val displayStatus: String
+        get() = when {
+            isTrialActive -> "Trial"
+            isActiveStatus -> "Active"
+            packageSubscriptions.isNotEmpty() -> "Expired"
+            else -> "Inactive"
+        }
+
+    val latestEndsAt: String?
+        get() = currentEntries.mapNotNull { it.endsAt }.maxOrNull()
+
+    val packageDisplayName: String?
+        get() = (currentEntries.firstOrNull() ?: packageSubscriptions.firstOrNull())?.packageDetails?.name
+
+    companion object {
+        fun createSample(active: Boolean = true, trial: Boolean = false): ShopSubscriptionDto = ShopSubscriptionDto(
+            id = "sub_123",
+            isPaid = true,
+            packageSubscriptions = if (active) {
+                listOf(
+                    ShopPackageSubscriptionDto(
+                        id = "pkgsub_123",
+                        isTrial = trial,
+                        endsAt = "2099-12-31T00:00:00.000Z",
+                        durationDays = if (trial) 14 else 365,
+                        packageDetails = PackageDto.createSample(),
+                    ),
+                )
+            } else {
+                emptyList()
+            },
+        )
+
+        fun createExpired(): ShopSubscriptionDto = ShopSubscriptionDto(
+            id = "sub_123",
+            isPaid = true,
+            packageSubscriptions = listOf(
+                ShopPackageSubscriptionDto(
+                    id = "pkgsub_123",
+                    isTrial = false,
+                    endsAt = "2023-12-31T00:00:00.000Z",
+                    durationDays = 365,
+                    packageDetails = PackageDto.createSample(),
+                ),
+            ),
+        )
+
+        fun createPending(): ShopSubscriptionDto = ShopSubscriptionDto(id = "sub_123", isPaid = false)
+
+        fun createTrial(): ShopSubscriptionDto = ShopSubscriptionDto(
+            id = "sub_123",
+            isPaid = true,
+            packageSubscriptions = listOf(
+                ShopPackageSubscriptionDto(
+                    id = "pkgsub_123",
+                    isTrial = true,
+                    endsAt = "2099-01-15T00:00:00.000Z",
+                    durationDays = 14,
+                    packageDetails = PackageDto.createSample(),
+                ),
+            ),
+        )
+    }
+}
+
+@Serializable
+data class ShopPackageSubscriptionDto(
+    @SerialName("id")
+    val id: String? = null,
+
+    @SerialName("is_trial")
+    val isTrial: Boolean = false,
+
+    @SerialName("cancelled_at")
+    val cancelledAt: String? = null,
 
     @SerialName("starts_at")
     val startsAt: String? = null,
@@ -23,105 +121,18 @@ data class ShopSubscriptionDto(
     @SerialName("ends_at")
     val endsAt: String? = null,
 
-    @SerialName("is_active")
-    val isActive: Boolean = false,  
-
     @SerialName("duration_days")
     val durationDays: Int = 0,
 
-    @SerialName("is_trial")
-    val isTrial: Boolean = false
+    @SerialName("package")
+    val packageDetails: PackageDto? = null,
 ) {
-    
-    
-    val isActiveStatus: Boolean
-        get() = isActive || status.equals("ACTIVE", ignoreCase = true)
+    val isCurrentlyActive: Boolean
+        get() = cancelledAt == null && !isExpired
 
-    
-    val isTrialActive: Boolean
-        get() = (isTrial || status.equals("TRIAL", ignoreCase = true)) &&
-            (isActiveStatus || status.equals("TRIAL", ignoreCase = true))
-
-    
-    val displayStatus: String
-        get() = when {
-            isTrialActive -> "Trial"
-            isActiveStatus -> "Active"
-            status.equals("EXPIRED", ignoreCase = true) -> "Expired"
-            status.equals("PENDING", ignoreCase = true) -> "Pending"
-            else -> "Inactive"
+    val isExpired: Boolean
+        get() {
+            val end = endsAt ?: return false
+            return runCatching { Instant.parse(end) < Clock.System.now() }.getOrDefault(false)
         }
-
-    
-    val packageDisplayName: String
-        get() = packageDetails?.name ?: packageType ?: "No Plan"
-
-    
-    val durationDisplay: String
-        get() = when {
-            durationDays == 30 -> "1 month"
-            durationDays == 90 -> "3 months"
-            durationDays == 180 -> "6 months"
-            durationDays == 365 -> "1 year"
-            durationDays > 0 -> "$durationDays days"
-            else -> "Custom duration"
-        }
-
-    companion object {
-        fun createSample(active: Boolean = true, trial: Boolean = false): ShopSubscriptionDto {
-            return ShopSubscriptionDto(
-                id = "sub_123",
-                status = if (active) "ACTIVE" else "INACTIVE",
-                packageType = "PREMIUM",
-                packageDetails = PackageDto.createSample(),
-                startsAt = "2024-01-01T00:00:00Z",
-                endsAt = if (active) "2024-12-31T00:00:00Z" else null,
-                isActive = active,
-                durationDays = if (trial) 14 else 365,
-                isTrial = trial
-            )
-        }
-
-        fun createExpired(): ShopSubscriptionDto {
-            return ShopSubscriptionDto(
-                id = "sub_123",
-                status = "EXPIRED",
-                packageType = "BASIC",
-                packageDetails = PackageDto.createSample(),
-                startsAt = "2023-01-01T00:00:00Z",
-                endsAt = "2023-12-31T00:00:00Z",
-                isActive = false,
-                durationDays = 365,
-                isTrial = false
-            )
-        }
-
-        fun createPending(): ShopSubscriptionDto {
-            return ShopSubscriptionDto(
-                id = "sub_123",
-                status = "PENDING",
-                packageType = "PRO",
-                packageDetails = PackageDto.createSample(),
-                startsAt = null,
-                endsAt = null,
-                isActive = false,
-                durationDays = 30,
-                isTrial = false
-            )
-        }
-
-        fun createTrial(): ShopSubscriptionDto {
-            return ShopSubscriptionDto(
-                id = "sub_123",
-                status = "ACTIVE",
-                packageType = "BASIC",
-                packageDetails = PackageDto.createSample(),
-                startsAt = "2024-01-01T00:00:00Z",
-                endsAt = "2024-01-15T00:00:00Z",
-                isActive = true,
-                durationDays = 14,
-                isTrial = true
-            )
-        }
-    }
 }

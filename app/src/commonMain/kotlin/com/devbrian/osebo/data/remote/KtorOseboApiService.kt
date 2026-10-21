@@ -114,11 +114,8 @@ import kotlinx.coroutines.sync.withLock
  * search, the ledger's FinancialStatement, and the legacy Subscription
  * model — which pulls in java.text.SimpleDateFormat and android.R.color,
  * neither multiplatform-safe): searchProductByBarcode, searchProducts,
- * getGeneralLedger, getCustomerLedger,
+ * getGeneralLedger, getCustomerLedger, checkShopSubscription,
  * getShopSubscriptions, getUserShopsSubscriptions, getSubscriptionDetails.
- * checkShopSubscription turned out not to need this — it has its own
- * commonMain-safe ShopSubscriptionStatusDto that drops the legacy
- * Subscription field instead of porting it.
  * Those land once those models get a real multiplatform port (date
  * formatting via kotlinx-datetime, color resource IDs moved to an
  * androidMain extension). createShop/getShopTypes turned out not to need
@@ -765,16 +762,6 @@ class KtorOseboApiService(
                 header("X-Shop", shopId)
             }
         }
-
-    // Mirrors androidMain's ApiService.checkShopSubscription — the real
-    // source of truth for whether a shop's subscription is active. The
-    // /shops list endpoint's own per-shop fields don't reliably carry this.
-    // Returns ShopSubscriptionStatusDto directly rather than wrapped in
-    // ApiResponse<T>: its own serializer unwraps a "data" envelope if
-    // present, so this works whether or not the backend wraps this
-    // particular endpoint's response like it does every other one.
-    suspend fun checkShopSubscription(shopId: String): ApiResult<ShopSubscriptionStatusDto> =
-        execute { client.get("api/v1/subscription/shop/active") { header("X-Shop", shopId) } }
 
     suspend fun getSubscriptionPayments(
         shopId: String,

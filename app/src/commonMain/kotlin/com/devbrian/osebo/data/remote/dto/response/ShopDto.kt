@@ -59,9 +59,6 @@ data class ShopDto(
     @SerialName("subscription")
     val subscription: ShopSubscriptionDto? = null,
 
-    @SerialName("subscription_status")
-    val subscriptionStatusField: String? = null,
-
     @SerialName("shopType")
     val shopTypeObject: ShopTypeDto? = null,
 
@@ -72,42 +69,24 @@ data class ShopDto(
     val ownerId: String?
         get() = madeBy?.id
 
-    // Helper property to check if shop has active subscription.
-    // Mirrors androidMain's Shop.isSubscriptionActive: the shops-list
-    // endpoint sends a flat "subscription_status" field per shop and
-    // doesn't populate the nested "subscription" object, so that flat
-    // field (then the shop's own "status") has to be checked first —
-    // relying on the nested object alone left every shop reading as
-    // inactive here while Android showed them correctly.
+    // Helper property to check if shop has active subscription. Confirmed
+    // against a live captured /shops response: the shop object itself has
+    // no flat status/subscription_status field — "subscription" (possibly
+    // null) with its own packageSubscriptions is the only real signal.
     val hasActiveSubscription: Boolean
-        get() = subscriptionStatusField.equals("active", ignoreCase = true) ||
-                subscriptionStatusField.equals("trial", ignoreCase = true) ||
-                status.equals("active", ignoreCase = true) ||
-                status.equals("trial", ignoreCase = true) ||
-                subscription?.isActive == true ||
-                subscription?.isTrialActive == true
+        get() = subscription?.isActiveStatus == true
 
     // Helper property to get subscription status string
     val subscriptionStatusString: String
-        get() = when {
-            subscriptionStatusField.equals("trial", ignoreCase = true) -> "TRIAL"
-            subscriptionStatusField.equals("active", ignoreCase = true) -> "ACTIVE"
-            subscriptionStatusField.equals("expired", ignoreCase = true) -> "EXPIRED"
-            status.equals("trial", ignoreCase = true) -> "TRIAL"
-            status.equals("active", ignoreCase = true) -> "ACTIVE"
-            subscription?.isTrialActive == true -> "TRIAL"
-            subscription?.isActiveStatus == true -> "ACTIVE"
-            subscription?.status.equals("EXPIRED", ignoreCase = true) == true -> "EXPIRED"
-            else -> "INACTIVE"
-        }
+        get() = subscription?.displayStatus?.uppercase() ?: "INACTIVE"
 
     // Helper property to get subscription expiry
     val subscriptionExpiryString: String?
-        get() = subscription?.endsAt
+        get() = subscription?.latestEndsAt
 
     // Helper property to get subscription type
     val subscriptionTypeString: String?
-        get() = subscription?.packageType ?: subscription?.packageDetails?.type
+        get() = subscription?.packageDisplayName
 
     // Helper property to get display name with business type
     val displayName: String

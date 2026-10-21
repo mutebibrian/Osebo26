@@ -1,5 +1,6 @@
 package com.devbrian.osebo
 
+import com.devbrian.osebo.data.remote.dto.response.ShopPackageSubscriptionDto
 import com.devbrian.osebo.data.remote.dto.response.ShopSubscriptionDto
 import com.devbrian.osebo.data.remote.dto.response.ShopSubscriptionStatusResponse
 import com.devbrian.osebo.models.Subscription
@@ -100,12 +101,48 @@ class SubscriptionStatusResolutionTest {
 
     @Test
     fun trialShopSubscription_mapsToTrialStatus() {
+        // Real /shops shape, confirmed live: shop.subscription.packageSubscriptions[].
         val subscription = ShopSubscriptionDto(
-            status = "TRIAL",
-            isActive = false,
-            isTrial = true,
+            isPaid = true,
+            packageSubscriptions = listOf(
+                ShopPackageSubscriptionDto(
+                    isTrial = true,
+                    endsAt = "2099-01-01T00:00:00.000Z",
+                ),
+            ),
         )
 
         assertTrue(subscription.isTrialActive)
+    }
+
+    @Test
+    fun cancelledShopPackageSubscription_isNotActive() {
+        val subscription = ShopSubscriptionDto(
+            isPaid = true,
+            packageSubscriptions = listOf(
+                ShopPackageSubscriptionDto(
+                    isTrial = true,
+                    endsAt = "2099-01-01T00:00:00.000Z",
+                    cancelledAt = "2026-01-01T00:00:00.000Z",
+                ),
+            ),
+        )
+
+        assertFalse(subscription.isActiveStatus)
+    }
+
+    @Test
+    fun expiredShopPackageSubscription_isNotActive() {
+        val subscription = ShopSubscriptionDto(
+            isPaid = true,
+            packageSubscriptions = listOf(
+                ShopPackageSubscriptionDto(
+                    isTrial = true,
+                    endsAt = "2020-01-01T00:00:00.000Z",
+                ),
+            ),
+        )
+
+        assertFalse(subscription.isActiveStatus)
     }
 }
